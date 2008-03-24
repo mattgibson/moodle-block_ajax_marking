@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2007092300;
+        $this->version = 2007092500;
     }
 	
 	function specialization() {
@@ -71,14 +71,14 @@ class block_ajax_marking extends block_base {
 			<script type='text/javascript' src='".$CFG->wwwroot."/lib/yui/yahoo/yahoo-min.js'></script>
 			<script type='text/javascript' src='".$CFG->wwwroot."/lib/yui/event/event-min.js'></script>
 			<script type='text/javascript' src='".$CFG->wwwroot."/lib/yui/dom/dom-min.js'></script>
-			<script type='text/javascript' src='".$CFG->wwwroot."/lib/yui/treeview/treeview.js'></script>
+			<script type='text/javascript' src='".$CFG->wwwroot."/lib/yui/treeview/treeview-min.js'></script>
 			<script type='text/javascript' src='".$CFG->wwwroot."/lib/yui/connection/connection-min.js'></script>
 			
 			
             <script type='text/javascript' src='".$CFG->wwwroot."/lib/yui/yahoo-dom-event/yahoo-dom-event.js'></script> 
 			<script type='text/javascript' src='".$CFG->wwwroot."/lib/yui/container/container-min.js'></script>
 			
-		
+		    <script type='text/javascript' src='".$CFG->wwwroot."/blocks/ajax_marking/javascript.js'></script>
 			<div id='total'>
 				<div id='totalmessage'></div>
 				<div id='count'></div>
@@ -120,9 +120,8 @@ class block_ajax_marking extends block_base {
 				<div id ='img_6' class='icon-quiz'></div>
 				<div id ='img_7' class='icon-question'></div>
 				<div id ='img_8' class='icon-journal'></div>
-				<div id ='img_9' class='icon-course'></div>
 			</div>
-			    <script type='text/javascript' src='".$CFG->wwwroot."/blocks/ajax_marking/javascript.js'></script>
+			    
 				<script type='text/javascript' defer='defer'> 
 	 
 					function init() { 

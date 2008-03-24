@@ -85,7 +85,7 @@ function treeBuild() {
 	});
 */
 	root = tree.getRoot();
-	ajaxBuildStart();
+	ajaxBuild();
 }
 
 
@@ -94,7 +94,7 @@ function treeBuild() {
 // and when the tree is refeshed
 /////////////////////////////////////////////////////////////////////////
 
-function ajaxBuildStart() { //this one can only be run once - it stop duplication on page load. 
+function ajaxBuild() {
 	
 	if (loadCounter == 0) {
 		var img = '<img id="loader" src="'+wwwroot+'/lib/yui/treeview/assets/loading.gif" alt=\"loading\" />';
@@ -104,17 +104,6 @@ function ajaxBuildStart() { //this one can only be run once - it stop duplicatio
 		var request = YAHOO.util.Connect.asyncRequest('GET', sUrl, ajaxCallback); 
 		loadCounter = 1;
 	}
-}
-
-function ajaxBuild() {
-	
-		var img = '<img id="loader" src="'+wwwroot+'/lib/yui/treeview/assets/loading.gif" alt=\"loading\" />';
-		document.getElementById('icon').innerHTML = img;
-		var sUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+userid+'&type=courses&userid='+userid+'';
-	
-		var request = YAHOO.util.Connect.asyncRequest('GET', sUrl, ajaxCallback); 
-	
-	
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -234,9 +223,9 @@ function makeCourseNodes(nodesArray) {
 		document.getElementById('tree_control').innerHTML = '<a href=\"#\" onclick=\"refresh();return false\">'+collapseString+'</a>';
 		
 /// add tooltips if that option has been specified in config
-		 if (courseTooltips == 1) { 
-			 tooltips();
-		 }
+		// if (courseTooltips == 1) { 
+		//	 tooltips();
+		// }
 		
 	}
 }

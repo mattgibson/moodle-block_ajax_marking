@@ -250,8 +250,18 @@ class ajax_marking_functions {
 									// count workshop submissions for this workshop where there is no corresponding record of a teacher assessment
 									$sql = "SELECT COUNT(DISTINCT s.id) FROM ".$CFG->prefix."workshop_submissions s LEFT JOIN ".$CFG->prefix;
 									$sql .= "workshop_assessments a ON s.id = a.submissionid WHERE s.workshopid = '".$workshop->id;
-									$sql .= "' AND s.userid IN ($students) AND (a.userid != '".$this->userid."' OR  (a.userid = '".$this->userid."' AND a.grade = -1) OR a.userid IS NULL) ";
-									$sql .= "ORDER BY 's.timecreated DESC'";
+									$sql .= "' AND s.userid IN ($students) 
+                                                                 AND (
+                                                                                                                                            NOT EXISTS (
+                                                                                                                                                                 SELECT 1 FROM ".$CFG->prefix."workshop_assessments wa
+                                                                                 LEFT JOIN ".$CFG->prefix."workshop_submissions ws
+                                                                                 ON ws.id = wa.submissionid  
+                                                                                   WHERE wa.userid = '".$this->userid."'
+                                                                                      
+                                                                                  )
+
+                                                                       OR (a.userid = '".$this->userid."' AND a.grade = -1) 
+                                                                      )";
 									
 									if ($total = count_records_sql($sql)) {
 										if ($total > 0) {$count = $count + $total;} 
@@ -561,9 +571,23 @@ class ajax_marking_functions {
 					// count workshop submissions for this workshop where there is no corresponding record of a teacher assessment
 					$sql = "SELECT COUNT(DISTINCT s.id) FROM ".$CFG->prefix."workshop_submissions s LEFT JOIN ".$CFG->prefix;
 					$sql .= "workshop_assessments a ON s.id = a.submissionid WHERE s.workshopid = '".$workshop->id;
-					$sql .= "' AND s.userid IN ($students) AND (a.userid != '".$this->userid."'  OR (a.userid = '".$this->userid."' ";
-					$sql .= "AND a.grade = -1) OR a.userid IS NULL) ORDER BY 's.timecreated DESC'";
-					// $sql .= "' AND (a.userid <> '".$this->userid."' AND a.timegraded > 0) OR a.userid IS NULL  ORDER BY 's.timecreated DESC'";
+					$sql .= "' AND s.userid IN ($students)  
+                                        AND (
+                                                                                                                                            NOT EXISTS (
+                                                                                                                                                                 SELECT 1 FROM ".$CFG->prefix."workshop_assessments wa
+                                                                                 LEFT JOIN ".$CFG->prefix."workshop_submissions ws
+                                                                                 ON ws.id = wa.submissionid  
+                                                                                   WHERE wa.userid = '".$this->userid."'
+                                                                                      
+                                                                                  )
+
+
+                                             OR (a.userid = '".$this->userid."' AND a.grade = -1) 
+                                            ) 
+
+
+                                         ORDER BY 's.timecreated DESC'";
+				
 				  
 					$count = count_records_sql($sql);
 					//echo "<br />".$sql."<br />";
@@ -907,9 +931,27 @@ class ajax_marking_functions {
 		//http://study-space.com/mod/workshop/assess.php?id=40&sid=2
 	
 		// fetch workshop submissions for this workshop where there is no corresponding record of a teacher assessment
-		$sql = "SELECT s.id, s.userid, s.title, s.timecreated, s.workshopid FROM ".$CFG->prefix."workshop_submissions s LEFT JOIN ";
-		$sql .= $CFG->prefix."workshop_assessments a ON s.id = a.submissionid WHERE s.workshopid = '".$this->id."' AND s.userid IN ($students) AND (a.userid != '";
-		$sql .= $this->userid."'  OR (a.userid = '".$this->userid."' AND a.grade = -1) OR a.userid IS NULL) ORDER BY s.timecreated ASC";
+		$sql = "
+                     SELECT s.id, s.userid, s.title, s.timecreated, s.workshopid 
+                     FROM ".$CFG->prefix."workshop_submissions s LEFT JOIN ".$CFG->prefix."workshop_assessments a 
+                     ON s.id = a.submissionid 
+                           WHERE s.workshopid = '".$this->id."' 
+                                 AND s.userid IN ($students) 
+                                 AND (
+                                                                           AND (
+                                                                                                                                            NOT EXISTS (
+                                                                                                                                                                 SELECT 1 FROM ".$CFG->prefix."workshop_assessments wa
+                                                                                 LEFT JOIN ".$CFG->prefix."workshop_submissions ws
+                                                                                 ON ws.id = wa.submissionid  
+                                                                                   WHERE wa.userid = '".$this->userid."'
+                                                                                      
+                                                                                  )
+
+
+                                      OR (a.userid = '".$this->userid."' AND a.grade = -1) 
+                                     ) 
+                     ORDER BY 's.timecreated DESC'
+                      ";
 		
 		$submissions = get_records_sql($sql);		
 		
@@ -1134,7 +1176,7 @@ class ajax_marking_functions {
 		if ($question) { 
 			$attempts = get_records_sql("SELECT qa.* FROM {$CFG->prefix}quiz_attempts qa, {$CFG->prefix}question_sessions qs ".
 			"WHERE	quiz = $this->quizid AND qa.userid IN ($students) AND qa.timefinish > 0 ".
-			" AND qa.preview = 0 AND qs.questionid = '$question->id'  ORDER BY qa.timefinish ASC");
+			" AND qa.preview = 0 AND qs.questionid = '$question->id'");
 			if ($attempts) {
 				$this->output = '[{"type":"submissions"}';      // begin json object.
 			//	$data=array();
