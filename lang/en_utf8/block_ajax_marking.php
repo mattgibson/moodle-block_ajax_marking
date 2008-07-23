@@ -19,5 +19,6 @@ $string['assignment'] = 'Assignment';
 $string['workshop'] = 'Workshop';
 $string['forum'] = 'Forum';
 $string['ago'] = 'ago';
+$string['configure'] = 'configure';
 
 ?>

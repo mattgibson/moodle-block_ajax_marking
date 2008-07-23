@@ -1,15 +1,14 @@
 // JavaScript Document for including in the AJAX marking block
 
-var div ='';                      // this holds the status div so that the total count message can be put there
+
 //var nodesArray = '';              // this is what holds the data that comes back from the ajax calls
 var aidHolder = '';               // this holds the assessment id so it can be accessed by other functions
 var sidHolder = '';               // this holds the submission id so it can be accessed by other functions.
                                   // the above 2 variables sometimes hold different things e.g. user id or submission 
 								  // record id, depending on what sort of node it is
-var nodeHolder = '';              // this holds the parent node so it can be referenced by other functions
-var compHolder = '';              // this holds the callback function of the parent node so it can be called once all the child nodes have been built
-var root = '';                    // holds the root node of the tree so it can be refreshed and have children added
-var tree = '';                    // the entire tree as a variable
+
+//var root = '';                    // holds the root node of the tree so it can be refreshed and have children added
+//var tree = '';                    // the entire tree as a variable
 var href = '';                    // holds the link for the onclick - not used any more??
 var totalCount = 0;               // all pieces of work to be marked. Updated dynamically by altering this.             
 var valueDiv = '';                // the div that hold totalCount
@@ -30,19 +29,25 @@ var windowobj = '';                // this is the variable used by the openPopup
 var timerVar = '';                 // this holds the timer that keeps trying to add the onclick stuff to the pop ups as the pop up loads
 var frameTimerVar = '';            // same but for closing the frames for a workshop
 var t = 0;
-var loadCounter = 0;
+
+var main = '';
+var config = '';
+var img = '<img id="loader" src="'+wwwroot+'/lib/yui/treeview/assets/loading.gif" alt=\"loading\" />';
+
+
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // this function gets all the variables that have been put into hidden inputs in the block by PHP and makes them into javascript vars ready to be used
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 function getVars() {
-	 div = document.getElementById('status');
+	 
    	 wwwroot = document.getElementById('wwwrootvalue').value;
 	 // sort out the https in case it is present
 	 if (window.location.href.match(/https:/)) {
 		wwwroot = wwwroot.replace(/http:/, "https:");
-	}
+	 }
  	 theme = document.getElementById('themevalue').value;
  	 userid = document.getElementById('useridvalue').value;
  	 forumString = document.getElementById('forum_string').value;
@@ -50,214 +55,432 @@ function getVars() {
 	 workshopString = document.getElementById('workshop_string').value;
 	 assignmentWorkString = document.getElementById('assignment_work_string').value;
 	 workshopWorkString = document.getElementById('workshop_work_string').value;
-     totalMessage = document.getElementById('total_string').value+': &nbsp;';
+         totalMessage = document.getElementById('total_string').value+': &nbsp;';
 	 collapseString = document.getElementById('collapse_string').value;
 	 nothingString = document.getElementById('nothing_string').value;
 	 forumSaveString = document.getElementById('forumsavestring').value;
 	 quizString = document.getElementById('quizstring').value;
-	quizSaveString = document.getElementById('quizsavestring').value;
-	journalString = document.getElementById('journalstring').value;
-	journalSaveString = document.getElementById('journalsavestring').value;
+   	 quizSaveString = document.getElementById('quizsavestring').value;
+	 journalString = document.getElementById('journalstring').value;
+         journalSaveString = document.getElementById('journalsavestring').value;
 }
 
 
-////////////////////////////////////////////////////////////////////
-// Function to initialise the tree object and call the ajax bits
-////////////////////////////////////////////////////////////////////
 
-function treeBuild() {	
-  
-    tree = '';
-	root = '';
-	tree = new YAHOO.widget.TreeView('treediv'); 
-/// the following will not work until YUI is updated, but when it does, it will preload all the icons.
-///	tree.preload();
 
+
+
+// This is the main constructor function for the class that will form the marking tree. There are 2 types of tree - for both the main marking block and 
+// the config screen, so this allows efficient code reuse.
+
+function AJAXtree(treeDiv, icon, statusDiv, config) {
 	
-/// set the removal of all child nodes each time a node is collapsed (forces refresh)
-	tree.subscribe('collapseComplete', function(node) { 
-		tree.removeChildren(node); 
-	});
-/*
-/// set it so that the node data will pop-up when it is clicked	
-	tree.subscribe('onmouseover', function(node) { 
-        alert(node.data.summary);
-	});
-*/
-	root = tree.getRoot();
-	ajaxBuild();
-}
-
-
-/////////////////////////////////////////////////////////////////////////
-// Function to make the initial nodes (courses) when the page first loads
-// and when the tree is refeshed
-/////////////////////////////////////////////////////////////////////////
-
-function ajaxBuild() {
+//	var root = null;
+///	var tree = null;
+	//this.tree = tree;
+//	this.root = root;
 	
-	if (loadCounter == 0) {
-		var img = '<img id="loader" src="'+wwwroot+'/lib/yui/treeview/assets/loading.gif" alt=\"loading\" />';
-		document.getElementById('icon').innerHTML = img;
-		var sUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+userid+'&type=courses&userid='+userid+'';
 	
-		var request = YAHOO.util.Connect.asyncRequest('GET', sUrl, ajaxCallback); 
-		loadCounter = 1;
-	}
-}
+	this.config = config || null;
+	this.loadCounter = 0;
+	var nodeHolder  = '';              // this holds the parent node so it can be referenced by other functions
+        var compHolder = '';              // this holds the callback function of the parent node so it can be called once all the child nodes have been built
+        //this.ajax = YAHOO.util.Connect.asyncRequest
+	
+	/////////////////////////////////////////////////////////////////////////
+	// Function to make the initial nodes (courses) when the page first loads
+	// and when the tree is refeshed
+	/////////////////////////////////////////////////////////////////////////
+	
+	this.ajaxBuild = function() {
+                var sUrl = '';
+		if (this.loadCounter === 0) {
+			//var img = '<img id="loader" src="'+wwwroot+'/lib/yui/treeview/assets/loading.gif" alt=\"loading\" />';
+			this.icon.innerHTML = img;
+			
+			if (treeDiv == 'configTree') { // if this is the config tree, we need to ask for config_courses
+			    sUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+userid+'&type=config_main&userid='+userid+'';
+			} else {
+			    sUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+userid+'&type=main&userid='+userid+'';
+			}
+			
+			var request = YAHOO.util.Connect.asyncRequest('GET', sUrl, this.ajaxCallback);
+			this.loadCounter = 1;
+		}
+	};
 
-///////////////////////////////////////////////////////////////////////////////////
-// Callback functions for the  AJAX call, which checks what kind of data is coming back
-// and fires the correct function.
-///////////////////////////////////////////////////////////////////////////////////
 
-var ajaxCallback = {
 
-	success: function (o) {
-		
-		var type = '';
-		var responseArray = '';
-		
-		responseArray = eval(o.responseText);
+/**
+ * Callback functions for the AJAX call, which checks what kind of data is coming back
+ * and fires the correct function.
+ */
+
+//function ajaxCallback() {
+
+	var AJAXsuccess = function (o) {
+	
+	
+		var type = null;
+		var responseArray = null;
+                //if (userid == 2) {
+	//alert(o.responseText);
+               //  }
+		    responseArray = eval(o.responseText);
+               
 		type = responseArray[0].type; // fist object holds data about what kind of nodes we have so we can fire the right function.
 		responseArray.shift(); // remove the data object, leaving just the node objects
 		
 		switch (type) {
 			
-		case 'courses':		
-			makeCourseNodes(responseArray);
+		case 'main':
+			//alert ('before make');
+			this.makeCourseNodes(responseArray);
+			
 			break;
 		
-		case 'assessments':
-			makeAssessmentNodes(responseArray);
+		case 'course':
+			//alert('before assess');
+			this.makeAssessmentNodes(responseArray);
 			break;
+                
+                case 'quiz_question':
+                      this.makeAssessmentNodes(responseArray);
+                      break;
 			
 		case 'groups':
-			makeGroupNodes(responseArray);
+			//alert('case');
+			this.makeGroupNodes(responseArray);
 			break;
 			
 		case 'submissions':
-			makeSubmissionNodes(responseArray);
+			
+			this.makeSubmissionNodes(responseArray);
 			break;
-		}
+			
+		case 'config_main':	
+		
+			this.makeCourseNodes(responseArray);
+			break;
+			
+		case 'config_course':	
+		
+			this.makeAssessmentNodes(responseArray);
+			break;
+			
+		case 'config_groups':	
+		
+			this.makeGroupsList(responseArray);
+			break;
+			
+		case 'config_set': //just need to un-disable the radio button
+		
+			if (responseArray[0].value == false) {
+				this.status.innerHTML = 'AJAX error';
+			} else {
+				this.enableRadio();
+			}
+			break;
+			
+		case 'config_check':
+			
+			var checkId = 'config'+responseArray[0].value; // make the id of the radio button div
+			//alert(responseArray[0].value);
+			document.getElementById(checkId).checked = true; // make the radio button on screen match the value in the database that was just returned.
+			//if its the groups one, make the groups bit
+			if (responseArray[0].value == 2) {
+				responseArray.shift(); // remove the config bit leaving just the groups.
+				this.makeGroupsList(responseArray); //make the groups bit
+			}
+			this.enableRadio(); //allow the radio buttons to be clicked again
+			break;
+			
+		case 'config_group_save':
+		
+			if (responseArray[0].value == false) {
+				this.status.innerHTML = 'AJAX error';
+			} else {
+				this.enableRadio();
+			}
+			
+			break;
+			
+		}// end switch
 	
-	},
+	};
 	
-	failure: function (o) 
+	var AJAXfailure = function (o) 
 	{
 		if (o.tId == -1) {
 			div.innerHTML =  '<br />AJAX connection timed out.<br/>Click "collapse and refresh" to retry';
-			//div.innerHTML += 'Transaction id:' + o.tId + '<br/>'; 
-			//div.innerHTML += 'HTTP status:' + o.status + '<br/>'; 
-			//div.innerHTML += 'Status code message:' + o.statusText + '<br/>';
 		}
-		if (o.tId == 0) {
-		div.innerHTML = '<br />AJAX connection failed.<br />Check your connection and click<br />"collapse and refresh" to retry';
+		if (o.tId === 0) {
+			div.innerHTML = '<br />AJAX connection failed.<br />Check your connection and click<br />"collapse and refresh" to retry';
 		}
-	},
+	};
 	
-timeout: 12000
-
-};
 
 
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// This is the callback for the loadAssessmentNodeData function and will add any data to the tree, before 
-/// re-drawing it. This is called when a course node is clicked.
-///////////////////////////////////////////////////////////////////////////////////////////////////////////
+	var ajaxCallback = 
+	{
+          cache: false,
+	  success:AJAXsuccess, 
+	  failure:AJAXfailure, 
+	  argument:1200,
+	  scope: this
+	}; 
 
-/*
-var assessmentCallback = {
-
-	success: function (o) {
-		
-		makeAssessmentNodes(o);
-		
-	},
+	// enables the config radio buttons on completion of successful AJAX request
 	
-	failure: function (o) {
-		div.innerHTML =  '<br />AJAX Error - check your connection <br/>';
-		div.innerHTML += 'Transaction id:' + o.tId + '<br/>'; 
-		div.innerHTML += 'HTTP status:' + o.status + '<br/>'; 
-		div.innerHTML += 'Status code message:' + o.statusText + '<br/>';
-	},
-	timeout: 7000
-};
-*/
-
-function makeCourseNodes(nodesArray) {
-	
-	var nodesLeng = '';
-	
-	// uncomment for verbatim on screen output of the AJAX response for assessment and submission nodes
-	//div.innerHTML += o.responseText;
-	
-/// make the array of nodes
-	nodesLeng = nodesArray.length;
-	
-	if (nodesLeng === 0) { // the array is empty, so say there is nothing to mark
-		div.innerHTML = nothingString;
-		document.getElementById('icon').innerHTML = '';
+	this.enableRadio = function() {
+		var h ='';
+		var radio = document.getElementById('configshowform');
+		radio.style.color = '#000';
+		var nodes = radio.getElementsByTagName('input');
+		for (h = 0; h < nodes.length; h++) {
+			nodes[h].disabled = false;
+		}
+		var groupDiv = document.getElementById('configGroups');	
+		groupDiv.style.color = '#000';
+		var groupNodes = groupDiv.getElementsByTagName('checkbox');
+		for (h = 0; h < groupNodes.length; h++) {
+			groupNodes[h].enabled = true;
+		}
+			
 	}
-	else { // there is a tree to be drawn
-	
-/// cycle through the array and make the nodes
-		var i = 0;
-		for (n=0;n<nodesLeng;n++) {
-			var label = nodesArray[n].name+' ('+nodesArray[n].count+')';
-			var myobj = { label: ''+label+'', id:''+nodesArray[n].id+'', 
-						  type:''+nodesArray[n].type+'', count:''+nodesArray[n].count+'', 
-						  cid:''+nodesArray[n].cid+'', name:''+nodesArray[n].name+'', 
-						  summary:''+nodesArray[n].summary+''};
-	
-			var tmpNode1 = new YAHOO.widget.TextNode(myobj, root, false);
-			tmpNode1.labelStyle = 'icon-course';
-			tmpNode1.setDynamicLoad(loadNodeData);
+	this.disableRadio = function() {
+		var h ='';
+		var radio = document.getElementById('configshowform');
+		radio.style.color = '#AAA';
+		var nodes = radio.getElementsByTagName('input');
+		for (h = 0; h < nodes.length; h++) {
+			nodes[h].disabled = true;
 		}
-		
-/// now make the tree, add the total at the top and remove the loading icon
-		tree.draw();
-		document.getElementById('totalmessage').innerHTML = totalMessage;
-		updateTotal();
-		document.getElementById('icon').innerHTML = '';
-		document.getElementById('tree_control').innerHTML = '<a href=\"#\" onclick=\"refresh();return false\">'+collapseString+'</a>';
-		
-/// add tooltips if that option has been specified in config
-		// if (courseTooltips == 1) { 
-		//	 tooltips();
-		// }
-		
+		var groupDiv = document.getElementById('configGroups');	
+		groupDiv.style.color = '#AAA';
+		var groupNodes = groupDiv.getElementsByTagName('checkbox');
+		for (h = 0; h < groupNodes.length; h++) {
+			groupNodes[h].disabled = true;
+		}
 	}
-}
+	
+        // don't remember what this is for.
+	var disableRadio = this.disableRadio;
+	
+	
+	// this function is called when a node is clicked (expanded) and makes the ajax request
+
+	this.loadNodeData = function(node, onCompleteCallback) { 
+	
+	/// store details of the node that has been clicked in globals for reference by later callback function 
+		nodeHolder = node;
+		compHolder = onCompleteCallback;
+		//var quizid = 0;
+		//if (node.data.type == 'quiz_submissions') {// need to send this only for the quiz questions as the db query needs this extra parameter
+		//	quizid = node.parent.data.id;
+			//alert(quizid);
+		//} 
+		
+	/// request data using AJAX 
+		var sUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+node.data.id+'&type='+node.data.type+'&userid='+userid+'';
+		
+		if (typeof(node.data.gid) != 'undefined') { sUrl += '&group='+node.data.gid; } //add group id if its there
+		if (node.data.type == 'quiz_question') { sUrl += '&quizid='+node.parent.data.id; } //add quiz id if this is a question node
+	//alert(sUrl);
+		var request = YAHOO.util.Connect.asyncRequest('GET', sUrl, ajaxCallback);
+	};
+
+	
+	
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// function to update the parent assessment node when it is refreshed dynamically so that 
+	// if more work has been found, or a piece has now been marked, the count for that label will be accurate
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	
+	this.parentUpdate = function(node) {
+	
+		var counter = node.children.length;
+		//alert('length: '+counter);
+		//alert('assid: '+node.data.assid);
+		if (counter === 0) {
+			this.tree.removeNode(node, true);
+		} else {
+		
+			if (node.data.type == 'course' || node.children[0].data.gid != 'undefined' || node.data.type == 'forum' || node.data.type == 'quiz') { // we need to sum child counts
+			  
+				var tempCount = 0;
+				var tempStr = '';
+				for (i=0;i<counter;i++) {
+					
+					tempStr = node.children[i].data.count;
+					//alert('node count: '+tempStr);
+					tempCount += parseInt(tempStr);
+				}
+				//alert('total: '+tempCount);
+				countAlter(node, tempCount);
+			} else { // its an assessment node, so we count the children
+				countAlter(node, counter);
+			}
+	
+			this.root.refresh();
+	
+		}
+	};
 
 
+	
+	///////////////////////////////////////////////////////////////////////////////////////
+	// function to create tooltips. When root.refresh() is called it somehow wipes 
+	// out all the tooltips, so it is necessary to rebuild them
+	// each time part of the tree is collapsed or expanded
+	// tooltips for the courses are a bit pointless, so its just the assignments and submissions
+	///////////////////////////////////////////////////////////////////////////////////////
+	
+	// n.b. the width of the tooltips is fixed because not specifying it makes them go narrow in IE6. making them 100% works fine in IE6 but makes FF 
+	// stretch them across the whole page. 200px is a guess as to a good width for a 1024x768 screen based on the width of the block. Change it in both places below
+	// if you don't like it
+	
+	// IE problem - the tooltips appear to interfere with the submission nodes using ie, so that they are not always clickable, but only when the user 
+	// clicks the node text rather than the expand (+) icon. Its not related to the timings as using setTimeout to delay the generation of the tooltips 
+	// makes no difference 
+	
+	this.tooltips = function() {
+	//	alert('tooltips');
+		var name = navigator.appName;
+		if (name != "Microsoft Internet Explorer") { 
+		// this is disabled for IE because, although useful, in IE6 (assuming others too) the tooltips seem to sometimes remain as an invisible div on top 
+		// of the tree structure once nodes has expanded, so that some of the child nodes are unclickable. Firefox is ok with it. This is a pain
+		// because a person may not remember the full details of the assignment that was set and a tooltip is better than leaving the front page.	
+		// I will re-enable it once I find a fix
+	
+			var i = 0;
+			var j = 0;
+			var k = 0;
+			var m = 0;
+                        var n = 0;
+			var control = '';
+			if (config === true) {
+				control = document.getElementById('config_tree_control');
+			} else {
+				control = document.getElementById('tree_control');
+			}
+		/// 1. all courses loop
+			var numberOfCourses = this.root.children.length;
+			for (i=0;i<numberOfCourses;i++) {
+                            var numberOfAssessments = this.root.children[i].children.length;
+                            for (j=0;j<numberOfAssessments;j++) {
+                                node = this.root.children[i].children[j];
+                                //this.make_tooltip(node, control);
+                                var numberOfThirdLevelNodes = this.root.children[i].children[j].children.length;
+                                for (k=0;k<numberOfThirdLevelNodes;k++) {
+                                    node = this.root.children[i].children[j].children[k];
+                                    check = node.data.time;
+                                    if (typeof(check) != null) {
+                                        this.make_tooltip(node, control)
+                                    }
+                                    var numberOfFourthLevelNodes = node.children.length;
+                                    for (m=0;m<numberOfFourthLevelNodes;m++) {
+                                        node = this.root.children[i].children[j].children[k].children[m];
+                                        this.make_tooltip(node, control);
+                                        var numberOfFifthLevelNodes = node.children.length;
+                                        for (n=0;n<numberOfFifthLevelNodes;n++) {
+                                           node = this.root.children[i].children[j].children[k].children[m].children[n];
+                                           this.make_tooltip(node, control);
+                                       }
+                                    }								
+                                }	 
+			    }
+			}
+		}
+	};
+        
+        this.make_tooltip = function(node, control) {
+            tempLabelEl = node.getLabelEl();
+            tempText = node.data.summary;
+            tempTooltip = new YAHOO.widget.Tooltip('tempTooltip', { context:tempLabelEl, text:tempText, showdelay:0, hidedelay:0, container:control, zIndex:110} );	
+        }
+
+	// makes the first level of the tree from the data returned via ajax.
+
+	this.makeCourseNodes = function(nodesArray) {
+		//alert('make');
+		var nodesLeng = null;
+		var label = '';
+		// uncomment for verbatim on screen output of the AJAX response for assessment and submission nodes
+		//this.div.innerHTML += o.responseText;
+		
+	/// make the array of nodes
+		nodesLeng = nodesArray.length;
+		
+		if (nodesLeng === 0) { // the array is empty, so say there is nothing to mark
+			if (this.config === true) {
+				this.div.innerHTML = configNothingString;
+				this.icon.innerHTML = '';
+			} else {
+				this.div.innerHTML = nothingString;
+				this.icon.innerHTML = '';
+			}
+		}
+		else { // there is a tree to be drawn
+		
+	/// cycle through the array and make the nodes
+		       var i = 0;
+			for (n=0;n<nodesLeng;n++) {
+				if (!this.config) { //only show the marking totals if its not a config tree
+					label = nodesArray[n].name+' ('+nodesArray[n].count+')';
+				} else {
+					label = nodesArray[n].name;
+				}
+				var myobj = { label: ''+label+'', 
+                                              id:''+nodesArray[n].id+'', 
+					      type:''+nodesArray[n].type+'', 
+                                              count:''+nodesArray[n].count+'', 
+					      cid:''+nodesArray[n].cid+'', 
+                                              uniqueId:''+nodesArray[n].cid+'', 
+                                              name:''+nodesArray[n].name+'', 
+					      summary:''+nodesArray[n].summary+''
+                                              
+                                            };
+		
+				var tmpNode1 = new YAHOO.widget.TextNode(myobj, this.root, false);
+				tmpNode1.labelStyle = 'icon-course';
+				tmpNode1.setDynamicLoad(this.loadNodeData);
+			}
+			
+	/// now make the tree, add the total at the top and remove the loading icon
+	
+			this.tree.draw();
+			this.icon.innerHTML = '';
+			document.getElementById('totalmessage').innerHTML = totalMessage;
+			this.updateTotal();
+		}
+	};
 
 
 ///////////////////////////////////////////////////////
 // new function to make an assessment node
 ////////////////////////////////////////////////////////
 
-function makeAssessmentNodes(nodesArray) {
-    // uncomment for verbatim on screen output of the AJAX response for assessment and submission nodes
-    // div.innerHTML += o.responseText;
+	this.makeAssessmentNodes = function(nodesArray) {
+	// uncomment for verbatim on screen output of the AJAX response for assessment and submission nodes
+	// this.div.innerHTML += o.responseText;
 	// alternatively, use the firebug extension for mozilla firefox - less messy.
 
-
- 		var myobj = '';
+		var myobj = '';
 		var aidHolder = '';
 		var sidHolder = '';
-		var remId = '';
+		var uniqueId = '';
 		var tmpNode2 = '';
 		var tmpNode3 = '';
 		var clickNode = '';
 		var nodesLeng = '';
+		var label = '';
 		
-			
 /// First the courses array
 		
 		nodesLeng = nodesArray.length;
 	
-			
 /// cycle through the array and make the nodes
 
 		for (m=0;m<nodesLeng;m++) {
@@ -270,582 +493,732 @@ function makeAssessmentNodes(nodesArray) {
 
 			switch (nodesArray[m].type) {
 				
-			case 'assignment_submissions':
+			case 'assignment':
 				nodesArray[m].summary = '<strong>'+assignmentString+':</strong> '+nodesArray[m].summary+'';
 				break;
-			case 'workshop_submissions':
+			case 'workshop':
 				nodesArray[m].summary = '<strong>'+workshopString+':</strong> '+nodesArray[m].summary+'';
 				break;
-			case 'forum_submissions':
+			case 'forum':
 				nodesArray[m].summary = '<strong>'+forumString+':</strong> '+nodesArray[m].summary+'';
 				break;
-			case 'quiz_questions':
+			case 'quiz':
 				nodesArray[m].summary = '<strong>'+quizString+':</strong> '+nodesArray[m].summary+'';
 				break;
-			case 'journal_submissions':
+			case 'journal':
+				nodesArray[m].summary = '<strong>'+journalString+':</strong> '+nodesArray[m].summary+'';
+				break;
+                        case 'journal_submissions':
 				nodesArray[m].summary = '<strong>'+journalString+':</strong> '+nodesArray[m].summary+'';
 				break;
 			}
 			
-/// make the label from the name and count
-			var label = nodesArray[m].name+' ('+nodesArray[m].count+')';
-			var remId = nodesArray[m].type+nodesArray[m].id + 'sid' + nodesArray[m].assid + '';
+/// make the label from the name and count (no need for the count if this is a config tree)
+			if (!this.config) {
+				label = nodesArray[m].name+' ('+nodesArray[m].count+')';
+			} else {
+				label = nodesArray[m].name;
+			}
+			//uniqueId = nodesArray[m].type+nodesArray[m].id + 'sid' + nodesArray[m].assid + ''; // unique id for removal - deprecated?
 			
 /// put it all together into an object
-		    myobj = { label:''+label+'', id:''+nodesArray[m].id+'', type:''+nodesArray[m].type+'',
-			           assid:''+nodesArray[m].assid+'', count:''+nodesArray[m].count+'', name:''+nodesArray[m].name+'',
-					   summary:''+nodesArray[m].summary+''};
-					   
-// , href:'javascript:null(0)'
+                        if (nodesArray[m].type == 'quiz_question') {
+                            myobj = { label:''+label+'', 
+                                  id:''+nodesArray[m].id+'', 
+                                  type:''+nodesArray[m].type+'',
+			          assid:''+nodesArray[m].assid+'', 
+                                  uniqueId:''+nodesArray[m].assid+'', 
+                                  count:''+nodesArray[m].count+'', 
+                                  name:''+nodesArray[m].name+'',
+                                  summary:''+nodesArray[m].summary+'',
+                                  gid:''+nodesArray[m].group+''
+                                };
+                        } else{
+			myobj = { label:''+label+'', 
+                                  id:''+nodesArray[m].id+'', 
+                                  type:''+nodesArray[m].type+'',
+			          assid:''+nodesArray[m].assid+'', 
+                                  uniqueId:''+nodesArray[m].assid+'', 
+                                  count:''+nodesArray[m].count+'', 
+                                  name:''+nodesArray[m].name+'',
+                                  summary:''+nodesArray[m].summary+''
+                                };
+			}	   
 			 
 /// use the object to create a new node
-			tmpNode2 = new YAHOO.widget.TextNode(myobj, nodeHolder, false);
-			
+			tmpNode2 = new YAHOO.widget.TextNode(myobj, nodeHolder , false);
+		
 /// style the node acording to its type
 			switch (nodesArray[m].type) {
 				
-			case 'assignment_submissions': 
+			case 'assignment': 
 				tmpNode2.labelStyle = 'icon-assign';
 				break;	
-			case 'workshop_submissions':
+			case 'workshop':
 				tmpNode2.labelStyle = 'icon-workshop';
 				break;
-			case 'forum_submissions':
+			case 'forum':
 				tmpNode2.labelStyle = 'icon-forum';
 				break;
-			case 'quiz_submissions':
+			case 'quiz_question':
 				tmpNode2.labelStyle = 'icon-question';
 				break;
-			case 'quiz_questions':
+			case 'quiz':
 				tmpNode2.labelStyle = 'icon-quiz';
 				break;
-			case 'journal_submissions':
+			case 'journal':
 				tmpNode2.labelStyle = 'icon-journal';
 				break;
 			}
 			
-/// Journals are a special case as they need no children (all students appear on one page), so we make them clickable
 		   
-           if (nodesArray[m].type == 'journal_submissions') {
+		   if (this.config === true) { // set the onclick to be the function that populates the config div
+                      clickNode = this.tree.getNodeByProperty('assid', nodesArray[m].assid);
+
+                      clickNode.onLabelClick = function(me) {
+                          //alert('clicked');
+                          var title = document.getElementById('configInstructions');
+                          var check = document.getElementById('configshowform');
+                          document.getElementById('configGroups').innerHTML = '';
+
+                          // remove all nodes from previously built form
+                          var len = check.childNodes.length;
+                          while (check.hasChildNodes()) {
+                            check.removeChild(check.firstChild);
+                          }
+
+                          title.innerHTML = me.data.name;
+                          check.style.color = '#AAA';
+
+                          var hidden1 = document.createElement('input');
+                                  hidden1.type  = 'hidden';
+                                  hidden1.name  = 'course';
+                                  hidden1.value = me.parent.data.id;
+                          check.appendChild(hidden1);
+                          var hidden2 = document.createElement('input');
+                                  hidden2.type  = 'hidden';
+                                  hidden2.name  = 'assessment';
+                                  hidden2.value = me.data.id;
+                          check.appendChild(hidden2);
+                          var hidden3 = document.createElement('input');
+                                  hidden3.type  = 'hidden';
+                                  hidden3.name  = 'assessmenttype';
+                                  hidden3.value = me.data.type;
+                          check.appendChild(hidden3);
+                          var box1 = document.createElement('input');
+                                  box1.type  = 'radio';
+                                  box1.name  = 'showhide';
+                                  box1.value = 'show';
+                                  box1.id    = 'config1';
+                                  box1.disabled = true;
+                                  box1.onclick = function() {showHideChanges(this);};
+                          check.appendChild(box1);
+                          var box1text = document.createTextNode('Show');
+                          check.appendChild(box1text);
+                          var breaker = document.createElement('br');
+                          check.appendChild(breaker);
+                          var box2 = document.createElement('input');
+                                  box2.type  = 'radio';
+                                  box2.name  = 'showhide';
+                                  box2.value = 'groups';
+                                  box2.id    = 'config2';
+                                  box2.disabled = true;
+                                  box2.onclick = function() {showHideChanges(this);};
+                          check.appendChild(box2);
+
+                          var box2text = document.createTextNode('Show by group');
+                          check.appendChild(box2text);
+                          var breaker2 = document.createElement('br');
+                          check.appendChild(breaker2);
+                          var box3 = document.createElement('input');
+                                  box3.type  = 'radio';
+                                  box3.name  = 'showhide';
+                                  box3.value = 'hide';
+                                  box3.id    = 'config3';
+                                  box3.disabled = true;
+                                  box3.onclick = function() {showHideChanges(this);};
+                          check.appendChild(box3);
+                          var box3text = document.createTextNode('Hide');
+                          check.appendChild(box3text);
+
+                          // now, we need to find out what the current group mode is and display that box as checked.
+                          var checkUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+me.parent.data.id+'&assessmenttype='+me.data.type+'&assessmentid='+me.data.id+'&userid='+userid+'&type=config_check';
+                          var request = YAHOO.util.Connect.asyncRequest('GET', checkUrl, ajaxCallback);
+
+                          //document.getElementById('box3').onclick = function() {showHideChanges();};
+                          return false;
+                      };
+                      
+		/// Journals are a special case as they need no children (all students appear on one page), so we make them clickable
+		
+		   } else if (nodesArray[m].type == 'journal') {
 			   
-			    clickNode = tree.getNodeByProperty('assid', nodesArray[m].assid);
-				
-				clickNode.onLabelClick = function(me) {
-					openpopup('/mod/journal/report.php?id='+me.data.id+'', 
-					remId, 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
-					timerVar=window.setInterval('journalOnload(\''+me.data.assid+'\', \''+me.parent.data.cid+'\')', 500);
-					return false;
-				};
-			} else {
+                      clickNode = this.tree.getNodeByProperty('assid', nodesArray[m].assid);
+
+                      clickNode.onLabelClick = function(me) {
+                          openpopup('/mod/journal/report.php?id='+me.data.id+'', 
+                                    uniqueId, 
+                                    'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 
+                                    0
+                          );
+                          timerVar=window.setInterval('journalOnload(\''+me.data.assid+'\', \''+me.parent.data.cid+'\')', 500);
+                          return false;
+                      };
+		  } else {
 			
 /// set the node to load data dynamically 
-			tmpNode2.setDynamicLoad(loadNodeData);
+		     tmpNode2.setDynamicLoad(this.loadNodeData);
 
-			}
+		  }
 /// now, we need to update the parent node's label, in case the count of assessments/submissions
 /// has changed since the node was created
-	
-			parentUpdate(nodeHolder);
-		}
+		} //end of per-node loop
+		
+		if (!this.config) {this.parentUpdate(nodeHolder );} //don't do the totals if its a config tree
+		//alert(this.name);
+		
 	
 /// finally, run the function that updates the original node and adds the children
-		
+		//alert('before compholder');
 		compHolder();
-		
-		updateTotal();
+		//alert('after compholder');
+		this.updateTotal();
 		
 /// then add tooltips.	
 
-	    tooltips();	
+		this.tooltips();	
 
-}
-
-
-function makeSubmissionNodes(nodesArray) {
-		  
-///////////////////////////////////////////			
-/// we have a final node i.e. a submission 
-//////////////////////////////////////////////
+	};
+	
+	
+	this.makeSubmissionNodes = function(nodesArray) {
 		
-		var myobj = '';
-		var aidHolder = '';
-		var sidHolder = '';
-		var remId = '';
-		var tmpNode2 = '';
-		var tmpNode3 = '';
-		var clickNode = '';
-		var nodesLeng = '';
-		var typeHolder = '';
+	///////////////////////////////////////////			
+	/// we have a final node i.e. a submission 
+	//////////////////////////////////////////////
+		
+            var myobj = '';
+            //var aidHolder = '';
+            //var sidHolder = '';
+            var uniqueId = '';
+            var tmpNode2 = '';
+            var tmpNode3 = '';
+            var clickNode = '';
+            var nodesLeng = '';
+            //var typeHolder = '';
 			
 /// First the courses array
-		nodesLeng = nodesArray.length;
-		
-		for (k=0;k<nodesLeng;k++) {
-			
-	/// set up a unique id so the node can be removed when needed
-	
-			aidHolder = nodesArray[k].aid;
-			sidHolder = nodesArray[k].sid;
-			typeHolder = nodesArray[k].type;
-			remId = typeHolder+aidHolder + 'sid' + sidHolder + '';
-			
-	/// set up time-submitted thing for tooltip. This is set to make the time match the browser's local timezone, 
-	/// but I can't find a way to use the user's specified timezone from \$USER. Not sure if this really matters.
-	
-			var secs = parseInt(nodesArray[k].seconds);
-			var time = parseInt(nodesArray[k].time)*1000; // javascript likes to work in miliseconds, whereas moodle uses unix format (whole seconds)
-			var d = new Date(); // make a new data object
-			d.setTime(time);  // set it to the time we just got above
-			
-			var nodeCount = 0;
-			if (typeof(nodesArray[k].count) != 'undefined') { // Allows us to add a count for keeping track of forum submission accurately.                
-				nodeCount = nodesArray[k].count;              // The other types don't need this.
-			}
-			
-	/// build the node as before
-	
-			myobj = { label:''+nodesArray[k].name+'', id:''+remId+'', type:''+nodesArray[k].type+'',
-				   aid:''+nodesArray[k].aid+'', sid:''+nodesArray[k].sid+'', summary:''+nodesArray[k].summary+'', 
-				   count:''+nodeCount+''} ;
-			tmpNode3 = new YAHOO.widget.TextNode(myobj, nodeHolder, false);	
-	
-	/// apply a style according to how long since it was submitted
-					
-			if (secs < 21600) { // less than 6 hours
-				tmpNode3.labelStyle = 'icon-user-one';
-			} else if (secs < 43200) { // less than 12 hours
-				tmpNode3.labelStyle = 'icon-user-two';
-			} else if (secs < 86400) { // less than 24 hours
-				tmpNode3.labelStyle = 'icon-user-three';
-			} else if (secs < 172800) { // less than 48 hours
-				tmpNode3.labelStyle = 'icon-user-four';
-			} else if (secs < 432000) { // less than 5 days
-				tmpNode3.labelStyle = 'icon-user-five';
-			} else if (secs < 864000) { // less than 10 days
-				tmpNode3.labelStyle = 'icon-user-six';
-			} else if (secs < 1209600) { // less than 2 weeks
-				tmpNode3.labelStyle = 'icon-user-seven';
-			} else { // more than 2 weeks
-				tmpNode3.labelStyle = 'icon-user-eight';
-			}
-			
-	/// set the onclick to open the submission pop-up. n.b. - this doesn't work if you try to assign a different function to 
-	/// each node as you iterate through the loop. It needs to get the data from itself each time like this. Using remId to make each pop-up unique.
-				   
-			clickNode = tree.getNodeByProperty('id', remId);
-			// add switch here
-			if (nodeHolder.data.type == 'quiz_submissions') {
-			   clickNode.onLabelClick = function(me) {
-					openpopup('/mod/quiz/report.php?mode=grading&action=grade&q='+me.parent.parent.data.id+'&questionid='+me.data.aid+'&userid='+me.data.sid+'', 
-					remId, 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
-					timerVar=window.setInterval('quizOnload(\''+me.data.id+'\', \''+me.parent.data.assid+'\',  \''+me.parent.parent.data.assid+'\', \''+me.parent.parent.parent.data.cid+'\')', 500);
-					return false;
-				};
-			}
-			else {
-				if (nodeHolder.data.type == 'assignment_submissions') {
-					
-					// set the offset - hacky, but better than nothing
-					clickNode.onLabelClick = function(me) {
-						openpopup('/mod/assignment/submissions.php?id='+me.data.aid+'&userid='
-						+me.data.sid+'&mode=single&offset=0', 
-						'gradePopUp', 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
-						// now the pop up is opening, set the function going that will add the onclick events. It will cancel the loop on completion
-						timerVar=window.setInterval('assignmentOnload(\''+me.data.id+'\', \''+me.parent.data.assid+'\', \''+me.parent.parent.data.cid+'\')', 500);
-						return false;
-					};
-					
-				}
-				else if (nodeHolder.data.type == 'workshop_submissions') {
-					clickNode.onLabelClick = function(me) {
-						openpopup('/mod/workshop/assess.php?id='+me.data.aid+'&sid='+me.data.sid+'&redirect='+wwwroot+'', 
-						remId, 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
-						// now the pop up is opening, set the function going that will add the onclick events. It will cancel the loop on completion
-						timerVar=window.setInterval('workshopOnload(\''+me.data.id+'\', \''+me.parent.data.assid+'\', \''+me.parent.parent.data.cid+'\')', 500);
-						return false;
-					};
-				}
-				else if (nodeHolder.data.type == 'forum_submissions') {
-					clickNode.onLabelClick = function(me) {
-						openpopup('/mod/forum/discuss.php?d='+me.data.aid+'#p'+me.data.sid+'', 
-						remId, 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
-						timerVar=window.setInterval('forumOnload(\''+me.data.id+'\', \''+me.parent.data.assid+'\', \''+me.parent.parent.data.cid+'\')', 500);
-						return false;
-					};
-				}
-	/*			else if (nodeHolder.data.type == 'quiz_submissions') {
-				   clickNode.onLabelClick = function(me) {
-						openpopup('/mod/quiz/report.php?mode=grading&action=grade&q='+me.parent.parent.data.id+'&questionid='+me.data.aid+'&userid='+me.data.sid+'', 
-						remId, 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
-						timerVar=window.setInterval('quizOnload(\''+me.data.id+'\', \''+me.parent.data.assid+'\',  \''+me.parent.parent.data.assid+'\', \''+me.parent.parent.parent.data.cid+'\')', 500);
-						return false;
-					};
-				} */
-			}
-		} // end for i
-		parentUpdate(nodeHolder);
-		parentUpdate(nodeHolder.parent);
-		// quiz has 4 levels, so extra update of counts is needed
-		if (nodeHolder.data.type == 'quiz_submissions') {
-			parentUpdate(nodeHolder.parent.parent); 
-		}
+            nodesLeng = nodesArray.length;
+
+            for (var k=0;k<nodesLeng;k++) {
+
+    /// set up a unique id so the node can be removed when needed
+
+                //aidHolder = ;
+                //sidHolder = ;
+                //typeHolder = ;
+                uniqueId = nodesArray[k].type + nodesArray[k].aid + 'sid' + nodesArray[k].sid + '';
+
+/// set up time-submitted thing for tooltip. This is set to make the time match the browser's local timezone, 
+/// but I can't find a way to use the user's specified timezone from \$USER. Not sure if this really matters.
+
+                var secs = parseInt(nodesArray[k].seconds);
+                var time = parseInt(nodesArray[k].time)*1000; // javascript likes to work in miliseconds, whereas moodle uses unix format (whole seconds)
+                var d = new Date(); // make a new data object
+                d.setTime(time);  // set it to the time we just got above
+
+                var nodeCount = 0;
+                if (typeof(nodesArray[k].count) != 'undefined') { // Allows us to add a count for keeping track of forum submission accurately.
+                        nodeCount = nodesArray[k].count;              // The other types don't need this.
+                }
+
+/// build the node as before
+
+                myobj = { label:''+nodesArray[k].name+'',
+                          id:''+uniqueId+'',
+                          type:''+nodesArray[k].type+'',
+                          aid:''+nodesArray[k].aid+'',
+                          uniqueId:''+uniqueId+'',
+                          sid:''+nodesArray[k].sid+'',
+                          summary:''+nodesArray[k].summary+'',
+                          count:''+nodeCount+''
+                        } ;
+                tmpNode3 = new YAHOO.widget.TextNode(myobj, nodeHolder , false);
+
+/// apply a style according to how long since it was submitted
+
+                if (secs < 21600) { // less than 6 hours
+                        tmpNode3.labelStyle = 'icon-user-one';
+                } else if (secs < 43200) { // less than 12 hours
+                        tmpNode3.labelStyle = 'icon-user-two';
+                } else if (secs < 86400) { // less than 24 hours
+                        tmpNode3.labelStyle = 'icon-user-three';
+                } else if (secs < 172800) { // less than 48 hours
+                        tmpNode3.labelStyle = 'icon-user-four';
+                } else if (secs < 432000) { // less than 5 days
+                        tmpNode3.labelStyle = 'icon-user-five';
+                } else if (secs < 864000) { // less than 10 days
+                        tmpNode3.labelStyle = 'icon-user-six';
+                } else if (secs < 1209600) { // less than 2 weeks
+                        tmpNode3.labelStyle = 'icon-user-seven';
+                } else { // more than 2 weeks
+                        tmpNode3.labelStyle = 'icon-user-eight';
+                }
+
+    /// set the onclick to open the submission pop-up. n.b. - this doesn't work if you try to assign a different function to
+    /// each node as you iterate through the loop. It needs to get the data from itself each time like this. Using uniqueId to make each pop-up unique.
+
+                clickNode = this.tree.getNodeByProperty('id', uniqueId);
+                // add switch here
+                if (nodeHolder.data.type == 'quiz_question') {
+                   clickNode.onLabelClick = function(me) {
+                        openpopup('/mod/quiz/report.php?mode=grading&action=grade&q='+me.parent.parent.data.id+'&questionid='+me.data.aid+'&userid='+me.data.sid+'',
+                            uniqueId,
+                            'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                            0
+                        );
+                        timerVar=window.setInterval('quizOnLoad(\''+me.data.id+'\')', 500);
+                        return false;
+                    };
+                }
+                else {
+                      if ((nodeHolder.data.type == 'assignment') || (nodeHolder.parent.data.type == 'assignment')){
+
+                            // set the offset - hacky, but better than nothing
+                            clickNode.onLabelClick = function(me) {
+                                    openpopup('/mod/assignment/submissions.php?id='+me.data.aid+'&userid='
+                                    +me.data.sid+'&mode=single&offset=0',
+                                    'gradePopUp', 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
+                                    // now the pop up is opening, set the function going that will add the onclick events. It will cancel the loop on completion
+                                    timerVar=window.setInterval('assignmentOnLoad(\''+me.data.id+'\')', 500);
+                                    return false;
+                            };
+
+                      }
+                      else if ((nodeHolder .data.type == 'workshop') || (nodeHolder.parent.data.type == 'workshop')) {
+                            clickNode.onLabelClick = function(me) {
+                                    openpopup('/mod/workshop/assess.php?id='+me.data.aid+'&sid='+me.data.sid+'&redirect='+wwwroot+'',
+                                    uniqueId, 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
+                                    // now the pop up is opening, set the function going that will add the onclick events. It will cancel the loop on completion
+                                    timerVar=window.setInterval('workshopOnLoad(\''+me.data.id+'\')', 500);
+                                    return false;
+                            };
+                      }
+                      else if ((nodeHolder .data.type == 'forum') || (nodeHolder.parent.data.type == 'forum')) {
+                            clickNode.onLabelClick = function(me) {
+                                    openpopup('/mod/forum/discuss.php?d='+me.data.aid+'#p'+me.data.sid+'',
+                                    uniqueId, 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
+                                    timerVar=window.setInterval('forumOnLoad(\''+me.data.id+'\')', 500);
+                                    return false;
+                            };
+                      }
+                }
+            } // end for i
+                
+            // TODO - this needs to be a proper loop to account for varying lengths.
+            this.parentUpdate(nodeHolder);
+            this.parentUpdate(nodeHolder.parent); //might be a course, might be a group if its a quiz by groups
+            if (!nodeHolder.parent.parent.isRoot()) {
+                this.parentUpdate(nodeHolder.parent.parent);
+                if (!nodeHolder.parent.parent.parent.isRoot()) {
+                    this.parentUpdate(nodeHolder.parent.parent.parent);
+                }
+
+            }
+
 /// finally, run the function that updates the original node and adds the children
 
-		compHolder(); 
-		updateTotal();
-		
+            compHolder();
+            this.updateTotal();
+
 /// then add tooltips.	
 
-	    tooltips();	
+            this.tooltips();
 
-}
+	};
 
-///////////////////////////////////////////////////////////////////////////////////
-/// This callback come from loadSubmissionNodeData (clicking on an assessment node)
-///////////////////////////////////////////////////////////////////////////////////
-/*
-var submissionCallback = {
-	
-	success: function (o) {
+
+	this.makeGroupNodes = function(responseArray) {
+		// need to turn the groups for this course into an array and attach it to the course node. Then make the groups bit on screen
+		// for the config screen??
+		//course = responseArray[0].course; // fist object holds data about what course the groups refer to
+		//responseArray.shift(); // remove the data object, leaving just the node objects
+		var object ='';
+		var arrayLength = responseArray.length;
+		var tmpNode4 = '';
+		var label = '';
+		//alert('groups');
 		
-		makeSubmissionNodes(o);
+		for (var n =0; n<arrayLength; n++) {
+                    //alert('loop');
 
-	},
-	
-	failure: function (o) {
+                    //alert('gid: '+responseArray[n].gid);
+                    uniqueId = 'group'+responseArray[n].gid+'';
+
+                    label = responseArray[n].name+' ('+responseArray[n].count+')';
+                    //alert('rem');
+
+                    object = { label:''+label+'',
+                               name:''+responseArray[n].name+'',
+                               id:''+responseArray[n].aid+'',
+                               type:''+responseArray[n].type+'',
+                               uniqueId:''+'g'+responseArray[n].gid+responseArray[n].type+responseArray[n].aid+'',
+                               gid:''+responseArray[n].gid+'',
+                               count:''+responseArray[n].count+'',
+                               summary:''+responseArray[n].summary+''} ;
+                    //alert('object');
+
+
+
+                    tmpNode4 = new YAHOO.widget.TextNode(object, nodeHolder , false);
+                    //alert('node');
+
+                    tmpNode4.labelStyle = 'icon-group';
+                    //alert('style');
+
+                    // if the groups are for journals, it is impossible to display individuals, so we make the
+                    // node clickable so that the pop up will have the group screen.
+                    if (responseArray[n].type == 'journal') {
+                         clickNode = this.tree.getNodeByProperty('assid', nodesArray[m].assid);
+
+                         clickNode.onLabelClick = function(me) {
+                             openpopup('/mod/journal/report.php?id='+me.data.id+'&group='+me.data.gid+'',
+                                    uniqueId,
+                                    'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                    0
+                             );
+                             timerVar=window.setInterval('journalOnload(\''+me.data.assid+'\', \''+me.parent.data.cid+'\')', 500);
+                             return false;
+                         };
+                    } else {
+
+                      tmpNode4.setDynamicLoad(this.loadNodeData);
+                      //alert('dyn');
+                    }
+		}
+                this.parentUpdate(nodeHolder);
+                //alert('up1');
+
+                this.parentUpdate(nodeHolder.parent);
+			
+			
+			
+		compHolder();
 		
-		div.innerHTML =  '<br />AJAX Error - check your connection <br/>';
-		div.innerHTML += 'Transaction id:' + o.tId + '<br/>'; 
-		div.innerHTML += 'HTTP status:' + o.status + '<br/>'; 
-		div.innerHTML += 'Status code message:' + o.statusText + '<br/>';
-	},
-	timeout: 7000
-};
-*/
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// this function is triggered when a dynamic load label is clicked. it places the node and its callback function
-/// into globals ready to be used after the ajax has finished and fires the ajax request
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		this.updateTotal();
+		
+		this.tooltips();
+		
+	};
 
-/*
-function loadAssessmentNodeData(node, onCompleteCallback) { 
-/// store details of the node that has been clicked in globals for reference by later callback function 
-	nodeHolder = node;
-	compHolder = onCompleteCallback;
 	
-/// request data using AJAX 
-
-	var sUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+node.data.id+'&type='+node.data.type+'&userid='+userid+'';
-
-	var request = YAHOO.util.Connect.asyncRequest('GET', sUrl, assessmentCallback); 
-} 
-
-*/
-
-function loadNodeData(node, onCompleteCallback) { 
-/// store details of the node that has been clicked in globals for reference by later callback function 
-	nodeHolder = node;
-	compHolder = onCompleteCallback;
-	var quizid = 0;
-	if (node.data.type == 'quiz_submissions') {// need to send this only for the quiz questions as the db query needs this extra parameter
-		quizid = node.parent.data.id;
-		//alert(quizid);
-	} 
 	
-/// request data using AJAX 
-	var sUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+node.data.id+'&type='+node.data.type+'&userid='+userid+'&quizid='+quizid+'';
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// funtion to refresh all the nodes once the update operations have all been carried out by saveChangesAJAX()
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	this.refreshRoot = function() {
+		this.root.refresh();
+		if (this.root.children.length === 0) {
+			document.getElementById("totalmessage").innerHTML = '';
+			document.getElementById("count").innerHTML = '';
+			this.div.innerHTML += nothingString;
+		}
+	};
+	
+	
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/// funtion to refresh all the nodes once the operations have all been carried out - workshop frames version
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	this.refreshRootFrames = function() {
+		 this.root.refresh();
+		 if (this.root.children.length === 0) {
+			 document.getElementById("totalmessage").innerHTML = '';
+			 document.getElementById("count").innerHTML = '';
+			 this.div.innerHTML += nothingString;
+		}
+	};
 
-	var request = YAHOO.util.Connect.asyncRequest('GET', sUrl, ajaxCallback); 
-}
 
-///////////////////////////////////////////////////////////////////////////////////////
-// function to create tooltips. When root.refresh() is called it somehow wipes 
-// out all the tooltips, so it is necessary to rebuild them
-// each time part of the tree is collapsed or expanded
-// tooltips for the courses are a bit pointless, so its just the assignments and submissions
-///////////////////////////////////////////////////////////////////////////////////////
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	// function to update the total marking count by a specified number and display it
+	//////////////////////////////////////////////////////////////////////////////////
+	
+	this.updateTotal = function() {
+		//alert('update');
+		var count = 0;
+		var countTemp = 0;
+		//alert('upadtetotal root');
+		var childrenLength = this.root.children;
+		
+		for (i=0;i<childrenLength.length;i++) {
+			countTemp = childrenLength[i].data.count;
+			count = count + parseInt(countTemp);
+		}
+		if (count > 0) {
+			document.getElementById('count').innerHTML = '<strong>'+count+'</strong>';
+		}
+	};
+	
+	
+	/////////////////////////////////////////////////////////////////////
+	/// These functions are called from the marking pop-ups.
+	//////////////////////////////////////////////////////////////////////
+	
 
-// n.b. the width of the tooltips is fixed because not specifying it makes them go narrow in IE6. making them 100% works fine in IE6 but makes FF 
-// stretch them across the whole page. 200px is a guess as to a good width for a 1024x768 screen based on the width of the block. Change it in both places below
-// if you don't like it
+	
+	/*
+	this.saveChangesAJAXjournal = function(thisNodeId, parentNodeId) {
+	
+	/// remove the node that was just marked	 
+		 var checkNode = "";
+		 checkNode = tree.getNodeByProperty("assid", thisNodeId);
+		 this.tree.removeNode(checkNode, true);
+	
+	/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
+		 var parentNode = "";
+		 parentNode = this.tree.getNodeByProperty("cid", parentNodeId);
+		 parentUpdate(parentNode);
+	
+	
+	/// refresh the tree to redraw the nodes with the new labels
+		 this.refreshRoot();
+		 updateTotal();
+		 tooltips();
+	};
+	*/
+	
+	/// this function updates the tree to remove the node of the pop up that has just been marked, then it updates the parent nodes and refreshes the tree	
+	this.saveChangesAJAX = function(thisNodeId, frames) {
+		
+		var checkNode = "";
+		var parentNode = "";
+		var marker = 0;
+		
+	/// remove the node that was just marked	 
+		 
+		 checkNode = this.tree.getNodeByProperty("id", thisNodeId);
+		 //alert(checkNode.parent.data.uniqueId);
+                 //alert('index of parent: '+checkNode.parent.index);
+		 parentNode = this.tree.getNodeByIndex(checkNode.parent.index);
+		 this.tree.removeNode(checkNode, true);
+		//alert('root data: '+this.root.data.type);
+	/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
+		 
+		 
+		 while(marker == 0) {
+			 this.parentUpdate(parentNode);
+			 if (parentNode.data.type == 'assessments') { // we have reached the course level, so stop
+				 marker = 1;
+			 } else {
+			//not a course level node yet so carry on
+			 newNode = this.tree.getNodeByIndex(parentNode.parent.index); // go up one level
+			 parentNode = newNode;
+			 }
+		 }
+	
+	/// refresh the tree to redraw the nodes with the new labels
+		if (typeof(frames) != 'undefined') {
+			 this.refreshRootFrames();
+		} else {
+		 this.refreshRoot();
+		}
+		 this.updateTotal();
+		 this.tooltips();
+	};
+	
+	/// this function updates the tree to remove the node of the pop up that has just been marked, then it updates the parent nodes and refreshes the tree	
+	// deprecated?
+	/*
+	this.saveChangesAJAXquiz = function(thisNodeId, parentNodeId, quizNodeId, courseNodeId) {
+	
+	//alert ('save ajax quiz fired');
+	/// remove the node that was just marked	 
+		 var checkNode = "";
+		 checkNode = this.tree.getNodeByProperty("id", thisNodeId);
+		 this.tree.removeNode(checkNode, true);
+	
+	/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
+		 var parentNode = "";
+		 parentNode = this.tree.getNodeByProperty("assid", parentNodeId);
+		 this.parentUpdate(parentNode);
+	
+	/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
+		 var quizNode = "";
+		 parentNode = this.tree.getNodeByProperty("assid", quizNodeId);
+		 this.parentUpdate(parentNode);
+	
+	/// now do the same for the course node		
+	   //  alert('id= '+courseNodeId);
+		 var courseNode = "";
+		 courseNode = this.tree.getNodeByProperty("cid", courseNodeId);
+		 this.parentUpdate(courseNode);
+	
+	/// refresh the tree to redraw the nodes with the new labels
+		 this.refreshRoot();
+		 this.updateTotal();
+		 this.tooltips();
+	};
+	*/
+	////////////////////////////////////////////////////////////////////////////////////////
+	// same as the above function, but adjusted to work when called from the workshop frames
+	////////////////////////////////////////////////////////////////////////////////////////
+	/*
+	this.saveChangesAJAXFrames = function(thisNodeId, parentNodeId, courseNodeId) {
+	
+	/// remove the node that was just marked	 
+		 var checkNode = "";
+		 checkNode = this.tree.getNodeByProperty("id", thisNodeId);
+		 this.tree.removeNode(checkNode, true);
+	
+	/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
+		 var parentNode = "";
+		 parentNode = this.tree.getNodeByProperty("assid", parentNodeId);
+		 this.parentUpdate(parentNode);
+	
+	/// now do the same for the course node		
+		
+		 var courseNode = "";
+		 courseNode = this.tree.getNodeByProperty("cid", courseNodeId);
+		 this.parentUpdate(courseNode);
+		
+	
+	/// refresh the tree to redraw the nodes with the new labels
+		 this.refreshRootFrames();
+		 this.updateTotal();
+		 this.tooltips();
+	 };
 
-// IE problem - the tooltips appear to interfere with the submission nodes using ie, so that they are not always clickable, but only when the user 
-// clicks the node text rather than the expand (+) icon. Its not related to the timings as using setTimeout to delay the generation of the tooltips 
-// makes no difference 
+
+	/// this function holds the original javascript from the save changes onclick for the Assignment pop up
+	this.saveChangesAssignment = function() {
+	   document.getElementById('submitform').menuindex.value = document.getElementById('submitform').grade.selectedIndex;
+	   this.saveChangesAJAX();
+	};
+		*/
+	/////////////////////////////////////////////////////////////////
+	// Refresh tree function - for Collapse &amp; refresh link
+	/////////////////////////////////////////////////////////////////
+	
+	this.refreshTree = function() {
+	   // main.div.innerHTML = '';
+		this.loadCounter = 0;
+		delete this.tree;
+                //.removeChildren(this.root);
+                //this.tree = '';
+                this.root = '';
+		this.div.innerHTML = '';
+                this.treeDiv.innerHTML = '';
+		this.make_tree();
+	};
+	
+	
+	 this.makeGroupsList = function(data) { // uses the data returned by the ajax call (array of objects) from the checkbox onclick to make a checklist of groups
+	 	//alert('making groups list');
+		var groupDiv = document.getElementById('configGroups');
+		var dataLength = data.length;
+		var idCounter = 4;  //continue the numbering of the ids from 4 (main checkboxes are 1-3). This allows us to disable/enable them
+		for(var v=0;v<dataLength;v++) {
+			
+			var box = document.createElement('input');
+				box.type = 'checkbox';
+				box.id = 'config'+idCounter;
+				box.name = 'groups';
+				box.value = data[v].id;
+			if (data[v].display == 'true') {
+				//alert('display true');
+				box.checked = true;
+			} else {
+				box.checked = false;
+			}
+			groupDiv.appendChild(box);
+			box.onclick = function(){
+				var form = document.getElementById('configshowform');
+				//alert(this);
+				disableRadio();
+				
+				// need to construct a space separated list of group ids.
+				var groupIds = '';
+				var groupDiv = document.getElementById('configGroups');
+				var groups = groupDiv.getElementsByTagName('input');
+				var groupsLength = groups.length;
+				//alert(groupsLength);
+				for (var a=0;a<groupsLength;a++) {
+					
+					if (groups[a].checked == true) {
+						//alert('true');
+						groupIds += groups[a].value+' ';
+					}
+					
+				}
+				
+				if (groupIds == '') { // there are no checked boxes
+					groupIds = 'none'; //don't leave the db field empty as it will cause confusion between no groups chosen and first time we set this.
+				}
+				
+				var reqUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+form.course.value+'&assessmenttype='+form.assessmenttype.value+'&assessmentid='+form.assessment.value+'&type=config_group_save&userid='+userid+'&showhide=2&groups='+groupIds+'';
+	
+				var request = YAHOO.util.Connect.asyncRequest('GET', reqUrl, ajaxCallback);
+				//alert('data save');
+			}
+			var label = document.createTextNode(data[v].name);
+			groupDiv.appendChild(label);
+			var breaker = document.createElement('br');
+			groupDiv.appendChild(breaker);
+			idCounter++;
+		}	
+		this.icon.innerHTML = '';  //lose loading icon
+		this.enableRadio(); //re-enable the checkboxes
+	};
 
 
+	
+	this.ajaxCallback = ajaxCallback;
+    // constructor stuff - makes a new tree where its told to
+   
+    this.make_tree = function() {    
+        YAHOO.widget.TreeView.preload();
+	var tree = new YAHOO.widget.TreeView(treeDiv); 
+	this.tree = tree;
+	/// the following will not work until YUI is updated, but when it does, it will preload all the icons.
+        
+		//tree.preload();
+	
+	//this.name = 'name of object set ok';
+	this.div = document.getElementById(statusDiv);
+	this.treeDiv = treeDiv;
+	this.icon = document.getElementById(icon);
 
-/////////////////////////////////////////////////////////////////
-// Refresh tree function - for Collapse &amp; refresh link
-/////////////////////////////////////////////////////////////////
+	
+	/// set the removal of all child nodes each time a node is collapsed (forces refresh)
+	this.tree.subscribe('collapseComplete', function(node) {
+		tree.removeChildren(node);
+	});
+	/*
+	/// set it so that the node data will pop-up when it is clicked	
+		tree.subscribe('onmouseover', function(node) {
+			alert(node.data.summary);
+		});
+	*/
+	this.root = this.tree.getRoot();
+	this.ajaxBuild(); // can this.ajaxBuild be called from here?
+    }	
+    this.make_tree();
+} // end AJAXtree build function
 
-function refresh() {
-   // div.innerHTML = '';
-    tree.removeChildren(root);
-	div.innerHTML = '';
-	ajaxBuild();
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // function to alter a node's label with a new count once the children are removed or reloaded
 ////////////////////////////////////////////////////////////////////////////////////////////////
 
 function countAlter(newNode, newCount) {
-    var name = newNode.data.name;
-    var newLabel = name+' ('+newCount+')';
+	var name = newNode.data.name;
+	var newLabel = name+' ('+newCount+')';
 	newNode.data.count = newCount;
 	newNode.label = newLabel;
 }
-
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-// function to update the parent assessment node when it is refreshed dynamically so that 
-// if more work has been found, or a piece has now been marked, the count for that label will be accurate
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-function parentUpdate(node) {
-	var counter = node.children.length;
-    //alert(counter);
-	//alert('assid: '+node.data.assid);
-	if (counter === 0) {
-		tree.removeNode(node, true);
-	} else {
-	    if (node.data.type == 'assessments' || node.data.type == 'forum_submissions' || node.data.type == 'quiz_questions') { // we need to sum child counts
-		  
-		    var tempCount = 0;
-	        var tempStr = '';
-		    for (i=0;i<counter;i++) {
-				
-			    tempStr = node.children[i].data.count;
-				tempCount += parseInt(tempStr);
-			}
-			countAlter(node, tempCount);
-		} else { // its an assessment node, so we count the children
-	        countAlter(node, counter);
-		}
-		root.refresh();
-	}
-}
-
-//////////////////////////////////////////////////////////////////////////////////
-// function to update the total marking count by a specified number and display it
-//////////////////////////////////////////////////////////////////////////////////
-
-function updateTotal() {
-    var count = 0;
-	var countTemp = 0;
-	childrenLength = root.children.length;
-	for (i=0;i<childrenLength;i++) {
-	    countTemp = root.children[i].data.count;
-	    count = count + parseInt(countTemp);
-	}
-	if (count > 0) {
-		document.getElementById('count').innerHTML = '<strong>'+count+'</strong>';
-	}
-}
-
-
-function tooltips() {
-	var name = navigator.appName;
-	if (name != "Microsoft Internet Explorer") { 
-	// this is disabled for IE because, although useful, in IE6 (assuming others too) the tooltips seem to sometimes remain as an invisible div on top 
-	// of the tree structure once nodes has expanded, so that some of the child nodes are unclickable. Firefox is ok with it. This is a pain
-	// because a person may not remember the full details of the assignment that was set and a tooltip is better than leaving the front page.	
-	// I will re-enable it once I find a fix
-
-		var i = 0;
-		var j = 0;
-		var k = 0;
-		var tmpId = '';
-		var tmpId1 = '';
-		var tmpId2 = '';
-		var tmpText1 = '';
-		var tmpText2 ='';
-		var control = document.getElementById('tree_control');
-	
-	/// 1. all courses loop
-		var courseLength = root.children.length;
-		for (i=0;i<courseLength;i++) {
-		
-	/// tooltips for courses may be overkill and get in the way of the tree. uncomment the following to turn them on
-		//	var tmpId0 = root.children[i].getLabelEl();
-		//	var tmpText0 = root.children[i].data.summary;
-		//	temp_tt2 = new YAHOO.widget.Tooltip('temp_tt2', { context:tmpId0, text:tmpText0, showdelay:0, hidedelay:0, container:control} );
-			
-	/// 2. all children, if any, of these courses
-	
-			var workLength = root.children[i].children.length;
-			for (j=0;j<workLength;j++) {
-				
-		
-				
-			// make the tooltip for this piece of work before sorting out its children
-				tmpId1 = root.children[i].children[j].getLabelEl();
-				tmpText1 = root.children[i].children[j].data.summary;
-				temp_tt3 = new YAHOO.widget.Tooltip('temp_tt3', { context:tmpId1, text:tmpText1, showdelay:0, hidedelay:0, container:control} );
-	
-	/// 3.	all submissions, if any, of these children			
-				var subLength = root.children[i].children[j].children.length;
-				for (k=0;k<subLength;k++) {
-				/// make the tooltip
-					tmpId2 = root.children[i].children[j].children[k].getLabelEl();
-					tmpText2 = root.children[i].children[j].children[k].data.summary;
-					temp_tt4 = new YAHOO.widget.Tooltip('temp_tt4', { context:tmpId2, text:tmpText2, showdelay:0, hidedelay:0, container:control} );
-				}	 
-			}
-		}
-	}
-} 
-
-/////////////////////////////////////////////////////////////////////
-/// These functions are called from the marking pop-ups.
-//////////////////////////////////////////////////////////////////////
-
-/// this function holds the original javascript from the save changes onclick for the Assignment pop up
-function saveChangesAssignment() {
-   document.getElementById('submitform').menuindex.value = document.getElementById('submitform').grade.selectedIndex;
-   saveChangesAJAX();
-}
-
-
-function saveChangesAJAXjournal(thisNodeId, parentNodeId) {
-
-/// remove the node that was just marked	 
-	 var checkNode = "";
-	 checkNode = tree.getNodeByProperty("assid", thisNodeId);
-	 tree.removeNode(checkNode, true);
-
-/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
-	 var parentNode = "";
-	 parentNode = tree.getNodeByProperty("cid", parentNodeId);
-	 parentUpdate(parentNode);
-
-
-/// refresh the tree to redraw the nodes with the new labels
-	 refreshRoot();
-	 updateTotal();
-	 tooltips();
-}
-
-
-/// this function updates the tree to remove the node of the pop up that has just been marked, then it updates the parent nodes and refreshes the tree	
-function saveChangesAJAX(thisNodeId, parentNodeId, courseNodeId) {
-
-/// remove the node that was just marked	 
-	 var checkNode = "";
-	 checkNode = tree.getNodeByProperty("id", thisNodeId);
-	 tree.removeNode(checkNode, true);
-
-/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
-	 var parentNode = "";
-	 parentNode = tree.getNodeByProperty("assid", parentNodeId);
-	 parentUpdate(parentNode);
-
-/// now do the same for the course node		
-	if (typeof(courseNodeId) != "undefined") { //journal doesn't need this
-		//alert('coursenode thing fired');
-		 var courseNode = "";
-		 courseNode = tree.getNodeByProperty("cid", courseNodeId);
-		 parentUpdate(courseNode);
-	}
-
-/// refresh the tree to redraw the nodes with the new labels
-	 refreshRoot();
-	 updateTotal();
-	 tooltips();
-}
-
-/// this function updates the tree to remove the node of the pop up that has just been marked, then it updates the parent nodes and refreshes the tree	
-function saveChangesAJAXquiz(thisNodeId, parentNodeId, quizNodeId, courseNodeId) {
-
-//alert ('save ajax quiz fired');
-/// remove the node that was just marked	 
-	 var checkNode = "";
-	 checkNode = tree.getNodeByProperty("id", thisNodeId);
-	 tree.removeNode(checkNode, true);
-
-/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
-	 var parentNode = "";
-	 parentNode = tree.getNodeByProperty("assid", parentNodeId);
-	 parentUpdate(parentNode);
-
-/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
-	 var quizNode = "";
-	 parentNode = tree.getNodeByProperty("assid", quizNodeId);
-	 parentUpdate(parentNode);
-
-/// now do the same for the course node		
-   //  alert('id= '+courseNodeId);
-	 var courseNode = "";
-	 courseNode = tree.getNodeByProperty("cid", courseNodeId);
-	 parentUpdate(courseNode);
-
-/// refresh the tree to redraw the nodes with the new labels
-	 refreshRoot();
-	 updateTotal();
-	 tooltips();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// same as the above function, but adjusted to work when called from the workshop frames
-////////////////////////////////////////////////////////////////////////////////////////
-
-function saveChangesAJAXFrames(thisNodeId, parentNodeId, courseNodeId) {
-
-/// remove the node that was just marked	 
-	 var checkNode = "";
-	 checkNode = tree.getNodeByProperty("id", thisNodeId);
-	 tree.removeNode(checkNode, true);
-
-/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
-	 var parentNode = "";
-	 parentNode = tree.getNodeByProperty("assid", parentNodeId);
-	 parentUpdate(parentNode);
-
-/// now do the same for the course node		
-	
-	 var courseNode = "";
-	 courseNode = tree.getNodeByProperty("cid", courseNodeId);
-	 parentUpdate(courseNode);
-	
-
-/// refresh the tree to redraw the nodes with the new labels
-	 refreshRootFrames();
-	 updateTotal();
-	 tooltips();
- }
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// funtion to refresh all the nodes once the update operations have all been carried out by saveChangesAJAX()
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-function refreshRoot() {
-	root.refresh();
-	if (root.children.length === 0) {
-	    document.getElementById("totalmessage").innerHTML = '';
-		document.getElementById("count").innerHTML = '';
-		div.innerHTML += nothingString;
-	}
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/// funtion to refresh all the nodes once the operations have all been carried out - workshop frames version
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-function refreshRootFrames() {
-	 root.refresh();
-	 if (root.children.length === 0) {
-		 document.getElementById("totalmessage").innerHTML = '';
-		 document.getElementById("count").innerHTML = '';
-		 div.innerHTML += nothingString;
-	}
-}
-
-
-
 
 
 //////////////////////////////////////////////////////////////////////////////////////
@@ -861,7 +1234,7 @@ function refreshRootFrames() {
 // I have not yet found a way to alter this variable using javascript - ideally, the sort would be the same as it is in the list presented in the marking block.
 // until a work around is found, the save and next function is be a bit wonky, sometimes showing next when there is only one submission, so I have hidden it.
 
-function assignmentOnload(me, parent, course) {
+function assignmentOnLoad(me, parent, course) {
 	var els ='';
 	var els2 = '';
 	var els3 = '';
@@ -871,11 +1244,12 @@ function assignmentOnload(me, parent, course) {
 		if (els.length !== 0) { // the above line will not return anything until the pop up is fully loaded
 			// the onclick carries out the functions that are already specified in lib.php, followed by the function to update the tree
 			var name = navigator.appName;
-	        if (name == "Microsoft Internet Explorer") { // was set to = but it worked.
-			    els[0]["onclick"] = new Function("windowobj.document.getElementById('submitform').menuindex.value = windowobj.document.getElementById('submitform').grade.selectedIndex; saveChangesAJAX('"+me+"', '"+parent+"', '"+course+"'); "); // IE
+	        if (name == "Microsoft Internet Explorer") { 
+			    els[0]["onclick"] = new Function("windowobj.document.getElementById('submitform').menuindex.value = windowobj.document.getElementById('submitform').grade.selectedIndex; main.saveChangesAJAX('"+me+"', '"+parent+"', '"+course+"'); "); // IE
 			} else {
-			    els[0].setAttribute("onClick", "document.getElementById('submitform').menuindex.value = document.getElementById('submitform').grade.selectedIndex; return window.opener.saveChangesAJAX('"+me+"', '"+parent+"', '"+course+"')"); // Mozilla etc.
+			    els[0].setAttribute("onClick", "document.getElementById('submitform').menuindex.value = document.getElementById('submitform').grade.selectedIndex; return window.opener.main.saveChangesAJAX('"+me+"', '"+parent+"', '"+course+"')"); // Mozilla etc.
 			}
+			
 			if (typeof(windowobj.document.getElementsByName('saveandnext')) != 'undefined') {// the saveandnext thing needs hiding 
 				els2 = windowobj.document.getElementsByName('saveandnext');
 				if (els2.length !== 0) {
@@ -885,7 +1259,7 @@ function assignmentOnload(me, parent, course) {
 				}
 			}  
 			timerVar = window.clearInterval(timerVar); // cancel the loop for this function
-			//alert('done');
+			
 		}
 	}
 }
@@ -906,154 +1280,319 @@ function assignmentOnload(me, parent, course) {
 // else will be met first, followed by the if. The loop will keep running whilst the pop up is open, so this is not very elegant or efficient, but
 // should not cause any problems unless the client is horribly slow. A better implementation will follow sometime soon.
 
-function workshopOnload(me, parent, course) {
+function workshopOnLoad(me, parent, course) {
 	var els ='';
-	
 	if (typeof(windowobj.frames[0]) != 'undefined') { //check that the frames are loaded - this can vary according to conditions
 	    if (windowobj.frames[0].location.href != wwwroot+'/mod/workshop/assessments.php') { 
             // this is the early stage, pop up has loaded and grading is occurring
 		    // annoyingly, the workshop module has not named its submit button, so we have to get it using another method as the 11th input
 			els = windowobj.frames[0].document.getElementsByTagName('input');
 			if (els.length == 11) { 
-				els[10]["onclick"] = new Function("saveChangesAJAXFrames('"+me+"', '"+parent+"', '"+course+"');"); // IE
+				els[10]["onclick"] = new Function("saveChangesAJAX('"+me+"', true);"); // IE
 				//els[10].setAttribute("onClick", "saveChangesAJAXFrames('"+me+"', '"+parent+"', '"+course+"')"); // Mozilla etc
 				timerVar = window.clearInterval(timerVar);	// cancel loop
-				timerVar=self.setInterval('workshopAfterLoad()', 500); // set loop for next function that will close pop up on location change
+				timerVar=self.setInterval('afterLoad("/mod/workshop/assessments.php")', 500); // set loop for next function that will close pop up on location change
 			}
 		}
 	}
 }
-
-
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 // function to add onclick stuff to the forum ratings button. This button also has no name or id so we 
 // identify it by getting the last tag in the array of inputs. The function is triggered on an interval
 // of 1/2 a second until it manages to close the pop up after it has gone to the confirmation page
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 
-function forumOnload(me, parent, course) {
+function forumOnLoad(me) {
+    var els ='';
+    var name = navigator.appName;
+// first, add the onclick if possible
+    if (typeof(windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
+        els = windowobj.document.getElementsByTagName('input');
+
+        if (els.length > 0) {
+            var key = els.length -1;
+            if (els[key].value == forumSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
+
+                if (name != "Microsoft Internet Explorer") {
+                    els[key].setAttribute("onClick", "return saveChangesAJAX('"+me+"')"); // mozilla and all other good browsers
+                } else {
+                   els[key]["onclick"] = new Function("return saveChangesAJAX('"+me+"');"); // IE
+                }
+                timerVar = window.clearInterval(timerVar); // cancel loop for this function
+                timerVar=self.setInterval('afterLoad("/mod/forum/rate.php")', 500); // set loop for next function that will close pop up on location change
+            }
+        }
+    }
+}
+
+function quizOnLoad(me) {
+    var els = '';
+    var lastButOne = '';
+    t = t + 1; //what was this for?
+
+    //alert('course= '+course);
+    if (typeof(windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
+        els = windowobj.document.getElementsByTagName('input');
+
+        if (els.length > 14) { // there is at least the DOM present for a single attempt, but if the student has made a couple of attempts,
+                                // there will be a larger window.
+            lastButOne = els.length - 1;
+            if (els[lastButOne].value == quizSaveString) {
+
+                // the onclick carries out the functions that are already specified in lib.php, followed by the function to update the tree
+                var name = navigator.appName;
+                if (name == "Microsoft Internet Explorer") {
+                els[lastButOne]["onclick"] = new Function("saveChangesAJAX('"+me+"'); "); // IE
+                } else {
+                        els[lastButOne].setAttribute("onClick", "window.opener.saveChangesAJAX('"+me+"')"); // Mozilla etc.
+                }
+                timerVar = window.clearInterval(timerVar); // cancel the loop for this function
+                timerVar=self.setInterval('afterLoad("/mod/quiz/report.php")', 500);
+                //alert('done');
+            }
+        }
+    }
+}
+
+function journalOnLoad(me) {
 	var els ='';
 // first, add the onclick if possible
 	if (typeof(windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
-	 //   if (window.opener) {
-	    	els = windowobj.document.getElementsByTagName('input');
-		//} else {
-	//		els = document.getElementsByTagName('input');
-	//	}
-		if (els.length > 0) {
-			var key = els.length -1;
-			//alert(els[key].value);
-			if (els[key].value == forumSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
-				
-				els[key].setAttribute("onClick", "return saveChangesAJAX('"+me+"', '"+parent+"', '"+course+"')"); // mozilla and all other good browsers
-				els[key]["onclick"] = new Function("return saveChangesAJAX('"+me+"', '"+parent+"', '"+course+"');"); // IE
-				//alert('forum alfter function');
-
-				timerVar = window.clearInterval(timerVar); // cancel loop for this function
-				timerVar=self.setInterval('forumAfterLoad()', 500); // set loop for next function that will close pop up on location change
-			}
-		}
-	}
-}
-
-function quizOnload(me, parentVar, quiz, course) {
-	var els = '';
-	var lastButOne = '';
-	t = t + 1;
 	
-	//alert('course= '+course);
-	if (typeof(windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
-		els = windowobj.document.getElementsByTagName('input');
-	
-		//alert(els.length);
-		if (els.length > 14) { // there is at least the DOM present for a single attempt, but if the student has made a couple of attempts,
-					// there will be a larger window.
-			lastButOne = els.length - 1;
-			if (els[lastButOne].value == quizSaveString) {
-				//alert('value match '+me+' '+parentVar+' '+quiz+' '+course);
-				
-				// the onclick carries out the functions that are already specified in lib.php, followed by the function to update the tree
-				var name = navigator.appName;
-				if (name == "Microsoft Internet Explorer") { // was set to = but it worked.
-				els[lastButOne]["onclick"] = new Function("saveChangesAJAXquiz('"+me+"', '"+parentVar+"', '"+quiz+"', '"+course+"'); "); // IE
-				} else {
-					els[lastButOne].setAttribute("onClick", "window.opener.saveChangesAJAXquiz('"+me+"', '"+parentVar+"', '"+quiz+"', '"+course+"')"); // Mozilla etc.
-				}
-				timerVar = window.clearInterval(timerVar); // cancel the loop for this function
-				timerVar=self.setInterval('quizAfterLoad()', 500);
-				//alert('done');
-			}
-		} 
-	}
-}
-
-function journalOnload(me, parent) {
-	var els ='';
-// first, add the onclick if possible
-	if (typeof(windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
-	 //   if (window.opener) {
 	    	els = windowobj.document.getElementsByTagName('input');
-		//} else {
-	//		els = document.getElementsByTagName('input');
-	//	}
+		
 		if (els.length > 0) {
 			var key = els.length -1;
 			//alert(els[key].value);
 			if (els[key].value == journalSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
 				
-				els[key].setAttribute("onClick", "return saveChangesAJAXjournal('"+me+"', '"+parent+"')"); // mozilla and all other good browsers
-				els[key]["onclick"] = new Function("return saveChangesAJAXjournal('"+me+"', '"+parent+"');"); // IE
+				els[key].setAttribute("onClick", "return saveChangesAJAX('"+me+"')"); // mozilla and all other good browsers
+				els[key]["onclick"] = new Function("return saveChangesAJAX('"+me+"');"); // IE
 				//alert('forum alfter function');
 
 				timerVar = window.clearInterval(timerVar); // cancel loop for this function
-				timerVar=self.setInterval('journalAfterLoad()', 500); // set loop for next function that will close pop up on location change
+				timerVar=self.setInterval('afterLoad("/mod/journal/report.php")', 500); // set loop for next function that will close pop up on location change
 			}
 		}
 	}
 }
 
-function quizAfterLoad() { //may be possible to replace this loop with a dom event listener
+
+// function that waits till the pop up has a particular location and then shuts it.
+
+function afterLoad(loc) { //may be possible to replace this loop with a dom event listener
 	if (windowobj.closed) {//prevents this loop from continuing indefinitely if the window is closed manually before grading
 		timerVar = window.clearInterval(timerVar);
 	}
-	if (!windowobj.closed && windowobj.location.href == wwwroot+'/mod/quiz/report.php') {
+	if (!windowobj.closed && windowobj.location.href == wwwroot+loc) {
 		setTimeout('windowobj.close()', 1000);
 		timerVar = window.clearInterval(timerVar);
 	} 
 }
 
-function forumAfterLoad() { 
-	if (windowobj.closed) {//prevents this loop from continuing indefinitely if the window is closed manually before grading
-		timerVar = window.clearInterval(timerVar);
-	}
-	if (!windowobj.closed && windowobj.location.href == wwwroot+'/mod/forum/rate.php') {
-		setTimeout('windowobj.close()', 1000);
-		timerVar = window.clearInterval(timerVar);
-	} 
 
+/////////////////////////////////////////////////////////////////////////////////////////////////
+// Makes a greyed out div appear over the whole screen and a pop-over div with config settings
+/////////////////////////////////////////////////////////////////////////////////////////////////
+
+function grayOut(vis, options) { 
+  // http://www.hunlock.com/blogs/Snippets:_Howto_Grey-Out_The_Screen
+  // snippet is public domain
+  // Pass true to gray out screen, false to ungray
+  // options are optional.  This is a JSON object with the following (optional) properties
+  // opacity:0-100         // Lower number = less grayout higher = more of a blackout 
+  // zindex: #             // HTML elements with a higher zindex appear on top of the gray out
+  // bgcolor: (#xxxxxx)    // Standard RGB Hex color code
+  // grayOut(true, {'zindex':'50', 'bgcolor':'#0000FF', 'opacity':'70'});
+  // Because options is JSON opacity/zindex/bgcolor are all optional and can appear
+  // in any order.  Pass only the properties you need to set.
+  if (!options) {
+      options = '';
+  }
+  //var options = (options == null) ? '' : options;
+  var zindex = options.zindex || 50;
+  var opacity = options.opacity || 70;
+  var opaque = (opacity / 100);
+  var bgcolor = options.bgcolor || '#000000';
+  var dark=document.getElementById('darkenScreenObject');
+  var dialog = document.getElementById('dialog');
+  var windowHeight = alertSize();
+  var pageHeight = ''; // holds the height that the dark div should be
+  var pageWidth = ''; // holds the width that the dark div should be
+  var screenWidth = ''; //to allow for a calculation that puts the dialogue div in the middle
+  
+  if (!dark) {
+    // The dark layer doesn't exist, it's never been created.  So we'll
+    // create it here and apply some basic styles.
+    // If you are getting errors in IE see: http://support.microsoft.com/default.aspx/kb/927917
+    var tbody = document.getElementsByTagName("body")[0];
+    var tnode = document.createElement('div');           // Create the layer.
+        tnode.style.position='absolute';                 // Position absolutely
+        tnode.style.top='0px';                           // In the top
+        tnode.style.left='0px';                          // Left corner of the page
+        tnode.style.overflow='hidden';                   // Try to avoid making scroll bars            
+        tnode.style.display='none';                      // Start out Hidden
+        tnode.id='darkenScreenObject';                   // Name it so we can find it later
+    tbody.appendChild(tnode);                            // Add it to the web page
+    dark=document.getElementById('darkenScreenObject');  // Get the object.
+  }
+  if (vis) {
+	  
+    // Calculate the page width and height so the dark div is big enough
+    if( document.body && ( document.body.scrollWidth || document.body.scrollHeight ) ) {
+        pageWidth = document.body.scrollWidth+'px';
+		screenWidth = document.body.scrollWidth;
+		if (document.body.scrollHeight < windowHeight) {
+			pageHeight = windowHeight+'px'; //fixes short dark thing if frontpgae is smaller than browser height
+		} else {
+			pageHeight = document.body.scrollHeight+'px';
+		}
+    } else if( document.body.offsetWidth ) {
+        pageWidth = document.body.offsetWidth+'px';
+	    screenWidth = document.body.offsetWidth;
+	  	if (document.body.offsetHeight < windowHeight) {
+			pageHeight = windowHeight+'px'; //fixes short dark thing if frontpgae is smaller than browser height
+		} else {
+			pageHeight = document.body.offsetHeight+'px';
+		}
+    } else {
+	screenWidth = 800;
+        pageWidth='100%';
+        pageHeight='100%';
+    }   
+
+// now set the position of the config div so its in the middle
+var y = 0;
+if (self.pageYOffset) // all except Explorer
+{
+	y = window.scrollY;
+        dialog.style.top=(y-100)+'px';
+}
+else if (document.documentElement && document.documentElement.scrollTop)
+	// Explorer 6 Strict
+{
+	y = document.documentElement.scrollTop;
+}
+else if (document.body) // all other Explorers
+{
+	y = document.body.scrollTop;
 }
 
-function workshopAfterLoad() {
-	if (windowobj.closed) { //prevents this loop from continuing indefinitely if the window is closed manually before grading
-		timerVar = window.clearInterval(timerVar);
-	}
-	if (!windowobj.closed && windowobj.frames[0].location.href == wwwroot+'/mod/workshop/assessments.php') { // is this the later stage after the redirect? - in which case we close it
-		windowobj.frames[0].onload = setTimeout('windowobj.close()', 1500);             // after 1.5 seconds so it hasn't the chance to redirect. may need 
-																						// adjusting if the timeout setting for a site is very low
-	    timerVar = window.clearInterval(timerVar);	// cancel loop - both conditions have been met now.
-	} 
+
+    //set the shader to cover the entire page and make it visible.
+    dark.style.opacity=opaque;                      
+    dark.style.MozOpacity=opaque;                   
+    dark.style.filter='alpha(opacity='+opacity+')'; 
+    dark.style.zIndex=zindex;        
+    dark.style.backgroundColor=bgcolor;  
+    dark.style.width= pageWidth;
+    dark.style.height= pageHeight;
+    dark.style.display='block';	
+	
+	// here follows the part that makes the config div overlay on to of the dark bit.
+	
+	//dialog.style.position='absolute'; // ie will mess up zindex if the dark and dialog divs have different position styles.
+
+	dialog.style.right=((screenWidth - 400)/2)+'px';
+	dialog.style.top=(y-100)+'px';
+        dialog.style.height=screen.availHeight-300+'px';
+
+	dialog.style.display='block';
+	//dialog.style.zIndex=70;
+	
+	// in case this is not the first time the config screen has been pulled up on this page load, we wipe everything and start again
+	document.getElementById('configshowform').innerHTML = '';
+	document.getElementById('configTree').innerHTML = '';
+	document.getElementById('configInstructions').innerHTML = '';
+	
+	// initialise the new tree object
+    config = new AJAXtree('configTree', 'configIcon', 'configStatus', true);
+    config.icon = document.getElementById('configIcon'); //wasted?
+	
+	
+	// make the config box draggable
+	//var dd = new YAHOO.util.DD("dialog");
+	//dd.setHandleElId("dialogdrag");
+	
+
+  } else { // we make it light again
+     // first we clear the contents of the divs so they are not there when config is called again.
+     document.getElementById("configGroups").innerHTML = "";
+     dark.style.display='none';
+	 dialog.style.display='none';
+  }
 }
 
-function journalAfterLoad() { 
-	if (windowobj.closed) {//prevents this loop from continuing indefinitely if the window is closed manually before grading
-		timerVar = window.clearInterval(timerVar);
-	}
-	if (!windowobj.closed && windowobj.location.href == wwwroot+'/mod/journal/report.php') {
-		setTimeout('windowobj.close()', 1000);
-		timerVar = window.clearInterval(timerVar);
-	} 
+//need to find the size of the window so the dark div is not too small
 
+function alertSize() { //http://www.howtocreate.co.uk/tutorials/javascript/browserwindow
+  var  myHeight = 0;
+  if( typeof( window.innerWidth ) == 'number' ) {
+    //Non-IE
+    myHeight = window.innerHeight;
+  } else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) {
+    //IE 6+ in 'standards compliant mode'
+    myHeight = document.documentElement.clientHeight;
+  } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+    //IE 4 compatible
+    myHeight = document.body.clientHeight;
+  }
+  return myHeight;
 }
+
+/**
+ * the onclick for the radio buttons in the config screen.
+ * if show by group is clicked, the groups thing pops up. If another one is, the groups thing is hidden.
+ */
+function showHideChanges(checkbox) { 
+	// if its groups, show the groups by getting them from the course node?
+	//alert('showhide fired');
+	var showHide = '';
+	config.disableRadio();
+
 		
+	switch (checkbox.value) {
+		case 'groups': //need to set the type of this assessment to 'show groups' and get the groups stuff.
+			//alert('groups');
+			showHide = 2;
+			//get the form div to be able to read the values
+			var form = document.getElementById('configshowform');
+			//config.icon.innerHTML = img;
+			/*
+			//check to see if the course node has alredy got the groups info attached
+			var node = config.tree.getNodeByProperty("assid", form.);
+			if (typeof(node.data.groups = 'undefined')) { // no group data available, so get it via ajax and store it as part of the course node
+			*/
+			var url = wwwroot+'/blocks/ajax_marking/ajax.php?id='+form.course.value+'&assessmenttype='+form.assessmenttype.value+'&assessmentid='+form.assessment.value+'&type=config_groups&userid='+userid+'&showhide='+showHide+'';
+			var request = YAHOO.util.Connect.asyncRequest('GET', url, config.ajaxCallback);
+			break;
+		case 'show':
+			document.getElementById('configGroups').innerHTML = '';
+			configSet(1);
+			break;
+		case 'hide':
+			document.getElementById('configGroups').innerHTML = '';
+			configSet(3);
+			break;
+			
+	} // end switch
+}
+
+// called from the above function to set the showhide value of the config items
+function configSet(showHide) {
+	var form = document.getElementById('configshowform');
+	
+	var url = wwwroot+'/blocks/ajax_marking/ajax.php?id='+form.assessment.value+'&type=config_set&userid='+userid+'&assessmenttype='+form.assessmenttype.value+'&assessmentid='+form.assessment.value+'&showhide='+showHide+'';
+	//alert(url);
+        var request = YAHOO.util.Connect.asyncRequest('GET', url, config.ajaxCallback);
+}
+
+function init() {
+    getVars(); 
+    main = new AJAXtree('treediv', 'mainIcon', 'status');
+    
+}
+// this stuff needs to stay at the end. used to be in the main php file with a defer thing but I think it broke the xhtml stuff
+YAHOO.util.Event.onDOMReady(init);
+	
 
