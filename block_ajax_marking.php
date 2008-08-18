@@ -111,15 +111,12 @@ class block_ajax_marking extends block_base {
                 </div>
                 <div id='cover'></div>
                 <div id='dialog'>
-
                         <div id='dialogdrag' class='dialogheader'>
                                 <div id='confname'>Configuration <a href =\"http://docs.moodle.org/en/Ajax_marking_block#Configuration\" target=\"_blank\" ><img src=\"/pix/docs.gif\" /></a></div>
                                 <div id='configIcon'></div>
                                 <div id='close'><a href='#' onclick='grayOut(false); main.refreshTree(); return false;'><img src='/blocks/ajax_marking/images/close.png' alt='close' /></a></div>
-
                         </div>
-
-                        <div id='configStatus'></div>
+                        <div id='confiStatus'></div>
                         <div id='configTree'></div>
                         <div id='configSettings'>
                                 <div id='configInstructions'>instructions</div>
@@ -129,21 +126,16 @@ class block_ajax_marking extends block_base {
                                 </div>
                                 <div id='configGroups'></div>
                         </div>
-                </div>
-                ".require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_dragdrop', $CFG->wwwroot.'/blocks/ajax_marking/javascript-min.js'))."
-                ";
+                </div>".require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', $CFG->wwwroot.'/blocks/ajax_marking/javascript-min.js'))."";
                
                 $this->content->footer = '
-                        <div id="conf-wrapper">
                             <div id="conf_left">
                                 <a href="javascript:" onclick="main.refreshTree(); return false">'.get_string("collapse", "block_ajax_marking").'</a>
                             </div>
                             <div id="conf_right">
                                 <a href="#" onclick="grayOut(true);return false">'.get_string('configure', 'block_ajax_marking').'</a>
                             </div>
-                        </div>
-                        <div id="tree_control"></div>
-                        <div id="conf_spacer"></div>
+                        
                         ';
             } // end of if has capability
         return $this->content;	

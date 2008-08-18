@@ -32,7 +32,8 @@ var t = 0;
 
 var main = '';
 var config = '';
-var img = '<img id="loader" src="'+wwwroot+'/lib/yui/treeview/assets/loading.gif" alt=\"loading\" />';
+// var img = '<img id="loader" src="'+wwwroot+'/lib/yui/treeview/assets/loading.gif" alt=\"loading\" />';
+var img = '<img id="loader" src="'+wwwroot+'/blocks/ajax_marking/images/ajax-loader.gif" alt=\"loading\" />';
 
 
 
@@ -64,11 +65,6 @@ function getVars() {
 	 journalString = document.getElementById('journalstring').value;
          journalSaveString = document.getElementById('journalsavestring').value;
 }
-
-
-
-
-
 
 // This is the main constructor function for the class that will form the marking tree. There are 2 types of tree - for both the main marking block and 
 // the config screen, so this allows efficient code reuse.
@@ -136,26 +132,30 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 		case 'main':
 			//alert ('before make');
 			this.makeCourseNodes(responseArray);
-			
+			ie_width();
 			break;
 		
 		case 'course':
 			//alert('before assess');
 			this.makeAssessmentNodes(responseArray);
+                        ie_width();
 			break;
                 
                 case 'quiz_question':
                       this.makeAssessmentNodes(responseArray);
+                      ie_width();
                       break;
 			
 		case 'groups':
 			//alert('case');
 			this.makeGroupNodes(responseArray);
+                        ie_width();
 			break;
 			
 		case 'submissions':
 			
 			this.makeSubmissionNodes(responseArray);
+                        ie_width();
 			break;
 			
 		case 'config_main':	
@@ -1395,7 +1395,8 @@ function afterLoad(loc) { //may be possible to replace this loop with a dom even
 // Makes a greyed out div appear over the whole screen and a pop-over div with config settings
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-function grayOut(vis, options) { 
+function grayOut(vis, options) {
+    //alert('greying out');
   // http://www.hunlock.com/blogs/Snippets:_Howto_Grey-Out_The_Screen
   // snippet is public domain
   // Pass true to gray out screen, false to ungray
@@ -1437,6 +1438,7 @@ function grayOut(vis, options) {
     dark=document.getElementById('darkenScreenObject');  // Get the object.
   }
   if (vis) {
+   
 	  
     // Calculate the page width and height so the dark div is big enough
     if( document.body && ( document.body.scrollWidth || document.body.scrollHeight ) ) {
@@ -1463,19 +1465,23 @@ function grayOut(vis, options) {
 
 // now set the position of the config div so its in the middle
 var y = 0;
+
 if (self.pageYOffset) // all except Explorer
 {
 	y = window.scrollY;
-        dialog.style.top=(y-100)+'px';
+        //dialog.style.top=(y-100)+'px';
+        //alert('all except explorer y = '+y);
 }
 else if (document.documentElement && document.documentElement.scrollTop)
 	// Explorer 6 Strict
 {
 	y = document.documentElement.scrollTop;
+       // alert('explorer 6 y = '+y);
 }
 else if (document.body) // all other Explorers
 {
 	y = document.body.scrollTop;
+       // alert('all other explorers y = '+y);
 }
 
 
@@ -1489,22 +1495,24 @@ else if (document.body) // all other Explorers
     dark.style.height= pageHeight;
     dark.style.display='block';	
 	
-	// here follows the part that makes the config div overlay on to of the dark bit.
-	
-	//dialog.style.position='absolute'; // ie will mess up zindex if the dark and dialog divs have different position styles.
+    // here follows the part that makes the config div overlay on to of the dark bit.
 
-	dialog.style.right=((screenWidth - 400)/2)+'px';
-	dialog.style.top=(y-100)+'px';
-        dialog.style.height=screen.availHeight-300+'px';
+    //dialog.style.position='absolute'; // ie will mess up zindex if the dark and dialog divs have different position styles.
 
-	dialog.style.display='block';
-	//dialog.style.zIndex=70;
-	
-	// in case this is not the first time the config screen has been pulled up on this page load, we wipe everything and start again
-	document.getElementById('configshowform').innerHTML = '';
-	document.getElementById('configTree').innerHTML = '';
-	document.getElementById('configInstructions').innerHTML = '';
-	
+    dialog.style.right=((screenWidth - 400)/2)+'px';
+    dialog.style.top=(y+100)+'px';
+    var availHeight = screen.availHeight
+    dialog.style.height=(availHeight-500)+'px';
+
+
+    dialog.style.display='block';
+    //dialog.style.zIndex=70;
+
+    // in case this is not the first time the config screen has been pulled up on this page load, we wipe everything and start again
+    document.getElementById('configshowform').innerHTML = '';
+    document.getElementById('configTree').innerHTML = '';
+    document.getElementById('configInstructions').innerHTML = '';
+
 	// initialise the new tree object
     config = new AJAXtree('configTree', 'configIcon', 'configStatus', true);
     config.icon = document.getElementById('configIcon'); //wasted?
@@ -1519,7 +1527,7 @@ else if (document.body) // all other Explorers
      // first we clear the contents of the divs so they are not there when config is called again.
      document.getElementById("configGroups").innerHTML = "";
      dark.style.display='none';
-	 dialog.style.display='none';
+     dialog.style.display='none';
   }
 }
 
@@ -1576,6 +1584,18 @@ function showHideChanges(checkbox) {
 			break;
 			
 	} // end switch
+}
+
+function ie_width() {
+    if (/MSIE (\d+\.\d+);/.test(navigator.userAgent)){
+      var el = document.getElementById('treediv');
+      var contentDiv = el.parentNode;
+      var mainDiv = contentDiv.parentNode;
+      var col = document.getElementById('right-column');
+      var max = contentDiv.offsetWidth;
+      col.style.width = max;
+      //alert('ie fixed');
+    }
 }
 
 // called from the above function to set the showhide value of the config items

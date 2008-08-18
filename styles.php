@@ -3,9 +3,10 @@
   padding-bottom: 3px;
   background-repeat: no-repeat;
   background-position: 0 0px;
-  background-color: #fff;
+  background-color: transparent;
   white-space: nowrap;
   margin-left: 0px;
+  display: block;
 }
 .icon-course {
   background-image: url(/theme/chameleon/pix/i/course.gif);
@@ -87,7 +88,7 @@
 }
 #loader {
   position: relative;
-  top: -4px;
+  top: 3px;
   right: 0px;
   float: left;
   z-index: 100;
@@ -107,48 +108,17 @@ include '../../lib/yui/container/assets/container.css';
   padding-bottom: 2px;
 }
 #treediv {
-  clear: both;
+  /* clear: both; */
   margin-bottom: 0px;
   padding-bottom: 0px;
+  float: left;
+  font:10pt tahoma;
 }
 #mainIcon {
   float: left;
   padding-left: 8px;
   height: 10px;
 }
-div.aligncenter {
-  border: 1px solid #00cccc;
-}
-div.new {
-  width: 480px;
-  margin-left: auto;
-  margin-right: auto;
-  height: 430px;
-}
-div.right {
-  float: right;
-  width: 40%;
-}
-div.left {
-  float: left;
-  width: auto;
-}
-div.middle-float {
-  width: 100%;
-  clear: both;
-  text-align: center;
-}
-div.row {
-  height: 30px;
-}
-div.swatch {
-  width: 22px;
-  height: 22px;
-  float: left;
-  margin-right: 3px;
-}
-
-
 
 
 /*
@@ -164,48 +134,41 @@ version: 2.3.0
 	width:18px; height:22px; 
 	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -5600px no-repeat; 
 }
-
 /* first or middle sibling, collapsable */
 .ygtvtm {
 	width:18px; height:22px; 
 	cursor:pointer ;
 	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -4000px no-repeat; 
 }
-
 /* first or middle sibling, collapsable, hover */
 .ygtvtmh {
 	width:18px; height:22px; 
 	cursor:pointer ;
 	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -4800px no-repeat; 
 }
-
 /* first or middle sibling, expandable */
 .ygtvtp {
 	width:18px; height:22px; 
 	cursor:pointer ;
 	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -6400px no-repeat; 
 }
-
 /* first or middle sibling, expandable, hover */
 .ygtvtph {
 	width:18px; height:22px; 
 	cursor:pointer ;
 	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -7200px no-repeat; 
 }
-
 /* last sibling, no children */
 .ygtvln {
 	width:18px; height:22px; 
 	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -1600px no-repeat; 
 }
-
 /* Last sibling, collapsable */
 .ygtvlm {
 	width:18px; height:22px; 
 	cursor:pointer ;
 	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 0px no-repeat; 
 }
-
 /* Last sibling, collapsable, hover */
 .ygtvlmh {
 	width:18px; height:22px; 
@@ -219,19 +182,16 @@ version: 2.3.0
 	cursor:pointer ;
 	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -2400px no-repeat; 
 }
-
 /* Last sibling, expandable, hover */
 .ygtvlph { 
 	width:18px; height:22px; cursor:pointer ;
 	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -3200px no-repeat; 
 }
-
 /* Loading icon */
 .ygtvloading { 
 	width:18px; height:22px; 
 	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>treeview-loading.gif) 0 0 no-repeat; 
 }
-
 /* the style for the empty cells that are used for rendering the depth 
  * of the node */
 .ygtvdepthcell { 
@@ -257,20 +217,10 @@ version: 2.3.0
 
 .ygtvspacer { height: 22px; width: 18px; }
 
-
 .ygtvloading + td, .ygtvlp + td, .ygtvlph + td, .ygtvtp + td, .ygtvtph + td, .ygtvtm + td, .ygtvtmh + td, .ygtvlm + td, .ygtvlmh + td {
   vertical-align:top;
- 
 }
-
-.ygtvlph , .ygtvtp , .ygtvtm , .ygtvtmh , .ygtvlm , .ygtvlmh  {
-  
-}
-.ygtvspacer {
-  height: 22px;
-  width: 18px;
-}
-        
+      
 /* Debug styles */
 
 .bd {
@@ -282,52 +232,55 @@ version: 2.3.0
  */
 
 #conf_left {
-float:left;
-width: 45%;
-margin-left: 3px;
+  float:left;
+  width: 45%;
+  margin-left: 3px;
 } 
 #conf_right {
-float:right;
-width: 45%;
-margin-right: 3px;
-text-align: right;
+  float:right;
+  width: 45%;
+  margin-right: 3px;
+  text-align: right;
 } 
 #conf-wrapper {
+  float: left;
   clear: both;
-}
-#conf_spacer {
-height:1px;
-width:1px;
-clear: both;
+  background-color: transparent;
 }
 #close {
-float:right;
+  float:right;
+  margin: 0px;
+  padding: 0px;
 }
 #confname {
-float: left;
-font-weight: bold;
+  float: left;
+  font-weight: bold;
+  width: 50%;
+  padding-left: 4px;
+  line-height: 15px;
 }
 #dialog {
-display:none;
-z-index:100;
-background:white;
-padding:2px;
-font:10pt tahoma;
-border:1px solid gray;
-
-width:400px;
-position:absolute;
-overflow-y:scroll;
+  display:none;
+  z-index:100;
+  background:white;
+  padding:0px;
+  font:10pt tahoma;
+  border:1px solid gray;
+  width:400px;
+  position:absolute;
+  overflow-y:scroll;
 }
 .dialogheader {
-width: 100%;
-height: 25px;
-background-color: #f9eaae;
-float: left;
+  line-height: 0;
+  height: 25px;
+  background-color: #f9eaae;
+  width: 100%;
+  margin: 0px;
 }
 #configTree {
   float:left;
   max-width:200px;
+  padding-top: 4px;
 }
 #configSettings {
   float:right;
@@ -335,5 +288,17 @@ float: left;
 }
 #configGroups {
   float:right;
-   width:190px;
+  width:190px;
+ 
+}
+#configIcon {
+  float: left;
+  position: relative;
+  width: 35px;
+  line-height: 0;
+}
+div.block_ajax_marking div.footer {
+  border-style: none;
+  pading-bottom: 0px;
+  height: 30px;
 }
