@@ -117,7 +117,7 @@ class block_ajax_marking extends block_base {
                                 <div id='close'><a href='#' onclick='grayOut(false); main.refreshTree(); return false;'><img src='/pix/i/cross_red_big.gif
 ' alt='close' /></a></div>
                         </div>
-                        <div id='confiStatus'></div>
+                        <div id='configStatus'></div>
                         <div id='configTree'></div>
                         <div id='configSettings'>
                                 <div id='configInstructions'>instructions</div>

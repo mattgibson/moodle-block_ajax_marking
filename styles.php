@@ -288,9 +288,8 @@ version: 2.3.0
   padding:0px;
   font:10pt tahoma;
   border:1px solid gray;
-  width:400px;
+  width:420px;
   position:absolute;
-  overflow-y:scroll;
 }
 .dialogheader {
   line-height: 0;
@@ -304,17 +303,20 @@ version: 2.3.0
 }
 #configTree {
   float:left;
+  width: 220px;
+  height: 100%;
   max-width:200px;
   padding-top: 4px;
+  overflow-y:scroll;
 }
 #configSettings {
-  float:right;
-  width:150px;
+  float:left;
+  width:190px;
+  padding-left: 10px;
 }
 #configGroups {
   float:right;
   width:190px;
- 
 }
 #configIcon {
   float: left;
@@ -326,5 +328,4 @@ div.block_ajax_marking div.footer {
   border-style: none;
   padding-bottom: 0px;
   height: 30px;
-  
 }

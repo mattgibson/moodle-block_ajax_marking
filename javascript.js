@@ -170,7 +170,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 			
 		case 'config_set': //just need to un-disable the radio button
 		
-			if (responseArray[0].value == false) {
+			if (responseArray[0].value === false) {
 				this.status.innerHTML = 'AJAX error';
 			} else {
 				this.enableRadio();
@@ -192,7 +192,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 			
 		case 'config_group_save':
 		
-			if (responseArray[0].value == false) {
+			if (responseArray[0].value === false) {
 				this.status.innerHTML = 'AJAX error';
 			} else {
 				this.enableRadio();
@@ -242,7 +242,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 			groupNodes[h].enabled = true;
 		}
 			
-	}
+	};
 	this.disableRadio = function() {
 		var h ='';
 		var radio = document.getElementById('configshowform');
@@ -257,7 +257,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 		for (h = 0; h < groupNodes.length; h++) {
 			groupNodes[h].disabled = true;
 		}
-	}
+	};
 	
         // don't remember what this is for.
 	var disableRadio = this.disableRadio;
@@ -368,8 +368,8 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                                 for (k=0;k<numberOfThirdLevelNodes;k++) {
                                     node = this.root.children[i].children[j].children[k];
                                     check = node.data.time;
-                                    if (typeof(check) != null) {
-                                        this.make_tooltip(node, control)
+                                    if (typeof(check) !== null) {
+                                        this.make_tooltip(node, control);
                                     }
                                     var numberOfFourthLevelNodes = node.children.length;
                                     for (m=0;m<numberOfFourthLevelNodes;m++) {
@@ -391,7 +391,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
             tempLabelEl = node.getLabelEl();
             tempText = node.data.summary;
             tempTooltip = new YAHOO.widget.Tooltip('tempTooltip', { context:tempLabelEl, text:tempText, showdelay:0, hidedelay:0, container:control, zIndex:110} );	
-        }
+        };
 
 	// makes the first level of the tree from the data returned via ajax.
 
@@ -446,78 +446,167 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 			this.icon.innerHTML = '';
 			document.getElementById('totalmessage').innerHTML = totalMessage;
 			this.updateTotal();
+                        if (!this.config) {
+                            this.tree.subscribe("clickEvent", function(oArgs) {
 
-                          this.tree.subscribe("clickEvent", function(oArgs) {
+                              // ref saves space
+                              var nd = oArgs.node;
 
-                            // ref saves space
-                            var nd = oArgs.node;
-                            
-                            // pop ups need a unique ref or else you can't open two at once.'
-                            var UniqueId = nd.data.type+nd.data.sid+'-'+nd.data.aid;
+                              // pop ups need a unique ref or else you can't open two at once.'
+                              var UniqueId = nd.data.type+nd.data.sid+'-'+nd.data.aid;
 
-                            switch (nd.data.type) {
+                              switch (nd.data.type) {
 
-                                case 'quiz_answer':
+                                  case 'quiz_answer':
 
-                                  openpopup(
-                                      '/mod/quiz/report.php?mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'',
-                                      UniqueId,
-                                      'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                      0
-                                  );
-                                  timerVar=window.setInterval('quizOnLoad(\''+nd.data.id+'\')', 500);
+                                    openpopup(
+                                        '/mod/quiz/report.php?mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'',
+                                        UniqueId,
+                                        'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                        0
+                                    );
+                                    timerVar=window.setInterval('quizOnLoad(\''+nd.data.id+'\')', 500);
+                                    break;
+
+
+                                  case 'assignment_answer':
+                                    //alert(oArgs.node.data.type);
+                                    openpopup(
+                                        '/mod/assignment/submissions.php?id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0',
+                                        UniqueId,
+                                        'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                        0
+                                    );
+                                    timerVar=window.setInterval('assignmentOnLoad(\''+nd.data.id+'\')', 500);
+                                    break;
+
+                                 case 'workshop_answer':
+
+                                    openpopup(
+                                        '/mod/workshop/assess.php?id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+wwwroot+'',
+                                        UniqueId,
+                                        'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                        0
+                                    );
+                                    timerVar=window.setInterval('workshopOnLoad(\''+nd.data.id+'\')', 500);
+                                    break;
+
+                                 case 'discussion':
+
+                                    openpopup(
+                                        '/mod/forum/discuss.php?d='+nd.data.aid+'#p'+nd.data.sid+'',
+                                        UniqueId,
+                                        'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                        0
+                                    );
+                                    timerVar=window.setInterval('forumOnLoad(\''+nd.data.id+'\')', 500);
+                                    break;
+
+                                 case 'journal_submission':
+
+                                    openpopup(
+                                        '/mod/journal/report.php?id='+nd.data.id+'',
+                                        UniqueId,
+                                        'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                        0
+                                    );
+                                    timerVar=window.setInterval('journalOnload(\''+nd.data.assid+'\', \''+nd.parent.data.cid+'\')', 500);
                                   break;
 
-
-                                case 'assignment_answer':
-                                  //alert(oArgs.node.data.type);
-                                  openpopup(
-                                      '/mod/assignment/submissions.php?id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0',
-                                      UniqueId,
-                                      'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                      0
-                                  );
-                                  timerVar=window.setInterval('assignmentOnLoad(\''+nd.data.id+'\')', 500);
-                                  break;
-
-                               case 'workshop_answer':
-
-                                  openpopup(
-                                      '/mod/workshop/assess.php?id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+wwwroot+'',
-                                      UniqueId,
-                                      'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                      0
-                                  );
-                                  timerVar=window.setInterval('workshopOnLoad(\''+nd.data.id+'\')', 500);
-                                  break;
-
-                               case 'discussion':
-                               
-                                  openpopup(
-                                      '/mod/forum/discuss.php?d='+nd.data.aid+'#p'+nd.data.sid+'',
-                                      UniqueId,
-                                      'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                      0
-                                  );
-                                  timerVar=window.setInterval('forumOnLoad(\''+nd.data.id+'\')', 500);
-                                  break;
-
-                               case 'journal_submission':
-
-                                  openpopup(
-                                      '/mod/journal/report.php?id='+nd.data.id+'',
-                                      UniqueId,
-                                      'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                      0
-                                  );
-                                  timerVar=window.setInterval('journalOnload(\''+nd.data.assid+'\', \''+nd.parent.data.cid+'\')', 500);
-                                break;
-
-                               default:
-                                   break;
+                                 default:
+                                     break;
                             } //end switch
-                }); // end subscribe
-		}
+                    }); // end subscribe
+                } else {
+                   //  if (this.config === true) { // set the onclick to be the function that populates the config div
+
+                      this.tree.subscribe('clickEvent', function(oArgs) {
+                        
+
+                        var title = document.getElementById('configInstructions');
+                        var check = document.getElementById('configshowform');
+                        document.getElementById('configGroups').innerHTML = '';
+
+
+
+                        if (oArgs.node.data.type == 'config_course') {
+                            title.innerHTML = '';
+                        } else {
+                            title.innerHTML = oArgs.node.data.name;
+                        }
+
+
+                        // remove all nodes from previously built form
+                        var len = check.childNodes.length;
+                        while (check.hasChildNodes()) {
+                          check.removeChild(check.firstChild);
+                        }
+
+//alert('clicked '+oArgs.node.data.name);
+                        check.style.color = '#AAA';
+
+                        var hidden1 = document.createElement('input');
+                                hidden1.type  = 'hidden';
+                                hidden1.name  = 'course';
+                                hidden1.value = oArgs.node.parent.data.id;
+                        check.appendChild(hidden1);
+                        var hidden2 = document.createElement('input');
+                                hidden2.type  = 'hidden';
+                                hidden2.name  = 'assessment';
+                                hidden2.value = oArgs.node.data.id;
+                        check.appendChild(hidden2);
+                        var hidden3 = document.createElement('input');
+                                hidden3.type  = 'hidden';
+                                hidden3.name  = 'assessmenttype';
+                                hidden3.value = oArgs.node.data.type;
+                        check.appendChild(hidden3);
+                        var box1 = document.createElement('input');
+                                box1.type  = 'radio';
+                                box1.name  = 'showhide';
+                                box1.value = 'show';
+                                box1.id    = 'config1';
+                                box1.disabled = true;
+                                box1.onclick = function() {showHideChanges(this);};
+                        check.appendChild(box1);
+                        var box1text = document.createTextNode('Show');
+                        check.appendChild(box1text);
+                        var breaker = document.createElement('br');
+                        check.appendChild(breaker);
+                        var box2 = document.createElement('input');
+                                box2.type  = 'radio';
+                                box2.name  = 'showhide';
+                                box2.value = 'groups';
+                                box2.id    = 'config2';
+                                box2.disabled = true;
+                                box2.onclick = function() {showHideChanges(this);};
+                        check.appendChild(box2);
+
+                        var box2text = document.createTextNode('Show by group');
+                        check.appendChild(box2text);
+                        var breaker2 = document.createElement('br');
+                        check.appendChild(breaker2);
+                        var box3 = document.createElement('input');
+                                box3.type  = 'radio';
+                                box3.name  = 'showhide';
+                                box3.value = 'hide';
+                                box3.id    = 'config3';
+                                box3.disabled = true;
+                                box3.onclick = function() {showHideChanges(this);};
+                        check.appendChild(box3);
+                        var box3text = document.createTextNode('Hide');
+                        check.appendChild(box3text);
+
+                        // now, we need to find out what the current group mode is and display that box as checked.
+                        var checkUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+oArgs.node.parent.data.id+'&assessmenttype='+oArgs.node.data.type+'&assessmentid='+oArgs.node.data.id+'&userid='+userid+'&type=config_check';
+                        var request = YAHOO.util.Connect.asyncRequest('GET', checkUrl, ajaxCallback);
+
+                        //document.getElementById('box3').onclick = function() {showHideChanges();};
+                        return false;
+                    });
+
+
+                }// end else
+            }
 	};
 
 
@@ -635,83 +724,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 			}
 			
 		   
-		   if (this.config === true) { // set the onclick to be the function that populates the config div
-                      clickNode = this.tree.getNodeByProperty('assid', nodesArray[m].assid);
-                     // alert(clickNode.data.label);
-                      //clickNode.onLabelClick = function(me) {
-                      this.tree.subscribe('clickEvent', function(oArgs) {
-                       // alert('clicked '+oArgs.node.data.name);
-                        var title = document.getElementById('configInstructions');
-                        var check = document.getElementById('configshowform');
-                        document.getElementById('configGroups').innerHTML = '';
-
-                        // remove all nodes from previously built form
-                        var len = check.childNodes.length;
-                        while (check.hasChildNodes()) {
-                          check.removeChild(check.firstChild);
-                        }
-
-                        title.innerHTML = oArgs.node.data.name;
-                        check.style.color = '#AAA';
-
-                        var hidden1 = document.createElement('input');
-                                hidden1.type  = 'hidden';
-                                hidden1.name  = 'course';
-                                hidden1.value = oArgs.node.parent.data.id;
-                        check.appendChild(hidden1);
-                        var hidden2 = document.createElement('input');
-                                hidden2.type  = 'hidden';
-                                hidden2.name  = 'assessment';
-                                hidden2.value = oArgs.node.data.id;
-                        check.appendChild(hidden2);
-                        var hidden3 = document.createElement('input');
-                                hidden3.type  = 'hidden';
-                                hidden3.name  = 'assessmenttype';
-                                hidden3.value = oArgs.node.data.type;
-                        check.appendChild(hidden3);
-                        var box1 = document.createElement('input');
-                                box1.type  = 'radio';
-                                box1.name  = 'showhide';
-                                box1.value = 'show';
-                                box1.id    = 'config1';
-                                box1.disabled = true;
-                                box1.onclick = function() {showHideChanges(this);};
-                        check.appendChild(box1);
-                        var box1text = document.createTextNode('Show');
-                        check.appendChild(box1text);
-                        var breaker = document.createElement('br');
-                        check.appendChild(breaker);
-                        var box2 = document.createElement('input');
-                                box2.type  = 'radio';
-                                box2.name  = 'showhide';
-                                box2.value = 'groups';
-                                box2.id    = 'config2';
-                                box2.disabled = true;
-                                box2.onclick = function() {showHideChanges(this);};
-                        check.appendChild(box2);
-
-                        var box2text = document.createTextNode('Show by group');
-                        check.appendChild(box2text);
-                        var breaker2 = document.createElement('br');
-                        check.appendChild(breaker2);
-                        var box3 = document.createElement('input');
-                                box3.type  = 'radio';
-                                box3.name  = 'showhide';
-                                box3.value = 'hide';
-                                box3.id    = 'config3';
-                                box3.disabled = true;
-                                box3.onclick = function() {showHideChanges(this);};
-                        check.appendChild(box3);
-                        var box3text = document.createTextNode('Hide');
-                        check.appendChild(box3text);
-
-                        // now, we need to find out what the current group mode is and display that box as checked.
-                        var checkUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+oArgs.node.parent.data.id+'&assessmenttype='+oArgs.node.data.type+'&assessmentid='+oArgs.node.data.id+'&userid='+userid+'&type=config_check';
-                        var request = YAHOO.util.Connect.asyncRequest('GET', checkUrl, ajaxCallback);
-
-                        //document.getElementById('box3').onclick = function() {showHideChanges();};
-                        return false;
-                    });
+		  
                       //tree.clickEvent.subscribe(clickFunction);
 		/// Journals are a special case as they need no children (all students appear on one page), so we make them clickable
 		
@@ -720,12 +733,13 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                      // clickNode = this.tree.getNodeByProperty('assid', nodesArray[m].assid);
 
                       
-		  } else {
+		 // } else {
 			
-/// set the node to load data dynamically 
+/// set the node to load data dynamically
+                  if (!this.config) {
 		     tmpNode2.setDynamicLoad(this.loadNodeData);
-
-		  }
+                  }
+		  //}
 /// now, we need to update the parent node's label, in case the count of assessments/submissions
 /// has changed since the node was created
 		} //end of per-node loop
