@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2008081801;
+        $this->version = 2008100901;
     }
 	
     function specialization() {
@@ -114,7 +114,8 @@ class block_ajax_marking extends block_base {
                         <div id='dialogdrag' class='dialogheader'>
                                 <div id='confname'>Configuration <a href =\"http://docs.moodle.org/en/Ajax_marking_block#Configuration\" target=\"_blank\" ><img src=\"/pix/docs.gif\" /></a></div>
                                 <div id='configIcon'></div>
-                                <div id='close'><a href='#' onclick='grayOut(false); main.refreshTree(); return false;'><img src='/blocks/ajax_marking/images/close.png' alt='close' /></a></div>
+                                <div id='close'><a href='#' onclick='grayOut(false); main.refreshTree(); return false;'><img src='/pix/i/cross_red_big.gif
+' alt='close' /></a></div>
                         </div>
                         <div id='confiStatus'></div>
                         <div id='configTree'></div>
@@ -126,7 +127,7 @@ class block_ajax_marking extends block_base {
                                 </div>
                                 <div id='configGroups'></div>
                         </div>
-                </div>".require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', $CFG->wwwroot.'/blocks/ajax_marking/javascript-min.js'))."";
+                </div>".require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', $CFG->wwwroot.'/blocks/ajax_marking/javascript.js'))."";
                
                 $this->content->footer = '
                             <div id="conf_left">

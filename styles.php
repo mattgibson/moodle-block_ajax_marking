@@ -1,52 +1,73 @@
+<?php
+    // either use the theme icons, or if there are none, the standard ones.
+    function icon_check($icon_name, $type) {
+        global $CFG;
+        if ($type=='mod') {
+            $icon_name_mod = '/theme/'.$CFG->theme.'/pix/'.$icon_name;
+            $filename = $CFG->dirroot.$icon_name_mod;
+        } else {
+            $icon_name_mod = '/theme/'.$CFG->theme.'/'.$icon_name;
+            $filename = $CFG->dirroot.$icon_name_mod;
+        }
+        if (file_exists($filename)) {
+            
+                echo $icon_name_mod;
+           
+        } else {
+            echo  '/'.$icon_name;
+        }
+    }
+?>
 .icon-course, .icon-assign, .icon-workshop, .icon-forum, .icon-quiz, .icon-question, .icon-journal, .icon-group {
   padding-left: 20px;
   padding-bottom: 3px;
   background-repeat: no-repeat;
-  background-position: 0 0px;
+  
   background-color: transparent;
-  white-space: nowrap;
+ /* white-space: nowrap; */
   margin-left: 0px;
   display: block;
+  float: left;
 }
 .icon-course {
-  background-image: url(/theme/chameleon/pix/i/course.gif);
+  background-image: url(<?php icon_check('pix/i/course.gif'); ?>);
 }
 .icon-assign {
-  background-image: url(/theme/chameleon/pix/mod/assignment/icon.gif);
+  background-image: url(<?php icon_check('mod/assignment/icon.gif', 'mod') ?>);
 }
 .icon-workshop {
-  background-image: url(/theme/chameleon/pix/mod/workshop/icon.gif);
+  background-image: url(<?php icon_check('mod/workshop/icon.gif', 'mod') ?>);
 }
 .icon-forum {
-  background-image: url(/theme/chameleon/pix/mod/forum/icon.gif);
+  background-image: url(<?php icon_check('mod/forum/icon.gif', 'mod') ?>);
 }
 .icon-quiz {
-  background-image: url(/theme/chameleon/pix/mod/quiz/icon.gif);
+  background-image: url(<?php icon_check('mod/quiz/icon.gif', 'mod') ?>);
 }
 .icon-question {
-  background-image: url(/theme/chameleon/pix/i/questions.gif);
+  background-image: url(<?php icon_check('pix/i/questions.gif') ?>);
 }
 .icon-journal {
-  background-image: url(/theme/chameleon/pix/mod/journal/icon.gif);
+  background-image: url(<?php icon_check('mod/journal/icon.gif', 'mod') ?>);
 }
 .icon-group {
-  background-image: url(/theme/chameleon/pix/i/users.gif);
+  background-image: url(<?php icon_check('pix/i/users.gif') ?>);
 }
 
 /* the following 8 styles give different coloured borders to 
    submissions depending on when they were submitted. The 
    colours may not be the best for your theme so change them
-   below if needs be. The timings are in javascript.js ata round line
+   below if needs be. The timings are in javascript.js at around line
    340. If you have colour blind users, you may need to take contrast into account
    and maybe vary the line style - dotted, dashed, solid.
 */
    
 .icon-user-one, .icon-user-two, .icon-user-three, .icon-user-four, .icon-user-five, .icon-user-six, .icon-user-seven, .icon-user-eight {
-  padding-left: 16px;
+  padding-left: 20px;
   padding-right: 2px;
-  background-image: url(/theme/chameleon/pix/t/groupn.gif);
+  background-image: url(<?php icon_check('pix/i/user.gif') ?>);
   background-repeat: no-repeat;
-  background-position: 2px 2px;
+
   background-color: transparent; 
   border-style: none;
   border-width: 2px;
@@ -100,7 +121,7 @@
 }
 <?php
 // include '../../lib/yui/treeview/assets/tree.css';
-include '../../lib/yui/container/assets/container.css';
+//include '../../lib/yui/container/assets/container.css';
 ?>
 
 #totalmessage, #count {
@@ -113,6 +134,7 @@ include '../../lib/yui/container/assets/container.css';
   padding-bottom: 0px;
   float: left;
   font:10pt tahoma;
+  min-width: 150px;
 }
 #mainIcon {
   float: left;
@@ -273,7 +295,10 @@ version: 2.3.0
 .dialogheader {
   line-height: 0;
   height: 25px;
-  background-color: #f9eaae;
+  border-width: 0;
+  border-bottom-width: 1px;
+  border-style: solid;
+  border-color: #000;
   width: 100%;
   margin: 0px;
 }
@@ -299,6 +324,7 @@ version: 2.3.0
 }
 div.block_ajax_marking div.footer {
   border-style: none;
-  pading-bottom: 0px;
+  padding-bottom: 0px;
   height: 30px;
+  
 }

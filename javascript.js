@@ -47,7 +47,7 @@ function getVars() {
    	 wwwroot = document.getElementById('wwwrootvalue').value;
 	 // sort out the https in case it is present
 	 if (window.location.href.match(/https:/)) {
-		wwwroot = wwwroot.replace(/http:/, "https:");
+           wwwroot = wwwroot.replace(/http:/, "https:");
 	 }
  	 theme = document.getElementById('themevalue').value;
  	 userid = document.getElementById('useridvalue').value;
@@ -69,12 +69,7 @@ function getVars() {
 // This is the main constructor function for the class that will form the marking tree. There are 2 types of tree - for both the main marking block and 
 // the config screen, so this allows efficient code reuse.
 
-function AJAXtree(treeDiv, icon, statusDiv, config) {
-	
-//	var root = null;
-///	var tree = null;
-	//this.tree = tree;
-//	this.root = root;
+var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 	
 	
 	this.config = config || null;
@@ -112,17 +107,17 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
  * and fires the correct function.
  */
 
-//function ajaxCallback() {
-
 	var AJAXsuccess = function (o) {
-	
 	
 		var type = null;
 		var responseArray = null;
-                //if (userid == 2) {
-	//alert(o.responseText);
-               //  }
-		    responseArray = eval(o.responseText);
+
+                // uncomment for debugging output at top of block
+                // if (userid == 2) {
+	        //   alert(o.responseText);
+                // }
+
+		responseArray = eval(o.responseText);
                
 		type = responseArray[0].type; // fist object holds data about what kind of nodes we have so we can fire the right function.
 		responseArray.shift(); // remove the data object, leaving just the node objects
@@ -130,32 +125,32 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 		switch (type) {
 			
 		case 'main':
-			//alert ('before make');
+			
 			this.makeCourseNodes(responseArray);
-			ie_width();
+			//ie_width();
 			break;
 		
 		case 'course':
-			//alert('before assess');
+			
 			this.makeAssessmentNodes(responseArray);
                         ie_width();
 			break;
                 
                 case 'quiz_question':
                       this.makeAssessmentNodes(responseArray);
-                      ie_width();
+                     // ie_width();
                       break;
 			
 		case 'groups':
-			//alert('case');
+			
 			this.makeGroupNodes(responseArray);
-                        ie_width();
+                       // ie_width();
 			break;
 			
 		case 'submissions':
 			
 			this.makeSubmissionNodes(responseArray);
-                        ie_width();
+                       // ie_width();
 			break;
 			
 		case 'config_main':	
@@ -218,8 +213,6 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 			div.innerHTML = '<br />AJAX connection failed.<br />Check your connection and click<br />"collapse and refresh" to retry';
 		}
 	};
-	
-
 
 	var ajaxCallback = 
 	{
@@ -230,8 +223,10 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 	  scope: this
 	}; 
 
-	// enables the config radio buttons on completion of successful AJAX request
-	
+	/**
+         * enables the config radio buttons on completion of successful AJAX request
+	 */
+
 	this.enableRadio = function() {
 		var h ='';
 		var radio = document.getElementById('configshowform');
@@ -268,40 +263,36 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 	var disableRadio = this.disableRadio;
 	
 	
-	// this function is called when a node is clicked (expanded) and makes the ajax request
+	/**
+         * this function is called when a node is clicked (expanded) and makes the ajax request
+         */
 
 	this.loadNodeData = function(node, onCompleteCallback) { 
 	
-	/// store details of the node that has been clicked in globals for reference by later callback function 
-		nodeHolder = node;
-		compHolder = onCompleteCallback;
-		//var quizid = 0;
-		//if (node.data.type == 'quiz_submissions') {// need to send this only for the quiz questions as the db query needs this extra parameter
-		//	quizid = node.parent.data.id;
-			//alert(quizid);
-		//} 
-		
-	/// request data using AJAX 
-		var sUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+node.data.id+'&type='+node.data.type+'&userid='+userid+'';
-		
-		if (typeof(node.data.gid) != 'undefined') { sUrl += '&group='+node.data.gid; } //add group id if its there
-		if (node.data.type == 'quiz_question') { sUrl += '&quizid='+node.parent.data.id; } //add quiz id if this is a question node
-	//alert(sUrl);
-		var request = YAHOO.util.Connect.asyncRequest('GET', sUrl, ajaxCallback);
+          /// store details of the node that has been clicked in globals for reference by later callback function
+          nodeHolder = node;
+          compHolder = onCompleteCallback;
+
+          /// request data using AJAX
+          var sUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+node.data.id+'&type='+node.data.type+'&userid='+userid+'';
+
+          if (typeof(node.data.gid) != 'undefined') { sUrl += '&group='+node.data.gid; } //add group id if its there
+          if (node.data.type == 'quiz_question') { sUrl += '&quizid='+node.parent.data.id; } //add quiz id if this is a question node
+          //alert(sUrl);
+          var request = YAHOO.util.Connect.asyncRequest('GET', sUrl, ajaxCallback);
 	};
 
-	
-	
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////
-	// function to update the parent assessment node when it is refreshed dynamically so that 
-	// if more work has been found, or a piece has now been marked, the count for that label will be accurate
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
+
+	/**
+         * function to update the parent assessment node when it is refreshed dynamically so that
+	 * if more work has been found, or a piece has now been marked, the count for that label will be accurate
+	 */
 	
 	this.parentUpdate = function(node) {
 	
 		var counter = node.children.length;
 		//alert('length: '+counter);
+                //alert('type: '+node.data.type);
 		//alert('assid: '+node.data.assid);
 		if (counter === 0) {
 			this.tree.removeNode(node, true);
@@ -330,21 +321,22 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 
 
 	
-	///////////////////////////////////////////////////////////////////////////////////////
-	// function to create tooltips. When root.refresh() is called it somehow wipes 
-	// out all the tooltips, so it is necessary to rebuild them
-	// each time part of the tree is collapsed or expanded
-	// tooltips for the courses are a bit pointless, so its just the assignments and submissions
-	///////////////////////////////////////////////////////////////////////////////////////
-	
-	// n.b. the width of the tooltips is fixed because not specifying it makes them go narrow in IE6. making them 100% works fine in IE6 but makes FF 
-	// stretch them across the whole page. 200px is a guess as to a good width for a 1024x768 screen based on the width of the block. Change it in both places below
-	// if you don't like it
-	
-	// IE problem - the tooltips appear to interfere with the submission nodes using ie, so that they are not always clickable, but only when the user 
-	// clicks the node text rather than the expand (+) icon. Its not related to the timings as using setTimeout to delay the generation of the tooltips 
-	// makes no difference 
-	
+	/**
+	 * function to create tooltips. When root.refresh() is called it somehow wipes
+	 * out all the tooltips, so it is necessary to rebuild them
+	 * each time part of the tree is collapsed or expanded
+	 * tooltips for the courses are a bit pointless, so its just the assignments and submissions
+	 *
+	*
+	* n.b. the width of the tooltips is fixed because not specifying it makes them go narrow in IE6. making them 100% works fine in IE6 but makes FF
+	* stretch them across the whole page. 200px is a guess as to a good width for a 1024x768 screen based on the width of the block. Change it in both places below
+	* if you don't like it
+	*
+	* IE problem - the tooltips appear to interfere with the submission nodes using ie, so that they are not always clickable, but only when the user
+	* clicks the node text rather than the expand (+) icon. Its not related to the timings as using setTimeout to delay the generation of the tooltips
+	* makes no difference
+	*/
+
 	this.tooltips = function() {
 	//	alert('tooltips');
 		var name = navigator.appName;
@@ -450,10 +442,81 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 			
 	/// now make the tree, add the total at the top and remove the loading icon
 	
-			this.tree.draw();
+			this.tree.render();
 			this.icon.innerHTML = '';
 			document.getElementById('totalmessage').innerHTML = totalMessage;
 			this.updateTotal();
+
+                          this.tree.subscribe("clickEvent", function(oArgs) {
+
+                            // ref saves space
+                            var nd = oArgs.node;
+                            
+                            // pop ups need a unique ref or else you can't open two at once.'
+                            var UniqueId = nd.data.type+nd.data.sid+'-'+nd.data.aid;
+
+                            switch (nd.data.type) {
+
+                                case 'quiz_answer':
+
+                                  openpopup(
+                                      '/mod/quiz/report.php?mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'',
+                                      UniqueId,
+                                      'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                      0
+                                  );
+                                  timerVar=window.setInterval('quizOnLoad(\''+nd.data.id+'\')', 500);
+                                  break;
+
+
+                                case 'assignment_answer':
+                                  //alert(oArgs.node.data.type);
+                                  openpopup(
+                                      '/mod/assignment/submissions.php?id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0',
+                                      UniqueId,
+                                      'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                      0
+                                  );
+                                  timerVar=window.setInterval('assignmentOnLoad(\''+nd.data.id+'\')', 500);
+                                  break;
+
+                               case 'workshop_answer':
+
+                                  openpopup(
+                                      '/mod/workshop/assess.php?id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+wwwroot+'',
+                                      UniqueId,
+                                      'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                      0
+                                  );
+                                  timerVar=window.setInterval('workshopOnLoad(\''+nd.data.id+'\')', 500);
+                                  break;
+
+                               case 'discussion':
+                               
+                                  openpopup(
+                                      '/mod/forum/discuss.php?d='+nd.data.aid+'#p'+nd.data.sid+'',
+                                      UniqueId,
+                                      'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                      0
+                                  );
+                                  timerVar=window.setInterval('forumOnLoad(\''+nd.data.id+'\')', 500);
+                                  break;
+
+                               case 'journal_submission':
+
+                                  openpopup(
+                                      '/mod/journal/report.php?id='+nd.data.id+'',
+                                      UniqueId,
+                                      'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                                      0
+                                  );
+                                  timerVar=window.setInterval('journalOnload(\''+nd.data.assid+'\', \''+nd.parent.data.cid+'\')', 500);
+                                break;
+
+                               default:
+                                   break;
+                            } //end switch
+                }); // end subscribe
 		}
 	};
 
@@ -574,96 +637,89 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 		   
 		   if (this.config === true) { // set the onclick to be the function that populates the config div
                       clickNode = this.tree.getNodeByProperty('assid', nodesArray[m].assid);
+                     // alert(clickNode.data.label);
+                      //clickNode.onLabelClick = function(me) {
+                      this.tree.subscribe('clickEvent', function(oArgs) {
+                       // alert('clicked '+oArgs.node.data.name);
+                        var title = document.getElementById('configInstructions');
+                        var check = document.getElementById('configshowform');
+                        document.getElementById('configGroups').innerHTML = '';
 
-                      clickNode.onLabelClick = function(me) {
-                          //alert('clicked');
-                          var title = document.getElementById('configInstructions');
-                          var check = document.getElementById('configshowform');
-                          document.getElementById('configGroups').innerHTML = '';
+                        // remove all nodes from previously built form
+                        var len = check.childNodes.length;
+                        while (check.hasChildNodes()) {
+                          check.removeChild(check.firstChild);
+                        }
 
-                          // remove all nodes from previously built form
-                          var len = check.childNodes.length;
-                          while (check.hasChildNodes()) {
-                            check.removeChild(check.firstChild);
-                          }
+                        title.innerHTML = oArgs.node.data.name;
+                        check.style.color = '#AAA';
 
-                          title.innerHTML = me.data.name;
-                          check.style.color = '#AAA';
+                        var hidden1 = document.createElement('input');
+                                hidden1.type  = 'hidden';
+                                hidden1.name  = 'course';
+                                hidden1.value = oArgs.node.parent.data.id;
+                        check.appendChild(hidden1);
+                        var hidden2 = document.createElement('input');
+                                hidden2.type  = 'hidden';
+                                hidden2.name  = 'assessment';
+                                hidden2.value = oArgs.node.data.id;
+                        check.appendChild(hidden2);
+                        var hidden3 = document.createElement('input');
+                                hidden3.type  = 'hidden';
+                                hidden3.name  = 'assessmenttype';
+                                hidden3.value = oArgs.node.data.type;
+                        check.appendChild(hidden3);
+                        var box1 = document.createElement('input');
+                                box1.type  = 'radio';
+                                box1.name  = 'showhide';
+                                box1.value = 'show';
+                                box1.id    = 'config1';
+                                box1.disabled = true;
+                                box1.onclick = function() {showHideChanges(this);};
+                        check.appendChild(box1);
+                        var box1text = document.createTextNode('Show');
+                        check.appendChild(box1text);
+                        var breaker = document.createElement('br');
+                        check.appendChild(breaker);
+                        var box2 = document.createElement('input');
+                                box2.type  = 'radio';
+                                box2.name  = 'showhide';
+                                box2.value = 'groups';
+                                box2.id    = 'config2';
+                                box2.disabled = true;
+                                box2.onclick = function() {showHideChanges(this);};
+                        check.appendChild(box2);
 
-                          var hidden1 = document.createElement('input');
-                                  hidden1.type  = 'hidden';
-                                  hidden1.name  = 'course';
-                                  hidden1.value = me.parent.data.id;
-                          check.appendChild(hidden1);
-                          var hidden2 = document.createElement('input');
-                                  hidden2.type  = 'hidden';
-                                  hidden2.name  = 'assessment';
-                                  hidden2.value = me.data.id;
-                          check.appendChild(hidden2);
-                          var hidden3 = document.createElement('input');
-                                  hidden3.type  = 'hidden';
-                                  hidden3.name  = 'assessmenttype';
-                                  hidden3.value = me.data.type;
-                          check.appendChild(hidden3);
-                          var box1 = document.createElement('input');
-                                  box1.type  = 'radio';
-                                  box1.name  = 'showhide';
-                                  box1.value = 'show';
-                                  box1.id    = 'config1';
-                                  box1.disabled = true;
-                                  box1.onclick = function() {showHideChanges(this);};
-                          check.appendChild(box1);
-                          var box1text = document.createTextNode('Show');
-                          check.appendChild(box1text);
-                          var breaker = document.createElement('br');
-                          check.appendChild(breaker);
-                          var box2 = document.createElement('input');
-                                  box2.type  = 'radio';
-                                  box2.name  = 'showhide';
-                                  box2.value = 'groups';
-                                  box2.id    = 'config2';
-                                  box2.disabled = true;
-                                  box2.onclick = function() {showHideChanges(this);};
-                          check.appendChild(box2);
+                        var box2text = document.createTextNode('Show by group');
+                        check.appendChild(box2text);
+                        var breaker2 = document.createElement('br');
+                        check.appendChild(breaker2);
+                        var box3 = document.createElement('input');
+                                box3.type  = 'radio';
+                                box3.name  = 'showhide';
+                                box3.value = 'hide';
+                                box3.id    = 'config3';
+                                box3.disabled = true;
+                                box3.onclick = function() {showHideChanges(this);};
+                        check.appendChild(box3);
+                        var box3text = document.createTextNode('Hide');
+                        check.appendChild(box3text);
 
-                          var box2text = document.createTextNode('Show by group');
-                          check.appendChild(box2text);
-                          var breaker2 = document.createElement('br');
-                          check.appendChild(breaker2);
-                          var box3 = document.createElement('input');
-                                  box3.type  = 'radio';
-                                  box3.name  = 'showhide';
-                                  box3.value = 'hide';
-                                  box3.id    = 'config3';
-                                  box3.disabled = true;
-                                  box3.onclick = function() {showHideChanges(this);};
-                          check.appendChild(box3);
-                          var box3text = document.createTextNode('Hide');
-                          check.appendChild(box3text);
+                        // now, we need to find out what the current group mode is and display that box as checked.
+                        var checkUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+oArgs.node.parent.data.id+'&assessmenttype='+oArgs.node.data.type+'&assessmentid='+oArgs.node.data.id+'&userid='+userid+'&type=config_check';
+                        var request = YAHOO.util.Connect.asyncRequest('GET', checkUrl, ajaxCallback);
 
-                          // now, we need to find out what the current group mode is and display that box as checked.
-                          var checkUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+me.parent.data.id+'&assessmenttype='+me.data.type+'&assessmentid='+me.data.id+'&userid='+userid+'&type=config_check';
-                          var request = YAHOO.util.Connect.asyncRequest('GET', checkUrl, ajaxCallback);
-
-                          //document.getElementById('box3').onclick = function() {showHideChanges();};
-                          return false;
-                      };
-                      
+                        //document.getElementById('box3').onclick = function() {showHideChanges();};
+                        return false;
+                    });
+                      //tree.clickEvent.subscribe(clickFunction);
 		/// Journals are a special case as they need no children (all students appear on one page), so we make them clickable
 		
-		   } else if (nodesArray[m].type == 'journal') {
+		  // } else if (nodesArray[m].type == 'journal') {
 			   
-                      clickNode = this.tree.getNodeByProperty('assid', nodesArray[m].assid);
+                     // clickNode = this.tree.getNodeByProperty('assid', nodesArray[m].assid);
 
-                      clickNode.onLabelClick = function(me) {
-                          openpopup('/mod/journal/report.php?id='+me.data.id+'', 
-                                    uniqueId, 
-                                    'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 
-                                    0
-                          );
-                          timerVar=window.setInterval('journalOnload(\''+me.data.assid+'\', \''+me.parent.data.cid+'\')', 500);
-                          return false;
-                      };
+                      
 		  } else {
 			
 /// set the node to load data dynamically 
@@ -743,6 +799,9 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
                           summary:''+nodesArray[k].summary+'',
                           count:''+nodeCount+''
                         } ;
+                if (nodesArray[k].type == 'discussion') {
+                    myobj.label = myobj.label + ' (' + myobj.count + ')';
+                }
                 tmpNode3 = new YAHOO.widget.TextNode(myobj, nodeHolder , false);
 
 /// apply a style according to how long since it was submitted
@@ -769,51 +828,13 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
     /// each node as you iterate through the loop. It needs to get the data from itself each time like this. Using uniqueId to make each pop-up unique.
 
                 clickNode = this.tree.getNodeByProperty('id', uniqueId);
-                // add switch here
-                if (nodeHolder.data.type == 'quiz_question') {
-                   clickNode.onLabelClick = function(me) {
-                        openpopup('/mod/quiz/report.php?mode=grading&action=grade&q='+me.parent.parent.data.id+'&questionid='+me.data.aid+'&userid='+me.data.sid+'',
-                            uniqueId,
-                            'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                            0
-                        );
-                        timerVar=window.setInterval('quizOnLoad(\''+me.data.id+'\')', 500);
-                        return false;
-                    };
-                }
-                else {
-                      if ((nodeHolder.data.type == 'assignment') || (nodeHolder.parent.data.type == 'assignment')){
-
-                            // set the offset - hacky, but better than nothing
-                            clickNode.onLabelClick = function(me) {
-                                    openpopup('/mod/assignment/submissions.php?id='+me.data.aid+'&userid='
-                                    +me.data.sid+'&mode=single&offset=0',
-                                    'gradePopUp', 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
-                                    // now the pop up is opening, set the function going that will add the onclick events. It will cancel the loop on completion
-                                    timerVar=window.setInterval('assignmentOnLoad(\''+me.data.id+'\')', 500);
-                                    return false;
-                            };
-
-                      }
-                      else if ((nodeHolder .data.type == 'workshop') || (nodeHolder.parent.data.type == 'workshop')) {
-                            clickNode.onLabelClick = function(me) {
-                                    openpopup('/mod/workshop/assess.php?id='+me.data.aid+'&sid='+me.data.sid+'&redirect='+wwwroot+'',
-                                    uniqueId, 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
-                                    // now the pop up is opening, set the function going that will add the onclick events. It will cancel the loop on completion
-                                    timerVar=window.setInterval('workshopOnLoad(\''+me.data.id+'\')', 500);
-                                    return false;
-                            };
-                      }
-                      else if ((nodeHolder .data.type == 'forum') || (nodeHolder.parent.data.type == 'forum')) {
-                            clickNode.onLabelClick = function(me) {
-                                    openpopup('/mod/forum/discuss.php?d='+me.data.aid+'#p'+me.data.sid+'',
-                                    uniqueId, 'menubar=0,location=0,scrollbars,resizable,width=780,height=500', 0);
-                                    timerVar=window.setInterval('forumOnLoad(\''+me.data.id+'\')', 500);
-                                    return false;
-                            };
-                      }
-                }
+             
+                
+               
+    
             } // end for i
+
+
                 
             // TODO - this needs to be a proper loop to account for varying lengths.
             this.parentUpdate(nodeHolder);
@@ -837,6 +858,16 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 
 	};
 
+
+
+        this.clickHandler = function(node) {
+
+           
+
+
+
+
+        }
 
 	this.makeGroupNodes = function(responseArray) {
 		// need to turn the groups for this course into an array and attach it to the course node. Then make the groups bit on screen
@@ -911,7 +942,7 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 		
 	};
 
-	
+	//this.clickFunction =
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/// funtion to refresh all the nodes once the update operations have all been carried out by saveChangesAJAX()
@@ -989,9 +1020,13 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 		 tooltips();
 	};
 	*/
-	
-	/// this function updates the tree to remove the node of the pop up that has just been marked, then it updates the parent nodes and refreshes the tree	
-	this.saveChangesAJAX = function(thisNodeId, frames) {
+
+        /**
+         * this function updates the tree to remove the node of the pop up that has just been marked, then it updates the parent nodes and refreshes the tree
+	 *
+         */
+
+          this.saveChangesAJAX = function(thisNodeId, frames) {
 		
 		var checkNode = "";
 		var parentNode = "";
@@ -1003,27 +1038,29 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 		 //alert(checkNode.parent.data.uniqueId);
                  //alert('index of parent: '+checkNode.parent.index);
 		 parentNode = this.tree.getNodeByIndex(checkNode.parent.index);
+                 //parentNode = checkNode.parent;
 		 this.tree.removeNode(checkNode, true);
 		//alert('root data: '+this.root.data.type);
 	/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
 		 
 		 
 		 while(marker == 0) {
+                   
 			 this.parentUpdate(parentNode);
-			 if (parentNode.data.type == 'assessments') { // we have reached the course level, so stop
+			 if (parentNode.data.type == 'course') { // we have reached the course level, so stop
 				 marker = 1;
 			 } else {
-			//not a course level node yet so carry on
+			 //not a course level node yet so carry on
 			 newNode = this.tree.getNodeByIndex(parentNode.parent.index); // go up one level
 			 parentNode = newNode;
 			 }
 		 }
-	
+	     
 	/// refresh the tree to redraw the nodes with the new labels
 		if (typeof(frames) != 'undefined') {
 			 this.refreshRootFrames();
 		} else {
-		 this.refreshRoot();
+		  this.refreshRoot();
 		}
 		 this.updateTotal();
 		 this.tooltips();
@@ -1182,11 +1219,7 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
         YAHOO.widget.TreeView.preload();
 	var tree = new YAHOO.widget.TreeView(treeDiv); 
 	this.tree = tree;
-	/// the following will not work until YUI is updated, but when it does, it will preload all the icons.
-        
-		//tree.preload();
 	
-	//this.name = 'name of object set ok';
 	this.div = document.getElementById(statusDiv);
 	this.treeDiv = treeDiv;
 	this.icon = document.getElementById(icon);
@@ -1194,16 +1227,11 @@ function AJAXtree(treeDiv, icon, statusDiv, config) {
 	
 	/// set the removal of all child nodes each time a node is collapsed (forces refresh)
 	this.tree.subscribe('collapseComplete', function(node) {
-		tree.removeChildren(node);
+	  tree.removeChildren(node);
 	});
-	/*
-	/// set it so that the node data will pop-up when it is clicked	
-		tree.subscribe('onmouseover', function(node) {
-			alert(node.data.summary);
-		});
-	*/
+	
 	this.root = this.tree.getRoot();
-	this.ajaxBuild(); // can this.ajaxBuild be called from here?
+	this.ajaxBuild();
     }	
     this.make_tree();
 } // end AJAXtree build function
@@ -1296,11 +1324,12 @@ function workshopOnLoad(me, parent, course) {
 		}
 	}
 }
-///////////////////////////////////////////////////////////////////////////////////////////////////////
-// function to add onclick stuff to the forum ratings button. This button also has no name or id so we 
-// identify it by getting the last tag in the array of inputs. The function is triggered on an interval
-// of 1/2 a second until it manages to close the pop up after it has gone to the confirmation page
-///////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+* function to add onclick stuff to the forum ratings button. This button also has no name or id so we
+* identify it by getting the last tag in the array of inputs. The function is triggered on an interval
+* of 1/2 a second until it manages to close the pop up after it has gone to the confirmation page
+*/
 
 function forumOnLoad(me) {
     var els ='';
@@ -1313,11 +1342,11 @@ function forumOnLoad(me) {
             var key = els.length -1;
             if (els[key].value == forumSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
 
-                if (name != "Microsoft Internet Explorer") {
-                    els[key].setAttribute("onClick", "return saveChangesAJAX('"+me+"')"); // mozilla and all other good browsers
-                } else {
-                   els[key]["onclick"] = new Function("return saveChangesAJAX('"+me+"');"); // IE
-                }
+               // if (name != "Microsoft Internet Explorer") {
+               //     els[key].setAttribute("onClick", "return this.saveChangesAJAX('"+me+"')"); // mozilla and all other good browsers
+               // } else {
+                   els[key]["onclick"] = new Function("return main.saveChangesAJAX('"+me+"');"); // IE
+               // }
                 timerVar = window.clearInterval(timerVar); // cancel loop for this function
                 timerVar=self.setInterval('afterLoad("/mod/forum/rate.php")', 500); // set loop for next function that will close pop up on location change
             }
@@ -1588,12 +1617,20 @@ function showHideChanges(checkbox) {
 
 function ie_width() {
     if (/MSIE (\d+\.\d+);/.test(navigator.userAgent)){
+    //    alert ('width fix');
       var el = document.getElementById('treediv');
+      
+      var width = el.offsetWidth;
+    //  set width of main content div to the same as treediv
       var contentDiv = el.parentNode;
-      var mainDiv = contentDiv.parentNode;
-      var col = document.getElementById('right-column');
-      var max = contentDiv.offsetWidth;
-      col.style.width = max;
+      contentDiv.style.width = width;
+
+
+    //  var mainDiv = contentDiv.parentNode;
+      //var col = document.getElementById('right-column');
+    //  var max = contentDiv.offsetWidth;
+     // var currentDiff = width - 150;
+     // col.style.width = colo.style.width + currentDiff;
       //alert('ie fixed');
     }
 }

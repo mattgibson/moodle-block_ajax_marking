@@ -272,122 +272,130 @@ class ajax_marking_functions {
         $this->output = '[{"type":"main"}'; 	// begin JSON array
 
         // get all unmarked assignment_submissions for all courses    
-
-        $sql = "
-            SELECT s.id as subid, s.userid, a.course, a.id, c.id as cmid
-            FROM
-                {$CFG->prefix}assignment a
-            INNER JOIN {$CFG->prefix}course_modules c
-                 ON a.id = c.instance
-            LEFT JOIN {$CFG->prefix}assignment_submissions s
-                 ON s.assignment = a.id
-            WHERE c.module = {$this->modules['assignment']->id}
-            AND c.visible = 1
-            AND a.course IN ($course_ids)
-            AND s.timemarked < s.timemodified
-            ORDER BY a.id
-         ";
-         $assignment_submissions = get_records_sql($sql);
-
-        // workshops
-         $sql = "
-             SELECT s.id as subid, s.userid, w.id, w.course, c.id as cmid
-             FROM 
-                  {$CFG->prefix}workshop w
-                  INNER JOIN {$CFG->prefix}course_modules c
-                     ON w.id = c.instance
-             LEFT JOIN {$CFG->prefix}workshop_submissions s
-                 ON s.workshopid = w.id
-             LEFT JOIN {$CFG->prefix}workshop_assessments a 
-             ON (s.id = a.submissionid) 
-             WHERE (a.userid != {$this->userid}  
-              OR (a.userid = {$this->userid} 
-                    AND a.grade = -1))
-             AND c.module = {$this->modules['workshop']->id}
-             AND c.visible = 1
-             ORDER BY w.id                 
-        ";
-       
-        $workshop_submissions = get_records_sql($sql);
-
-        // forums
-        $sql = "
-            SELECT p.id as postid, p.userid, d.id, f.id, f.course, c.id as cmid
-            FROM 
-                {$CFG->prefix}forum f
-            INNER JOIN {$CFG->prefix}course_modules c
-                 ON f.id = c.instance
-            INNER JOIN {$CFG->prefix}forum_discussions d 
-                 ON d.forum = f.id
-            INNER JOIN {$CFG->prefix}forum_posts p
-                 ON p.discussion = d.id
-            LEFT JOIN {$CFG->prefix}forum_ratings r
-                 ON  p.id = r.post
-            WHERE p.userid <> $this->userid
-                AND ((r.userid <> $this->userid) OR r.userid IS NULL)
-                AND c.module = {$this->modules['forum']->id}
-                AND c.visible = 1
-                AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
-            ORDER BY f.id
-        ";
-
-        $forum_submissions = get_records_sql($sql);
-
-        require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
-
-        $sql = "
-              SELECT 
-                  qst.id as qstid, qsess.questionid, qz.id, qz.course, qa.userid, qst.id as stateid, c.id as cmid
-              FROM
-                {$CFG->prefix}quiz qz
-              INNER JOIN {$CFG->prefix}course_modules c
-                         ON qz.id = c.instance
-              INNER JOIN
-                {$CFG->prefix}quiz_attempts qa
-                  ON 
-                    qz.id = qa.quiz
-              INNER JOIN
-                {$CFG->prefix}question_sessions qsess  
-                  ON
-                    qsess.attemptid = qa.id
-              INNER JOIN 
-                {$CFG->prefix}question_states qst
-                 ON 
-                    qsess.newest = qst.id     
-              INNER JOIN {$CFG->prefix}question q
-                 ON 
-                    qsess.questionid = q.id      
-              WHERE
-               qa.timefinish > 0 
-              AND qa.preview = 0 
-              AND c.module = {$this->modules['quiz']->id}
-              AND c.visible = 1
-              AND q.qtype = 'essay'
-              AND qst.event NOT IN (
-                    ".QUESTION_EVENTGRADE.", 
-                    ".QUESTION_EVENTCLOSEANDGRADE.", 
-                    ".QUESTION_EVENTMANUALGRADE.") 
-              ORDER BY q.id
-            ";
-       //echo $sql;
-        $quiz_submissions = get_records_sql($sql);
-
-        $sql = "
-                SELECT je.id as entryid, je.userid, j.course, j.id, c.id as cmid
-                FROM {$CFG->prefix}journal_entries je
-                INNER JOIN {$CFG->prefix}journal j
-                   ON je.journal = j.id
+        if (array_key_exists("assignment", $this->modules)) {
+            $sql = "
+                SELECT s.id as subid, s.userid, a.course, a.id, c.id as cmid
+                FROM
+                    {$CFG->prefix}assignment a
                 INNER JOIN {$CFG->prefix}course_modules c
-                         ON j.id = c.instance
-                WHERE c.module = {$this->modules['journal']->id}
+                     ON a.id = c.instance
+                LEFT JOIN {$CFG->prefix}assignment_submissions s
+                     ON s.assignment = a.id
+                WHERE c.module = {$this->modules['assignment']->id}
                 AND c.visible = 1
-                AND j.assessed <> 0
-                AND je.modified > je.timemarked
-               
-               ";
-
-        $journal_submissions = get_records_sql($sql);
+                AND a.course IN ($course_ids)
+                AND s.timemarked < s.timemodified
+                ORDER BY a.id
+             ";
+             $assignment_submissions = get_records_sql($sql);
+         }
         
+         // workshops
+         if (array_key_exists("workshop", $this->modules)) {
+             $sql = "
+                 SELECT s.id as subid, s.userid, w.id, w.course, c.id as cmid
+                 FROM 
+                      {$CFG->prefix}workshop w
+                      INNER JOIN {$CFG->prefix}course_modules c
+                         ON w.id = c.instance
+                 LEFT JOIN {$CFG->prefix}workshop_submissions s
+                     ON s.workshopid = w.id
+                 LEFT JOIN {$CFG->prefix}workshop_assessments a 
+                 ON (s.id = a.submissionid) 
+                 WHERE (a.userid != {$this->userid}  
+                  OR (a.userid = {$this->userid} 
+                        AND a.grade = -1))
+                 AND c.module = {$this->modules['workshop']->id}
+                 AND c.visible = 1
+                 ORDER BY w.id                 
+            ";
+
+            $workshop_submissions = get_records_sql($sql);
+        }
+        
+        // forums
+        if (array_key_exists("forum", $this->modules)) {
+            $sql = "
+                SELECT p.id as postid, p.userid, d.id, f.id, f.course, c.id as cmid
+                FROM 
+                    {$CFG->prefix}forum f
+                INNER JOIN {$CFG->prefix}course_modules c
+                     ON f.id = c.instance
+                INNER JOIN {$CFG->prefix}forum_discussions d 
+                     ON d.forum = f.id
+                INNER JOIN {$CFG->prefix}forum_posts p
+                     ON p.discussion = d.id
+                LEFT JOIN {$CFG->prefix}forum_ratings r
+                     ON  p.id = r.post
+                WHERE p.userid <> $this->userid
+                    AND ((r.userid <> $this->userid) OR r.userid IS NULL)
+                    AND c.module = {$this->modules['forum']->id}
+                    AND c.visible = 1
+                    AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
+                ORDER BY f.id
+            ";
+
+            $forum_submissions = get_records_sql($sql);
+        }
+        
+        if (array_key_exists("quiz", $this->modules)) {
+            require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
+
+            $sql = "
+                  SELECT 
+                      qst.id as qstid, qsess.questionid, qz.id, qz.course, qa.userid, qst.id as stateid, c.id as cmid
+                  FROM
+                    {$CFG->prefix}quiz qz
+                  INNER JOIN {$CFG->prefix}course_modules c
+                             ON qz.id = c.instance
+                  INNER JOIN
+                    {$CFG->prefix}quiz_attempts qa
+                      ON 
+                        qz.id = qa.quiz
+                  INNER JOIN
+                    {$CFG->prefix}question_sessions qsess  
+                      ON
+                        qsess.attemptid = qa.id
+                  INNER JOIN 
+                    {$CFG->prefix}question_states qst
+                     ON 
+                        qsess.newest = qst.id     
+                  INNER JOIN {$CFG->prefix}question q
+                     ON 
+                        qsess.questionid = q.id      
+                  WHERE
+                   qa.timefinish > 0 
+                  AND qa.preview = 0 
+                  AND c.module = {$this->modules['quiz']->id}
+                  AND c.visible = 1
+                  AND q.qtype = 'essay'
+                  AND qst.event NOT IN (
+                        ".QUESTION_EVENTGRADE.", 
+                        ".QUESTION_EVENTCLOSEANDGRADE.", 
+                        ".QUESTION_EVENTMANUALGRADE.") 
+                  ORDER BY q.id
+                ";
+           //echo $sql;
+            $quiz_submissions = get_records_sql($sql);
+        }
+            
+        if (array_key_exists("journal", $this->modules)) {
+            $sql = "
+                    SELECT je.id as entryid, je.userid, j.course, j.id, c.id as cmid
+                    FROM {$CFG->prefix}journal_entries je
+                    INNER JOIN {$CFG->prefix}journal j
+                       ON je.journal = j.id
+                    INNER JOIN {$CFG->prefix}course_modules c
+                             ON j.id = c.instance
+                    WHERE c.module = {$this->modules['journal']->id}
+                    AND c.visible = 1
+                    AND j.assessed <> 0
+                    AND je.modified > je.timemarked
+
+                   ";
+
+            $journal_submissions = get_records_sql($sql);
+        }
         // iterate through each course, checking permisions, counting relevant assignment submissions and 
         // adding the course to the JSON output if any appear
         foreach ($this->courses as $course) {	                                                        
@@ -431,7 +439,7 @@ class ajax_marking_functions {
                
                 $this->output .= ','; // add a comma if there was a preceding course
                 $this->output .= '{';
-               // $this->output .= '"name":"'.$this->clean_name_text($course->shortname, 0).'xx",';
+              
                 $this->output .= '"id":"'.$cid.'",';
                 if ($this->type == "config_main") {
                         $this->output .= '"type":"config_course",';
@@ -1050,8 +1058,8 @@ class ajax_marking_functions {
                                                     //$rec = get_record('user', 'id', $firstpost->userid);
                                                     //$name = $rec->firstname." ".$rec->lastname;
                                             } else { // the name will be the name of the discussion
-                                                    $name = substr($discussion->name, 0, 14);
-                                                    $name = $name." (".$count.")";
+                                                    $name = $discussion->name;
+                                                    //$name = $name." (".$count.")";
                                             }
                                             //$sum = ;
                                             $sum = strip_tags($firstpost->message);
@@ -1310,7 +1318,7 @@ class ajax_marking_functions {
                     $this->output .= ','; // add a comma before section only if there was a preceding assignment
 
                     $this->output .= '{';
-                    $this->output .= '"name":"'.$this->clean_name_text($name, 2).'",';
+                    $this->output .= '"name":"'.$this->clean_name_text($name, 1).'",';
                     $this->output .= '"id":"'.$qid.'",';
                     if ($this->group) {
                         $this->output .= '"group":"'.$this->group.'",';
@@ -1398,7 +1406,7 @@ class ajax_marking_functions {
                 $this->output .= ','; // add a comma before section only if there was a preceding assignment
 
                 $this->output .= '{';
-                $this->output .= '"name":"'.$this->clean_name_text($name, 3).'",';
+                $this->output .= '"name":"'.$this->clean_name_text($name, -2).'",';
                 $this->output .= '"sid":"'.$question_attempt->userid.'",'; //  user id for hyperlink
                 $this->output .= '"aid":"'.$this->id.'",'; // id of question for hyperlink
                 $this->output .= '"seconds":"'.$seconds.'",'; // seconds sent to allow style to change according to how long it has been
@@ -1553,7 +1561,7 @@ class ajax_marking_functions {
          * the aim is for all names to reach as far to the right as possible without causing a line break. Forum discussions will be clipped 
 	 * if you don't alter that setting in forum_submissions()
          * @param <type> $text
-         * @param <type> $level
+         * @param <type> $level - how many characters to stip, corresponding roughly with how far into the tree we are.
          * @param <type> $stripbr
          * @return <type>
          */
@@ -1564,20 +1572,22 @@ class ajax_marking_functions {
 		}
 		switch($level) {
 		
+                case -2:
+                        break;
                 case -1:
                         $text = substr($text, 0, 30);
                         break;
 		case 0:
-			$text = substr($text, 0, 22);
+			$text = substr($text, 0, 12);
 			
 		case 1:
-			$text = substr($text, 0, 18);
+			$text = substr($text, 0, 24);
 			break;
 		case 2:
-			$text = substr($text, 0, 16);
+			$text = substr($text, 0, 10);
 			break;
 		case 3:
-			$text = substr($text, 0, 16);
+			$text = substr($text, 0, 10);
 			break;
 		}
 		$text = str_replace(array("\n","\r",'"'),array("","","&quot;"),$text);
