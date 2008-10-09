@@ -121,7 +121,7 @@
 }
 <?php
 // include '../../lib/yui/treeview/assets/tree.css';
-include '../../lib/yui/container/assets/container.css';
+//include '../../lib/yui/container/assets/container.css';
 ?>
 
 #totalmessage, #count {
@@ -329,3 +329,28 @@ div.block_ajax_marking div.footer {
   padding-bottom: 0px;
   height: 30px;
 }
+
+/*
+stuff from the container.css file, cleaned up to make it validate
+*/
+
+
+.yui-tt {
+    visibility: hidden;
+    position: absolute;
+    color: #333;
+    background-color: #FDFFB4;
+    font-family: arial,helvetica,verdana,sans-serif;
+    padding: 2px;
+    border: 1px solid #FCC90D;
+    font:100% sans-serif;
+    width: auto;
+}
+
+.yui-tt-shadow {
+    display: none;
+}
+
+
+
+

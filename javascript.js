@@ -398,11 +398,8 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
            
             tempLabelEl = node.getLabelEl();
             tempText = node.data.summary;
-            //alert(node.data.summary);
-            //alert (tempLabelEl);
-           // this.contextElements.push(node.labelElId);
             tempTooltip = new YAHOO.widget.Tooltip('tempTooltip', { context:tempLabelEl, text:tempText, showdelay:0, hidedelay:0, width:150, iframe:false, zIndex:1110} );
-            //alert('tip done');
+       
         };
 
 	// makes the first level of the tree from the data returned via ajax.
@@ -454,14 +451,14 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 			
 	/// now make the tree, add the total at the top and remove the loading icon
 
-                        var tt, contextElements = [];
-                        this.contextElements = contextElements;
-                        
-
+                      
 			this.tree.render();
 			this.icon.innerHTML = '';
 			document.getElementById('totalmessage').innerHTML = totalMessage;
 			this.updateTotal();
+
+                // add click events
+
                         if (!this.config) {
                             this.tree.subscribe("clickEvent", function(oArgs) {
 
@@ -527,10 +524,10 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                                         0
                                     );
                                     timerVar=window.setInterval('journalOnload(\''+nd.data.assid+'\', \''+nd.parent.data.cid+'\')', 500);
-                                  break;
+                                    break;
 
                                  default:
-                                     break;
+                                    break;
                             } //end switch
                     }); // end subscribe
                 } else {
@@ -538,12 +535,11 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 
                       this.tree.subscribe('clickEvent', function(oArgs) {
                         
-
                         var title = document.getElementById('configInstructions');
                         var check = document.getElementById('configshowform');
+
+                        // clear out previous groups data from display div
                         document.getElementById('configGroups').innerHTML = '';
-
-
 
                         if (oArgs.node.data.type == 'config_course') {
                             title.innerHTML = '';
@@ -551,70 +547,71 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                             title.innerHTML = oArgs.node.data.name;
                         }
 
-
-                        // remove all nodes from previously built form
+                        // remove all nodes 
                         var len = check.childNodes.length;
                         while (check.hasChildNodes()) {
                           check.removeChild(check.firstChild);
                         }
 
-//alert('clicked '+oArgs.node.data.name);
-                        check.style.color = '#AAA';
+                        if (oArgs.node.data.type !== 'config_course') {
+                            check.style.color = '#AAA';
 
-                        var hidden1 = document.createElement('input');
-                                hidden1.type  = 'hidden';
-                                hidden1.name  = 'course';
-                                hidden1.value = oArgs.node.parent.data.id;
-                        check.appendChild(hidden1);
-                        var hidden2 = document.createElement('input');
-                                hidden2.type  = 'hidden';
-                                hidden2.name  = 'assessment';
-                                hidden2.value = oArgs.node.data.id;
-                        check.appendChild(hidden2);
-                        var hidden3 = document.createElement('input');
-                                hidden3.type  = 'hidden';
-                                hidden3.name  = 'assessmenttype';
-                                hidden3.value = oArgs.node.data.type;
-                        check.appendChild(hidden3);
-                        var box1 = document.createElement('input');
-                                box1.type  = 'radio';
-                                box1.name  = 'showhide';
-                                box1.value = 'show';
-                                box1.id    = 'config1';
-                                box1.disabled = true;
-                                box1.onclick = function() {showHideChanges(this);};
-                        check.appendChild(box1);
-                        var box1text = document.createTextNode('Show');
-                        check.appendChild(box1text);
-                        var breaker = document.createElement('br');
-                        check.appendChild(breaker);
-                        var box2 = document.createElement('input');
-                                box2.type  = 'radio';
-                                box2.name  = 'showhide';
-                                box2.value = 'groups';
-                                box2.id    = 'config2';
-                                box2.disabled = true;
-                                box2.onclick = function() {showHideChanges(this);};
-                        check.appendChild(box2);
+                            var hidden1 = document.createElement('input');
+                                    hidden1.type  = 'hidden';
+                                    hidden1.name  = 'course';
+                                    hidden1.value = oArgs.node.parent.data.id;
+                            check.appendChild(hidden1);
+                            var hidden2 = document.createElement('input');
+                                    hidden2.type  = 'hidden';
+                                    hidden2.name  = 'assessment';
+                                    hidden2.value = oArgs.node.data.id;
+                            check.appendChild(hidden2);
+                            var hidden3 = document.createElement('input');
+                                    hidden3.type  = 'hidden';
+                                    hidden3.name  = 'assessmenttype';
+                                    hidden3.value = oArgs.node.data.type;
+                            check.appendChild(hidden3);
+                            var box1 = document.createElement('input');
+                                    box1.type  = 'radio';
+                                    box1.name  = 'showhide';
+                                    box1.value = 'show';
+                                    box1.id    = 'config1';
+                                    box1.disabled = true;
+                                    box1.onclick = function() {showHideChanges(this);};
+                            check.appendChild(box1);
+                            var box1text = document.createTextNode('Show');
+                            check.appendChild(box1text);
+                            var breaker = document.createElement('br');
+                            check.appendChild(breaker);
+                            var box2 = document.createElement('input');
+                                    box2.type  = 'radio';
+                                    box2.name  = 'showhide';
+                                    box2.value = 'groups';
+                                    box2.id    = 'config2';
+                                    box2.disabled = true;
+                                    box2.onclick = function() {showHideChanges(this);};
+                            check.appendChild(box2);
 
-                        var box2text = document.createTextNode('Show by group');
-                        check.appendChild(box2text);
-                        var breaker2 = document.createElement('br');
-                        check.appendChild(breaker2);
-                        var box3 = document.createElement('input');
-                                box3.type  = 'radio';
-                                box3.name  = 'showhide';
-                                box3.value = 'hide';
-                                box3.id    = 'config3';
-                                box3.disabled = true;
-                                box3.onclick = function() {showHideChanges(this);};
-                        check.appendChild(box3);
-                        var box3text = document.createTextNode('Hide');
-                        check.appendChild(box3text);
-
-                        // now, we need to find out what the current group mode is and display that box as checked.
-                        var checkUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+oArgs.node.parent.data.id+'&assessmenttype='+oArgs.node.data.type+'&assessmentid='+oArgs.node.data.id+'&userid='+userid+'&type=config_check';
-                        var request = YAHOO.util.Connect.asyncRequest('GET', checkUrl, ajaxCallback);
+                            var box2text = document.createTextNode('Show by group');
+                            check.appendChild(box2text);
+                            var breaker2 = document.createElement('br');
+                            check.appendChild(breaker2);
+                            var box3 = document.createElement('input');
+                                    box3.type  = 'radio';
+                                    box3.name  = 'showhide';
+                                    box3.value = 'hide';
+                                    box3.id    = 'config3';
+                                    box3.disabled = true;
+                                    box3.onclick = function() {showHideChanges(this);};
+                            check.appendChild(box3);
+                            var box3text = document.createTextNode('Hide');
+                            check.appendChild(box3text);
+                        
+                             }
+                            // now, we need to find out what the current group mode is and display that box as checked.
+                            var checkUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+oArgs.node.parent.data.id+'&assessmenttype='+oArgs.node.data.type+'&assessmentid='+oArgs.node.data.id+'&userid='+userid+'&type=config_check';
+                            var request = YAHOO.util.Connect.asyncRequest('GET', checkUrl, ajaxCallback);
+                        
 
                         //document.getElementById('box3').onclick = function() {showHideChanges();};
                         return false;
