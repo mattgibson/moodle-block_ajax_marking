@@ -343,7 +343,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 	this.tooltips = function() {
 	//	alert('tooltips');
 		var name = navigator.appName;
-		//if (name != "Microsoft Internet Explorer") {
+		if (name.search('iPhone') == -1) {
 		// this is disabled for IE because, although useful, in IE6 (assuming others too) the tooltips seem to sometimes remain as an invisible div on top 
 		// of the tree structure once nodes has expanded, so that some of the child nodes are unclickable. Firefox is ok with it. This is a pain
 		// because a person may not remember the full details of the assignment that was set and a tooltip is better than leaving the front page.	
@@ -390,8 +390,8 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                                 }	 
 			    }
 			}
-                       // tt = new YAHOO.widget.Tooltip("tt", { context: this.contextElements });
-		//}
+                      
+		}
 	};
         
         this.make_tooltip = function(node, control) {
