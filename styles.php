@@ -121,7 +121,7 @@
 }
 <?php
 // include '../../lib/yui/treeview/assets/tree.css';
-//include '../../lib/yui/container/assets/container.css';
+include '../../lib/yui/container/assets/container.css';
 ?>
 
 #totalmessage, #count {

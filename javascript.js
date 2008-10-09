@@ -114,9 +114,12 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 
                 // uncomment for debugging output at top of block
                 // if (userid == 2) {
-	        //   alert(o.responseText);
+                //   var checkDiv = document.getElementById("total");
+                //   checkDiv.innerHTML = o.responseText;
                 // }
 
+
+//
 		responseArray = eval(o.responseText);
                
 		type = responseArray[0].type; // fist object holds data about what kind of nodes we have so we can fire the right function.
@@ -340,7 +343,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 	this.tooltips = function() {
 	//	alert('tooltips');
 		var name = navigator.appName;
-		if (name != "Microsoft Internet Explorer") { 
+		//if (name != "Microsoft Internet Explorer") {
 		// this is disabled for IE because, although useful, in IE6 (assuming others too) the tooltips seem to sometimes remain as an invisible div on top 
 		// of the tree structure once nodes has expanded, so that some of the child nodes are unclickable. Firefox is ok with it. This is a pain
 		// because a person may not remember the full details of the assignment that was set and a tooltip is better than leaving the front page.	
@@ -352,8 +355,9 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 			var m = 0;
                         var n = 0;
 			var control = '';
-			if (config === true) {
-				control = document.getElementById('config_tree_control');
+			if (this.config === true) {
+				//control = document.getElementById('config_tree_control');
+                                return false;
 			} else {
 				control = document.getElementById('tree_control');
 			}
@@ -362,10 +366,12 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 			for (i=0;i<numberOfCourses;i++) {
                             var numberOfAssessments = this.root.children[i].children.length;
                             for (j=0;j<numberOfAssessments;j++) {
+                                // assessment level
                                 node = this.root.children[i].children[j];
-                                //this.make_tooltip(node, control);
+                                this.make_tooltip(node, control);
                                 var numberOfThirdLevelNodes = this.root.children[i].children[j].children.length;
                                 for (k=0;k<numberOfThirdLevelNodes;k++) {
+                                    // users level (or groups)
                                     node = this.root.children[i].children[j].children[k];
                                     check = node.data.time;
                                     if (typeof(check) !== null) {
@@ -384,13 +390,19 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                                 }	 
 			    }
 			}
-		}
+                       // tt = new YAHOO.widget.Tooltip("tt", { context: this.contextElements });
+		//}
 	};
         
         this.make_tooltip = function(node, control) {
+           
             tempLabelEl = node.getLabelEl();
             tempText = node.data.summary;
-            tempTooltip = new YAHOO.widget.Tooltip('tempTooltip', { context:tempLabelEl, text:tempText, showdelay:0, hidedelay:0, container:control, zIndex:110} );	
+            //alert(node.data.summary);
+            //alert (tempLabelEl);
+           // this.contextElements.push(node.labelElId);
+            tempTooltip = new YAHOO.widget.Tooltip('tempTooltip', { context:tempLabelEl, text:tempText, showdelay:0, hidedelay:0, width:150, iframe:false, zIndex:1110} );
+            //alert('tip done');
         };
 
 	// makes the first level of the tree from the data returned via ajax.
@@ -441,7 +453,11 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 			}
 			
 	/// now make the tree, add the total at the top and remove the loading icon
-	
+
+                        var tt, contextElements = [];
+                        this.contextElements = contextElements;
+                        
+
 			this.tree.render();
 			this.icon.innerHTML = '';
 			document.getElementById('totalmessage').innerHTML = totalMessage;
@@ -454,7 +470,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 
                               // pop ups need a unique ref or else you can't open two at once.'
                               var UniqueId = nd.data.type+nd.data.sid+'-'+nd.data.aid;
-
+                             // alert(nd.data.title);
                               switch (nd.data.type) {
 
                                   case 'quiz_answer':

@@ -949,7 +949,6 @@ class ajax_marking_functions {
                             AND p.userid IN ($this->student_ids)
                             AND (r.userid <> $this->userid OR r.userid IS NULL)
 
-                            
                             ";
                     if ($forum->type == 'eachuser') {
                         $sql .= " AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))";
@@ -1063,7 +1062,7 @@ class ajax_marking_functions {
                                             }
                                             //$sum = ;
                                             $sum = strip_tags($firstpost->message);
-                                            $sumlength = strlen($sum);
+                                            //$sumlength = strlen($sum);
                                             $shortsum = substr($sum, 0, 100);
                                             if (strlen($shortsum) < strlen($sum)) {$shortsum .= "...";}
                                             $timesum = $this->make_time_summary($seconds, true);
@@ -1079,6 +1078,8 @@ class ajax_marking_functions {
                                             $this->output .= '"sid":"'.$firstpost->id.'",';
                                             $this->output .= '"type":"discussion",';
                                             $this->output .= '"aid":"'.$discussion->id.'",';
+                                            //$this->output .= '"summary":"'.$summary.'",';
+
                                             $this->output .= '"summary":"'.$this->clean_summary_text($summary, false).'",';
                                             $this->output .= '"time":"'.$time.'",';
                                             $this->output .= '"count":"'.$count.'",';
@@ -1546,13 +1547,13 @@ class ajax_marking_functions {
             }
             $text = str_replace(array("\n","\r",'"'),array("","","&quot;"),$text);
             // now add breaks so we don't have a huge long tooltip across half the page
-            $text = explode(' ', $text);
-            foreach ($text as $position => $word) {
-                if (($position > 0) && (is_int($position / 5))) {
-                    $text[$position] = $word."<br />";
-                }
-            }
-            $text = implode(' ', $text);
+           // $text = explode(' ', $text);
+           // foreach ($text as $position => $word) {
+            //    if (($position > 0) && (is_int($position / 5))) {
+            //        $text[$position] = $word."<br />";
+            //    }
+           // }
+           // $text = implode(' ', $text);
             return $text;
 	}
 	
