@@ -122,7 +122,7 @@ class block_ajax_marking extends block_base {
                         <div id='configSettings'>
                                 <div id='configInstructions'>instructions</div>
                                 <div id='configCheckboxes'>
-                                        <form id='configshowform'>
+                                        <form id='configshowform' name='configshowform'>
                                         </form>
                                 </div>
                                 <div id='configGroups'></div>

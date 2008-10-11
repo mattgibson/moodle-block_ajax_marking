@@ -117,7 +117,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                 //   var checkDiv = document.getElementById("total");
                 //   checkDiv.innerHTML = o.responseText;
                 // }
-
+                //alert(o.responseText);
 
 //
 		responseArray = eval(o.responseText);
@@ -228,21 +228,29 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 
 	/**
          * enables the config radio buttons on completion of successful AJAX request
+         * duplicate methods to appease IE6
 	 */
 
 	this.enableRadio = function() {
 		var h ='';
 		var radio = document.getElementById('configshowform');
 		radio.style.color = '#000';
-		var nodes = radio.getElementsByTagName('input');
-		for (h = 0; h < nodes.length; h++) {
-			nodes[h].disabled = false;
+		
+		for (h = 0; h < radio.childNodes.length; h++) {
+                    if (radio.childNodes[h].name == 'showhide') {
+			radio.childNodes[h].setAttribute ('disabled', false);
+                        radio.childNodes[h].disabled = false;
+                       
+                    }
 		}
 		var groupDiv = document.getElementById('configGroups');	
 		groupDiv.style.color = '#000';
-		var groupNodes = groupDiv.getElementsByTagName('checkbox');
-		for (h = 0; h < groupNodes.length; h++) {
-			groupNodes[h].enabled = true;
+		
+		for (h = 0; h < groupDiv.childNodes.length; h++) {
+                    if (radio.childNodes[h].type == 'checkbox') {
+			groupDiv.childNodes[h].setAttribute ('disabled', false);
+                        groupDiv.childNodes[h].disabled = false;
+                    }
 		}
 			
 	};
@@ -250,21 +258,22 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 		var h ='';
 		var radio = document.getElementById('configshowform');
 		radio.style.color = '#AAA';
-		var nodes = radio.getElementsByTagName('input');
-		for (h = 0; h < nodes.length; h++) {
-			nodes[h].disabled = true;
+		
+		for (h = 0; h < radio.childNodes.length; h++) {
+                    if (radio.childNodes[h].type == 'radio') {
+			radio.childNodes[h].setAttribute ('disabled',  true);
+
+                    }
 		}
 		var groupDiv = document.getElementById('configGroups');	
 		groupDiv.style.color = '#AAA';
-		var groupNodes = groupDiv.getElementsByTagName('checkbox');
-		for (h = 0; h < groupNodes.length; h++) {
-			groupNodes[h].disabled = true;
+		
+		for (h = 0; h < groupDiv.childNodes.length; h++) {
+                    if (radio.childNodes[h].type == 'checkbox') {
+			groupDiv.childNodes[h].setAttribute ('disabled', true);
+                    }
 		}
 	};
-	
-        // don't remember what this is for.
-	var disableRadio = this.disableRadio;
-	
 	
 	/**
          * this function is called when a node is clicked (expanded) and makes the ajax request
@@ -309,7 +318,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 					
 					tempStr = node.children[i].data.count;
 					//alert('node count: '+tempStr);
-					tempCount += parseInt(tempStr);
+					tempCount += parseInt(tempStr, 10);
 				}
 				//alert('total: '+tempCount);
 				countAlter(node, tempCount);
@@ -506,7 +515,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                               
                                  case 'journal_submission':
 
-                                       popUpAddress += '/mod/journal/report.php?id='+nd.data.id+'',
+                                       popUpAddress += '/mod/journal/report.php?id='+nd.data.id+'';
                                        timerFunction = 'journalOnload(\''+nd.data.assid+'\', \''+nd.parent.data.cid+'\')';
                                        openIt = true;
                                     break;
@@ -525,7 +534,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                    //  if (this.config === true) { // set the onclick to be the function that populates the config div
 
                       this.tree.subscribe('clickEvent', function(oArgs) {
-                        
+
                         var title = document.getElementById('configInstructions');
                         var check = document.getElementById('configshowform');
 
@@ -537,8 +546,8 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                         } else {
                             title.innerHTML = oArgs.node.data.name;
                         }
-
-                        // remove all nodes 
+                        // alert('go!');
+                        // remove all nodes
                         var len = check.childNodes.length;
                         while (check.hasChildNodes()) {
                           check.removeChild(check.firstChild);
@@ -553,60 +562,96 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                                     hidden1.value = oArgs.node.parent.data.id;
                             check.appendChild(hidden1);
                             var hidden2 = document.createElement('input');
-                                    hidden2.type  = 'hidden';
-                                    hidden2.name  = 'assessment';
-                                    hidden2.value = oArgs.node.data.id;
+
+                                    hidden2.setAttribute('type', 'hidden');
+                                    hidden2.setAttribute('name', 'assessment');
+                                   // hidden2.id = 'assessment';
+                                    hidden2.setAttribute('value', oArgs.node.data.id);
                             check.appendChild(hidden2);
                             var hidden3 = document.createElement('input');
                                     hidden3.type  = 'hidden';
                                     hidden3.name  = 'assessmenttype';
                                     hidden3.value = oArgs.node.data.type;
                             check.appendChild(hidden3);
-                            var box1 = document.createElement('input');
-                                    box1.type  = 'radio';
-                                    box1.name  = 'showhide';
+
+                            // fixes nasty IE6 bug: http://cf-bill.blogspot.com/2006/03/another-ie-gotcha-dynamiclly-created.html
+                            try{
+                                box1 = document.createElement('<input type="radio" name="showhide" />');
+                            }catch(err){
+                                box1 = document.createElement('input');
+                            }
+                                box1.setAttribute('type','radio');
+                                box1.setAttribute('name','showhide');
+                           // var box1 = document.createElement('input');
+                           //         box1.type  = 'radio';
+                            //        box1.name  = 'showhide';
+                                    
                                     box1.value = 'show';
                                     box1.id    = 'config1';
-                                    box1.disabled = true;
+                                   // box1.disabled = true;
                                     box1.onclick = function() {showHideChanges(this);};
-                            check.appendChild(box1);
+                                   check.appendChild(box1);
+                                 //  box1.defaultChecked = false;
                             var box1text = document.createTextNode('Show');
                             check.appendChild(box1text);
                             var breaker = document.createElement('br');
                             check.appendChild(breaker);
-                            var box2 = document.createElement('input');
-                                    box2.type  = 'radio';
-                                    box2.name  = 'showhide';
+
+                            try{
+                                box2 = document.createElement('<input type="radio" name="showhide" />');
+                            }catch(err){
+                                box2 = document.createElement('input');
+                            }
+                                box2.setAttribute('type','radio');
+                                box2.setAttribute('name','showhide');
+                           // var box2 = document.createElement('input');
+                                    //box2.type  = 'radio';
+                                   // box2.name  = 'showhide';
+                                    
                                     box2.value = 'groups';
                                     box2.id    = 'config2';
                                     box2.disabled = true;
                                     box2.onclick = function() {showHideChanges(this);};
                             check.appendChild(box2);
-
+                              //box2.defaultChecked = false;
                             var box2text = document.createTextNode('Show by group');
                             check.appendChild(box2text);
                             var breaker2 = document.createElement('br');
                             check.appendChild(breaker2);
-                            var box3 = document.createElement('input');
-                                    box3.type  = 'radio';
-                                    box3.name  = 'showhide';
+
+
+                            try{
+                                box3 = document.createElement('<input type="radio" name="showhide" />');
+                            }catch(err){
+                                box3 = document.createElement('input');
+                            }
+                                box3.setAttribute('type','radio');
+                                box3.setAttribute('name','showhide');
+                           // var box3 = document.createElement('input');
+                                   // box3.type  = 'radio';
+                                   // box3.name  = 'showhide';
+                                    
                                     box3.value = 'hide';
                                     box3.id    = 'config3';
                                     box3.disabled = true;
                                     box3.onclick = function() {showHideChanges(this);};
                             check.appendChild(box3);
+                           // box3.defaultChecked = false;
                             var box3text = document.createTextNode('Hide');
                             check.appendChild(box3text);
-                        
+                            //check.normalize();
                              }
                             // now, we need to find out what the current group mode is and display that box as checked.
                             var checkUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+oArgs.node.parent.data.id+'&assessmenttype='+oArgs.node.data.type+'&assessmentid='+oArgs.node.data.id+'&userid='+userid+'&type=config_check';
                             var request = YAHOO.util.Connect.asyncRequest('GET', checkUrl, ajaxCallback);
-                        
+
 
                         //document.getElementById('box3').onclick = function() {showHideChanges();};
                         return false;
-                    });
+                    }
+
+
+          );
 
 
                 }// end else
@@ -614,6 +659,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
             }
 	};
 
+    
 
 ///////////////////////////////////////////////////////
 // new function to make an assessment node
@@ -797,8 +843,8 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 /// set up time-submitted thing for tooltip. This is set to make the time match the browser's local timezone, 
 /// but I can't find a way to use the user's specified timezone from \$USER. Not sure if this really matters.
 
-                var secs = parseInt(nodesArray[k].seconds);
-                var time = parseInt(nodesArray[k].time)*1000; // javascript likes to work in miliseconds, whereas moodle uses unix format (whole seconds)
+                var secs = parseInt(nodesArray[k].seconds, 10);
+                var time = parseInt(nodesArray[k].time, 10)*1000; // javascript likes to work in miliseconds, whereas moodle uses unix format (whole seconds)
                 var d = new Date(); // make a new data object
                 d.setTime(time);  // set it to the time we just got above
 
@@ -878,16 +924,6 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 	};
 
 
-
-        this.clickHandler = function(node) {
-
-           
-
-
-
-
-        }
-
 	this.makeGroupNodes = function(responseArray) {
 		// need to turn the groups for this course into an array and attach it to the course node. Then make the groups bit on screen
 		// for the config screen??
@@ -928,26 +964,27 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 
                     // if the groups are for journals, it is impossible to display individuals, so we make the
                     // node clickable so that the pop up will have the group screen.
-                    if (responseArray[n].type == 'journal') {
-                         clickNode = this.tree.getNodeByProperty('assid', nodesArray[m].assid);
+                    if (responseArray[n].type !== 'journal') {
 
-                         clickNode.onLabelClick = function(me) {
-                             openpopup('/mod/journal/report.php?id='+me.data.id+'&group='+me.data.gid+'',
-                                    uniqueId,
-                                    'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                    0
-                             );
-                             timerVar=window.setInterval('journalOnload(\''+me.data.assid+'\', \''+me.parent.data.cid+'\')', 500);
-                             return false;
-                         };
-                    } else {
+                     //    clickNode = this.tree.getNodeByProperty('assid', nodesArray[m].assid);
+
+                      //   clickNode.onLabelClick = function(me) {
+                      //       openpopup('/mod/journal/report.php?id='+me.data.id+'&group='+me.data.gid+'',
+                      //              uniqueId,
+                      //              'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
+                      //              0
+                      //       );
+                      //       timerVar=window.setInterval('journalOnload(\''+me.data.assid+'\', \''+me.parent.data.cid+'\')', 500);
+                      //       return false;
+                       //  };
+                   // } else {
 
                       tmpNode4.setDynamicLoad(this.loadNodeData);
-                      //alert('dyn');
+                      
                     }
 		}
                 this.parentUpdate(nodeHolder);
-                //alert('up1');
+              
 
                 this.parentUpdate(nodeHolder.parent);
 			
@@ -1005,7 +1042,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 		
 		for (i=0;i<childrenLength.length;i++) {
 			countTemp = childrenLength[i].data.count;
-			count = count + parseInt(countTemp);
+			count = count + parseInt(countTemp, 10);
 		}
 		if (count > 0) {
 			document.getElementById('count').innerHTML = '<strong>'+count+'</strong>';
@@ -1063,7 +1100,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 	/// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0	
 		 
 		 
-		 while(marker == 0) {
+		 while(marker === 0) {
                    
 			 this.parentUpdate(parentNode);
 			 if (parentNode.data.type == 'course') { // we have reached the course level, so stop
@@ -1177,48 +1214,35 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 		var dataLength = data.length;
 		var idCounter = 4;  //continue the numbering of the ids from 4 (main checkboxes are 1-3). This allows us to disable/enable them
 		for(var v=0;v<dataLength;v++) {
-			
-			var box = document.createElement('input');
-				box.type = 'checkbox';
+
+
+                         var box = '';
+                         try{
+                                box = document.createElement('<input type="checkbox" name="showhide" />');
+                            }catch(err){
+                                box = document.createElement('input');
+                            }
+                                box.setAttribute('type','checkbox');
+                                box.setAttribute('name','groups');
+			//var box = document.createElement('input');
+				//box.type = 'checkbox';
 				box.id = 'config'+idCounter;
-				box.name = 'groups';
+				//box.name = 'groups';
 				box.value = data[v].id;
+                                groupDiv.appendChild(box);
 			if (data[v].display == 'true') {
 				//alert('display true');
 				box.checked = true;
 			} else {
 				box.checked = false;
 			}
-			groupDiv.appendChild(box);
-			box.onclick = function(){
-				var form = document.getElementById('configshowform');
-				//alert(this);
-				disableRadio();
-				
-				// need to construct a space separated list of group ids.
-				var groupIds = '';
-				var groupDiv = document.getElementById('configGroups');
-				var groups = groupDiv.getElementsByTagName('input');
-				var groupsLength = groups.length;
-				//alert(groupsLength);
-				for (var a=0;a<groupsLength;a++) {
-					
-					if (groups[a].checked == true) {
-						//alert('true');
-						groupIds += groups[a].value+' ';
-					}
-					
-				}
-				
-				if (groupIds == '') { // there are no checked boxes
-					groupIds = 'none'; //don't leave the db field empty as it will cause confusion between no groups chosen and first time we set this.
-				}
-				
-				var reqUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+form.course.value+'&assessmenttype='+form.assessmenttype.value+'&assessmentid='+form.assessment.value+'&type=config_group_save&userid='+userid+'&showhide=2&groups='+groupIds+'';
-	
-				var request = YAHOO.util.Connect.asyncRequest('GET', reqUrl, ajaxCallback);
-				//alert('data save');
-			}
+
+                        // silly IE6 hack
+                        //groupDiv.innerHTML = groupDiv.innerHTML;
+
+			box.onclick =function() { boxOnClick();};
+                        //box.onClick = function() { var temp = this.boxClick(); temp(); };
+
 			var label = document.createTextNode(data[v].name);
 			groupDiv.appendChild(label);
 			var breaker = document.createElement('br');
@@ -1229,31 +1253,32 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 		this.enableRadio(); //re-enable the checkboxes
 	};
 
+      
 
 	
-	this.ajaxCallback = ajaxCallback;
+      this.ajaxCallback = ajaxCallback;
     // constructor stuff - makes a new tree where its told to
    
-    this.make_tree = function() {    
-        YAHOO.widget.TreeView.preload();
-	var tree = new YAHOO.widget.TreeView(treeDiv); 
-	this.tree = tree;
-	
-	this.div = document.getElementById(statusDiv);
-	this.treeDiv = treeDiv;
-	this.icon = document.getElementById(icon);
+      this.make_tree = function() {
+          YAHOO.widget.TreeView.preload();
+          var tree = new YAHOO.widget.TreeView(treeDiv);
+          this.tree = tree;
 
-	
-	/// set the removal of all child nodes each time a node is collapsed (forces refresh)
-	this.tree.subscribe('collapseComplete', function(node) {
-	  tree.removeChildren(node);
-	});
-	
-	this.root = this.tree.getRoot();
-	this.ajaxBuild();
-    }	
-    this.make_tree();
-} // end AJAXtree build function
+          this.div = document.getElementById(statusDiv);
+          this.treeDiv = treeDiv;
+          this.icon = document.getElementById(icon);
+
+
+          /// set the removal of all child nodes each time a node is collapsed (forces refresh)
+          this.tree.subscribe('collapseComplete', function(node) {
+            tree.removeChildren(node);
+          });
+
+          this.root = this.tree.getRoot();
+          this.ajaxBuild();
+      };
+      this.make_tree();
+}; // end AJAXtree build function
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1267,6 +1292,54 @@ function countAlter(newNode, newCount) {
 	newNode.label = newLabel;
 }
 
+
+/**
+ * on click for the groups check boxes on the config screen
+ */
+
+function boxOnClick() {
+              var form = document.getElementById('configshowform');
+             // alert('box click');
+              window.config.disableRadio();
+
+              for (c=0;c<form.childNodes.length;c++) {
+                 switch (form.childNodes[c].name) {
+                     case 'course':
+                         var course = form.childNodes[c].value;
+                         break;
+                     case 'assessmenttype':
+                         var assessmentType = form.childNodes[c].value;
+                         break;
+                     case 'assessment':
+                         var assessment = form.childNodes[c].value;
+                         break;
+                  }
+              }
+
+              // need to construct a space separated list of group ids.
+              var groupIds = '';
+              var groupDiv = document.getElementById('configGroups');
+              var groups = groupDiv.getElementsByTagName('input');
+              var groupsLength = groups.length;
+              //alert(groupsLength);
+              for (var a=0;a<groupsLength;a++) {
+
+                      if (groups[a].checked === true) {
+                              //alert('true');
+                              groupIds += groups[a].value+' ';
+                      }
+
+              }
+
+              if (groupIds === '') { // there are no checked boxes
+                      groupIds = 'none'; //don't leave the db field empty as it will cause confusion between no groups chosen and first time we set this.
+              }
+
+              var reqUrl = wwwroot+'/blocks/ajax_marking/ajax.php?id='+course+'&assessmenttype='+assessmentType+'&assessmentid='+assessment+'&type=config_group_save&userid='+userid+'&showhide=2&groups='+groupIds+'';
+
+              var request = YAHOO.util.Connect.asyncRequest('GET', reqUrl, config.ajaxCallback);
+              //alert('data save');
+      }
 
 //////////////////////////////////////////////////////////////////////////////////////
 // this function is called every 100 milliseconds once the assignment pop up is called 
@@ -1433,11 +1506,53 @@ function afterLoad(loc) { //may be possible to replace this loop with a dom even
 		timerVar = window.clearInterval(timerVar);
 	}
 	if (!windowobj.closed && windowobj.location.href == wwwroot+loc) {
-		setTimeout('windowobj.close()', 1000);
+		setTimeout(windowobj.close(), 1000);
 		timerVar = window.clearInterval(timerVar);
 	} 
 }
 
+
+/**
+ *need to find the size of the window so the dark div is not too small
+ *
+ */
+
+function alertSize() { //http://www.howtocreate.co.uk/tutorials/javascript/browserwindow
+  var  myHeight = 0;
+  if( typeof( window.innerWidth ) == 'number' ) {
+    //Non-IE
+    myHeight = window.innerHeight;
+  } else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) {
+    //IE 6+ in 'standards compliant mode'
+    myHeight = document.documentElement.clientHeight;
+  } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
+    //IE 4 compatible
+    myHeight = document.body.clientHeight;
+  }
+  return myHeight;
+}
+
+
+
+function ie_width() {
+    if (/MSIE (\d+\.\d+);/.test(navigator.userAgent)){
+    //    alert ('width fix');
+      var el = document.getElementById('treediv');
+
+      var width = el.offsetWidth;
+    //  set width of main content div to the same as treediv
+      var contentDiv = el.parentNode;
+      contentDiv.style.width = width;
+
+
+    //  var mainDiv = contentDiv.parentNode;
+      //var col = document.getElementById('right-column');
+    //  var max = contentDiv.offsetWidth;
+     // var currentDiff = width - 150;
+     // col.style.width = colo.style.width + currentDiff;
+      //alert('ie fixed');
+    }
+}
 
 /////////////////////////////////////////////////////////////////////////////////////////////////
 // Makes a greyed out div appear over the whole screen and a pop-over div with config settings
@@ -1549,7 +1664,7 @@ else if (document.body) // all other Explorers
 
     dialog.style.right=((screenWidth - 400)/2)+'px';
     dialog.style.top=(y+100)+'px';
-    var availHeight = screen.availHeight
+    var availHeight = screen.availHeight;
     dialog.style.height=(availHeight-500)+'px';
 
 
@@ -1579,86 +1694,93 @@ else if (document.body) // all other Explorers
   }
 }
 
-//need to find the size of the window so the dark div is not too small
 
-function alertSize() { //http://www.howtocreate.co.uk/tutorials/javascript/browserwindow
-  var  myHeight = 0;
-  if( typeof( window.innerWidth ) == 'number' ) {
-    //Non-IE
-    myHeight = window.innerHeight;
-  } else if( document.documentElement && ( document.documentElement.clientWidth || document.documentElement.clientHeight ) ) {
-    //IE 6+ in 'standards compliant mode'
-    myHeight = document.documentElement.clientHeight;
-  } else if( document.body && ( document.body.clientWidth || document.body.clientHeight ) ) {
-    //IE 4 compatible
-    myHeight = document.body.clientHeight;
-  }
-  return myHeight;
-}
 
 /**
  * the onclick for the radio buttons in the config screen.
  * if show by group is clicked, the groups thing pops up. If another one is, the groups thing is hidden.
  */
+
 function showHideChanges(checkbox) { 
 	// if its groups, show the groups by getting them from the course node?
 	//alert('showhide fired');
 	var showHide = '';
-	config.disableRadio();
 
-		
+        //empty the groups area
+        var groupDiv = document.getElementById('configGroups');
+        while (groupDiv.firstChild) {
+            groupDiv.removeChild(groupDiv.firstChild);
+        }
+       // var children = groupDiv.childNodes.length;
+       // for (a=0;a<children;a++) {
+       //     groupDiv.removeChild(groupDiv.childNodes[a]);
+       // }
+	
 	switch (checkbox.value) {
 		case 'groups': //need to set the type of this assessment to 'show groups' and get the groups stuff.
 			//alert('groups');
 			showHide = 2;
 			//get the form div to be able to read the values
 			var form = document.getElementById('configshowform');
+
 			//config.icon.innerHTML = img;
 			/*
 			//check to see if the course node has alredy got the groups info attached
 			var node = config.tree.getNodeByProperty("assid", form.);
 			if (typeof(node.data.groups = 'undefined')) { // no group data available, so get it via ajax and store it as part of the course node
 			*/
-			var url = wwwroot+'/blocks/ajax_marking/ajax.php?id='+form.course.value+'&assessmenttype='+form.assessmenttype.value+'&assessmentid='+form.assessment.value+'&type=config_groups&userid='+userid+'&showhide='+showHide+'';
+
+                       // silly IE6 bug fix
+                       for (c=0;c<form.childNodes.length;c++) {
+                           switch (form.childNodes[c].name) {
+                               case 'course':
+                                   var course = form.childNodes[c].value;
+                                   break;
+                               case 'assessmenttype':
+                                   var assessmentType = form.childNodes[c].value;
+                                   break;
+                               case 'assessment':
+                                   var assessment = form.childNodes[c].value;
+                                   break;
+                            }
+                        }
+			var url = wwwroot+'/blocks/ajax_marking/ajax.php?id='+course+'&assessmenttype='+assessmentType+'&assessmentid='+assessment+'&type=config_groups&userid='+userid+'&showhide='+showHide+'';
 			var request = YAHOO.util.Connect.asyncRequest('GET', url, config.ajaxCallback);
 			break;
 		case 'show':
-			document.getElementById('configGroups').innerHTML = '';
+			//document.getElementById('configGroups').innerHTML = '';
 			configSet(1);
 			break;
 		case 'hide':
-			document.getElementById('configGroups').innerHTML = '';
+			//document.getElementById('configGroups').innerHTML = '';
 			configSet(3);
 			break;
 			
 	} // end switch
+        config.disableRadio();
+        
 }
 
-function ie_width() {
-    if (/MSIE (\d+\.\d+);/.test(navigator.userAgent)){
-    //    alert ('width fix');
-      var el = document.getElementById('treediv');
-      
-      var width = el.offsetWidth;
-    //  set width of main content div to the same as treediv
-      var contentDiv = el.parentNode;
-      contentDiv.style.width = width;
 
-
-    //  var mainDiv = contentDiv.parentNode;
-      //var col = document.getElementById('right-column');
-    //  var max = contentDiv.offsetWidth;
-     // var currentDiff = width - 150;
-     // col.style.width = colo.style.width + currentDiff;
-      //alert('ie fixed');
-    }
-}
 
 // called from the above function to set the showhide value of the config items
 function configSet(showHide) {
 	var form = document.getElementById('configshowform');
-	
-	var url = wwwroot+'/blocks/ajax_marking/ajax.php?id='+form.assessment.value+'&type=config_set&userid='+userid+'&assessmenttype='+form.assessmenttype.value+'&assessmentid='+form.assessment.value+'&showhide='+showHide+'';
+
+       // silly hack to fix the way IE6 will not retrieve data from an input added using appendChild using form.assessment.value
+	for(b=0; b< form.children.length; b++) {
+           
+            switch (form.childNodes[b].name) {
+                case 'assessment':
+                        var assessmentValue = form.childNodes[b].value;
+                        break;
+                case 'assessmenttype':
+                    var assessmentType = form.childNodes[b].value;
+                    break;
+
+            }
+        }
+	var url = wwwroot+'/blocks/ajax_marking/ajax.php?id='+assessmentValue+'&type=config_set&userid='+userid+'&assessmenttype='+assessmentType+'&assessmentid='+assessmentValue+'&showhide='+showHide+'';
 	//alert(url);
         var request = YAHOO.util.Connect.asyncRequest('GET', url, config.ajaxCallback);
 }
