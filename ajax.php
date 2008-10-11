@@ -447,6 +447,7 @@ class ajax_marking_functions {
                 } else {
                         $this->output .= '"type":"course",';
                         $this->output .= '"name":"'.$this->clean_name_text($course->shortname, 0).'",';
+                        $this->output .= '"summary":"'.$this->clean_name_text($course->shortname, -2).'",';
                 }
                 
                 $this->output .= '"count":"'.$count.'",';

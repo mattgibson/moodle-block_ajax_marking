@@ -343,7 +343,7 @@ stuff from the container.css file, cleaned up to make it validate
     font-family: arial,helvetica,verdana,sans-serif;
     padding: 2px;
     border: 1px solid #FCC90D;
-    font:100% sans-serif;
+    font:75% sans-serif;
     width: auto;
 }
 

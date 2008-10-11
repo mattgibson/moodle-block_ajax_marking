@@ -364,6 +364,8 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 		/// 1. all courses loop
 			var numberOfCourses = this.root.children.length;
 			for (i=0;i<numberOfCourses;i++) {
+                            node = this.root.children[i];
+                            this.make_tooltip(node);
                             var numberOfAssessments = this.root.children[i].children.length;
                             for (j=0;j<numberOfAssessments;j++) {
                                 // assessment level
@@ -439,8 +441,9 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                                               count:''+nodesArray[n].count+'', 
 					      cid:''+nodesArray[n].cid+'', 
                                               uniqueId:''+nodesArray[n].cid+'', 
-                                              name:''+nodesArray[n].name+'', 
-					      summary:''+nodesArray[n].summary+''
+                                              name:''+nodesArray[n].name+'',
+					      summary:''+nodesArray[n].summary+'',
+                                              title:''+nodesArray[n].summary
                                               
                                             };
 		
@@ -461,74 +464,62 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 
                         if (!this.config) {
                             this.tree.subscribe("clickEvent", function(oArgs) {
-
+                              
                               // ref saves space
                               var nd = oArgs.node;
+                                   
+                              // putting window.open into the switch statement causes it to fail in IE6. No idea why.
+                              var popUpAddress = wwwroot;
+                              var popUpArgs = 'menubar=0,location=0,scrollbars,resizable,width=780,height=500';
+                              var timerFunction = '';
+                              var openIt = false;
 
-                              // pop ups need a unique ref or else you can't open two at once.'
-                              var UniqueId = nd.data.type+nd.data.sid+'-'+nd.data.aid;
-                             // alert(nd.data.title);
                               switch (nd.data.type) {
 
                                   case 'quiz_answer':
-
-                                    openpopup(
-                                        '/mod/quiz/report.php?mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'',
-                                        UniqueId,
-                                        'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                        0
-                                    );
-                                    timerVar=window.setInterval('quizOnLoad(\''+nd.data.id+'\')', 500);
+                                
+                                        popUpAddress += '/mod/quiz/report.php?mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'';
+                                        timerFunction = 'quizOnLoad(\''+nd.data.id+'\')';
+                                         openIt = true;
                                     break;
-
 
                                   case 'assignment_answer':
-                                    //alert(oArgs.node.data.type);
-                                    openpopup(
-                                        '/mod/assignment/submissions.php?id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0',
-                                        UniqueId,
-                                        'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                        0
-                                    );
-                                    timerVar=window.setInterval('assignmentOnLoad(\''+nd.data.id+'\')', 500);
+                                  
+                                      popUpAddress += '/mod/assignment/submissions.php?id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0';
+                                      timerFunction = 'assignmentOnLoad(\''+nd.data.id+'\')';
+                                      openIt = true;
                                     break;
-
+                              
                                  case 'workshop_answer':
 
-                                    openpopup(
-                                        '/mod/workshop/assess.php?id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+wwwroot+'',
-                                        UniqueId,
-                                        'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                        0
-                                    );
-                                    timerVar=window.setInterval('workshopOnLoad(\''+nd.data.id+'\')', 500);
+                                        popUpAddress += '/mod/workshop/assess.php?id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+wwwroot+'';
+                                        timerFunction = 'workshopOnLoad(\''+nd.data.id+'\')';
+                                        openIt = true;
                                     break;
-
+                             
                                  case 'discussion':
 
-                                    openpopup(
-                                        '/mod/forum/discuss.php?d='+nd.data.aid+'#p'+nd.data.sid+'',
-                                        UniqueId,
-                                        'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                        0
-                                    );
-                                    timerVar=window.setInterval('forumOnLoad(\''+nd.data.id+'\')', 500);
+                                        popUpAddress += '/mod/forum/discuss.php?d='+nd.data.aid+'#p'+nd.data.sid+'';
+                                        timerFunction = 'forumOnLoad(\''+nd.data.id+'\')';
+                                        openIt = true;
                                     break;
-
+                              
                                  case 'journal_submission':
 
-                                    openpopup(
-                                        '/mod/journal/report.php?id='+nd.data.id+'',
-                                        UniqueId,
-                                        'menubar=0,location=0,scrollbars,resizable,width=780,height=500',
-                                        0
-                                    );
-                                    timerVar=window.setInterval('journalOnload(\''+nd.data.assid+'\', \''+nd.parent.data.cid+'\')', 500);
+                                       popUpAddress += '/mod/journal/report.php?id='+nd.data.id+'',
+                                       timerFunction = 'journalOnload(\''+nd.data.assid+'\', \''+nd.parent.data.cid+'\')';
+                                       openIt = true;
                                     break;
+                                 } //end switch
 
-                                 default:
-                                    break;
-                            } //end switch
+                                 if (openIt === true) {
+                                 
+                                     var newWindow = window.open(popUpAddress, '_blank', popUpArgs);
+                                     timerVar = window.setInterval(timerFunction, 500);
+                                     newWindow.focus();
+                                     return false;
+                                 }
+                                
                     }); // end subscribe
                 } else {
                    //  if (this.config === true) { // set the onclick to be the function that populates the config div
@@ -619,6 +610,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 
 
                 }// end else
+               // this.tooltips();
             }
 	};
 
@@ -695,7 +687,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                                   uniqueId:''+nodesArray[m].assid+'', 
                                   count:''+nodesArray[m].count+'', 
                                   name:''+nodesArray[m].name+'',
-                                  summary:''+nodesArray[m].summary+'',
+                                  title:''+nodesArray[m].summary+'',
                                   gid:''+nodesArray[m].group+''
                                 };
                         } else{
@@ -706,7 +698,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                                   uniqueId:''+nodesArray[m].assid+'', 
                                   count:''+nodesArray[m].count+'', 
                                   name:''+nodesArray[m].name+'',
-                                  summary:''+nodesArray[m].summary+''
+                                  title:''+nodesArray[m].summary+''
                                 };
 			}	   
 			 
@@ -769,7 +761,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 		
 /// then add tooltips.	
 
-		this.tooltips();	
+		//this.tooltips();
 
 	};
 	
@@ -823,7 +815,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                           aid:''+nodesArray[k].aid+'',
                           uniqueId:''+uniqueId+'',
                           sid:''+nodesArray[k].sid+'',
-                          summary:''+nodesArray[k].summary+'',
+                          title:''+nodesArray[k].summary+'',
                           count:''+nodeCount+''
                         } ;
                 if (nodesArray[k].type == 'discussion') {
@@ -881,7 +873,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 
 /// then add tooltips.	
 
-            this.tooltips();
+            //this.tooltips();
 
 	};
 
@@ -923,7 +915,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
                                uniqueId:''+'g'+responseArray[n].gid+responseArray[n].type+responseArray[n].aid+'',
                                gid:''+responseArray[n].gid+'',
                                count:''+responseArray[n].count+'',
-                               summary:''+responseArray[n].summary+''} ;
+                               title:''+responseArray[n].summary+''} ;
                     //alert('object');
 
 
@@ -965,7 +957,7 @@ var AJAXtree = function(treeDiv, icon, statusDiv, config) {
 		
 		this.updateTotal();
 		
-		this.tooltips();
+		//this.tooltips();
 		
 	};
 
