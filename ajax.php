@@ -59,14 +59,23 @@ class ajax_marking_functions {
         $this->group             = optional_param('group', NULL, PARAM_TEXT);
         $this->combinedref       = optional_param('combinedref', NULL, PARAM_TEXT);
 
-        // todo: only do this if needed
-        $this->courses           = get_my_courses($this->userid, $sort='fullname', $fields='id', $doanything=false, $limit=0) or die('get my courses error');
-        
+       
+        if ($this->type == 'main' || $this->type == 'config_course' || $this->type == 'config_main' || $this->type == 'course' || $this->type == 'assignment' || $this->type == 'workshop' || $this->type == 'forum' || $this->type == 'quiz_question' || $this->type == 'quiz' || $this->type == 'journal_submissions') {
+            $this->courses           = get_my_courses($this->userid, $sort='fullname', $fields='id', $doanything=false, $limit=0) or die('get my courses error');
+            
+            if ($this->courses) {
+                $this->make_course_ids_list();
+            }
+        }
+
         $this->group_members     = $this->get_my_groups();
+        $this->modules           = $this->get_coursemodule_ids();
+
+        
 
         $sql                     = "SELECT * FROM {$CFG->prefix}block_ajax_marking WHERE userid = $this->userid";
         $this->groupconfig       = get_records_sql($sql);
-        $this->modules           = $this->get_coursemodule_ids();
+        
 
         $this->student_ids = '';
         $this->student_array = '';
@@ -78,7 +87,7 @@ class ajax_marking_functions {
 
         } elseif ($this->type == "config_main") {
             $this->config = true;
-            $this->courses();
+            $this->config_courses();
 
         } elseif ($this->type == "course") {
             $this->get_course_students($this->id); // we must make sure we only get work from enrolled students
@@ -97,11 +106,12 @@ class ajax_marking_functions {
 
             $this->config = true;
             $this->output = '[{"type":"'.$this->type.'"}'; // begin JSON array
-            $this->assignments();
-            $this->journals();
-            $this->workshops();
-            $this->forums();
-            $this->quizzes();
+          
+            $this->config_assessments($this->id, 'assignment');
+            $this->config_assessments($this->id, 'journal');
+            $this->config_assessments($this->id, 'workshop');
+            $this->config_assessments($this->id, 'forum');
+            $this->config_assessments($this->id, 'quiz');
             $this->output .= "]"; // end JSON array
 
         } elseif ($this->type == "assignment") {
@@ -128,274 +138,49 @@ class ajax_marking_functions {
         print_r($this->output);
     }	
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    // --in progress--
-    // This function makes sure that the person has grading capability and needs to be run every time the block is accessed
-    //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    // currently unused.
-    function check_permissions($user_id) {
-
-        $courses = get_my_courses($user_id, $sort='fullname', $fields='*', $doanything=false, $limit=0) or die('get my courses error');
-        $output_array = array();
-        $checkvar = 0;
-
-        foreach ($courses as $course) {	// iterate through each course, checking permisions, counting assignment submissions and 
-                                                                // adding the course to the JSON output if any appear				   
-            if ($course->visible == 1)  { // show nothing if the course is hidden
-                $checkvar = 0;
-                // am I allowed to grade stuff in this course? Question is too broad - some assignments are hidden and some I may not 
-                // have capabilities for. Will have to check each thing one at time.
-
-                // TO DO: need to check in future for who has been assigned to mark them (new groups stuff) in 1.9
-                //$coursecontext = get_context_instance(CONTEXT_COURSE, $course->id);
-
-                if ($course->id == 1) {continue;} // exclude the front page
-
-                // role check bit borrowed from block_narking, thanks to Mark J Tyers [ZANNET]
-                //$context = get_context_instance(CONTEXT_COURSE, $course->id);
-
-                $teachers = get_role_users($teacher_role, $course->context, true); // check for editing teachers
-                $j = false;
-                if ($teachers) {
-                    foreach($teachers as $key2=>$val2) {
-                        if ($val2->id == $this->userid) {
-                            $j = true;
-                            $checkvar = 1;
-                        }
-                    }
-                }
-                if (!$j) {
-                    $teachers_ne = get_role_users($ne_teacher_role, $course->context, true); // check for non-editing teachers
-                    if ($teachers_ne) {
-                        foreach($teachers_ne as $key2=>$val2) {
-                            if ($val2->id == $this->userid) {
-                                $j = true;
-                                $checkvar = 1;
-                            }
-                        }
-                    }
-                }
-                if ($j) {return $output_array;} // only display if in a teacher or teacher_non_editing role
-                else {return false;}
-            }	
-        }
-    }
-
-    //////////////////////////////////////
-    // procedure for courses
-    //////////////////////////////////////
+  
+    /**
+     * Function to generate the list of courses when the tree is fiurst prepared. Currently either makes a config tree or a main tree
+     * depending on $this->type
+     * @global <type> $CFG
+     */
 
     function courses() {
         $courses = '';
         $course_ids = NULL;
         global $CFG;
-        // probably don't need all the fields here.
-        //$courses = get_my_courses($this->id, $sort='fullname', $fields='*', $doanything=false) or die('get my courses error');
-
-        // todo: probably need a more elegant error
-        if (!$this->courses) {
-            $this->output = '[{"type":"main"}]';
-            return;
-        }
-
-        // filter the courses so that only those where the person
-        foreach ($this->courses as $key => $course) {
-
-           // echo $course->id;
-            $allowed_role = false;
-
-            // exclude the front page
-            if ($course->id == 1) {
-                //echo "unsetting 1 ";
-                unset($this->courses[$key]);
-            } 
-
-            // role check bit borrowed from block_marking, thanks to Mark J Tyers [ZANNET]
-            $teachers = 0;
-            $teachers_ne = 0;
-            //$j = false;
-            $teacher_role=get_field('role','id','shortname','editingteacher'); // retrieve the teacher role id (3)
-            $teachers = get_role_users($teacher_role, $course->context, true); // check for editing teachers
-
-            if ($teachers) {
-                foreach($teachers as $teacher) {
-                    if ($teacher->id == $this->userid) {
-                       // echo "ok";
-                        $allowed_role = true;
-                    }
-                }
-            }
-            if (!$allowed_role) {
-                $ne_teacher_role=get_field('role','id','shortname','teacher'); // retrieve the non-editing teacher role id (4)
-                $teachers_ne = get_role_users($ne_teacher_role, $course->context, true); // check for non-editing teachers
-            }
-            if ($teachers_ne) {
-                foreach($teachers_ne as $key2=>$val2) {
-                    if ($val2->id == $this->userid) {
-                            $allowed_role = true;
-                    }
-                }
-            }
-            if (!$allowed_role) {
-            
-                unset($this->courses[$key]);
-            } // only display if in a teacher or teacher_non_editing role
-
-            if ($course_ids) {
-                if (!in_array($course->id, $course_ids)) {
-                    //echo "ok";
-                    $course_ids[] = $course->id;
-                }
-            } else {
-                $course_ids[] = $course->id;
-            }
-        }
-        if ($course_ids) {
-            // make list of ids for the following sql statements
-            $course_ids = implode(',', $course_ids);
-           // echo $course_ids;
-        } else {
-            // no courses left
-            return;
-        }
-
-        //obsolete?
-        $i = 0; // course counter to keep commas in the right places later on
 
         // admins will have a problem as they will see all the courses on the entire site
         // TODO - this has big issues around language. role names will not be the same in diffferent translations.
 
-         $ne_teacher_role=get_field('role','id','shortname','teacher'); // retrieve the non-editing teacher role id (4)
+        //$ne_teacher_role=get_field('role','id','shortname','teacher'); // retrieve the non-editing teacher role id (4)
 
-
-        $this->output = '[{"type":"main"}'; 	// begin JSON array
-
-        // get all unmarked assignment_submissions for all courses    
+        // begin JSON array
+        $this->output = '[{"type":"main"}';
+         
+        // get all unmarked assignment_submissions for all courses
         if (array_key_exists("assignment", $this->modules)) {
-            $sql = "
-                SELECT s.id as subid, s.userid, a.course, a.id, c.id as cmid
-                FROM
-                    {$CFG->prefix}assignment a
-                INNER JOIN {$CFG->prefix}course_modules c
-                     ON a.id = c.instance
-                LEFT JOIN {$CFG->prefix}assignment_submissions s
-                     ON s.assignment = a.id
-                WHERE c.module = {$this->modules['assignment']->id}
-                AND c.visible = 1
-                AND a.course IN ($course_ids)
-                AND s.timemarked < s.timemodified
-                ORDER BY a.id
-             ";
-             $assignment_submissions = get_records_sql($sql);
-         }
-        
-         // workshops
-         if (array_key_exists("workshop", $this->modules)) {
-             $sql = "
-                 SELECT s.id as subid, s.userid, w.id, w.course, c.id as cmid
-                 FROM 
-                      {$CFG->prefix}workshop w
-                      INNER JOIN {$CFG->prefix}course_modules c
-                         ON w.id = c.instance
-                 LEFT JOIN {$CFG->prefix}workshop_submissions s
-                     ON s.workshopid = w.id
-                 LEFT JOIN {$CFG->prefix}workshop_assessments a 
-                 ON (s.id = a.submissionid) 
-                 WHERE (a.userid != {$this->userid}  
-                  OR (a.userid = {$this->userid} 
-                        AND a.grade = -1))
-                 AND c.module = {$this->modules['workshop']->id}
-                 AND c.visible = 1
-                 ORDER BY w.id                 
-            ";
-
-            $workshop_submissions = get_records_sql($sql);
+             $assignment_submissions = $this->get_all_unmarked_assignments();
         }
-        
+
+        // get all unmarked workshops
+        if (array_key_exists("workshop", $this->modules)) {
+            $workshop_submissions = $this->get_all_unmarked_workshops();
+        }
+
         // forums
         if (array_key_exists("forum", $this->modules)) {
-            $sql = "
-                SELECT p.id as postid, p.userid, d.id, f.id, f.course, c.id as cmid
-                FROM 
-                    {$CFG->prefix}forum f
-                INNER JOIN {$CFG->prefix}course_modules c
-                     ON f.id = c.instance
-                INNER JOIN {$CFG->prefix}forum_discussions d 
-                     ON d.forum = f.id
-                INNER JOIN {$CFG->prefix}forum_posts p
-                     ON p.discussion = d.id
-                LEFT JOIN {$CFG->prefix}forum_ratings r
-                     ON  p.id = r.post
-                WHERE p.userid <> $this->userid
-                    AND ((r.userid <> $this->userid) OR r.userid IS NULL)
-                    AND c.module = {$this->modules['forum']->id}
-                    AND c.visible = 1
-                    AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
-                ORDER BY f.id
-            ";
-
-            $forum_submissions = get_records_sql($sql);
+            $forum_submissions = $this->get_all_unmarked_forums();
         }
-        
+
         if (array_key_exists("quiz", $this->modules)) {
-            require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
-
-            $sql = "
-                  SELECT 
-                      qst.id as qstid, qsess.questionid, qz.id, qz.course, qa.userid, qst.id as stateid, c.id as cmid
-                  FROM
-                    {$CFG->prefix}quiz qz
-                  INNER JOIN {$CFG->prefix}course_modules c
-                             ON qz.id = c.instance
-                  INNER JOIN
-                    {$CFG->prefix}quiz_attempts qa
-                      ON 
-                        qz.id = qa.quiz
-                  INNER JOIN
-                    {$CFG->prefix}question_sessions qsess  
-                      ON
-                        qsess.attemptid = qa.id
-                  INNER JOIN 
-                    {$CFG->prefix}question_states qst
-                     ON 
-                        qsess.newest = qst.id     
-                  INNER JOIN {$CFG->prefix}question q
-                     ON 
-                        qsess.questionid = q.id      
-                  WHERE
-                   qa.timefinish > 0 
-                  AND qa.preview = 0 
-                  AND c.module = {$this->modules['quiz']->id}
-                  AND c.visible = 1
-                  AND q.qtype = 'essay'
-                  AND qst.event NOT IN (
-                        ".QUESTION_EVENTGRADE.", 
-                        ".QUESTION_EVENTCLOSEANDGRADE.", 
-                        ".QUESTION_EVENTMANUALGRADE.") 
-                  ORDER BY q.id
-                ";
-           //echo $sql;
-            $quiz_submissions = get_records_sql($sql);
+            $quiz_submissions = $this->get_all_unmarked_quizzes();
         }
-            
+
         if (array_key_exists("journal", $this->modules)) {
-            $sql = "
-                    SELECT je.id as entryid, je.userid, j.course, j.id, c.id as cmid
-                    FROM {$CFG->prefix}journal_entries je
-                    INNER JOIN {$CFG->prefix}journal j
-                       ON je.journal = j.id
-                    INNER JOIN {$CFG->prefix}course_modules c
-                             ON j.id = c.instance
-                    WHERE c.module = {$this->modules['journal']->id}
-                    AND c.visible = 1
-                    AND j.assessed <> 0
-                    AND je.modified > je.timemarked
-
-                   ";
-
-            $journal_submissions = get_records_sql($sql);
+            $journal_submissions = $this->get_all_unmarked_journals() ;
         }
+       
         // iterate through each course, checking permisions, counting relevant assignment submissions and 
         // adding the course to the JSON output if any appear
         foreach ($this->courses as $course) {	                                                        
@@ -481,7 +266,7 @@ class ajax_marking_functions {
 	function assignments() {
 
             global $CFG, $SESSION;
-//echo "assignments fired";
+
             // the assignment pop up thinks it was called from the table of assignment submissions, so to avoid javascript errors, 
             // we need to set the $SESSION variable to think that all the columns in the table are collapsed so no javascript is generated
             // to try to update them. 
@@ -511,7 +296,7 @@ class ajax_marking_functions {
 
                     // counter for number of unmarked submissions
                     $count = 0;
-
+                    //echo " ASSIGNMENT ";
 
                     // permission to grade?				
                     $modulecontext = get_context_instance(CONTEXT_MODULE, $assignment->cmid);
@@ -521,8 +306,10 @@ class ajax_marking_functions {
 
                         // has this assignment been set to invisible in the config settings?
                         //$combinedref = ;
+                        //echo "checking";
                         $check = $this->get_groups_settings('assignment', $assignment->id);
                         if ($check) {
+                            //echo "check OK";
                             if ($check->showhide == 3) {continue;}
                             
                         }
@@ -543,6 +330,10 @@ class ajax_marking_functions {
                         if ($count == 0) { continue; }
                     }
 
+
+                    $this->make_assessment_node($assignment->name, $assignment->id, $assignment->cmid, $assignment->description, 'assignment', $count);
+
+                    /*
                     //  add the asssignment to JSON array of objects, ready for display
                     $aid = $assignment->id;
                     $sum = $assignment->description;                                 // make summary
@@ -561,7 +352,7 @@ class ajax_marking_functions {
                     $this->output .= '"summary":"'.$this->clean_summary_text($shortsum).'",';
                     $this->output .= '"count":"'.$count.'"';
                     $this->output .= '}';
-
+*/
                 }// end foreach assignment
             } // end if assignment_submissions
 	} // end asssignments function
@@ -667,7 +458,7 @@ class ajax_marking_functions {
 	function workshops() {
 	    global $CFG;
 	
-            $sql = "SELECT s.id as submissionid, s.userid, w.id, w.name, w.description, c.id as cmid
+            $sql = "SELECT s.id as submissionid, s.userid, w.id, w.name, w.course, w.description, c.id as cmid
                     FROM
                        ( {$CFG->prefix}workshop w
                     INNER JOIN {$CFG->prefix}course_modules c
@@ -717,7 +508,10 @@ class ajax_marking_functions {
                         }
                         if ($count == 0) {continue;}
                     }
-                   
+
+                    $this->make_assessment_node($workshop->name, $workshop->id, $workshop->cmid, $workshop->description, 'workshop', $count);
+
+                    /*
                     $wid = $workshop->id;
                     $sum = $workshop->description;
                     $sumlength = strlen($sum);
@@ -734,7 +528,7 @@ class ajax_marking_functions {
                     $this->output .= '"summary":"'.$this->clean_summary_text($shortsum).'",';
                     $this->output .= '"count":"'.$count.'"';
                     $this->output .= '}';
-                   
+                   */
                 } // end foreach workshop
             } //end if workshop_submissions
         }// end function workshops
@@ -895,7 +689,10 @@ class ajax_marking_functions {
                                 }
                                 if ($count == 0) {continue;}
                             }
-            
+
+                            $this->make_assessment_node($forum->name, $forum->id, $forum->cmid, $forum->description, 'forum', $count);
+
+                        /*
                             // add the node if there were any posts or if there was a config call
                             //if ($count > 0 || $this->config) {
                             $fid = $forum->id;
@@ -914,7 +711,7 @@ class ajax_marking_functions {
                             $this->output .= '"summary":"'.$this->clean_summary_text($shortsum).'",';
                             $this->output .= '"count":"'.$count.'"';
                             $this->output .= '}';
-				
+				*/
 			} // foreach forum
 		} // if forums
 	} // end function
@@ -1481,6 +1278,8 @@ class ajax_marking_functions {
                     }//end if !$this->config
 
                     // there are some entries so we add the journal node
+                    $this->make_assessment_node($journal->name, $journal->id, $journal->cmid, $journal->description, $count);
+                    /*
 
                     $aid = $journal->id;
                     $sum = $journal->intro;                                          // make summary
@@ -1502,6 +1301,8 @@ class ajax_marking_functions {
                     $this->output .= '"summary":"'.$this->clean_summary_text($shortsum).'",';
                     $this->output .= '"count":"'.$count.'"';
                     $this->output .= '}';
+
+                     */
                 } // end foreach journal
             }
 	}
@@ -1626,11 +1427,10 @@ class ajax_marking_functions {
 			}
 		}
 		if (count($student_array > 0)) { // some students were returned
-			$student_ids = implode(",", $student_array); //convert to comma separated
-		$this->student_ids = $student_ids;
-               // echo $student_ids;
-                $this->student_array = $student_array;
-                $this->student_details = $student_details;
+                    $student_ids = implode(",", $student_array); //convert to comma separated
+                    $this->student_ids = $student_ids;
+                    $this->student_array = $student_array;
+                    $this->student_details = $student_details;
 		} else {
 			return false;
 		}
@@ -1679,56 +1479,64 @@ class ajax_marking_functions {
      * @global <type> $CFG
      */
     function config_courses() {
-		$courses = '';
-		global $CFG;
-		// probably don't need all the fields here.
-		$courses = get_my_courses($this->id, $sort='fullname', $fields='*', $doanything=false) or die('get my courses error');
-		
-		//$i = 0; // course counter to keep commas in the right places later on
-		
-		// admins will have a problem as they will see all the courses on the entire site
-		// TO DO - this has big issues around language. role names will not be the same in diffferent translations.
-		
-	       $teacher_role=get_field('role','id','shortname','editingteacher'); // retrieve the teacher role id (3)
-       	       $ne_teacher_role=get_field('role','id','shortname','teacher'); // retrieve the non-editing teacher role id (4)
-		
-		$this->output = '[{"type":"courses"}'; 	// begin JSON array
-		
-		foreach ($courses as $course) {	// iterate through each course, checking permisions, counting assignment submissions and 
-									 	// adding the course to the JSON output if any appear
-										
-							   
-			//if ($course->visible != 1)  {continue;} // show nothing if the course is hidden
+            //$courses = '';
+            //global $CFG;
+            // probably don't need all the fields here.
+            //$courses = get_my_courses($this->id, $sort='fullname', $fields='*', $doanything=false) or die('get my courses error');
 
-			//if ($course->id === 1) {continue;} // exclude the front page
-			
-			// role check bit borrowed from block_narking, thanks to Mark J Tyers [ZANNET]
-			
-			$course_context = get_context_instance(CONTEXT_COURSE, $course->id);
-		
-				
-			$teachers = get_role_users($teacher_role, $course_context, true); // check for editing teachers
-			$j = false;
-			if ($teachers) {
-				foreach($teachers as $key2=>$val2) {
-					if ($val2->id == $this->userid) {
-						$j = true;
-					}
-				}
-			}
-			$teachers_ne = get_role_users($ne_teacher_role, $course_context, true); // check for non-editing teachers
-			if ($teachers_ne) {
-				foreach($teachers_ne as $key2=>$val2) {
-					if ($val2->id == $this->userid) {
-						$j = true;
-					}
-				}
-			}
-			if (!$j) {continue;} // only display if in a teacher or teacher_non_editing role
-			
-			$this->output .= '{"name":"'.$this->clean_name_text($course->shortname).'"},{"id":"c'.$course->id.'"},{"type":"config_assessments"}';
-		}
-		$this->output .= ']';
+            //$i = 0; // course counter to keep commas in the right places later on
+
+            // admins will have a problem as they will see all the courses on the entire site
+            // TO DO - this has big issues around language. role names will not be the same in diffferent translations.
+
+           // $teacher_role=get_field('role','id','shortname','editingteacher'); // retrieve the teacher role id (3)
+            //$ne_teacher_role=get_field('role','id','shortname','teacher'); // retrieve the non-editing teacher role id (4)
+
+
+
+             $this->output = '[{"type":"config_main"}';
+
+            //$this->output = '[{"type":"config_courses"}'; 	// begin JSON array
+
+            if ($this->courses) { // might not be any available
+
+                $assignments = $this->get_all_assignments();
+                //print_r($assignments);
+
+                foreach ($this->courses as $course) {	// iterate through each course, checking permisions, counting assignment submissions and
+                                                                                // adding the course to the JSON output if any appear
+                    $count = 0;
+                    $assignment_count = $this->count_course_assessments($assignments, $course->id, 'assignment');
+                   // echo "assessment count: ".$assignment_count;
+                    $count = $count + $assignment_count;
+                
+
+                    if ($count > 0) {
+                       // $this->output .= ',{"name":"'.$this->clean_name_text($course->shortname).'"},{"id":"c'.$course->id.'"}';
+
+                        $this->output .= ','; // add a comma if there was a preceding course
+                        $this->output .= '{';
+
+                        $this->output .= '"id":"'.$course->id.'",';
+
+                                $this->output .= '"type":"config_course",';
+                                //$this->output .= '"name":"'.$this->clean_name_text($course->shortname, -1).'",';
+
+                               // $this->output .= '"type":"course",';
+                                $this->output .= '"name":"'.$this->clean_name_text($course->shortname, -2).'",';
+                                $this->output .= '"summary":"'.$this->clean_name_text($course->shortname, -2).'",';
+
+
+                       $this->output .= '"count":"'.$count.'",';
+                        //$this->output .= '"cid":"c'.$cid.'"';
+                        $this->output .= '}';
+
+
+
+                    }
+                }
+            }
+            $this->output .= ']';
 	}
 
 	/**
@@ -2089,10 +1897,10 @@ class ajax_marking_functions {
             
             if (!$this->courses) {return false;}
             
-            foreach ($this->courses as $course) {
-                $course_ids[] = $course->id;
+            //foreach ($this->courses as $course) {
+            //    $course_ids[] = $course->id;
                // $context_ids[] = $course->context->id;
-            }
+            //}
             
             //$course_contexts = get_context_instance(CONTEXT_COURSE, $course_ids);
            // foreach ($course_contexts as $course_context) {
@@ -2101,8 +1909,8 @@ class ajax_marking_functions {
             
           //  $context_ids = implode($context_ids, ',');
             
-            if (!$course_ids) {return false;}
-            $course_ids = implode($course_ids, ',');
+            //if (!$course_ids) {return false;}
+           // $course_ids = implode($course_ids, ',');
             
            // $student_roles = get_field('config','value', 'name', 'gradebookroles');
             
@@ -2111,11 +1919,11 @@ class ajax_marking_functions {
                     INNER JOIN {$CFG->prefix}groups g
                         ON gm.groupid = g.id
                    
-                    WHERE g.courseid IN ($course_ids)
+                    WHERE g.courseid IN ($this->course_ids)
               
 
             ";
-            
+            //echo $sql;
             $group_members = get_records_sql($sql);
            // print_r($group_members);
             return $group_members;
@@ -2248,37 +2056,43 @@ class ajax_marking_functions {
          * @return array array of ids => cmids
          */
         function list_assessment_ids($submissions) {
-            //echo "function hit";
+            
             $ids = array();
           
                 foreach ($submissions as $submission) {
-                  
                     $check = in_array($submission->id, $ids);
                     if (!$check) {
-                    
                             $ids[$submission->id]->id = $submission->id;
                            
-                            $ids[$submission->id]->cmid        = (isset($submission->cmid))       ? $submission->cmid        : NULL;
+                            $ids[$submission->id]->cmid        = (isset($submission->cmid))        ? $submission->cmid        : NULL;
                             $ids[$submission->id]->description = (isset($submission->description)) ? $submission->description : NULL;
                             $ids[$submission->id]->name        = (isset($submission->name))        ? $submission->name        : NULL;
                     }
                 }
-               
                 return $ids;
         }
-        
+
+    /**
+     * This counts how many unmarked assessments of a particular type are waiting for a particular course
+     * It is called from the courses() function when the top level nodes are built
+     * @param object $submissions - object containing all of the unmarked submissions of a particular type
+     * @param string $type        - type of submissions e.g. 'forums'
+     * @param int $course         - id of the course we are counting submissions for
+     * @return int                - the number of unmarked assessments
+     */
     function count_course_submissions($submissions, $type, $course) {
-        
         
         $count = 0;
         $discussions = array();
 
-        // echo "pre list $type $course ";
         $assessments = $this->list_assessment_ids($submissions);
-        //$modulecontext = get_context_instance(CONTEXT_MODULE, $assessment->cmid); 
-        //if ($course == 236 && $type == 'workshop') {print_r($assessments);}
-        //echo "post list ";
+       
         foreach ($assessments as $key => $assessment) {
+
+            if (!$this->assessment_grading_permission($type, $assessment->cmid)) {
+                unset($assessments[$key]);
+            }
+            /*
             $modulecontext = get_context_instance(CONTEXT_MODULE, $assessment->cmid); 
             switch ($type) {
                 case "assignment":
@@ -2304,6 +2118,8 @@ class ajax_marking_functions {
             if (!has_capability($cap, $modulecontext, $this->userid)) {
                 unset($assessments[$key]);
             }
+
+             */
         }
      
         foreach ($submissions as $submission) {
@@ -2317,7 +2133,6 @@ class ajax_marking_functions {
             // check against previously filtered list of assignments - permission to grade?
             if(!isset($assessments[$submission->id]))                {continue;}
 
-//if ($course == 236 && $type == 'workshop') {echo "hit $type $assessment->id ";}
             // is the submission from a current user of this course
             if(!in_array($submission->userid, $this->student_array)) {continue;}
 
@@ -2325,23 +2140,16 @@ class ajax_marking_functions {
             //$combinedref = $type.$submission->id;
             $check = $this->get_groups_settings($type, $submission->id);
 
-      
             // ignore if the group is set to hidden
             if ($check && $check->showhide == 3) {
                 if ($type == 'forum') {
-                    //echo "hidden";
+                   // what was this for?
                 }
                 continue;
             }
 
             // if there are no settings (default is show), 'display by group' is selected and the group matches, or 'display all' is selected, count it.
             if ((!$check) || ($check && $check->showhide == 2 && $this->check_group_membership($check->groups, $submission->userid)) || ($check && $check->showhide == 1)) {
-
-                if ($type == 'forum' && $course == 236) {
-                  //  echo "qstid = $submission->qstid ";
-
-                }
-
                 $count++;
             }
         }
@@ -2358,7 +2166,486 @@ class ajax_marking_functions {
         $modules = get_records_sql($sql);
         return $modules;
     }
-    
+/*
+    function get_assignment_names() {
+        $courseids = '';
+        foreach ($this->courses as $key => $course) {
+            $courseids .= $course;
+        }
+        $sql = "
+            SELECT s.id as subid, s.userid, a.course, a.id, c.id as cmid
+            FROM
+                {$CFG->prefix}assignment a
+            INNER JOIN {$CFG->prefix}course_modules c
+                 ON a.id = c.instance
+            LEFT JOIN {$CFG->prefix}assignment_submissions s
+                 ON s.assignment = a.id
+            WHERE c.module = {$this->modules['assignment']->id}
+            AND c.visible = 1
+            AND a.course IN ($course_ids)
+            AND s.timemarked < s.timemodified
+            ORDER BY a.id
+         ";
+         $assignments = get_records_sql($sql);
+         return $assignments;
+    }
+*/
+    /**
+     * For SQL statements, a comma separated list of course ids is needed. It is vital that only courses where
+     * the user is a teacher are used and also that the front page is excluded.
+     */
+    function make_course_ids_list() {
+        if($this->courses) {
+
+            $teacher_role=get_field('role','id','shortname','editingteacher'); // retrieve the teacher role id (3)
+            
+            foreach ($this->courses as $key=>$course) {
+
+                $allowed_role = false;
+
+                // exclude the front page.
+                if ($course->id == 1) {
+                    unset($this->courses[$key]);
+                    continue;
+                }
+
+                // role check bit borrowed from block_marking, thanks to Mark J Tyers [ZANNET]
+                $teachers = 0;
+                $teachers_ne = 0;
+
+                $teachers = get_role_users($teacher_role, $course->context, true); // check for editing teachers
+
+                if ($teachers) {
+                    foreach($teachers as $teacher) {
+                        if ($teacher->id == $this->userid) {
+                            $allowed_role = true;
+                        }
+                    }
+                }
+                if (!$allowed_role) {
+                    $ne_teacher_role=get_field('role','id','shortname','teacher'); // retrieve the non-editing teacher role id (4)
+                    $teachers_ne = get_role_users($ne_teacher_role, $course->context, true); // check for non-editing teachers
+                }
+                if ($teachers_ne) {
+                    foreach($teachers_ne as $key2=>$val2) {
+                        if ($val2->id == $this->userid) {
+                            $allowed_role = true;
+                        }
+                    }
+                }
+                if (!$allowed_role) {
+                    unset($this->courses[$key]);
+                    continue;
+                }
+                $this->course_ids[] = $course->id;
+            }
+        }
+        $this->course_ids = implode($this->course_ids, ',');
+    }
+
+    /**
+     * function called from courses() which returns all
+     * unmarked assignments from all courses ready for sorting through
+     * @return <type>
+     */
+    function get_all_unmarked_assignments() {
+        global $CFG;
+        $sql = "
+            SELECT s.id as subid, s.userid, a.course, a.id, c.id as cmid
+            FROM
+                {$CFG->prefix}assignment a
+            INNER JOIN {$CFG->prefix}course_modules c
+                 ON a.id = c.instance
+            LEFT JOIN {$CFG->prefix}assignment_submissions s
+                 ON s.assignment = a.id
+            WHERE c.module = {$this->modules['assignment']->id}
+            AND c.visible = 1
+            AND a.course IN ($this->course_ids)
+            AND s.timemarked < s.timemodified
+            ORDER BY a.id
+         ";
+         $assignment_submissions = get_records_sql($sql);
+         return $assignment_submissions;
+    }
+
+    /**
+     * Function to return all unmarked workshop submissions for all courses
+     */
+    function get_all_unmarked_workshops() {
+        global $CFG;
+        $sql = "
+             SELECT s.id as subid, s.userid, w.id, w.course, c.id as cmid
+             FROM
+                  {$CFG->prefix}workshop w
+                  INNER JOIN {$CFG->prefix}course_modules c
+                     ON w.id = c.instance
+             LEFT JOIN {$CFG->prefix}workshop_submissions s
+                 ON s.workshopid = w.id
+             LEFT JOIN {$CFG->prefix}workshop_assessments a
+             ON (s.id = a.submissionid)
+             WHERE (a.userid != {$this->userid}
+              OR (a.userid = {$this->userid}
+                    AND a.grade = -1))
+             AND c.module = {$this->modules['workshop']->id}
+             AND w.course IN ($this->course_ids)
+             AND c.visible = 1
+             ORDER BY w.id
+        ";
+
+        $workshop_submissions = get_records_sql($sql);
+        return $workshop_submissions;
+    }
+
+    /**
+     *
+     * @return <type> gets all unmarked forum discussions for all courses
+     */
+    function get_all_unmarked_forums() {
+        global $CFG;
+        $sql = "
+            SELECT p.id as postid, p.userid, d.id, f.id, f.course, c.id as cmid
+            FROM
+                {$CFG->prefix}forum f
+            INNER JOIN {$CFG->prefix}course_modules c
+                 ON f.id = c.instance
+            INNER JOIN {$CFG->prefix}forum_discussions d
+                 ON d.forum = f.id
+            INNER JOIN {$CFG->prefix}forum_posts p
+                 ON p.discussion = d.id
+            LEFT JOIN {$CFG->prefix}forum_ratings r
+                 ON  p.id = r.post
+            WHERE p.userid <> $this->userid
+                AND ((r.userid <> $this->userid) OR r.userid IS NULL)
+                AND c.module = {$this->modules['forum']->id}
+                AND c.visible = 1
+                AND f.course IN ($this->course_ids)
+                AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
+            ORDER BY f.id
+        ";
+        $forum_submissions = get_records_sql($sql);
+        return $forum_submissions;
+    }
+
+    /**
+     * gets all of the forums for all courses, ready for the config tree.
+     * @global <type> $CFG
+     * @return <type>
+     */
+    function get_all_forums() {
+        global $CFG;
+        $sql = "
+            SELECT f.id, f.course, f.intro as summary, f.name, f.type, c.id as cmid
+            FROM
+                {$CFG->prefix}forum f
+            INNER JOIN {$CFG->prefix}course_modules c
+                 ON f.id = c.instance
+
+            WHERE
+
+                c.module = {$this->modules['forum']->id}
+                AND c.visible = 1
+                AND f.course IN ($this->course_ids)
+                AND f.type <> 'eachuser'
+            ORDER BY f.id
+        ";
+        $forums = get_records_sql($sql);
+        return $forums;
+    }
+
+    /**
+     * gets all unmarked quiz question from all courses
+     *
+     */
+     function get_all_unmarked_quizzes() {
+         global $CFG;
+        require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
+        $sql = "
+              SELECT
+                  qst.id as qstid, qsess.questionid, qz.id, qz.course, qa.userid, qst.id as stateid, c.id as cmid
+              FROM
+                {$CFG->prefix}quiz qz
+              INNER JOIN {$CFG->prefix}course_modules c
+                         ON qz.id = c.instance
+              INNER JOIN
+                {$CFG->prefix}quiz_attempts qa
+                  ON
+                    qz.id = qa.quiz
+              INNER JOIN
+                {$CFG->prefix}question_sessions qsess
+                  ON
+                    qsess.attemptid = qa.id
+              INNER JOIN
+                {$CFG->prefix}question_states qst
+                 ON
+                    qsess.newest = qst.id
+              INNER JOIN {$CFG->prefix}question q
+                 ON
+                    qsess.questionid = q.id
+              WHERE
+               qa.timefinish > 0
+              AND qa.preview = 0
+              AND c.module = {$this->modules['quiz']->id}
+              AND c.visible = 1
+              AND q.qtype = 'essay'
+              AND qz.course IN ($this->course_ids)
+              AND qst.event NOT IN (
+                    ".QUESTION_EVENTGRADE.",
+                    ".QUESTION_EVENTCLOSEANDGRADE.",
+                    ".QUESTION_EVENTMANUALGRADE.")
+              ORDER BY q.id
+            ";
+            $quiz_submissions = get_records_sql($sql);
+            return $quiz_submissions;
+    }
+    /**
+     * gets all the quizzes for the config screen. still need the check in there for essay questions.
+     * @global <type> $CFG
+     * @return <type>
+     */
+     function get_all_quizzes() {
+         global $CFG;
+         //require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
+         $sql = "
+              SELECT 
+                   qz.id, qz.course, qz.intro as summary, qz.name, c.id as cmid
+              FROM
+                {$CFG->prefix}quiz qz
+              INNER JOIN {$CFG->prefix}course_modules c
+                         ON qz.id = c.instance
+              INNER JOIN
+                {$CFG->prefix}quiz_question_instances qqi
+                  ON
+                    qz.id = qqi.quiz
+              INNER JOIN {$CFG->prefix}question q
+                 ON
+                    qqi.question = q.id
+              WHERE
+              c.module = {$this->modules['quiz']->id}
+              AND c.visible = 1
+              AND q.qtype = 'essay'
+              AND qz.course IN ($this->course_ids)
+              ORDER BY qz.id
+            ";
+            $quizzes = get_records_sql($sql);
+            //print_r($quizzes);
+            //echo "total quizzes = ".count($quizzes);
+            return $quizzes;
+    }
+
+     /**
+      * gets all unmarked journal submissions from all courses
+      */
+    function get_all_unmarked_journals() {
+        global $CFG;
+        $sql = "
+            SELECT je.id as entryid, je.userid, j.course, j.id, c.id as cmid
+            FROM {$CFG->prefix}journal_entries je
+            INNER JOIN {$CFG->prefix}journal j
+               ON je.journal = j.id
+            INNER JOIN {$CFG->prefix}course_modules c
+                     ON j.id = c.instance
+            WHERE c.module = {$this->modules['journal']->id}
+            AND j.course IN ($this->course_ids)
+            AND c.visible = 1
+            AND j.assessed <> 0
+            AND je.modified > je.timemarked
+
+           ";
+
+        $journal_submissions = get_records_sql($sql);
+        return $journal_submissions;
+    }
+
+    /**
+     * gets all assignments that could potentially have
+     * graded work, even if there is none there now. Used by the config tree.
+     * @return <type>
+     */
+    function get_all_assignments() {
+        global $CFG;
+        $sql = "
+            SELECT  a.id, a.name, a.description as summary, a.course, c.id as cmid
+            FROM
+                {$CFG->prefix}assignment a
+            INNER JOIN {$CFG->prefix}course_modules c
+                 ON a.id = c.instance
+            WHERE c.module = {$this->modules['assignment']->id}
+            AND c.visible = 1
+            AND a.course IN ($this->course_ids)
+            ORDER BY a.id
+         ";
+         $assignments = get_records_sql($sql);
+         return $assignments;
+    }
+
+    /**
+     * gets all workshops for the config tree
+     */
+    function get_all_workshops() {
+        global $CFG;
+        $sql = "SELECT w.id, w.course, w.name, w.description as summary, c.id as cmid
+                    FROM
+                        {$CFG->prefix}workshop w
+                    INNER JOIN {$CFG->prefix}course_modules c
+                         ON w.id = c.instance
+
+                    WHERE
+                        c.module = {$this->modules['workshop']->id}
+                    AND c.visible = 1
+                    AND w.course IN ($this->course_ids)
+
+                    ORDER BY w.id
+                  ";
+           // echo $sql;
+            $workshops = get_records_sql($sql);
+            //print_r($workshops);
+            return $workshops;
+    }
+
+    /**
+     * gets all journals for all courses ready for the config tree
+     */
+    function get_all_journals() {
+        global $CFG;
+        $sql = "
+                    SELECT j.id, j.intro as summary, j.name, j.course, c.id as cmid
+                    FROM  {$CFG->prefix}journal j
+                    INNER JOIN {$CFG->prefix}course_modules c
+                             ON j.id = c.instance
+                    WHERE c.module = {$this->modules['journal']->id}
+                    AND c.visible = 1
+                    AND j.assessed <> 0
+                    AND j.course IN ($this->course_ids)
+                   ";
+            //echo $sql;
+            $journals = get_records_sql($sql);
+            return $journals;
+    }
+
+    /**
+     * creates assignment nodes for the config tree
+     */
+    function config_assessments($course, $type){
+        switch($type) {
+            case 'assignment':
+                $assessments = $this->get_all_assignments();
+                break;
+            case 'quiz':
+                $assessments = $this->get_all_quizzes();
+                //echo "there are ".count($assessments)." quizzes";
+                break;
+            case 'forum':
+                $assessments = $this->get_all_forums();
+                break;
+            case 'workshop':
+                $assessments = $this->get_all_workshops();
+                break;
+            case 'journal':
+                $assessments = $this->get_all_journals();
+                break;
+        }
+        foreach ($assessments as $assessment) {
+            if (!$this->assessment_grading_permission($type, $assessment->cmid)) {
+                //echo "no permission";
+                continue;
+            }
+            if ($assessment->course == $course) {
+                $this->make_assessment_node($assessment->name, $assessment->id, $assessment->cmid, $assessment->summary, $type);
+                
+            }
+        }
+        
+        
+    }
+
+
+    /**
+     * This counts the assessments that a course has available. Called when the config tree is built.
+     * @assessments object All available assessments from the users courses
+     * @course int  course id of the course we are counting for
+     * @type string type of assessments e.g. 'forum'
+     * @return int count of items
+     */
+    function count_course_assessments($assessments, $course, $type) {
+        $count = 0;
+        foreach ($assessments as $assessment) {
+            //echo "assessment ";
+            // permissions check
+            if (!$this->assessment_grading_permission($type, $assessment->cmid)) {
+                continue;
+            }
+            if ($assessment->course == $course) {
+                //echo " counted ";
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Checks whether the user has grading permission for this assessment
+     * @type string the type of assessment e.g. 'assignment, 'workshop'
+     * @cmid int the coursemodule id of the assessment being checked.
+     */
+    function assessment_grading_permission($type, $cmid) {
+        $modulecontext = get_context_instance(CONTEXT_MODULE, $cmid);
+        switch ($type) {
+            case "assignment":
+            $cap = 'mod/assignment:grade';
+            break;
+
+            case "workshop":
+            $cap = 'mod/workshop:manage';
+            break;
+
+            case "forum":
+            $cap = 'mod/forum:viewhiddentimedposts';
+            break;
+
+            case "quiz":
+            $cap = 'mod/quiz:grade';
+            break;
+
+            case "journal":
+            $cap = 'mod/assignment:grade';
+            break;
+        }
+        if (has_capability($cap, $modulecontext, $this->userid, false)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Makes an assessment node for either the main tree or the config tree
+     * @param <type> $name
+     * @param <type> $aid
+     * @param <type> $cmid
+     * @param <type> $summary
+     * @param <type> $count
+     */
+    function make_assessment_node($name, $aid, $cmid, $summary, $type, $count) {
+
+        $sumlength = strlen($summary);                                       // how long it it?
+        $shortsum = substr($summary, 0, 100);                                // cut it at 100 characters
+        if (strlen($shortsum) < strlen($summary)) {$shortsum .= "...";}
+
+        $this->output .= ','; // add a comma before section only if there was a preceding assignment
+        $this->output .= '{';
+        $this->output .= '"name":"'.$this->clean_name_text($name, 1).'",';
+        $this->output .= '"id":"'.$aid.'",';
+        $this->output .= '"assid":"a'.$aid.'",';
+        $this->output .= '"cmid":"'.$cmid.'",';
+        $this->output .= '"type":"'.$type.'",';
+        $this->output .= '"summary":"'.$this->clean_summary_text($shortsum).'",';
+        if ($count) {
+            $this->output .= '"count":"'.$count.'"';
+        }
+        $this->output .= '}';
+    }
+
 }// end class
 
 

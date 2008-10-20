@@ -129,7 +129,7 @@
   padding-bottom: 2px;
 }
 #treediv {
-  /* clear: both; */
+  clear: both; 
   margin-bottom: 0px;
   padding-bottom: 0px;
   float: left;
@@ -283,8 +283,8 @@ version: 2.3.0
 }
 #dialog {
   display:none;
-  z-index:100;
-  background:white;
+  z-index: 500;
+  background-color: trasparent;
   padding:0px;
   font:10pt tahoma;
   border:1px solid gray;
@@ -302,21 +302,26 @@ version: 2.3.0
   margin: 0px;
 }
 #configTree {
-  float:left;
+  float: left;
   width: 220px;
-  height: 100%;
-  max-width:200px;
+  height: 464px;
+  max-width: 200px;
   padding-top: 4px;
-  overflow-y:scroll;
+  overflow-y: scroll;
+  font:10pt tahoma;
+  background-color: transparent;
 }
 #configSettings {
   float:left;
   width:190px;
   padding-left: 10px;
+ 
+  
 }
 #configGroups {
   float:right;
   width:190px;
+  background-color: transparent;
 }
 #configIcon {
   float: left;
@@ -351,6 +356,13 @@ stuff from the container.css file, cleaned up to make it validate
     display: none;
 }
 
+/* added bits for the panel */
 
+<?php include '..\..\lib\yui\container\assets\skins\sam\container.css'; ?>
 
-
+.yui-skin-sam .container-close {
+  background:url(<?php echo $CFG->wwwroot; ?>/lib/yui/assets/skins/sam/sprite.png) no-repeat 0 -300px;
+}
+.yui-skin-sam .yui-panel .hd {
+  background:url(<?php echo $CFG->wwwroot; ?>/lib/yui/assets/skins/sam/sprite.png) repeat-x 0 -200px;
+}

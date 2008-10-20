@@ -61,6 +61,28 @@ class block_ajax_marking extends block_base {
             }
             if ($coursecheck>0) { // display the block
 
+                $variables = array(
+
+                    'wwwroot' => $CFG->wwwroot,
+                    'totalMessage' => get_string('total', 'block_ajax_marking'),
+                    'userid' => $USER->id,
+                    'assignmentString' => get_string('modulename', 'assignment'),
+                    'workshopString' => get_string('modulename', 'workshop'),
+                    'forumString' => get_string('modulename', 'forum'),
+          
+                    'configNothingString' => get_string('config_nothing', 'block_ajax_marking'),
+                    'nothingString' => get_string('nothing', 'block_ajax_marking'),
+                    'collapseString' => get_string('collapse', 'block_ajax_marking'),
+                    'forumSaveString' => get_string('sendinratings', 'forum'),
+                    'quizString' => get_string('modulename', 'quiz'),
+                    'quizSaveString' => get_string('savechanges'),
+               
+                    'journalString' => get_string('modulename', 'journal'),
+                    'journalsavestring' => get_string('saveallfeedback', 'journal'),
+             
+                    'connectFail' => get_string('connect_fail', 'block_ajax_marking')
+                );
+
                 //start building content output
                 $this->content = new stdClass;
                 // for integrating the block_marking stuff, this stuff (divs) should all be created by javascript.
@@ -76,28 +98,22 @@ class block_ajax_marking extends block_base {
                     <noscript><p>AJAX marking block requires javascript, but you have it turned off.</p></noscript>
                 </div>
                 <div id='javaValues'>
-                    <form id='valuediv' action='post'>
-                        <p>
-                            <input type='hidden' id='wwwrootvalue' value='".$CFG->wwwroot."' />
-                            <input type='hidden' id='total_string' value='".get_string('total', 'block_ajax_marking')."' />
-                            <input type='hidden' id='useridvalue' value='".$USER->id."' />
-                            <input type='hidden' id='assignment_string' value='".get_string('modulename', 'assignment')."' />
-                            <input type='hidden' id='workshop_string' value='".get_string('modulename', 'workshop')."' />
-                            <input type='hidden' id='forum_string' value='".get_string('modulename', 'forum')."' />
-                            <input type='hidden' id='assignment_work_string' value='".get_string('assignment_work', 'block_ajax_marking')."' />
-                            <input type='hidden' id='workshop_work_string' value='".get_string('workshop_work', 'block_ajax_marking')."' />
-                            <input type='hidden' id='themevalue' value='".$CFG->theme."' />
-                            <input type='hidden' id='nothing_string' value='".get_string('nothing', 'block_ajax_marking')."' />
-                            <input type='hidden' id='collapse_string' value='".get_string('collapse', 'block_ajax_marking')."' />
-                            <input type='hidden' id='forumsavestring' value='".get_string('sendinratings', 'forum')."' />
-                            <input type='hidden' id='quizstring' value='".get_string('modulename', 'quiz')."' />
-                            <input type='hidden' id='quizsavestring' value='".get_string('savechanges')."' />
-                            <input type='hidden' id='ajaxmarking' value='".get_string('ajaxmarking', 'block_ajax_marking')."' />
-                            <input type='hidden' id='journalstring' value='".get_string('modulename', 'journal')."' />
-                            <input type='hidden' id='journalsavestring' value='".get_string('saveallfeedback', 'journal')."' />
-                            <input type='hidden' id='configurestring' value='".get_string('configure', 'block_ajax_marking')."' />
-                        </p>
-                    </form>  
+                <script type=\"text/javascript\" defer=\"defer\">
+                    // function am_go() {
+                         var amVariables = {";
+                                           $check = 0;
+                                           foreach ($variables as $variable => $value) {
+                                               if ($check > 0) {$this->content->text .= ", ";}
+                                               $this->content->text .= $variable.": '".$value."'";
+                                               $check ++;
+                                           }
+                $this->content->text .=    "};
+                                      
+
+                 
+
+                    </script> 
+                
                 </div>
                 <div id='hidden-icons'>
                         <div id ='img_1' class='icon-course'></div>
@@ -110,11 +126,12 @@ class block_ajax_marking extends block_base {
                         <div id ='img_8' class='icon-journal'></div>
                 </div>
                 <div id='cover'></div>
+                
                 <div id='dialog'>
                         <div id='dialogdrag' class='dialogheader'>
                                 <div id='confname'>Configuration <a href =\"http://docs.moodle.org/en/Ajax_marking_block#Configuration\" target=\"_blank\" ><img src=\"/pix/docs.gif\" /></a></div>
                                 <div id='configIcon'></div>
-                                <div id='close'><a href='#' onclick='grayOut(false); main.refreshTree(); return false;'><img src='/pix/i/cross_red_big.gif
+                                <div id='close'><a href='#' onclick='AJAXmarking.grayOut(false); AJAXmarking.main.refreshTree(); return false;'><img src='/pix/i/cross_red_big.gif
 ' alt='close' /></a></div>
                         </div>
                         <div id='configStatus'></div>
@@ -127,14 +144,16 @@ class block_ajax_marking extends block_base {
                                 </div>
                                 <div id='configGroups'></div>
                         </div>
-                </div>".require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', $CFG->wwwroot.'/blocks/ajax_marking/javascript.js'))."";
+                </div>
+                <script type=\"text/javascript\" defer=\"defer\" src=\"".$CFG->wwwroot.'/blocks/ajax_marking/javascript.js'."\"> </script>
+                  ".require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities'))."";
                
                 $this->content->footer = '
                             <div id="conf_left">
-                                <a href="javascript:" onclick="main.refreshTree(); return false">'.get_string("collapse", "block_ajax_marking").'</a>
+                                <a href="javascript:" onclick="AJAXmarking.refreshTree(AJAXmarking.main); return false">'.get_string("collapse", "block_ajax_marking").'</a>
                             </div>
                             <div id="conf_right">
-                                <a href="#" onclick="grayOut(true);return false">'.get_string('configure', 'block_ajax_marking').'</a>
+                                <a href="#" onclick="AJAXmarking.greyBuild();return false">'.get_string('configure', 'block_ajax_marking').'</a>
                             </div>
                         
                         ';

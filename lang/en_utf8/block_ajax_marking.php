@@ -10,6 +10,7 @@ $string['day'] = 'day';
 $string['hours'] = 'hours';
 $string['hour'] = 'hour';
 $string['nothing'] = 'Hooray - nothing to mark!';
+$string['config_nothing'] = 'You have no courses with graded assessments';
 $string['total'] = 'Total to mark';
 $string['collapse'] = 'Collapse &amp; refresh';
 $string['submitted'] = 'Submitted';
@@ -20,5 +21,6 @@ $string['workshop'] = 'Workshop';
 $string['forum'] = 'Forum';
 $string['ago'] = 'ago';
 $string['configure'] = 'configure';
+$string['connect_fail'] = 'AJAX conncetion failed';
 
 ?>
