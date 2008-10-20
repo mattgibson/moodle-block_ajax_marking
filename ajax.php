@@ -58,7 +58,7 @@ class ajax_marking_functions {
         $this->showhide          = optional_param('showhide', NULL, PARAM_INT);
         $this->group             = optional_param('group', NULL, PARAM_TEXT);
         $this->combinedref       = optional_param('combinedref', NULL, PARAM_TEXT);
-
+        $this->quiz_diagnostic   = optional_param('quiz_diagnostic', NULL, PARAM_TEXT);
        
         if ($this->type == 'main' || $this->type == 'config_course' || $this->type == 'config_main' || $this->type == 'course' || $this->type == 'assignment' || $this->type == 'workshop' || $this->type == 'forum' || $this->type == 'quiz_question' || $this->type == 'quiz' || $this->type == 'journal_submissions') {
             $this->courses           = get_my_courses($this->userid, $sort='fullname', $fields='id', $doanything=false, $limit=0) or die('get my courses error');
@@ -893,7 +893,7 @@ class ajax_marking_functions {
 	
 	function quizzes() {
            //echo "quizzes fired";
-            $this->get_course_students($this->id);
+            //$this->get_course_students($this->id);
             global $CFG;
             require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
            // $select = " course='$this->id'";
@@ -901,7 +901,7 @@ class ajax_marking_functions {
             
             $sql = "
                   SELECT 
-                      qst.id as qstid, qsess.questionid, qst.id as stateid, qa.userid, qz.id, qz.intro as description, qz.name,  c.id as cmid
+                      qst.id as qstid, qsess.questionid, qa.userid, qz.id, qz.intro as description, qz.name,  c.id as cmid
                   FROM
                     {$CFG->prefix}quiz qz
                   INNER JOIN {$CFG->prefix}course_modules c
@@ -939,7 +939,10 @@ class ajax_marking_functions {
                 ";
            //echo $sql;
             $quiz_submissions = get_records_sql($sql);
-//print_r($quiz_submissions);
+
+            if ($this->quiz_diagnostic) {
+                print_r($quiz_submissions);
+            }
             if ($quiz_submissions) {
                
                  // we need all the assignment ids for the loop, so we make an array of them
@@ -2357,11 +2360,11 @@ class ajax_marking_functions {
      *
      */
      function get_all_unmarked_quizzes() {
-         global $CFG;
+        global $CFG;
         require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
         $sql = "
               SELECT
-                  qst.id as qstid, qsess.questionid, qz.id, qz.course, qa.userid, qst.id as stateid, c.id as cmid
+                  qst.id as qstid, qsess.questionid, qz.id, qz.course, qa.userid, c.id as cmid
               FROM
                 {$CFG->prefix}quiz qz
               INNER JOIN {$CFG->prefix}course_modules c
@@ -2645,6 +2648,8 @@ class ajax_marking_functions {
         }
         $this->output .= '}';
     }
+
+
 
 }// end class
 
