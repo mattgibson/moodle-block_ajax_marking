@@ -358,7 +358,7 @@ stuff from the container.css file, cleaned up to make it validate
 
 /* added bits for the panel */
 
-<?php include '..\..\lib\yui\container\assets\skins\sam\container.css'; ?>
+<?php include '{$CFG->wwwdirroot}\lib\yui\container\assets\skins\sam\container.css'; ?>
 
 .yui-skin-sam .container-close {
   background:url(<?php echo $CFG->wwwroot; ?>/lib/yui/assets/skins/sam/sprite.png) no-repeat 0 -300px;
