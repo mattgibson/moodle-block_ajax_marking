@@ -60,6 +60,7 @@ AJAXmarking = {
                           //var img = '<img id="loader" src="'+amVariables.wwwroot+'/lib/yui/treeview/assets/loading.gif" alt=\"loading\" />';
                           
                           tree.icon.setAttribute('class', 'loaderimage');
+                          tree.icon.setAttribute('className', 'loaderimage');
 
                           if (tree.treeDiv == 'configTree') { // if this is the config tree, we need to ask for config_courses
                               sUrl = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php?id='+amVariables.userid+'&type=config_main&userid='+amVariables.userid+'';
@@ -228,6 +229,7 @@ AJAXmarking = {
                           }
                           tree.div.appendChild(label);
                           tree.icon.removeAttribute('class', 'loaderimage');
+                          tree.icon.removeAttribute('className', 'loaderimage');
                           //AJAXmarking.removeNodes(tree.icon);
                   }
                   else { // there is a tree to be drawn
@@ -263,6 +265,7 @@ AJAXmarking = {
                           tree.tree.render();
                          // tree.icon.innerHTML = '';
                          tree.icon.removeAttribute('class', 'loaderimage');
+                         tree.icon.removeAttribute('className', 'loaderimage');
                           //AJAXmarking.removeNodes(tree.icon);
                           
                   // add click events
@@ -1206,6 +1209,7 @@ AJAXmarking = {
                   //var status = treeObj.statusDiv;
                   //delete treeObj.tree;
                   treeObj.tree.removeChildren(treeObj.root);
+                  treeObj.root.refresh();
                   // this.tree = '';
                   // tree.tree = new AJAXmarking.AJAXtree(treeDiv, icon, status);
                   // treeObj.tree = new YAHOO.widget.TreeView(treeDiv);
@@ -1215,7 +1219,7 @@ AJAXmarking = {
                   // tree.root = '';
                   // alert(tree.div);
                   AJAXmarking.removeNodes(treeObj.div);
-                  AJAXmarking.removeNodes(treeObj.treeDiv);
+                  //AJAXmarking.removeNodes(treeObj.treeDiv);
                   //treeObj.div.innerHTML = '';
                   //treeObj.treeDiv.innerHTML = '';
                   AJAXmarking.ajaxBuild(treeObj);
@@ -1267,6 +1271,7 @@ AJAXmarking = {
                           idCounter++;
                   }
                   AJAXmarking.config.icon.removeAttribute('class', 'loaderimage');
+                  AJAXmarking.config.icon.removeAttribute('className', 'loaderimage');
                   //AJAXmarking.removeNodes(config.icon);
                   //AJAXmarking.config.icon.innerHTML = '';  //lose loading icon
                   AJAXmarking.enableRadio(); //re-enable the checkboxes
@@ -1607,7 +1612,7 @@ journalOnLoad :   function (me) {
             var headerText = amVariables.headertext+' '+amVariables.fullname;
             AJAXmarking.greyOut.setHeader(headerText);
 
-            var bodyText = "<div id='configStatus'></div><div id='configTree'></div><div id='configSettings'><div id='configInstructions'>"+amVariables.instructions+"</div><div id='configCheckboxes'><form id='configshowform' name='configshowform'></form></div><div id='configGroups'></div></div>";
+            var bodyText = "<div id='configIcon' class='AMhidden'></div><div id='configStatus'></div><div id='configTree'></div><div id='configSettings'><div id='configInstructions'>"+amVariables.instructions+"</div><div id='configCheckboxes'><form id='configshowform' name='configshowform'></form></div><div id='configGroups'></div></div>";
             
             AJAXmarking.greyOut.setBody(bodyText);
             document.body.className += ' yui-skin-sam';
@@ -1623,7 +1628,8 @@ journalOnLoad :   function (me) {
             AJAXmarking.config = new AJAXmarking.AJAXtree('configTree', 'configIcon', 'configStatus', true);
             AJAXmarking.ajaxBuild(AJAXmarking.config);
             //AJAXmarking.config.icon = document.getElementById('configIcon'); //wasted?
-            //AJAXmarking.config.icon.setAttribute('class', 'loaderimage');
+            AJAXmarking.config.icon.setAttribute('class', 'loaderimage');
+            AJAXmarking.config.icon.setAttribute('className', 'loaderimage');
 
         } else {
 
@@ -1736,10 +1742,12 @@ journalOnLoad :   function (me) {
           AJAXmarking.removeNodes(document.getElementById('configInstructions'));
         
           AJAXmarking.removeNodes(document.getElementById('configGroups'));
+         // alert('cleared');
           return true;
   },
   removeNodes: function (el) {
-      if (typeof el.hasChildNodes == 'function') {
+      if (el.hasChildNodes()) {
+         // alert('function');
           while (el.hasChildNodes()) {
               el.removeChild(el.firstChild);
           }

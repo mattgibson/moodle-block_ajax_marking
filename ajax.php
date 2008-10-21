@@ -2616,7 +2616,11 @@ class ajax_marking_functions {
 
         $this->output .= ','; // add a comma before section only if there was a preceding assignment
         $this->output .= '{';
-        $this->output .= '"name":"'.$this->clean_name_text($name, 1).'",';
+        if ($this->type == 'config_course') {
+            $this->output .= '"name":"'.$this->clean_name_text($name, -2).'",';
+        } else {
+            $this->output .= '"name":"'.$this->clean_name_text($name, 1).'",';
+        }
         $this->output .= '"id":"'.$aid.'",';
         $this->output .= '"assid":"a'.$aid.'",';
         $this->output .= '"cmid":"'.$cmid.'",';

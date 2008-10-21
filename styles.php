@@ -133,7 +133,7 @@
   background: url(<?php echo $CFG->wwwroot ?>/blocks/ajax_marking/images/ajax-loader.gif) 0 0 no-repeat;
   width: 15px;
   height: 15px;
-
+  disaply: block;
 }
 #count {
   font-weight: bold;
@@ -320,7 +320,7 @@ version: 2.3.0
 #configTree {
   float: left;
   width: 220px;
-  height: 464px;
+  height: 480px;
   max-width: 200px;
   padding-top: 4px;
   overflow-y: scroll;
@@ -342,13 +342,19 @@ version: 2.3.0
   background-color: transparent;
 }
 #configIcon {
-  float: right;
+  
   position: relative;
-  top: -30px;
-  right: 25px;
+  /*
+  top: 0px;
+  right: 200px;
+  */
+  line-height: 0pt;
   width: 35px;
-  line-height: 0;
-  margin-top: 4px;
+  
+
+}
+.AMhidden {
+  display: none;
 }
 div.block_ajax_marking div.footer {
   border-style: none;
@@ -358,7 +364,7 @@ div.block_ajax_marking div.footer {
 #configInstructions {
   font:10pt tahoma;
   float: left;
-  width: 250;
+  width: 100%;
 }
 
 /*
@@ -391,8 +397,4 @@ stuff from the container.css file, cleaned up to make it validate
 }
 .yui-skin-sam .yui-panel .hd {
   background:url(<?php echo $CFG->wwwroot; ?>/lib/yui/assets/skins/sam/sprite.png) repeat-x 0 -200px;
-}
-.yui-skin-sam .yui-panel-container .underlay {
- margin: 0;
-padding: 0;
 }
