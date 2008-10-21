@@ -1450,7 +1450,7 @@ class ajax_marking_functions {
 		$daystr = get_string('day', 'block_ajax_marking');
 		$hoursstr = get_string('hours', 'block_ajax_marking');
 		$hourstr = get_string('hour', 'block_ajax_marking');
-		$submitted = "<strong>"; // make the time bold unless its a discussion where there is already a lot of bolding
+		$submitted = ""; // make the time bold unless its a discussion where there is already a lot of bolding
 		$ago = get_string('ago', 'block_ajax_marking');
 		
 		if ($seconds<3600) {
@@ -1464,14 +1464,13 @@ class ajax_marking_functions {
 		   $name = $submitted.$hours." ".$hoursstr;
 		}
 		elseif ($seconds<172800) {
-		   
 		   $name = $submitted."1 ".$daystr;
 		}
 		else {
 		   $days = floor($seconds/86400);
 		   $name = $submitted.$days." ".$daysstr;
 		}
-		$name .= "</strong> ".$ago;
+		$name .= " ".$ago;
 		return $name;
 	}
 	
@@ -1479,62 +1478,42 @@ class ajax_marking_functions {
     /**
      * Makes the course list for the configuration tree. No need to count anything, just make the nodes
      * Might be possible to collapse it into the main one with some IF statements.
-     * @global <type> $CFG
+     * 
      */
     function config_courses() {
-            //$courses = '';
-            //global $CFG;
-            // probably don't need all the fields here.
-            //$courses = get_my_courses($this->id, $sort='fullname', $fields='*', $doanything=false) or die('get my courses error');
+       
 
-            //$i = 0; // course counter to keep commas in the right places later on
-
-            // admins will have a problem as they will see all the courses on the entire site
-            // TO DO - this has big issues around language. role names will not be the same in diffferent translations.
-
-           // $teacher_role=get_field('role','id','shortname','editingteacher'); // retrieve the teacher role id (3)
-            //$ne_teacher_role=get_field('role','id','shortname','teacher'); // retrieve the non-editing teacher role id (4)
-
-
-
-             $this->output = '[{"type":"config_main"}';
-
-            //$this->output = '[{"type":"config_courses"}'; 	// begin JSON array
+            $this->output = '[{"type":"config_main"}';
 
             if ($this->courses) { // might not be any available
 
                 $assignments = $this->get_all_assignments();
-                //print_r($assignments);
+                $workshops   = $this->get_all_workshops();
+                $quizzes     = $this->get_all_quizzes();
+                $forums      = $this->get_all_forums();
+                $journals    = $this->get_all_journals(); 
 
                 foreach ($this->courses as $course) {	// iterate through each course, checking permisions, counting assignment submissions and
                                                                                 // adding the course to the JSON output if any appear
                     $count = 0;
-                    $assignment_count = $this->count_course_assessments($assignments, $course->id, 'assignment');
-                   // echo "assessment count: ".$assignment_count;
-                    $count = $count + $assignment_count;
-                
-
+                    $count = $count + $this->count_course_assessments($assignments, $course->id, 'assignment');
+                    $count = $count + $this->count_course_assessments($workshopss, $course->id, 'workshop');
+                    $count = $count + $this->count_course_assessments($quizzes, $course->id, 'quiz');
+                    $count = $count + $this->count_course_assessments($forums, $course->id, 'forum');
+                    $count = $count + $this->count_course_assessments($journals, $course->id, 'journal');
+                    
                     if ($count > 0) {
-                       // $this->output .= ',{"name":"'.$this->clean_name_text($course->shortname).'"},{"id":"c'.$course->id.'"}';
-
+                       
                         $this->output .= ','; // add a comma if there was a preceding course
                         $this->output .= '{';
 
                         $this->output .= '"id":"'.$course->id.'",';
-
-                                $this->output .= '"type":"config_course",';
-                                //$this->output .= '"name":"'.$this->clean_name_text($course->shortname, -1).'",';
-
-                               // $this->output .= '"type":"course",';
-                                $this->output .= '"name":"'.$this->clean_name_text($course->shortname, -2).'",';
-                                $this->output .= '"summary":"'.$this->clean_name_text($course->shortname, -2).'",';
-
-
-                       $this->output .= '"count":"'.$count.'",';
-                        //$this->output .= '"cid":"c'.$cid.'"';
+                        $this->output .= '"type":"config_course",';
+                        $this->output .= '"name":"'.$this->clean_name_text($course->shortname, -2).'",';
+                        $this->output .= '"summary":"'.$this->clean_name_text($course->shortname, -2).'",';
+                        $this->output .= '"count":"'.$count.'"';
+                       
                         $this->output .= '}';
-
-
 
                     }
                 }
@@ -2642,9 +2621,9 @@ class ajax_marking_functions {
         $this->output .= '"assid":"a'.$aid.'",';
         $this->output .= '"cmid":"'.$cmid.'",';
         $this->output .= '"type":"'.$type.'",';
-        $this->output .= '"summary":"'.$this->clean_summary_text($shortsum).'",';
+        $this->output .= '"summary":"'.$this->clean_summary_text($shortsum).'"';
         if ($count) {
-            $this->output .= '"count":"'.$count.'"';
+            $this->output .= ',"count":"'.$count.'"';
         }
         $this->output .= '}';
     }

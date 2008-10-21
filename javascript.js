@@ -8,9 +8,9 @@ AJAXmarking = {
     sidHolder : '',               // this holds the submission id so it can be accessed by other functions.
                                       // the above 2 variables sometimes hold different things e.g. user id or submission
                                                                       // record id, depending on what sort of node it is
-     nodeHolder : '',             // this holds the parent node so it can be referenced by other functions
-     compHolder : '',              // this holds the callback function of the parent node so it can be called once all the child nodes have been built
-     checkVar : 6,
+    nodeHolder : '',             // this holds the parent node so it can be referenced by other functions
+    compHolder : '',              // this holds the callback function of the parent node so it can be called once all the child nodes have been built
+    checkVar : 6,
     //var root = '';                    // holds the root node of the tree so it can be refreshed and have children added
     //var tree = '';                    // the entire tree as a variable
     //var href = '';                    // holds the link for the onclick - not used any more??
@@ -35,15 +35,15 @@ AJAXmarking = {
     // same but for closing the frames for a workshop
     frameTimerVar : '',
     t : 0,
-
+    //count : 0,
     main : '',
     config : '',
     //var amVariables = '';
     //am_go();
     //img = '<img id="loader" src="'+amVariables.wwwroot+'/lib/yui/treeview/assets/loading.gif" alt=\"loading\" />';
     //alert ('img');
-    img : '<img id="loader" src="'+amVariables.wwwroot+'/blocks/ajax_marking/images/ajax-loader.gif" alt=\"loading\" />',
-
+    //img : '<img id="loader" src="'+amVariables.wwwroot+'/blocks/ajax_marking/images/ajax-loader.gif" alt=\"loading\" />',
+    
 
      /**
       * just moved out from ajaxtree, this needs:
@@ -58,7 +58,8 @@ AJAXmarking = {
                   var sUrl = '';
                   if (tree.loadCounter === 0) {
                           //var img = '<img id="loader" src="'+amVariables.wwwroot+'/lib/yui/treeview/assets/loading.gif" alt=\"loading\" />';
-                          tree.icon.innerHTML = AJAXmarking.img;
+                          
+                          tree.icon.setAttribute('class', 'loaderimage');
 
                           if (tree.treeDiv == 'configTree') { // if this is the config tree, we need to ask for config_courses
                               sUrl = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php?id='+amVariables.userid+'&type=config_main&userid='+amVariables.userid+'';
@@ -84,18 +85,28 @@ AJAXmarking = {
               // alert('ajax success');
                   var type = null;
                   var responseArray = null;
+                  var label = '';
+                 
 
                   // uncomment for debugging output at top of block
                   // if (userid == 2) {
-                  //   var checkDiv = document.getElementById("total");
-                  //   checkDiv.innerHTML = o.responseText;
+
                   // }
                   //alert(o.responseText);
+                  //var tempVar = o.responseText;
+                  //if (AJAXmarking.count < 2) {
+                  //    AJAXmarking.count++;
+                  //    var checkDiv = document.getElementById("conf_left");
+                  //    checkDiv.innerHTML = o.responseText;
+                // }
 
                   responseArray = eval(o.responseText);
 
                   type = responseArray[0].type; // fist object holds data about what kind of nodes we have so we can fire the right function.
                   responseArray.shift(); // remove the data object, leaving just the node objects
+
+
+                
 
                   switch (type) {
 
@@ -146,7 +157,10 @@ AJAXmarking = {
                   case 'config_set': //just need to un-disable the radio button
 
                           if (responseArray[0].value === false) {
-                                  AJAXmarking.config.status.innerHTML = 'AJAX error';
+                              label = document.createTextNode(amVariables.configNothingString);
+                              AJAXmarking.removeNodes(AJAXmarking.config.status);
+                              AJAXmarking.config.status.appendChild(label);
+                                  //AJAXmarking.config.status.innerHTML = 'AJAX connectionerror';
                           } else {
                                   AJAXmarking.enableRadio();
                           }
@@ -159,8 +173,8 @@ AJAXmarking = {
                           document.getElementById(checkId).checked = true; // make the radio button on screen match the value in the database that was just returned.
                           //if its the groups one, make the groups bit
                           if (responseArray[0].value == 2) {
-                                  responseArray.shift(); // remove the config bit leaving just the groups.
-                                  AJAXmarking.makeGroupsList(responseArray); //make the groups bit
+                              responseArray.shift(); // remove the config bit leaving just the groups.
+                              AJAXmarking.makeGroupsList(responseArray); //make the groups bit
                           }
                           AJAXmarking.enableRadio(); //allow the radio buttons to be clicked again
                           break;
@@ -168,15 +182,14 @@ AJAXmarking = {
                   case 'config_group_save':
 
                           if (responseArray[0].value === false) {
-                                  AJAXmarking.config.status.innerHTML = 'AJAX error';
+                              AJAXmarking.config.status.innerHTML = 'AJAX error';
                           } else {
-                                  AJAXmarking.enableRadio();
+                              AJAXmarking.enableRadio();
                           }
 
                           break;
 
                   }// end switch
-
           },
 
           AJAXfailure : function (o)
@@ -189,10 +202,9 @@ AJAXmarking = {
                   }
           },
 
- 
-
-    // This is the main constructor function for the class that will form the marking tree. There are 2 types of tree - for both the main marking block and
-    // the config screen, so this allows efficient code reuse.
+    /**
+     * Creates the nodes for both the main block tree and configuration tree
+     */
 
      makeCourseNodes : function(nodesArray, tree) {
                  // alert('make');
@@ -204,12 +216,19 @@ AJAXmarking = {
 
                   if (nodesLeng === 0) { // the array is empty, so say there is nothing to mark
                           if (tree.treeDiv === 'treediv') {
-                                  tree.div.innerHTML = amVariables.configNothingString;
-                                  tree.icon.innerHTML = '';
+                                  label = document.createTextNode(amVariables.configNothingString);
+                                  
+                                  //tree.div.innerHTML = ;
+                                  //tree.icon.innerHTML = '';
+
                           } else {
-                                  tree.div.innerHTML = amVariables.nothingString;
-                                  tree.icon.innerHTML = '';
+                              label = document.createTextNode(amVariables.nothingString);
+                                 // tree.div.innerHTML = amVariables.nothingString;
+                                 // tree.icon.innerHTML = '';
                           }
+                          tree.div.appendChild(label);
+                          tree.icon.removeAttribute('class', 'loaderimage');
+                          //AJAXmarking.removeNodes(tree.icon);
                   }
                   else { // there is a tree to be drawn
 
@@ -242,13 +261,19 @@ AJAXmarking = {
 
                             // alert('pre-render');
                           tree.tree.render();
-                          tree.icon.innerHTML = '';
+                         // tree.icon.innerHTML = '';
+                         tree.icon.removeAttribute('class', 'loaderimage');
+                          //AJAXmarking.removeNodes(tree.icon);
                           
                   // add click events
 
                           if (tree.treeDiv == 'treediv') {
 
-                              document.getElementById('totalmessage').innerHTML = amVariables.totalMessage+':&nbsp;';
+                              //document.getElementById('totalmessage').innerHTML = amVariables.totalMessage+':&nbsp;';
+                              label = document.createTextNode(amVariables.totalMessage);
+                              var total = document.getElementById('totalmessage')
+                              AJAXmarking.removeNodes(total);
+                              total.appendChild(label);
                               AJAXmarking.updateTotal();
 
 
@@ -296,18 +321,26 @@ AJAXmarking = {
                                       break;
                                    } //end switch
 
-                                   if (timerFunction != '') {
-                                      // alert(AJAXmarking.checkVar);
+                                   if (timerFunction !== '') {
+
                                        AJAXmarking.windowobj = window.open(popUpAddress, '_blank', popUpArgs);
+                                       //var amw = AJAXmarking.windowobj;
                                        AJAXmarking.timerVar = window.setInterval(timerFunction, 500);
+                                      // AJAXmarking.windowobj.setAttribute ('onUnload', "alert('closing'); setTimeout('self.close()', 1000);");
+                                      // if (AJAXmarking.windowobj.attachEvent) {
+                                       //    AJAXmarking.windowobj.onunload = AJAXmarking.afterLoad;
+                                           //AJAXmarking.windowobj.onunload =
+                                      // } else {
+                                        //   AJAXmarking.windowobj.addEventListener('onunload', AJAXmarking.afterLoad, false);
+                                      // }
                                        AJAXmarking.windowobj.focus();
+
                                        return false;
                                    }
 
                       }); // end subscribe
                   } else {
-                     //  if (this.config === true) { // set the onclick to be the function that populates the config div
-
+                     
                         tree.tree.subscribe('clickEvent', function(oArgs) {
 
                           var title = document.getElementById('configInstructions');
@@ -316,9 +349,12 @@ AJAXmarking = {
                           AJAXmarking.clearGroupConfig();
 
                           if (oArgs.node.data.type == 'config_course') {
-                              title.innerHTML = '';
+                              //title.innerHTML = '';
+                              AJAXmarking.removeNodes(title);
                           } else {
-                              title.innerHTML = oArgs.node.data.name;
+                              //title.innerHTML = oArgs.node.data.name;
+                              label = document.createTextNode(oArgs.node.data.name);
+                              title.appendChild(label);
                           }
 
                           if (oArgs.node.data.type !== 'config_course') {
@@ -367,7 +403,7 @@ AJAXmarking = {
 
                               try{
                                   box2 = document.createElement('<input type="radio" name="showhide" />');
-                              }catch(err){
+                              }catch(error){
                                   box2 = document.createElement('input');
                               }
                                   box2.setAttribute('type','radio');
@@ -390,7 +426,7 @@ AJAXmarking = {
 
                               try{
                                   box3 = document.createElement('<input type="radio" name="showhide" />');
-                              }catch(err){
+                              }catch(errors){
                                   box3 = document.createElement('input');
                               }
                                   box3.setAttribute('type','radio');
@@ -425,6 +461,9 @@ AJAXmarking = {
               } //end else
           }, //end function
 
+      /**
+       * Obsolete function to make tooltips for the whole tree using YUI container widget. Overkill, so disabled
+       */
       tooltips : function(tree) {
           //	alert('tooltips');
                   var name = navigator.appName;
@@ -497,7 +536,6 @@ AJAXmarking = {
                       if (radio.childNodes[h].name == 'showhide') {
                           radio.childNodes[h].setAttribute ('disabled', false);
                           radio.childNodes[h].disabled = false;
-
                       }
                   }
                   var groupDiv = document.getElementById('configGroups');
@@ -551,7 +589,7 @@ AJAXmarking = {
             /// request data using AJAX
             var sUrl = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php?id='+node.data.id+'&type='+node.data.type+'&userid='+amVariables.userid+'';
 
-            if (typeof(node.data.gid) != 'undefined') { sUrl += '&group='+node.data.gid; } //add group id if its there
+            if (typeof node.data.gid  != 'undefined') { sUrl += '&group='+node.data.gid; } //add group id if its there
             if (node.data.type == 'quiz_question') { sUrl += '&quizid='+node.parent.data.id; } //add quiz id if this is a question node
             //alert(sUrl);
             var request = YAHOO.util.Connect.asyncRequest('GET', sUrl, AMajaxCallback);
@@ -569,13 +607,15 @@ AJAXmarking = {
                   var counter = node.children.length;
                   //alert('length: '+counter);
                   //alert('type: '+node.data.type);
+                  
                   //alert('assid: '+node.data.assid);
                   if (counter === 0) {
-                          tree.removeNode(node, true);
+                          tree.tree.removeNode(node, true);
                   } else {
 
                           if (node.data.type == 'course' || node.children[0].data.gid != 'undefined' || node.data.type == 'forum' || node.data.type == 'quiz') { // we need to sum child counts
-
+                                  //alert('in loop');
+                                  //alert('parent index: '+node.parent.index);
                                   var tempCount = 0;
                                   var tempStr = '';
                                   for (i=0;i<counter;i++) {
@@ -584,13 +624,14 @@ AJAXmarking = {
                                           //alert('node count: '+tempStr);
                                           tempCount += parseInt(tempStr, 10);
                                   }
+                                  
                                   //alert('total: '+tempCount);
                                   AJAXmarking.countAlter(node, tempCount);
                           } else { // its an assessment node, so we count the children
                                   AJAXmarking.countAlter(node, counter);
                           }
-
-                          tree.root.refresh();
+                          //alert('parent index: '+node.parent.index);
+                          AJAXmarking.main.tree.root.refresh();
 
                   }
           },
@@ -758,7 +799,9 @@ AJAXmarking = {
                   //alert('before compholder');
                   AJAXmarking.compHolder();
                   //alert('after compholder');
-                  AJAXmarking.updateTotal();
+                  if (tree.treeDiv == 'treediv') {
+                      AJAXmarking.updateTotal();
+                  }
 
   /// then add tooltips.
 
@@ -766,176 +809,168 @@ AJAXmarking = {
 
           },
 
-      makeSubmissionNodes : function(nodesArray, tree) {
+    /**
+     * makes the submission nodes for each student with unmarked work. Takes ajax data object as input
+     */
+    makeSubmissionNodes : function(nodesArray, tree) {
 
-          ///////////////////////////////////////////
-          /// we have a final node i.e. a submission
-          //////////////////////////////////////////////
+        ///////////////////////////////////////////
+        /// we have a final node i.e. a submission
+        //////////////////////////////////////////////
 
-              var myobj = '';
-              //var aidHolder = '';
-              //var sidHolder = '';
-              var uniqueId = '';
-              var tmpNode2 = '';
-              var tmpNode3 = '';
-              var clickNode = '';
-              var nodesLeng = '';
-              //var typeHolder = '';
+            var myobj = '';
+            //var aidHolder = '';
+            //var sidHolder = '';
+            var uniqueId = '';
+            var tmpNode2 = '';
+            var tmpNode3 = '';
+            var clickNode = '';
+            var nodesLeng = '';
+            //var typeHolder = '';
 
-  /// First the courses array
-              nodesLeng = nodesArray.length;
+/// First the courses array
+            nodesLeng = nodesArray.length;
 
-              for (var k=0;k<nodesLeng;k++) {
+            for (var k=0;k<nodesLeng;k++) {
 
-      /// set up a unique id so the node can be removed when needed
+    /// set up a unique id so the node can be removed when needed
 
-                  //aidHolder = ;
-                  //sidHolder = ;
-                  //typeHolder = ;
-                  uniqueId = nodesArray[k].type + nodesArray[k].aid + 'sid' + nodesArray[k].sid + '';
+                //aidHolder = ;
+                //sidHolder = ;
+                //typeHolder = ;
+                uniqueId = nodesArray[k].type + nodesArray[k].aid + 'sid' + nodesArray[k].sid + '';
 
-  /// set up time-submitted thing for tooltip. This is set to make the time match the browser's local timezone,
-  /// but I can't find a way to use the user's specified timezone from \$USER. Not sure if this really matters.
+/// set up time-submitted thing for tooltip. This is set to make the time match the browser's local timezone,
+/// but I can't find a way to use the user's specified timezone from \$USER. Not sure if this really matters.
 
-                  var secs = parseInt(nodesArray[k].seconds, 10);
-                  var time = parseInt(nodesArray[k].time, 10)*1000; // javascript likes to work in miliseconds, whereas moodle uses unix format (whole seconds)
-                  var d = new Date(); // make a new data object
-                  d.setTime(time);  // set it to the time we just got above
+                var secs = parseInt(nodesArray[k].seconds, 10);
+                var time = parseInt(nodesArray[k].time, 10)*1000; // javascript likes to work in miliseconds, whereas moodle uses unix format (whole seconds)
+                var d = new Date(); // make a new data object
+                d.setTime(time);  // set it to the time we just got above
 
-                  var nodeCount = 0;
-                  if (typeof(nodesArray[k].count) != 'undefined') { // Allows us to add a count for keeping track of forum submission accurately.
-                          nodeCount = nodesArray[k].count;              // The other types don't need this.
-                  }
+                var nodeCount = 0;
+                if (typeof nodesArray[k].count != 'undefined') { // Allows us to add a count for keeping track of forum submission accurately.
+                    nodeCount = nodesArray[k].count;              // The other types don't need this.
+                }
 
-  /// build the node as before
+/// build the node as before
 
-                  myobj = { label:''+nodesArray[k].name+'',
-                            id:''+uniqueId+'',
-                            type:''+nodesArray[k].type+'',
-                            aid:''+nodesArray[k].aid+'',
-                            uniqueId:''+uniqueId+'',
-                            sid:''+nodesArray[k].sid+'',
-                            title:''+nodesArray[k].summary+'',
-                            count:''+nodeCount+''
-                          } ;
-                  if (nodesArray[k].type == 'discussion') {
-                      myobj.label = myobj.label + ' (' + myobj.count + ')';
-                  }
-                  tmpNode3 = new YAHOO.widget.TextNode(myobj, AJAXmarking.nodeHolder , false);
+                myobj = { label:''+nodesArray[k].name+'',
+                          id:''+uniqueId+'',
+                          type:''+nodesArray[k].type+'',
+                          aid:''+nodesArray[k].aid+'',
+                          uniqueId:''+uniqueId+'',
+                          sid:''+nodesArray[k].sid+'',
+                          title:''+nodesArray[k].summary+'',
+                          count:''+nodeCount+''
+                        } ;
+                if (nodesArray[k].type == 'discussion') {
+                    myobj.label = myobj.label + ' (' + myobj.count + ')';
+                }
+                tmpNode3 = new YAHOO.widget.TextNode(myobj, AJAXmarking.nodeHolder , false);
 
-  /// apply a style according to how long since it was submitted
+/// apply a style according to how long since it was submitted
 
-                  if (secs < 21600) { // less than 6 hours
-                          tmpNode3.labelStyle = 'icon-user-one';
-                  } else if (secs < 43200) { // less than 12 hours
-                          tmpNode3.labelStyle = 'icon-user-two';
-                  } else if (secs < 86400) { // less than 24 hours
-                          tmpNode3.labelStyle = 'icon-user-three';
-                  } else if (secs < 172800) { // less than 48 hours
-                          tmpNode3.labelStyle = 'icon-user-four';
-                  } else if (secs < 432000) { // less than 5 days
-                          tmpNode3.labelStyle = 'icon-user-five';
-                  } else if (secs < 864000) { // less than 10 days
-                          tmpNode3.labelStyle = 'icon-user-six';
-                  } else if (secs < 1209600) { // less than 2 weeks
-                          tmpNode3.labelStyle = 'icon-user-seven';
-                  } else { // more than 2 weeks
-                          tmpNode3.labelStyle = 'icon-user-eight';
-                  }
+                if (secs < 21600) { // less than 6 hours
+                        tmpNode3.labelStyle = 'icon-user-one';
+                } else if (secs < 43200) { // less than 12 hours
+                        tmpNode3.labelStyle = 'icon-user-two';
+                } else if (secs < 86400) { // less than 24 hours
+                        tmpNode3.labelStyle = 'icon-user-three';
+                } else if (secs < 172800) { // less than 48 hours
+                        tmpNode3.labelStyle = 'icon-user-four';
+                } else if (secs < 432000) { // less than 5 days
+                        tmpNode3.labelStyle = 'icon-user-five';
+                } else if (secs < 864000) { // less than 10 days
+                        tmpNode3.labelStyle = 'icon-user-six';
+                } else if (secs < 1209600) { // less than 2 weeks
+                        tmpNode3.labelStyle = 'icon-user-seven';
+                } else { // more than 2 weeks
+                        tmpNode3.labelStyle = 'icon-user-eight';
+                }
 
-              } // end for i
+            } // end for i
 
-              // TODO - this needs to be a proper loop to account for varying lengths.
-              AJAXmarking.parentUpdate(tree, AJAXmarking.nodeHolder);
-              AJAXmarking.parentUpdate(tree, AJAXmarking.nodeHolder.parent); //might be a course, might be a group if its a quiz by groups
-              if (!AJAXmarking.nodeHolder.parent.parent.isRoot()) {
-                  this.parentUpdate(tree, AJAXmarking.nodeHolder.parent.parent);
-                  if (!AJAXmarking.nodeHolder.parent.parent.parent.isRoot()) {
-                      AJAXmarking.parentUpdate(tree, AJAXmarking.nodeHolder.parent.parent.parent);
-                  }
+            // update all the counts on the various nodes
+            AJAXmarking.parentUpdate(tree, AJAXmarking.nodeHolder);
+            AJAXmarking.parentUpdate(tree, AJAXmarking.nodeHolder.parent); //might be a course, might be a group if its a quiz by groups
+            if (!AJAXmarking.nodeHolder.parent.parent.isRoot()) {
+                this.parentUpdate(tree, AJAXmarking.nodeHolder.parent.parent);
+                if (!AJAXmarking.nodeHolder.parent.parent.parent.isRoot()) {
+                    AJAXmarking.parentUpdate(tree, AJAXmarking.nodeHolder.parent.parent.parent);
+                }
+            }
+
+/// finally, run the function that updates the original node and adds the children
+
+            AJAXmarking.compHolder();
+            AJAXmarking.updateTotal();
+
+/// then add tooltips.
+// alert(typeof(AJAXmarking.windowobj));
+
+            //this.tooltips();
+
+      },
+
+
+      makeGroupNodes : function(responseArray, tree) {
+          // need to turn the groups for this course into an array and attach it to the course node. Then make the groups bit on screen
+          // for the config screen??
+          var object ='';
+          var arrayLength = responseArray.length;
+          var tmpNode4 = '';
+          var label = '';
+
+          for (var n =0; n<arrayLength; n++) {
+
+              uniqueId = 'group'+responseArray[n].gid+'';
+
+              label = responseArray[n].name+' ('+responseArray[n].count+')';
+
+              object = { label:''+label+'',
+                         name:''+responseArray[n].name+'',
+                         id:''+responseArray[n].aid+'',
+                         type:''+responseArray[n].type+'',
+                         uniqueId:''+'g'+responseArray[n].gid+responseArray[n].type+responseArray[n].aid+'',
+                         gid:''+responseArray[n].gid+'',
+                         count:''+responseArray[n].count+'',
+                         title:''+responseArray[n].summary+''} ;
+
+              tmpNode4 = new YAHOO.widget.TextNode(object, AJAXmarking.nodeHolder , false);
+
+              tmpNode4.labelStyle = 'icon-group';
+
+              // if the groups are for journals, it is impossible to display individuals, so we make the
+              // node clickable so that the pop up will have the group screen.
+              if (responseArray[n].type !== 'journal') {
+
+                  tmpNode4.setDynamicLoad(AJAXmarking.loadNodeData);
+
               }
+          }
 
-  /// finally, run the function that updates the original node and adds the children
+          AJAXmarking.parentUpdate(tree, AJAXmarking.nodeHolder);
+          AJAXmarking.parentUpdate(tree, AJAXmarking.nodeHolder.parent);
+          AJAXmarking.compHolder();
+          AJAXmarking.updateTotal();
 
-              AJAXmarking.compHolder();
-              AJAXmarking.updateTotal();
-
-  /// then add tooltips.
-  // alert(typeof(AJAXmarking.windowobj));
-
-              //this.tooltips();
-
-          },
-
-
-          makeGroupNodes : function(responseArray) {
-                  // need to turn the groups for this course into an array and attach it to the course node. Then make the groups bit on screen
-                  // for the config screen??
-                  //course = responseArray[0].course; // fist object holds data about what course the groups refer to
-                  //responseArray.shift(); // remove the data object, leaving just the node objects
-                  var object ='';
-                  var arrayLength = responseArray.length;
-                  var tmpNode4 = '';
-                  var label = '';
-                
-
-                  for (var n =0; n<arrayLength; n++) {
-                    
-
-                      
-                      uniqueId = 'group'+responseArray[n].gid+'';
-
-                      label = responseArray[n].name+' ('+responseArray[n].count+')';
-                      
-                      object = { label:''+label+'',
-                                 name:''+responseArray[n].name+'',
-                                 id:''+responseArray[n].aid+'',
-                                 type:''+responseArray[n].type+'',
-                                 uniqueId:''+'g'+responseArray[n].gid+responseArray[n].type+responseArray[n].aid+'',
-                                 gid:''+responseArray[n].gid+'',
-                                 count:''+responseArray[n].count+'',
-                                 title:''+responseArray[n].summary+''} ;
-                      
-
-
-
-                      tmpNode4 = new YAHOO.widget.TextNode(object, AJAXmarking.nodeHolder , false);
-                     
-
-                      tmpNode4.labelStyle = 'icon-group';
-                     
-
-                      // if the groups are for journals, it is impossible to display individuals, so we make the
-                      // node clickable so that the pop up will have the group screen.
-                      if (responseArray[n].type !== 'journal') {
-
-                          tmpNode4.setDynamicLoad(this.loadNodeData);
-
-                      }
-                  }
-
-                  AJAXmarking.parentUpdate(tree, AJAXmarking.nodeHolder);
-                  AJAXmarking.parentUpdate(tree, AJAXmarking.nodeHolder.parent);
-                  AJAXmarking.compHolder();
-                  AJAXmarking.updateTotal();
-
-                 
-                  //this.tooltips();
-
-          },
+      },
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-          /// funtion to refresh all the nodes once the update operations have all been carried out by saveChangesAJAX()
-         ///////////////////////////////////////////////////
-          refreshRoot : function(tree) {
-                  tree.root.refresh();
-                  if (tree.root.children.length === 0) {
-                          document.getElementById("totalmessage").innerHTML = '';
-                          document.getElementById("count").innerHTML = '';
-                          tree.div.innerHTML += amVariables.nothingString;
-                  }
-          },
+    /// funtion to refresh all the nodes once the update operations have all been carried out by saveChangesAJAX()
+   ///////////////////////////////////////////////////
+    refreshRoot : function(tree) {
+            tree.root.refresh();
+            if (tree.root.children.length === 0) {
+                //var total = document.getElementById("totalmessage");
+                //var count = document.getElementById("count");
+                AJAXmarking.removeNodes(document.getElementById("totalmessage"));
+                AJAXmarking.removeNodes(document.getElementById("count"));
+                tree.div.appendChild(document.createTextNode(amVariables.nothingString));
+            }
+    },
 
 
     AJAXtree : function(treeDiv, icon, statusDiv, config) {
@@ -972,9 +1007,13 @@ AJAXmarking = {
           refreshRootFrames : function(tree) {
                    tree.root.refresh();
                    if (tree.root.children.length === 0) {
-                           document.getElementById("totalmessage").innerHTML = '';
-                           document.getElementById("count").innerHTML = '';
-                           tree.div.innerHTML += amVariables.nothingString;
+                           //document.getElementById("totalmessage").innerHTML = '';
+                           AJAXmarking.removeNodes(document.getElementById("totalmessage"));
+                           //document.getElementById("count").innerHTML = '';
+                           AJAXmarking.removeNodes(document.getElementById("count"));
+                           //tree.div.innerHTML += amVariables.nothingString;
+                           AJAXmarking.removeNodes(tree.div);
+                           tree.div.appendChild(document.createTextNode(amVariables.nothingString));
                   }
           },
 
@@ -996,7 +1035,9 @@ AJAXmarking = {
                           count = count + parseInt(countTemp, 10);
                   }
                   if (count > 0) {
-                          document.getElementById('count').innerHTML = ' <strong>'+count+'</strong>';
+                      var countDiv = document.getElementById('count');
+                      AJAXmarking.removeNodes(countDiv);
+                      countDiv.appendChild(document.createTextNode(count));
                   }
           },
 
@@ -1028,54 +1069,61 @@ AJAXmarking = {
           };
           */
 
-          /**
-           * this function updates the tree to remove the node of the pop up that has just been marked, then it updates the parent nodes and refreshes the tree
-           *
-           */
+    /**
+    * this function updates the tree to remove the node of the pop up that has just been marked, then it updates the parent nodes and refreshes the tree
+    *
+    */
 
-            saveChangesAJAX : function(loc, tree, thisNodeId, frames) {
+    saveChangesAJAX : function(loc, tree, thisNodeId, frames) {
 
-                  var checkNode = "";
-                  var parentNode = "";
-                  var marker = 0;
-                 // var tree = AJAXmarking.main;
+        var checkNode = "";
+        var parentNode = "";
+        var marker = 0;
+        // var tree = AJAXmarking.main;
 
-          /// remove the node that was just marked
+        /// remove the node that was just marked
 
-                   checkNode = tree.tree.getNodeByProperty("id", thisNodeId);
-                   //alert(checkNode.parent.data.uniqueId);
-                   //alert('index of parent: '+checkNode.parent.index);
-                   parentNode = tree.tree.getNodeByIndex(checkNode.parent.index);
-                   //parentNode = checkNode.parent;
-                   tree.tree.removeNode(checkNode, true);
-                  //alert('root data: '+this.root.data.type);
-          /// get the parent node and alter its label count to have one less in the total count. Remove the node if the count is 0
+        checkNode = tree.tree.getNodeByProperty("id", thisNodeId);
+
+        parentNode  = tree.tree.getNodeByIndex(checkNode.parent.index);
+        parentNode1 = tree.tree.getNodeByIndex(parentNode.parent.index);
+        // this will be the course node if there is a quiz or groups
+        if (!parentNode1.parent.isRoot()) { // the node above is not root so we need it
+            parentNode2 = tree.tree.getNodeByIndex(parentNode1.parent.index);
+        }
+
+        if ((typeof parentNode2 != 'undefined') && (!parentNode2.parent.isRoot())) {
+        // this will be the course node if there is both a quiz and groups
+            parentNode3 = tree.tree.getNodeByIndex(parentNode2.parent.index);
+        }
+
+        tree.tree.removeNode(checkNode, true);
+
+        AJAXmarking.parentUpdate(tree, parentNode);
+        AJAXmarking.parentUpdate(tree, parentNode1);
+        if (typeof parentNode2 != 'undefined') {
+            AJAXmarking.parentUpdate(tree, parentNode2);
+        }
+        if (typeof parentNode3 != 'undefined') {
+            AJAXmarking.parentUpdate(tree, parentNode3);
+        }
 
 
-                   while(marker === 0) {
+        /// refresh the tree to redraw the nodes with the new labels
+        if (typeof(frames) != 'undefined') {
+            AJAXmarking.refreshRootFrames(tree);
+        } else {
+            AJAXmarking.refreshRoot(tree);
+        }
 
-                           AJAXmarking.parentUpdate(tree, parentNode);
-                           if (parentNode.data.type == 'course') { // we have reached the course level, so stop
-                                   marker = 1;
-                           } else {
-                           //not a course level node yet so carry on
-                           newNode = tree.tree.getNodeByIndex(parentNode.parent.index); // go up one level
-                           parentNode = newNode;
-                           }
-                   }
+        AJAXmarking.updateTotal();
+        AJAXmarking.tooltips(tree);
 
-          /// refresh the tree to redraw the nodes with the new labels
-                  if (typeof(frames) != 'undefined') {
-                           AJAXmarking.refreshRootFrames();
-                  } else {
-                    AJAXmarking.refreshRoot(tree);
-                  }
-                   AJAXmarking.updateTotal();
-                   AJAXmarking.tooltips();
-                   if (loc != -1) { // no need if its an assignment
-                       setTimeout(AJAXmarking.afterLoad(loc), 500);
-                   }
-          },
+        if (loc != -1) { // no need if its an assignment as the pop up is self closing
+            windowLoc = 'AJAXmarking.afterLoad(\''+loc+'\')';
+            setTimeout(windowLoc, 500);
+        }
+    },
 
           /// this function updates the tree to remove the node of the pop up that has just been marked, then it updates the parent nodes and refreshes the tree
           // deprecated?
@@ -1153,9 +1201,9 @@ AJAXmarking = {
           refreshTree : function(treeObj) {
              // main.div.innerHTML = '';
                   treeObj.loadCounter = 0;
-                  var treeDiv = treeObj.treeDiv;
-                  var icon = treeObj.icon;
-                  var status = treeObj.statusDiv;
+                  //var treeDiv = treeObj.treeDiv;
+                 // var icon = treeObj.icon;
+                  //var status = treeObj.statusDiv;
                   //delete treeObj.tree;
                   treeObj.tree.removeChildren(treeObj.root);
                   // this.tree = '';
@@ -1166,8 +1214,10 @@ AJAXmarking = {
                   //});
                   // tree.root = '';
                   // alert(tree.div);
-                  treeObj.div.innerHTML = '';
-                  treeObj.treeDiv.innerHTML = '';
+                  AJAXmarking.removeNodes(treeObj.div);
+                  AJAXmarking.removeNodes(treeObj.treeDiv);
+                  //treeObj.div.innerHTML = '';
+                  //treeObj.treeDiv.innerHTML = '';
                   AJAXmarking.ajaxBuild(treeObj);
           },
 
@@ -1177,8 +1227,11 @@ AJAXmarking = {
                   var groupDiv = document.getElementById('configGroups');
                   var dataLength = data.length;
                   var idCounter = 4;  //continue the numbering of the ids from 4 (main checkboxes are 1-3). This allows us to disable/enable them
+                  if (dataLength === 0) {
+                      var emptyLabel = document.createTextNode(amVariables.nogroups);
+                      groupDiv.appendChild(emptyLabel);
+                  }
                   for(var v=0;v<dataLength;v++) {
-
 
                            var box = '';
                            try{
@@ -1213,7 +1266,9 @@ AJAXmarking = {
                           groupDiv.appendChild(breaker);
                           idCounter++;
                   }
-                  AJAXmarking.config.icon.innerHTML = '';  //lose loading icon
+                  AJAXmarking.config.icon.removeAttribute('class', 'loaderimage');
+                  //AJAXmarking.removeNodes(config.icon);
+                  //AJAXmarking.config.icon.innerHTML = '';  //lose loading icon
                   AJAXmarking.enableRadio(); //re-enable the checkboxes
           },
 
@@ -1244,7 +1299,7 @@ AJAXmarking = {
    */
 
  boxOnClick : function() {
-     alert('boxonclick');
+     //alert('boxonclick');
                 var form = document.getElementById('configshowform');
                
                 window.AJAXmarking.disableRadio();
@@ -1325,7 +1380,7 @@ AJAXmarking = {
                           if (name == "Microsoft Internet Explorer") {
                               els[0]["onclick"] = new Function("AJAXmarking.windowobj.document.getElementById('submitform').menuindex.value = AJAXmarking.windowobj.document.getElementById('submitform').grade.selectedIndex; AJAXmarking.saveChangesAJAX(-1, AJAXmarking.main, '"+me+"', '"+parent+"', '"+course+"'); "); // IE
                           } else {
-                              els[0].setAttribute("onClick", "document.getElementById('submitform').menuindex.value = document.getElementById('submitform').grade.selectedIndex; return window.opener.AJAXmarking.saveChangesAJAX(-1, AJAXmarking.main, '"+me+"', '"+parent+"', '"+course+"')"); // Mozilla etc.
+                              els[0].setAttribute("onClick", "AJAXmarking.windowobj.document.getElementById('submitform').menuindex.value = AJAXmarking.windowobj.document.getElementById('submitform').grade.selectedIndex; return AJAXmarking.saveChangesAJAX(-1, AJAXmarking.main, '"+me+"', '"+parent+"', '"+course+"')"); // Mozilla etc.
                           }
 
                           //if (typeof(AJAXmarking.windowobj.document.getElementsByName('saveandnext')) != 'undefined') {// the saveandnext thing needs hiding
@@ -1457,21 +1512,32 @@ journalOnLoad :   function (me) {
   },
 
 
-  // function that waits till the pop up has a particular location and then shuts it.
+  /**
+   * function that waits till the pop up has a particular location and then shuts it.
+   */
 
   afterLoad : function (loc) { //may be possible to replace this loop with a dom event listener
         //  if (!AJAXmarking.windowobj.closed) {//prevents this loop from continuing indefinitely if the window is closed manually before grading
 
                  // window.clearInterval(AJAXmarking.timerVar);
          // }
-          if (!AJAXmarking.windowobj.closed && AJAXmarking.windowobj.location.href == amVariables.wwwroot+loc) {
-                  setTimeout(AJAXmarking.windowobj.close(), 1000);
-                  //window.clearInterval(AJAXmarking.timerVar);
+         // alert('closing');
+         //AJAXmarking.windowObj.addEventListener('unload', setTimeout(AJAXmarking.windowObj.close(), 1000));
+         
+          if (!AJAXmarking.windowobj.closed) {
+              //alert(AJAXmarking.windowobj.location.href+' '+amVariables.wwwroot+loc);
+              if (AJAXmarking.windowobj.location.href == amVariables.wwwroot+loc) {
+                  setTimeout('AJAXmarking.windowobj.close()', 1000);
+                  return;
+              }
+              //window.clearInterval(AJAXmarking.timerVar);
           } else if (AJAXmarking.windowobj.closed) {
               return;
           } else {
-              setTimeout(AJAXmarking.afterLoad(loc), 500);
+              setTimeout(AJAXmarking.afterLoad(loc), 1000);
+              return;
           }
+      
   },
 
 
@@ -1526,8 +1592,8 @@ journalOnLoad :   function (me) {
       if (!AJAXmarking.greyOut) {
            AJAXmarking.greyOut =
                 new YAHOO.widget.Panel("greyOut",
-                    { width:"480px",
-                      height:"510px",
+                    { width:"470px",
+                      height:"530px",
                       fixedcenter:true,
                       close:true,
                       draggable:false,
@@ -1537,23 +1603,27 @@ journalOnLoad :   function (me) {
                       iframe: true
                     }
                 );
-            AJAXmarking.greyOut.setHeader("header");
 
-            var bodyText = "<div id='configStatus'></div><div id='configTree'></div><div id='configSettings'><div id='configInstructions'>instructions</div><div id='configCheckboxes'><form id='configshowform' name='configshowform'></form></div><div id='configGroups'></div></div>";
+            var headerText = amVariables.headertext+' '+amVariables.fullname;
+            AJAXmarking.greyOut.setHeader(headerText);
+
+            var bodyText = "<div id='configStatus'></div><div id='configTree'></div><div id='configSettings'><div id='configInstructions'>"+amVariables.instructions+"</div><div id='configCheckboxes'><form id='configshowform' name='configshowform'></form></div><div id='configGroups'></div></div>";
+            
             AJAXmarking.greyOut.setBody(bodyText);
             document.body.className += ' yui-skin-sam';
 
             AJAXmarking.greyOut.beforeHideEvent.subscribe(function() {
                  AJAXmarking.refreshTree(AJAXmarking.main);
               });
-            //var div = document.getElementById('panel');
+           
             AJAXmarking.greyOut.render(document.body);
 
             AJAXmarking.greyOut.show()
 
             AJAXmarking.config = new AJAXmarking.AJAXtree('configTree', 'configIcon', 'configStatus', true);
             AJAXmarking.ajaxBuild(AJAXmarking.config);
-            AJAXmarking.config.icon = document.getElementById('configIcon'); //wasted?
+            //AJAXmarking.config.icon = document.getElementById('configIcon'); //wasted?
+            //AJAXmarking.config.icon.setAttribute('class', 'loaderimage');
 
         } else {
 
@@ -1659,19 +1729,21 @@ journalOnLoad :   function (me) {
   },
 
   clearGroupConfig : function() {
-       var check = document.getElementById('configshowform');
-          // remove all nodes
-          //var len = check.childNodes.length;
-          while (check.hasChildNodes()) {
-            check.removeChild(check.firstChild);
+    
+        
+          AJAXmarking.removeNodes(document.getElementById('configshowform'));
+       
+          AJAXmarking.removeNodes(document.getElementById('configInstructions'));
+        
+          AJAXmarking.removeNodes(document.getElementById('configGroups'));
+          return true;
+  },
+  removeNodes: function (el) {
+      if (typeof el.hasChildNodes == 'function') {
+          while (el.hasChildNodes()) {
+              el.removeChild(el.firstChild);
           }
-
-          // clear out previous groups data from display div
-          var groups = document.getElementById('configGroups');
-          //var glen = groups.childNodes.length;
-          while (groups.hasChildNodes()) {
-            groups.removeChild(groups.firstChild);
-          }
+      }
   }
 
 
@@ -1691,16 +1763,17 @@ journalOnLoad :   function (me) {
           };
 
 
-function init() {
+function AMinit() {
    
     if ( document.location.toString().indexOf( 'https://' ) != -1 ) {
         amVariables.wwwroot = amVariables.wwwroot.replace('http:', 'https:');
     }
+    //AJAXmarking.imgFunc();
     AJAXmarking.main = new AJAXmarking.AJAXtree('treediv', 'mainIcon', 'status');
     AJAXmarking.ajaxBuild(AJAXmarking.main);
     
 }
 // this stuff needs to stay at the end. used to be in the main php file with a defer thing but I think it broke the xhtml stuff
-init();
+AMinit();
 	
 

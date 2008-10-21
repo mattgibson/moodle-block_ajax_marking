@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2008102001;
+        $this->version = 2008102101;
     }
 	
     function specialization() {
@@ -61,26 +61,29 @@ class block_ajax_marking extends block_base {
             }
             if ($coursecheck>0) { // display the block
 
+                $AMfullname = fullname($USER);
                 $variables = array(
 
-                    'wwwroot' => $CFG->wwwroot,
-                    'totalMessage' => get_string('total', 'block_ajax_marking'),
-                    'userid' => $USER->id,
-                    'assignmentString' => get_string('modulename', 'assignment'),
-                    'workshopString' => get_string('modulename', 'workshop'),
-                    'forumString' => get_string('modulename', 'forum'),
-          
+                    'wwwroot'             => $CFG->wwwroot,
+                    'totalMessage'        => get_string('total', 'block_ajax_marking'),
+                    'userid'              => $USER->id,
+                    'assignmentString'    => get_string('modulename', 'assignment'),
+                    'workshopString'      => get_string('modulename', 'workshop'),
+                    'forumString'         => get_string('modulename', 'forum'),
+                    'instructions'        => get_string('instructions', 'block_ajax_marking'),
                     'configNothingString' => get_string('config_nothing', 'block_ajax_marking'),
-                    'nothingString' => get_string('nothing', 'block_ajax_marking'),
-                    'collapseString' => get_string('collapse', 'block_ajax_marking'),
-                    'forumSaveString' => get_string('sendinratings', 'forum'),
-                    'quizString' => get_string('modulename', 'quiz'),
-                    'quizSaveString' => get_string('savechanges'),
-               
-                    'journalString' => get_string('modulename', 'journal'),
-                    'journalsavestring' => get_string('saveallfeedback', 'journal'),
-             
-                    'connectFail' => get_string('connect_fail', 'block_ajax_marking')
+                    'nothingString'       => get_string('nothing', 'block_ajax_marking'),
+                    'collapseString'      => get_string('collapse', 'block_ajax_marking'),
+                    'forumSaveString'     => get_string('sendinratings', 'forum'),
+                    'quizString'          => get_string('modulename', 'quiz'),
+                    'quizSaveString'      => get_string('savechanges'),
+                    'journalString'       => get_string('modulename', 'journal'),
+                    'journalsavestring'   => get_string('saveallfeedback', 'journal'),
+                    'connectFail'         => get_string('connect_fail', 'block_ajax_marking'),
+                    'nogroups'            => get_string('nogroups', 'block_ajax_marking'),
+                    'headertext'          => get_string('headertext', 'block_ajax_marking'),
+                    'fullname'            => $AMfullname
+
                 );
 
                 //start building content output
@@ -109,9 +112,6 @@ class block_ajax_marking extends block_base {
                                            }
                 $this->content->text .=    "};
                                       
-
-                 
-
                     </script> 
                 
                 </div>

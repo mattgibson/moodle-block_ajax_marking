@@ -127,6 +127,16 @@
 #totalmessage, #count {
   float: left;
   padding-bottom: 2px;
+  margin-left: 3px;
+}
+.loaderimage {
+  background: url(<?php echo $CFG->wwwroot ?>/blocks/ajax_marking/images/ajax-loader.gif) 0 0 no-repeat;
+  width: 15px;
+  height: 15px;
+
+}
+#count {
+  font-weight: bold;
 }
 #treediv {
   clear: both; 
@@ -138,8 +148,8 @@
 }
 #mainIcon {
   float: left;
-  padding-left: 8px;
-  height: 10px;
+  margin-left: 8px;
+  
 }
 
 
@@ -217,8 +227,11 @@ version: 2.3.0
 /* the style for the empty cells that are used for rendering the depth 
  * of the node */
 .ygtvdepthcell { 
-	width:18px; height:22px; 
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -8000px no-repeat; 
+	width:18px; height:22px;
+        
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -8000px no-repeat;
+        
+        
 }
 
 .ygtvblankdepthcell { width:18px; height:22px; }
@@ -234,7 +247,10 @@ version: 2.3.0
 .ygtvlabel, .ygtvlabel:link, .ygtvlabel:visited, .ygtvlabel:hover { 
 	margin-left:2px;
 	text-decoration: none;
+        
     background-color: white; /* workaround for IE font smoothing bug */
+   
+    
 }
 
 .ygtvspacer { height: 22px; width: 18px; }
@@ -284,7 +300,7 @@ version: 2.3.0
 #dialog {
   display:none;
   z-index: 500;
-  background-color: trasparent;
+  background-color: transparent;
   padding:0px;
   font:10pt tahoma;
   border:1px solid gray;
@@ -310,29 +326,39 @@ version: 2.3.0
   overflow-y: scroll;
   font:10pt tahoma;
   background-color: transparent;
+ 
+
 }
 #configSettings {
   float:left;
   width:190px;
   padding-left: 10px;
- 
-  
+  font:10pt tahoma;
 }
+
 #configGroups {
   float:right;
   width:190px;
   background-color: transparent;
 }
 #configIcon {
-  float: left;
+  float: right;
   position: relative;
+  top: -30px;
+  right: 25px;
   width: 35px;
   line-height: 0;
+  margin-top: 4px;
 }
 div.block_ajax_marking div.footer {
   border-style: none;
   padding-bottom: 0px;
   height: 30px;
+}
+#configInstructions {
+  font:10pt tahoma;
+  float: left;
+  width: 250;
 }
 
 /*
@@ -358,11 +384,15 @@ stuff from the container.css file, cleaned up to make it validate
 
 /* added bits for the panel */
 
-<?php include '{$CFG->wwwdirroot}\lib\yui\container\assets\skins\sam\container.css'; ?>
+<?php include 'container.css'; ?>
 
 .yui-skin-sam .container-close {
   background:url(<?php echo $CFG->wwwroot; ?>/lib/yui/assets/skins/sam/sprite.png) no-repeat 0 -300px;
 }
 .yui-skin-sam .yui-panel .hd {
   background:url(<?php echo $CFG->wwwroot; ?>/lib/yui/assets/skins/sam/sprite.png) repeat-x 0 -200px;
+}
+.yui-skin-sam .yui-panel-container .underlay {
+ margin: 0;
+padding: 0;
 }
