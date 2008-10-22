@@ -646,6 +646,7 @@ class ajax_marking_functions {
                             AND c.module = {$this->modules['forum']->id}
                             AND c.visible = 1
                             AND f.course = $this->id
+                            AND f.assessed > 0
                         ORDER BY f.id
                   ";
             
@@ -2302,6 +2303,7 @@ class ajax_marking_functions {
                 AND c.visible = 1
                 AND f.course IN ($this->course_ids)
                 AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
+                AND f.assessed > 0
             ORDER BY f.id
         ";
         $forum_submissions = get_records_sql($sql);
@@ -2327,7 +2329,8 @@ class ajax_marking_functions {
                 c.module = {$this->modules['forum']->id}
                 AND c.visible = 1
                 AND f.course IN ($this->course_ids)
-                AND f.type <> 'eachuser'
+                AND f.assessed > 0
+                
             ORDER BY f.id
         ";
         $forums = get_records_sql($sql);
