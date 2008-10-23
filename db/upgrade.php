@@ -35,7 +35,13 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
     /// Launch create table for block_ajax_marking
         $result = $result && create_table($table);
     }
- 
+
+    if ($result && $oldversion < 2008102202) { //New version in version.php
+
+
+
+    }
+
 
     return $result;
 }

@@ -1208,8 +1208,10 @@ AJAXmarking = {
                  // var icon = treeObj.icon;
                   //var status = treeObj.statusDiv;
                   //delete treeObj.tree;
-                  treeObj.tree.removeChildren(treeObj.root);
-                  treeObj.root.refresh();
+                  if (treeObj.root.children.length >0) {
+                      treeObj.tree.removeChildren(treeObj.root);
+                      treeObj.root.refresh();
+                  }
                   // this.tree = '';
                   // tree.tree = new AJAXmarking.AJAXtree(treeDiv, icon, status);
                   // treeObj.tree = new YAHOO.widget.TreeView(treeDiv);
@@ -1427,9 +1429,9 @@ AJAXmarking = {
                           els = windowobj.frames[0].document.getElementsByTagName('input');
                           if (els.length == 11) {
                                   els[10]["onclick"] = new Function("AJAXmarking.saveChangesAJAX('/mod/workshop/assessments.php', AJAXmarking.main, '"+me+"', true);"); // IE
-                                  //els[10].setAttribute("onClick", "saveChangesAJAXFrames('"+me+"', '"+parent+"', '"+course+"')"); // Mozilla etc
+                                
                                   window.clearInterval(AJAXmarking.timerVar);	// cancel loop
-                                 // AJAXmarking.timerVar=self.setInterval('AJAXmarking.afterLoad("/mod/workshop/assessments.php")', 500); // set loop for next function that will close pop up on location change
+                              
                           }
                   }
           }
@@ -1452,18 +1454,18 @@ AJAXmarking = {
               var key = els.length -1;
               if (els[key].value == amVariables.forumSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
 
-                 // if (name != "Microsoft Internet Explorer") {
-                 //     els[key].setAttribute("onClick", "return this.saveChangesAJAX('"+me+"')"); // mozilla and all other good browsers
-                 // } else {
                      els[key]["onclick"] = new Function("return AJAXmarking.saveChangesAJAX('/mod/forum/rate.php', AJAXmarking.main, '"+me+"');"); // IE
-                 // }
+                 
                   window.clearInterval(AJAXmarking.timerVar); // cancel loop for this function
-                  //AJAXmarking.timerVar=self.setInterval('AJAXmarking.afterLoad("/mod/forum/rate.php")', 500); // set loop for next function that will close pop up on location change
+                  
               }
           }
       }
   },
 
+/**
+ * adds onclick stuff to the quiz popup
+ */
   quizOnLoad : function (me) {
       var els = '';
       var lastButOne = '';
@@ -1486,13 +1488,15 @@ AJAXmarking = {
                           els[lastButOne].setAttribute("onClick", "window.opener.AJAXmarking.saveChangesAJAX('/mod/quiz/report.php', AJAXmarking.main, '"+me+"')"); // Mozilla etc.
                   }
                   window.clearInterval(timerVar); // cancel the loop for this function
-                  //setTimeout('AJAXmarking.afterLoad("/mod/quiz/report.php")', 500);
-                  //alert('done');
+                
               }
           }
       }
   },
 
+/**
+ * adds onclick stuff to the journal pop up
+ */
 journalOnLoad :   function (me) {
           var els ='';
   // first, add the onclick if possible
@@ -1502,15 +1506,14 @@ journalOnLoad :   function (me) {
 
                   if (els.length > 0) {
                           var key = els.length -1;
-                          //alert(els[key].value);
+                         
                           if (els[key].value == amVariables.journalSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
 
                                   els[key].setAttribute("onClick", "return AJAXmarking.saveChangesAJAX('/mod/journal/report.php', AJAXmarking.main, '"+me+"')"); // mozilla and all other good browsers
                                   els[key]["onclick"] = new Function("return AJAXmarking.saveChangesAJAX('/mod/journal/report.php', AJAXmarking.main, '"+me+"');"); // IE
-                                  //alert('forum alfter function');
-
+                                
                                   window.clearInterval(timerVar); // cancel loop for this function
-                                  //setTimeout('AJAXmarking.afterLoad("/mod/journal/report.php")', 500); // set loop for next function that will close pop up on location change
+                               
                           }
                   }
           }
@@ -1521,36 +1524,29 @@ journalOnLoad :   function (me) {
    * function that waits till the pop up has a particular location and then shuts it.
    */
 
-  afterLoad : function (loc) { //may be possible to replace this loop with a dom event listener
-        //  if (!AJAXmarking.windowobj.closed) {//prevents this loop from continuing indefinitely if the window is closed manually before grading
+  afterLoad : function (loc) { 
+     
+      if (!AJAXmarking.windowobj.closed) {
 
-                 // window.clearInterval(AJAXmarking.timerVar);
-         // }
-         // alert('closing');
-         //AJAXmarking.windowObj.addEventListener('unload', setTimeout(AJAXmarking.windowObj.close(), 1000));
-         
-          if (!AJAXmarking.windowobj.closed) {
-              //alert(AJAXmarking.windowobj.location.href+' '+amVariables.wwwroot+loc);
-              if (AJAXmarking.windowobj.location.href == amVariables.wwwroot+loc) {
-                  setTimeout('AJAXmarking.windowobj.close()', 1000);
-                  return;
-              }
-              //window.clearInterval(AJAXmarking.timerVar);
-          } else if (AJAXmarking.windowobj.closed) {
-              return;
-          } else {
-              setTimeout(AJAXmarking.afterLoad(loc), 1000);
+          if (AJAXmarking.windowobj.location.href == amVariables.wwwroot+loc) {
+              setTimeout('AJAXmarking.windowobj.close()', 1000);
               return;
           }
-      
+
+      } else if (AJAXmarking.windowobj.closed) {
+          return;
+      } else {
+          setTimeout(AJAXmarking.afterLoad(loc), 1000);
+          return;
+      }
   },
 
 
   /**
    *need to find the size of the window so the dark div is not too small
-   *
+   * obsolete.
    */
-
+/*
   alertSize : function () { //http://www.howtocreate.co.uk/tutorials/javascript/browserwindow
     var  myHeight = 0;
     if( typeof( window.innerWidth ) == 'number' ) {
@@ -1565,26 +1561,20 @@ journalOnLoad :   function (me) {
     }
     return myHeight;
   },
-
-
+*/
+/**
+ * IE seems not to want to expand the block when the tree becomes wider.
+ * This provides a one-time resizing so that it is a bit bigger
+ */
 
    ie_width : function () {
       if (/MSIE (\d+\.\d+);/.test(navigator.userAgent)){
-      //    alert ('width fix');
-        var el = document.getElementById('treediv');
-
-        var width = el.offsetWidth;
-      //  set width of main content div to the same as treediv
-        var contentDiv = el.parentNode;
-        contentDiv.style.width = width;
-
-
-      //  var mainDiv = contentDiv.parentNode;
-        //var col = document.getElementById('right-column');
-      //  var max = contentDiv.offsetWidth;
-       // var currentDiff = width - 150;
-       // col.style.width = colo.style.width + currentDiff;
-        //alert('ie fixed');
+     
+          var el = document.getElementById('treediv');
+          var width = el.offsetWidth;
+          // set width of main content div to the same as treediv
+          var contentDiv = el.parentNode;
+          contentDiv.style.width = width;
       }
   },
 
@@ -1627,7 +1617,7 @@ journalOnLoad :   function (me) {
 
             AJAXmarking.config = new AJAXmarking.AJAXtree('configTree', 'configIcon', 'configStatus', true);
             AJAXmarking.ajaxBuild(AJAXmarking.config);
-            //AJAXmarking.config.icon = document.getElementById('configIcon'); //wasted?
+           
             AJAXmarking.config.icon.setAttribute('class', 'loaderimage');
             AJAXmarking.config.icon.setAttribute('className', 'loaderimage');
 
@@ -1639,83 +1629,71 @@ journalOnLoad :   function (me) {
         }
    },
 
-
-  
-
-
   /**
    * the onclick for the radio buttons in the config screen.
    * if show by group is clicked, the groups thing pops up. If another one is, the groups thing is hidden.
    */
 
   showHideChanges : function(checkbox) {
-          // if its groups, show the groups by getting them from the course node?
-          //alert('showhide fired');
-          var showHide = '';
+      // if its groups, show the groups by getting them from the course node?
 
-          //empty the groups area
-          var groupDiv = document.getElementById('configGroups');
-          while (groupDiv.firstChild) {
-              groupDiv.removeChild(groupDiv.firstChild);
-          }
-         // var children = groupDiv.childNodes.length;
-         // for (a=0;a<children;a++) {
-         //     groupDiv.removeChild(groupDiv.childNodes[a]);
-         // }
+      var showHide = '';
 
-          switch (checkbox.value) {
-                  case 'groups': //need to set the type of this assessment to 'show groups' and get the groups stuff.
-                          //alert('groups');
-                          showHide = 2;
-                          //get the form div to be able to read the values
-                          var form = document.getElementById('configshowform');
+      //empty the groups area
+      var groupDiv = document.getElementById('configGroups');
+      while (groupDiv.firstChild) {
+          groupDiv.removeChild(groupDiv.firstChild);
+      }
 
-                          //config.icon.innerHTML = img;
-                          /*
-                          //check to see if the course node has alredy got the groups info attached
-                          var node = config.tree.getNodeByProperty("assid", form.);
-                          if (typeof(node.data.groups = 'undefined')) { // no group data available, so get it via ajax and store it as part of the course node
-                          */
+      switch (checkbox.value) {
+              case 'groups': //need to set the type of this assessment to 'show groups' and get the groups stuff.
 
-                         // silly IE6 bug fix
-                         for (c=0;c<form.childNodes.length;c++) {
-                             switch (form.childNodes[c].name) {
-                                 case 'course':
-                                     var course = form.childNodes[c].value;
-                                     break;
-                                 case 'assessmenttype':
-                                     var assessmentType = form.childNodes[c].value;
-                                     break;
-                                 case 'assessment':
-                                     var assessment = form.childNodes[c].value;
-                                     break;
-                              }
+                    showHide = 2;
+                    //get the form div to be able to read the values
+                    var form = document.getElementById('configshowform');
+
+                     // silly IE6 bug fix
+                     for (c=0;c<form.childNodes.length;c++) {
+                         switch (form.childNodes[c].name) {
+                             case 'course':
+                                 var course = form.childNodes[c].value;
+                                 break;
+                             case 'assessmenttype':
+                                 var assessmentType = form.childNodes[c].value;
+                                 break;
+                             case 'assessment':
+                                 var assessment = form.childNodes[c].value;
+                                 break;
                           }
-                          var url = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php?id='+course+'&assessmenttype='+assessmentType+'&assessmentid='+assessment+'&type=config_groups&userid='+amVariables.userid+'&showhide='+showHide+'';
-                          var request = YAHOO.util.Connect.asyncRequest('GET', url, AMajaxCallback);
-                          break;
-                  case 'show':
-                          //document.getElementById('configGroups').innerHTML = '';
-                          AJAXmarking.configSet(1);
-                          break;
-                  case 'hide':
-                          //document.getElementById('configGroups').innerHTML = '';
-                          AJAXmarking.configSet(3);
-                          break;
+                      }
+                      var url = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php?id='+course+'&assessmenttype='+assessmentType+'&assessmentid='+assessment+'&type=config_groups&userid='+amVariables.userid+'&showhide='+showHide+'';
+                      var request = YAHOO.util.Connect.asyncRequest('GET', url, AMajaxCallback);
+                      break;
+              case 'show':
 
-          } // end switch
-          AJAXmarking.disableRadio();
+                      AJAXmarking.configSet(1);
+                      break;
+              case 'hide':
+
+                      AJAXmarking.configSet(3);
+                      break;
+
+      } // end switch
+      AJAXmarking.disableRadio();
 
   },
 
 
 
-  // called from the above function to set the showhide value of the config items
+  /**
+   * called from showhidechanges() to set the showhide value of the config items
+   */
+
   configSet : function (showHide) {
           var form = document.getElementById('configshowform');
-          //alert(form.id);
+         
           var len = form.childNodes.length;
-          //alert(document.location);
+        
          // silly hack to fix the way IE6 will not retrieve data from an input added using appendChild using form.assessment.value
           for(b=0; b<len; b++) {
 
@@ -1730,7 +1708,7 @@ journalOnLoad :   function (me) {
               }
           }
           var url = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php?id='+assessmentValue+'&type=config_set&userid='+amVariables.userid+'&assessmenttype='+assessmentType+'&assessmentid='+assessmentValue+'&showhide='+showHide+'';
-          //alert(url);
+         
           var request = YAHOO.util.Connect.asyncRequest('GET', url, AMajaxCallback);
   },
 
@@ -1742,12 +1720,12 @@ journalOnLoad :   function (me) {
           AJAXmarking.removeNodes(document.getElementById('configInstructions'));
         
           AJAXmarking.removeNodes(document.getElementById('configGroups'));
-         // alert('cleared');
+        
           return true;
   },
   removeNodes: function (el) {
       if (el.hasChildNodes()) {
-         // alert('function');
+         
           while (el.hasChildNodes()) {
               el.removeChild(el.firstChild);
           }
@@ -1767,7 +1745,7 @@ journalOnLoad :   function (me) {
             success  : AJAXmarking.AJAXsuccess,
             failure  : AJAXmarking.AJAXfailure,
             argument : 1200
-            //scope    : this
+           
           };
 
 
@@ -1776,7 +1754,7 @@ function AMinit() {
     if ( document.location.toString().indexOf( 'https://' ) != -1 ) {
         amVariables.wwwroot = amVariables.wwwroot.replace('http:', 'https:');
     }
-    //AJAXmarking.imgFunc();
+   
     AJAXmarking.main = new AJAXmarking.AJAXtree('treediv', 'mainIcon', 'status');
     AJAXmarking.ajaxBuild(AJAXmarking.main);
     

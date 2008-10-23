@@ -9,13 +9,19 @@
  */
 
 
-
-  include('../../config.php');
-  
+ 
+  include("../../config.php");
+ 
   // these may not still be needed, but won'r hurt to leave  
-  require_once('../../lib/accesslib.php');
-  require_once('../../lib/dmllib.php'); 
-  require_once('../../lib/moodlelib.php'); 
+  require_once("../../lib/accesslib.php");
+ 
+//echo $CFG->dirroot."/lib/dmllib.php";
+  //if(file_exists($CFG->libdir."/lib/dmllib.php")) {
+      
+      
+  require_once("../../lib/dmllib.php");
+ // }
+  require_once("../../lib/moodlelib.php");
 
   require_login(1, false);
 
@@ -42,6 +48,8 @@ class ajax_marking_functions {
     // constructor retrieves GET data and works out what type of AJAX call has been made before running the correct function
     // TODO: should check capability with $USER here to improve security. currently, this is only checked when making course nodes.
     // TODO: optional_param here rather than isset
+
+        //echo 'start';
         global $CFG;
 
 
@@ -74,7 +82,9 @@ class ajax_marking_functions {
         
 
         $sql                     = "SELECT * FROM {$CFG->prefix}block_ajax_marking WHERE userid = $this->userid";
-        $this->groupconfig       = get_records_sql($sql);
+        //$this->groupconfig = 'lemons';
+        //$this->groupconfig       = get_records_sql($sql) || null;
+        
         
 
         $this->student_ids = '';
@@ -146,6 +156,7 @@ class ajax_marking_functions {
      */
 
     function courses() {
+        //echo 'courses';
         $courses = '';
         $course_ids = NULL;
         global $CFG;
@@ -478,6 +489,7 @@ class ajax_marking_functions {
                   ";
           
             $workshop_submissions = get_records_sql($sql);
+
           
             if ($workshop_submissions) {
                 
@@ -541,7 +553,7 @@ class ajax_marking_functions {
 	function workshop_submissions() {
 	
 	    $workshop = get_record('workshop', 'id', $this->id);
-            $rec2 = get_record('course_modules', 'module', '17', 'instance', $this->id) or die ("get record module error");
+            //$rec2 = get_record('course_modules', 'module', '17', 'instance', $this->id) or die ("get record module error");
                  
             $this->get_course_students($workshop->course);
             global $CFG;
@@ -591,7 +603,7 @@ class ajax_marking_functions {
                         $name = $this->get_fullname($submission->userid);
 
                         // get coursemoduleid
-                        $wid = $rec2->id;
+                        //$wid = $rec2->id;
                         $sid = $submission->id;
 
                         // sort out the time stuff
@@ -604,7 +616,7 @@ class ajax_marking_functions {
                         $this->output .= '{';
                         $this->output .= '"name":"'.$this->clean_name_text($name, 2).'",';
                         $this->output .= '"sid":"'.$sid.'",'; // id of submission for hyperlink - in this case it is the submission id, not the user id
-                        $this->output .= '"aid":"'.$wid.'",'; // id of workshop for hyperlink
+                        $this->output .= '"aid":"'.$this->id.'",'; // id of workshop for hyperlink
                         $this->output .= '"seconds":"'.$seconds.'",'; // seconds sent to allow style to change according to how long it has been
                         $this->output .= '"summary":"'.$this->clean_summary_text($summary).'",';
                         $this->output .= '"type":"workshop_answer",';
@@ -1728,7 +1740,9 @@ class ajax_marking_functions {
 		$this->output = '[{"type":"config_group_save"},{'; 	// begin JSON array
 		
 		$this->make_data();
-		$this->data->groups = $this->groups;
+                if($this->groups) {
+                    $this->data->groups = $this->groups;
+                }
 		if($this->config_write()) {
 			$this->output .= '"value":"true"}]';
 		} else {
@@ -1920,7 +1934,7 @@ class ajax_marking_functions {
          * @return <type>
          */
         function get_groups_settings($assessmenttype, $assessmentid) {
-            if ($this->groupconfig) {
+            if (isset($this->groupconfig)) {
                 foreach($this->groupconfig as $key => $config_row) {
                     if (($config_row->assessmenttype == $assessmenttype) && ($config_row->assessmentid == $assessmentid)) {
                         $config_settings = $config_row;
@@ -2367,7 +2381,7 @@ class ajax_marking_functions {
                  ON
                     qsess.questionid = q.id
               WHERE
-               qa.timefinish > 0
+                   qa.timefinish > 0
               AND qa.preview = 0
               AND c.module = {$this->modules['quiz']->id}
               AND c.visible = 1
