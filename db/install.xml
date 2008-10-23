@@ -12,7 +12,6 @@
         <FIELD NAME="assessmentid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="false" SEQUENCE="false" ENUM="false" COMMENT="id of the assessment (quiz, forum, etc) that this preference refers to" PREVIOUS="assessmenttype" NEXT="showhide"/>
         <FIELD NAME="showhide" TYPE="int" LENGTH="1" NOTNULL="true" UNSIGNED="false" DEFAULT="1" SEQUENCE="false" ENUM="false" COMMENT="should this assessment be shown at all to this user? 0=no 1=yes default to yes" PREVIOUS="assessmentid" NEXT="groups"/>
         <FIELD NAME="groups" TYPE="text" LENGTH="small" NOTNULL="false" SEQUENCE="false" ENUM="false" COMMENT="comma separated list of group ids that should be displayed for this assessment and this user." PREVIOUS="showhide" NEXT="combinedref"/>
-        <FIELD NAME="combinedref" TYPE="char" LENGTH="25" NOTNULL="false" SEQUENCE="false" ENUM="false" COMMENT="combination of a letter code for the type of assignment and the id of that assignment" PREVIOUS="groups"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="primary key of the table, please edit me" NEXT="useridkey"/>

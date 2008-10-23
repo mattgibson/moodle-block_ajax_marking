@@ -13,14 +13,10 @@
   include("../../config.php");
  
   // these may not still be needed, but won'r hurt to leave  
-  require_once("../../lib/accesslib.php");
+  //require_once("../../lib/accesslib.php");
  
-//echo $CFG->dirroot."/lib/dmllib.php";
-  //if(file_exists($CFG->libdir."/lib/dmllib.php")) {
-      
-      
   require_once("../../lib/dmllib.php");
- // }
+ 
   require_once("../../lib/moodlelib.php");
 
   require_login(1, false);
@@ -68,15 +64,18 @@ class ajax_marking_functions {
         $this->combinedref       = optional_param('combinedref', NULL, PARAM_TEXT);
         $this->quiz_diagnostic   = optional_param('quiz_diagnostic', NULL, PARAM_TEXT);
        
-        if ($this->type == 'main' || $this->type == 'config_course' || $this->type == 'config_main' || $this->type == 'course' || $this->type == 'assignment' || $this->type == 'workshop' || $this->type == 'forum' || $this->type == 'quiz_question' || $this->type == 'quiz' || $this->type == 'journal_submissions') {
+        if ($this->type == 'main' || $this->type == 'config_course' ||  $this->type == 'config_main' || $this->type == 'course' || $this->type == 'assignment' || $this->type == 'workshop' || $this->type == 'forum' || $this->type == 'quiz_question' || $this->type == 'quiz' || $this->type == 'journal_submissions') {
             $this->courses           = get_my_courses($this->userid, $sort='fullname', $fields='id', $doanything=false, $limit=0) or die('get my courses error');
             
             if ($this->courses) {
                 $this->make_course_ids_list();
             }
         }
+        if ($this->type == 'main' ||  $this->type == 'course' || $this->type == 'assignment' || $this->type == 'workshop' || $this->type == 'forum' || $this->type == 'quiz_question' || $this->type == 'quiz' || $this->type == 'journal_submissions') {
+        // call this only when needed
+            $this->group_members     = $this->get_my_groups();
+        }
 
-        $this->group_members     = $this->get_my_groups();
         $this->modules           = $this->get_coursemodule_ids();
 
         
@@ -1510,7 +1509,7 @@ class ajax_marking_functions {
                                                                                 // adding the course to the JSON output if any appear
                     $count = 0;
                     $count = $count + $this->count_course_assessments($assignments, $course->id, 'assignment');
-                    $count = $count + $this->count_course_assessments($workshopss, $course->id, 'workshop');
+                    $count = $count + $this->count_course_assessments($workshops, $course->id, 'workshop');
                     $count = $count + $this->count_course_assessments($quizzes, $course->id, 'quiz');
                     $count = $count + $this->count_course_assessments($forums, $course->id, 'forum');
                     $count = $count + $this->count_course_assessments($journals, $course->id, 'journal');
@@ -1692,20 +1691,18 @@ class ajax_marking_functions {
                 $groups = get_records('groups', 'courseid', $courseid);
                 if ($groups) { //there are some groups
 			
-			//if (!$current_settings->groups) // groups have not been set, so we set them to all displayed initially
-			//echo "current_groups: ".$current_groups;	
-			//echo "main groups";
+			
 			foreach($groups as $group) {
                     
                            // make a space separated list for saving if this is the first time
                             if (!$config_settings || !$config_settings->groups) {
                                     $groupslist .= $group->id." ";
-                                    //echo "first time";
+                                    
                             }
                             $this->output .= ',{';
 
                             if ($current_groups) {// do they have a record for which groups to display? if no records yet made, default to display, i.e. box is checked
-                                    //echo "current groups ok";
+                                    
                                     if (in_array($group->id, $current_groups)) { // the group id is in the array of groups that were stored in the db
                                             $this->output .= '"display":"true",';
                                     } else { // it was not set in the db
@@ -1723,7 +1720,7 @@ class ajax_marking_functions {
 			if (!$config_settings || !$config_settings->groups) {
 				// save the groups if this is the first time
 				$this->data->groups = $groupslist;
-                                //echo "saving...".$this->data->groups;
+                              
 				$this->config_write();
 			}
                     
@@ -1777,68 +1774,64 @@ class ajax_marking_functions {
             // maybe nothing was there, so we need a default, i.e. show all.
             if (!$config_settings) {
                 return true;
-                //return $submissions;
-                //echo "no settings found";
-            }
-            // maybe its set to show all
-            if ($config_settings->showhide == 1) {
-                return true;
-               // return $submissions;
-               // echo "set to show all";
-            }
-            // perhaps it is set to hidden
-            if ($config_settings->showhide == 3) {
-                return false;
-                //echo "set to hide";
-            }
+            } else {
+                // maybe its set to show all
+                if ($config_settings->showhide == 1) {
+                    return true;
+                }
+                // perhaps it is set to hidden
+                if ($config_settings->showhide == 3) {
+                    return false;
+                }
 
-            $this->output = '[{"type":"groups"}';
-            $trimmed_groups = trim($config_settings->groups);
-            // assuming an array of ids are passed, along with a space separated list of groups, we need to make both into arrays
-            $groupsarray = explode(" ", $trimmed_groups);
-            //echo "groups array: ".print_r($groupsarray);
-            $csv_groups = implode(',', $groupsarray);
-            $sql = "SELECT id, name, description FROM {$CFG->prefix}groups WHERE id IN ($csv_groups)";
-            $groupdetails = get_records_sql($sql);
-            //print_r($groupdetails);
-            //print_r($groupsarray);
-            //now cycle through each group, plucking out the correct members for each one.
-            //some people may be in 2 groups, so will show up twice. not sure what to do about that. Maybe use groups mode from DB...
-            
-            foreach($groupsarray as $group) {
-           
-                $count = 0;
+                // it must otherwise be set to groups, so we make the groups output and then stop.
+                $this->output = '[{"type":"groups"}';
+                $trimmed_groups = trim($config_settings->groups);
 
-                foreach($submissions as $submission) {
+                // assuming an array of ids are passed, along with a space separated list of groups, we need to make both into arrays
+                $groupsarray = explode(" ", $trimmed_groups);
+                $csv_groups = implode(',', $groupsarray);
+                $sql = "SELECT id, name, description FROM {$CFG->prefix}groups WHERE id IN ($csv_groups)";
+                $groupdetails = get_records_sql($sql);
 
-                    // check against the group members to see if 1. this is the right group and 2. the id is a member    
-                    if ($this->check_group_membership($group, $submission->userid))  {
-                        $count++;
+                //now cycle through each group, plucking out the correct members for each one.
+                //some people may be in 2 groups, so will show up twice. not sure what to do about that. Maybe use groups mode from DB...
+
+                foreach($groupsarray as $group) {
+
+                    $count = 0;
+
+                    foreach($submissions as $submission) {
+
+                        // check against the group members to see if 1. this is the right group and 2. the id is a member
+                        if ($this->check_group_membership($group, $submission->userid))  {
+                            $count++;
+                        }
+                    }
+
+                    if ($groupdetails[$group]->description) {
+                            $summary = $groupobject->description;
+                    } else {
+                            $summary = "no summary";
+                    }
+
+                    if ($count > 0) {
+                        $this->output .= ',';
+                        $this->output .= '{';
+                        $this->output .= '"name":"'.$groupdetails[$group]->name.'",';
+                        $this->output .= '"gid":"'.$group.'",'; // id of submission for hyperlink
+                        $this->output .= '"aid":"'.$assessmentid.'",'; // id of assignment for hyperlink
+                        $this->output .= '"summary":"'.$summary.'",';
+                        $this->output .= '"type":"'.$type.'",';
+                        //$this->output .= '"seconds":"'.$seconds.'",'; // seconds sent to allow style to change according to how long it has been
+                        //$this->output .= '"time":"'.$submission->timemodified.'",'; // send the time of submission for tooltip
+                        $this->output .= '"count":"'.$count.'"';
+                        $this->output .= '}';
                     }
                 }
-
-                if ($groupdetails[$group]->description) {
-                        $summary = $groupobject->description;
-                } else {
-                        $summary = "no summary";
-                }
-
-                if ($count > 0) {
-                    $this->output .= ','; 
-                    $this->output .= '{';
-                    $this->output .= '"name":"'.$groupdetails[$group]->name.'",';
-                    $this->output .= '"gid":"'.$group.'",'; // id of submission for hyperlink
-                    $this->output .= '"aid":"'.$assessmentid.'",'; // id of assignment for hyperlink
-                    $this->output .= '"summary":"'.$summary.'",';
-                    $this->output .= '"type":"'.$type.'",';
-                    //$this->output .= '"seconds":"'.$seconds.'",'; // seconds sent to allow style to change according to how long it has been
-                    //$this->output .= '"time":"'.$submission->timemodified.'",'; // send the time of submission for tooltip
-                    $this->output .= '"count":"'.$count.'"';
-                    $this->output .= '}';
-                }
+                $this->output .= ']';
+                return false;
             }
-            $this->output .= ']';
-            return false;
 	}
 	
         /**
@@ -1846,7 +1839,9 @@ class ajax_marking_functions {
          * is that the pop-up javascript tries to update the underlying page when it's closed,
          * but because we are no on that page when it is called, we get a javascript error because those DOM 
          * elements are missing. This function was to simulate the collapse of all of the table elements
-         * so that they would not need updating. Never worked properly
+         * so that they would not need updating.
+         *
+         * Never worked properly
          */
 	function assignment_expand() {
 			if (!isset($SESSION->flextable)) {
@@ -1890,39 +1885,18 @@ class ajax_marking_functions {
             
             global $CFG;
             $course_ids = NULL;
-            //$context_ids = NULL;
             
             if (!$this->courses) {return false;}
-            
-            //foreach ($this->courses as $course) {
-            //    $course_ids[] = $course->id;
-               // $context_ids[] = $course->context->id;
-            //}
-            
-            //$course_contexts = get_context_instance(CONTEXT_COURSE, $course_ids);
-           // foreach ($course_contexts as $course_context) {
-                
-            //}
-            
-          //  $context_ids = implode($context_ids, ',');
-            
-            //if (!$course_ids) {return false;}
-           // $course_ids = implode($course_ids, ',');
-            
-           // $student_roles = get_field('config','value', 'name', 'gradebookroles');
-            
+   
             $sql = "SELECT gm.* 
                     FROM {$CFG->prefix}groups_members gm
                     INNER JOIN {$CFG->prefix}groups g
                         ON gm.groupid = g.id
-                   
                     WHERE g.courseid IN ($this->course_ids)
-              
-
             ";
-            //echo $sql;
+        
             $group_members = get_records_sql($sql);
-           // print_r($group_members);
+          
             return $group_members;
         }
         
@@ -2120,6 +2094,8 @@ class ajax_marking_functions {
         }
      
         foreach ($submissions as $submission) {
+
+            $check = NULL;
 
             // Is this assignment attached to this course?
             if(!($submission->course == $course))                {continue;}
@@ -2549,7 +2525,7 @@ class ajax_marking_functions {
                 continue;
             }
             if ($assessment->course == $course) {
-                $this->make_assessment_node($assessment->name, $assessment->id, $assessment->cmid, $assessment->summary, $type);
+                $this->make_assessment_node($assessment->name, $assessment->id, $assessment->cmid, $assessment->summary, $type, NULL);
                 
             }
         }

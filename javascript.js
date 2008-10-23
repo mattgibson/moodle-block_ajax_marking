@@ -925,6 +925,7 @@ AJAXmarking = {
           var tmpNode4 = '';
           var label = '';
 
+
           for (var n =0; n<arrayLength; n++) {
 
               uniqueId = 'group'+responseArray[n].gid+'';
@@ -1609,7 +1610,7 @@ journalOnLoad :   function (me) {
 
             AJAXmarking.greyOut.beforeHideEvent.subscribe(function() {
                  AJAXmarking.refreshTree(AJAXmarking.main);
-              });
+            });
            
             AJAXmarking.greyOut.render(document.body);
 
