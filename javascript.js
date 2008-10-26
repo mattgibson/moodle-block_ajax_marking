@@ -208,70 +208,60 @@ AJAXmarking = {
      */
 
      makeCourseNodes : function(nodesArray, tree) {
-                 // alert('make');
-                 // var nodesLeng = null;
+                   
                   var label = '';
-                 //alert(typeof(AJAXmarking.main.tree.tree));
-          /// make the array of nodes
+                
+                  // make the array of nodes
                   var nodesLeng = nodesArray.length;
 
                   if (nodesLeng === 0) { // the array is empty, so say there is nothing to mark
-                          if (tree.treeDiv === 'treediv') {
-                                  label = document.createTextNode(amVariables.configNothingString);
-                                  
-                                  //tree.div.innerHTML = ;
-                                  //tree.icon.innerHTML = '';
+                        if (tree.treeDiv === 'treediv') {
+                            label = document.createTextNode(amVariables.configNothingString);
+                        } else {
+                            label = document.createTextNode(amVariables.nothingString);
+                        }
+                        tree.div.appendChild(label);
+                        tree.icon.removeAttribute('class', 'loaderimage');
+                        tree.icon.removeAttribute('className', 'loaderimage');
+                  } else { // there is a tree to be drawn
 
+                      // cycle through the array and make the nodes
+                      var i = 0;
+                      for (n=0;n<nodesLeng;n++) {
+                          if (tree.treeDiv === 'treediv') { //only show the marking totals if its not a config tree
+                                  label = nodesArray[n].name+' ('+nodesArray[n].count+')';
                           } else {
-                              label = document.createTextNode(amVariables.nothingString);
-                                 // tree.div.innerHTML = amVariables.nothingString;
-                                 // tree.icon.innerHTML = '';
+                                  label = nodesArray[n].name;
                           }
-                          tree.div.appendChild(label);
-                          tree.icon.removeAttribute('class', 'loaderimage');
-                          tree.icon.removeAttribute('className', 'loaderimage');
-                          //AJAXmarking.removeNodes(tree.icon);
-                  }
-                  else { // there is a tree to be drawn
+                          var myobj = { label: ''+label+'',
+                                        id:''+nodesArray[n].id+'',
+                                        type:''+nodesArray[n].type+'',
+                                        count:''+nodesArray[n].count+'',
+                                        cmid:''+nodesArray[n].cmid+'',
+                                        uniqueId:''+nodesArray[n].cid+'',
+                                        name:''+nodesArray[n].name+'',
+                                        summary:''+nodesArray[n].summary+'',
+                                        title:''+nodesArray[n].summary
+                          };
 
-          /// cycle through the array and make the nodes
-                         var i = 0;
-                          for (n=0;n<nodesLeng;n++) {
-                                  if (!this.config) { //only show the marking totals if its not a config tree
-                                          label = nodesArray[n].name+' ('+nodesArray[n].count+')';
-                                  } else {
-                                          label = nodesArray[n].name;
-                                  }
-                                  var myobj = { label: ''+label+'',
-                                                id:''+nodesArray[n].id+'',
-                                                type:''+nodesArray[n].type+'',
-                                                count:''+nodesArray[n].count+'',
-                                                cid:''+nodesArray[n].cid+'',
-                                                uniqueId:''+nodesArray[n].cid+'',
-                                                name:''+nodesArray[n].name+'',
-                                                summary:''+nodesArray[n].summary+'',
-                                                title:''+nodesArray[n].summary
-
-                                              };
-
-                                  var tmpNode1 = new YAHOO.widget.TextNode(myobj, tree.root, false);
-                                  tmpNode1.labelStyle = 'icon-course';
-                                  tmpNode1.setDynamicLoad(AJAXmarking.loadNodeData);
-                          }
+                          var tmpNode1 = new YAHOO.widget.TextNode(myobj, tree.root, false);
+                          tmpNode1.labelStyle = 'icon-course';
+                          tmpNode1.setDynamicLoad(AJAXmarking.loadNodeData);
+                       }
 
           /// now make the tree, add the total at the top and remove the loading icon
 
-                            // alert('pre-render');
-                          tree.tree.render();
-                         // tree.icon.innerHTML = '';
+                       
+                         tree.tree.render();
+                       
                          tree.icon.removeAttribute('class', 'loaderimage');
                          tree.icon.removeAttribute('className', 'loaderimage');
-                          //AJAXmarking.removeNodes(tree.icon);
+                         
                           
                   // add click events
 
                           if (tree.treeDiv == 'treediv') {
-
+                              
                               //document.getElementById('totalmessage').innerHTML = amVariables.totalMessage+':&nbsp;';
                               label = document.createTextNode(amVariables.totalMessage);
                               var total = document.getElementById('totalmessage')
@@ -281,7 +271,7 @@ AJAXmarking = {
 
 
                               tree.tree.subscribe("clickEvent", function(oArgs) {
-                               //  alert('clicked');
+                        
                                 // ref saves space
                                 var nd = oArgs.node;
 
@@ -317,10 +307,10 @@ AJAXmarking = {
                                           timerFunction = 'AJAXmarking.forumOnLoad(\''+nd.data.id+'\')';
                                       break;
 
-                                   case 'journal_submission':
+                                   case 'journal':
 
-                                         popUpAddress += '/mod/journal/report.php?id='+nd.data.id+'';
-                                         timerFunction = 'AJAXmarking.journalOnload(\''+nd.data.assid+'\', \''+nd.parent.data.cid+'\')';
+                                         popUpAddress += '/mod/journal/report.php?id='+nd.data.cmid+'';
+                                         timerFunction = 'AJAXmarking.journalOnLoad(\''+nd.data.assid+'\', \''+nd.parent.data.cmid+'\')';
                                       break;
                                    } //end switch
 
@@ -747,6 +737,7 @@ AJAXmarking = {
                                     id       : ''+nodesArray[m].id+'',
                                     type     : ''+nodesArray[m].type+'',
                                     assid    : ''+nodesArray[m].assid+'',
+                                    cmid     : ''+nodesArray[m].cmid+'',
                                     uniqueId : ''+nodesArray[m].assid+'',
                                     count    : ''+nodesArray[m].count+'',
                                     name     : ''+nodesArray[m].name+'',
@@ -1023,21 +1014,24 @@ AJAXmarking = {
 
 
 
-          //////////////////////////////////////////////////////////////////////////////////
-          // function to update the total marking count by a specified number and display it
-          //////////////////////////////////////////////////////////////////////////////////
+          /**
+           * function to update the total marking count by a specified number and display it
+           */
+          
 
           updateTotal : function() {
-                  //alert('update');
+                  
                   var count = 0;
                   var countTemp = 0;
-                  //alert('upadtetotal root');
-                  var childrenLength = AJAXmarking.main.root.children;
-
-                  for (i=0;i<childrenLength.length;i++) {
-                          countTemp = childrenLength[i].data.count;
+                  //alert('updatetotal root');
+                  var children = AJAXmarking.main.root.children;
+//alert(childrenLength);
+                  for (i=0;i<children.length;i++) {
+                          countTemp = children[i].data.count;
                           count = count + parseInt(countTemp, 10);
+
                   }
+                  //alert(count);
                   if (count > 0) {
                       var countDiv = document.getElementById('count');
                       AJAXmarking.removeNodes(countDiv);
@@ -1423,11 +1417,11 @@ AJAXmarking = {
 
  workshopOnLoad : function (me, parent, course) {
           var els ='';
-          if (typeof(windowobj.frames[0]) != 'undefined') { //check that the frames are loaded - this can vary according to conditions
-              if (windowobj.frames[0].location.href != amVariables.wwwroot+'/mod/workshop/assessments.php') {
+          if (typeof(AJAXmarking.windowobj.frames[0]) != 'undefined') { //check that the frames are loaded - this can vary according to conditions
+              if (AJAXmarking.windowobj.frames[0].location.href != amVariables.wwwroot+'/mod/workshop/assessments.php') {
               // this is the early stage, pop up has loaded and grading is occurring
                       // annoyingly, the workshop module has not named its submit button, so we have to get it using another method as the 11th input
-                          els = windowobj.frames[0].document.getElementsByTagName('input');
+                          els = AJAXmarking.windowobj.frames[0].document.getElementsByTagName('input');
                           if (els.length == 11) {
                                   els[10]["onclick"] = new Function("AJAXmarking.saveChangesAJAX('/mod/workshop/assessments.php', AJAXmarking.main, '"+me+"', true);"); // IE
                                 
@@ -1447,7 +1441,7 @@ AJAXmarking = {
   forumOnLoad : function (me) {
       var els ='';
       var name = navigator.appName;
-  // first, add the onclick if possible
+      // first, add the onclick if possible
       if (typeof(AJAXmarking.windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
           els = AJAXmarking.windowobj.document.getElementsByTagName('input');
 
@@ -1488,7 +1482,7 @@ AJAXmarking = {
                   } else {
                           els[lastButOne].setAttribute("onClick", "window.opener.AJAXmarking.saveChangesAJAX('/mod/quiz/report.php', AJAXmarking.main, '"+me+"')"); // Mozilla etc.
                   }
-                  window.clearInterval(timerVar); // cancel the loop for this function
+                  window.clearInterval(AJAXmarking.timerVar); // cancel the loop for this function
                 
               }
           }
@@ -1496,33 +1490,36 @@ AJAXmarking = {
   },
 
 /**
- * adds onclick stuff to the journal pop up
+ * adds onclick stuff to the journal pop up elements once they are ready
  */
 journalOnLoad :   function (me) {
-          var els ='';
-  // first, add the onclick if possible
-          if (typeof(AJAXmarking.windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
+      var els ='';
+      // first, add the onclick if possible
+      if (typeof(AJAXmarking.windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
 
-                  els = AJAXmarking.windowobj.document.getElementsByTagName('input');
+          els = AJAXmarking.windowobj.document.getElementsByTagName('input');
 
-                  if (els.length > 0) {
-                          var key = els.length -1;
-                         
-                          if (els[key].value == amVariables.journalSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
+          if (els.length > 0) {
+               
+              var key = els.length -1;
+              
+              if (els[key].value == amVariables.journalSaveString) { // does the last input have the 'send in my ratings' string as label, showing that all the rating are loaded?
+                  
+                  els[key].setAttribute("onClick", "return AJAXmarking.saveChangesAJAX('/mod/journal/report.php', AJAXmarking.main, '"+me+"')"); // mozilla and all other good browsers
+                  
+                  els[key]["onclick"] = new Function("return AJAXmarking.saveChangesAJAX('/mod/journal/report.php', AJAXmarking.main, '"+me+"');"); // IE
 
-                                  els[key].setAttribute("onClick", "return AJAXmarking.saveChangesAJAX('/mod/journal/report.php', AJAXmarking.main, '"+me+"')"); // mozilla and all other good browsers
-                                  els[key]["onclick"] = new Function("return AJAXmarking.saveChangesAJAX('/mod/journal/report.php', AJAXmarking.main, '"+me+"');"); // IE
-                                
-                                  window.clearInterval(timerVar); // cancel loop for this function
-                               
-                          }
-                  }
+                  window.clearInterval(AJAXmarking.timerVar); // cancel loop for this function
+
+              }
           }
+      }
   },
 
 
   /**
-   * function that waits till the pop up has a particular location and then shuts it.
+   * function that waits till the pop up has a particular location,
+   * i.e. the one it gets to when the data has been saved, and then shuts it.
    */
 
   afterLoad : function (loc) { 

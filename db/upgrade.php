@@ -36,12 +36,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         $result = $result && create_table($table);
     }
 
-    if ($result && $oldversion < 2008102202) { //New version in version.php
-
-        // no longer needed
-        $result = result && drop_field('block_ajax_marking', 'combinedref');
-
-    }
+  
 
 
     return $result;

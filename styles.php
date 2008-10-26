@@ -4,15 +4,11 @@
         global $CFG;
         if ($type=='mod') {
             $icon_name_mod = '/theme/'.$CFG->theme.'/pix/'.$icon_name;
-            $filename = $CFG->dirroot.$icon_name_mod;
         } else {
             $icon_name_mod = '/theme/'.$CFG->theme.'/'.$icon_name;
-            $filename = $CFG->dirroot.$icon_name_mod;
         }
-        if (file_exists($filename)) {
-            
-                echo $icon_name_mod;
-           
+        if (file_exists($CFG->dirroot.$icon_name_mod)) {
+            echo $CFG->wwwroot.$icon_name_mod;
         } else {
             echo  '/'.$icon_name;
         }
@@ -20,7 +16,7 @@
 ?>
 .icon-course, .icon-assign, .icon-workshop, .icon-forum, .icon-quiz, .icon-question, .icon-journal, .icon-group {
   padding-left: 20px;
-  padding-bottom: 3px;
+  padding-bottom: 0px;
   background-repeat: no-repeat;
   
   background-color: transparent;
@@ -31,6 +27,7 @@
 }
 .icon-course {
   background-image: url(<?php icon_check('pix/i/course.gif'); ?>);
+  padding-left: 17px;
 }
 .icon-assign {
   background-image: url(<?php icon_check('mod/assignment/icon.gif', 'mod') ?>);
@@ -76,35 +73,27 @@
   margin: 0;
 }
 .icon-user-one {
- 
   background-color: #ccffcc; 
 }
 .icon-user-two  {
- 
   background-color: #ccffcc;
 }
 .icon-user-three  {
-
   background-color: #EEE5AA;
 }
 .icon-user-four  {
-
   background-color: #EEE5AA;
 }
 .icon-user-five  {
-
   background-color: #EECAB3;
 }
 .icon-user-six  {
-
   background-color: #EECAB3;
 }
 .icon-user-seven  {
-  
   background-color: #ffb0bb;
 }
 .icon-user-eight  {
- 
   background-color: #ffb0bb;
 }
 #loader {
@@ -120,7 +109,7 @@
   display: none;
 }
 <?php
-// include '../../lib/yui/treeview/assets/tree.css';
+ //include '../../lib/yui/treeview/assets/skins/sam/treeview.css';
 //include '../../lib/yui/container/assets/container.css';
 ?>
 
@@ -149,9 +138,7 @@
 #mainIcon {
   float: left;
   margin-left: 8px;
-  
 }
-
 
 /*
 Copyright (c) 2007, Yahoo! Inc. All rights reserved.
@@ -164,74 +151,70 @@ version: 2.3.0
 /* first or middle sibling, no children */
 .ygtvtn {
 	width:18px; height:22px; 
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -5600px no-repeat; 
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -5600px no-repeat;
 }
 /* first or middle sibling, collapsable */
 .ygtvtm {
 	width:18px; height:22px; 
-	cursor:pointer ;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -4000px no-repeat; 
+	cursor:pointer;
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -4000px no-repeat;
 }
 /* first or middle sibling, collapsable, hover */
 .ygtvtmh {
 	width:18px; height:22px; 
-	cursor:pointer ;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -4800px no-repeat; 
+	cursor:pointer;
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -4800px no-repeat;
 }
 /* first or middle sibling, expandable */
 .ygtvtp {
 	width:18px; height:22px; 
-	cursor:pointer ;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -6400px no-repeat; 
+	cursor:pointer;
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -6400px no-repeat;
 }
 /* first or middle sibling, expandable, hover */
 .ygtvtph {
 	width:18px; height:22px; 
-	cursor:pointer ;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -7200px no-repeat; 
+	cursor:pointer;
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -7200px no-repeat;
 }
 /* last sibling, no children */
 .ygtvln {
 	width:18px; height:22px; 
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -1600px no-repeat; 
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -1600px no-repeat;
 }
 /* Last sibling, collapsable */
 .ygtvlm {
 	width:18px; height:22px; 
-	cursor:pointer ;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 0px no-repeat; 
+	cursor:pointer;
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 0px no-repeat;
 }
 /* Last sibling, collapsable, hover */
 .ygtvlmh {
 	width:18px; height:22px; 
-	cursor:pointer ;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -800px no-repeat; 
+	cursor:pointer;
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -800px no-repeat;
 }
-
 /* Last sibling, expandable */
 .ygtvlp { 
 	width:18px; height:22px; 
-	cursor:pointer ;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -2400px no-repeat; 
+	cursor:pointer;
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -2400px no-repeat;
 }
 /* Last sibling, expandable, hover */
 .ygtvlph { 
 	width:18px; height:22px; cursor:pointer ;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -3200px no-repeat; 
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -3200px no-repeat;
 }
 /* Loading icon */
 .ygtvloading { 
 	width:18px; height:22px; 
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>treeview-loading.gif) 0 0 no-repeat; 
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-loading.gif) 0 0 no-repeat;
 }
 /* the style for the empty cells that are used for rendering the depth 
  * of the node */
 .ygtvdepthcell { 
 	width:18px; height:22px;
-        
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/" ?>sprite-orig.gif) 0 -8000px no-repeat;
-        
-        
+	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -8000px no-repeat;
 }
 
 .ygtvblankdepthcell { width:18px; height:22px; }
@@ -245,15 +228,15 @@ version: 2.3.0
 
 /* the style of the text label in ygTextNode */
 .ygtvlabel, .ygtvlabel:link, .ygtvlabel:visited, .ygtvlabel:hover { 
-	margin-left:2px;
-	text-decoration: none;
-        
+    margin-left:2px;
+    text-decoration: none;
     background-color: white; /* workaround for IE font smoothing bug */
-   
-    
 }
 
-.ygtvspacer { height: 22px; width: 18px; }
+.ygtvspacer {
+  height: 22px;
+  width: 18px;
+}
 
 .ygtvloading + td, .ygtvlp + td, .ygtvlph + td, .ygtvtp + td, .ygtvtph + td, .ygtvtm + td, .ygtvtmh + td, .ygtvlm + td, .ygtvlmh + td {
   vertical-align:top;
@@ -326,8 +309,6 @@ version: 2.3.0
   overflow-y: scroll;
   font:10pt tahoma;
   background-color: transparent;
- 
-
 }
 #configSettings {
   float:left;
@@ -335,23 +316,15 @@ version: 2.3.0
   padding-left: 10px;
   font:10pt tahoma;
 }
-
 #configGroups {
   float:right;
   width:190px;
   background-color: transparent;
 }
 #configIcon {
-  
   position: relative;
-  /*
-  top: 0px;
-  right: 200px;
-  */
   line-height: 0pt;
   width: 35px;
-  
-
 }
 .AMhidden {
   display: none;
@@ -370,7 +343,6 @@ div.block_ajax_marking div.footer {
 /*
 stuff from the container.css file, cleaned up to make it validate
 */
-
 
 .yui-tt {
     visibility: hidden;

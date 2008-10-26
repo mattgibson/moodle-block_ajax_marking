@@ -8,42 +8,27 @@
  * Released under terms of the GPL v 3.0
  */
 
-
- 
-  include("../../config.php");
- 
-  // these may not still be needed, but won'r hurt to leave  
-  //require_once("../../lib/accesslib.php");
- 
-  require_once("../../lib/dmllib.php");
- 
-  require_once("../../lib/moodlelib.php");
-
-  require_login(1, false);
-
-  
-
-////////////////////////////////////////////////////////
-// info from GET is
-// id: (user id, course id, assignment id)
-// type of request: (courses, assignments, submissions)
-// parent = node that this is to be appended to
-////////////////////////////////////////////////////////
+include("../../config.php");
+require_login(1, false);
 
 
-
+/**
+ * All of the functions for the AJAX marking block are contained within this class. Its is instantiated as an object
+ * each time a request is made, then automatically runs and outputs based on the post data provided.
+ * Output is in JSON format, ready to be parsed into object form by eval() in the javascript callback object
+ */
 class ajax_marking_functions {
 
 
     /**
-     * Thsi function takes the input makes variables out of it, then chooses the correct function to deal with the request,
-     * before printing the output.
+     * This function takes the POST data, makes variables out of it, then chooses the correct function to
+     * deal with the request, before printing the output.
      * @global <type> $CFG
      */
     function ajax_marking_functions() {
     // constructor retrieves GET data and works out what type of AJAX call has been made before running the correct function
     // TODO: should check capability with $USER here to improve security. currently, this is only checked when making course nodes.
-    // TODO: optional_param here rather than isset
+  
 
         //echo 'start';
         global $CFG;
@@ -51,6 +36,9 @@ class ajax_marking_functions {
 
         $this->output            = '';
         $this->config            = NULL;
+        $this->student_ids       = '';
+        $this->student_array     = '';
+        $this->student_details   = '';
 
         $this->type              = required_param('type', PARAM_TEXT); // refers to the part being built
         $this->id                = optional_param('id', NULL, PARAM_INT);
@@ -61,89 +49,176 @@ class ajax_marking_functions {
         $this->assessmentid      = optional_param('assessmentid', NULL, PARAM_INT);
         $this->showhide          = optional_param('showhide', NULL, PARAM_INT);
         $this->group             = optional_param('group', NULL, PARAM_TEXT);
-        $this->combinedref       = optional_param('combinedref', NULL, PARAM_TEXT);
-        $this->quiz_diagnostic   = optional_param('quiz_diagnostic', NULL, PARAM_TEXT);
-       
-        if ($this->type == 'main' || $this->type == 'config_course' ||  $this->type == 'config_main' || $this->type == 'course' || $this->type == 'assignment' || $this->type == 'workshop' || $this->type == 'forum' || $this->type == 'quiz_question' || $this->type == 'quiz' || $this->type == 'journal_submissions') {
+        $this->courseid          = optional_param('courseid', NULL, PARAM_TEXT);
+        
+        // call expensive queries only when needed
+        if ($this->type == 'quiz_diagnostic' || $this->type == 'main' || $this->type == 'config_course' ||  $this->type == 'config_main' || $this->type == 'course' || $this->type == 'assignment' || $this->type == 'workshop' || $this->type == 'forum' || $this->type == 'quiz_question' || $this->type == 'quiz' || $this->type == 'journal_submissions') {
             $this->courses           = get_my_courses($this->userid, $sort='fullname', $fields='id', $doanything=false, $limit=0) or die('get my courses error');
-            
             if ($this->courses) {
                 $this->make_course_ids_list();
             }
         }
         if ($this->type == 'main' ||  $this->type == 'course' || $this->type == 'assignment' || $this->type == 'workshop' || $this->type == 'forum' || $this->type == 'quiz_question' || $this->type == 'quiz' || $this->type == 'journal_submissions') {
-        // call this only when needed
             $this->group_members     = $this->get_my_groups();
         }
 
         $this->modules           = $this->get_coursemodule_ids();
 
-        
-
         $sql                     = "SELECT * FROM {$CFG->prefix}block_ajax_marking WHERE userid = $this->userid";
-        //$this->groupconfig = 'lemons';
-        //$this->groupconfig       = get_records_sql($sql) || null;
-        
-        
+        $this->groupconfig       = get_records_sql($sql);
 
-        $this->student_ids = '';
-        $this->student_array = '';
-        $this->student_details = '';
-
-
-        if ($this->type == "main") {
+        switch ($this->type) {
+        case "main":
            $this->courses();
+           break;
 
-        } elseif ($this->type == "config_main") {
+       case "config_main":
             $this->config = true;
             $this->config_courses();
+            break;
 
-        } elseif ($this->type == "course") {
+        case "course":
             $this->get_course_students($this->id); // we must make sure we only get work from enrolled students
 
-            $this->output = '[{"type":"'.$this->type.'"}'; // begin JSON array
-            $this->assignments();
-            $this->journals();
-            $this->workshops();
-            $this->forums();
+            $this->output = '[{"type":"course"}'; // begin JSON array
+            $sql = "SELECT s.id as subid, s.userid, a.id, a.name, a.description, c.id as cmid  FROM
+                        {$CFG->prefix}assignment a
+                    INNER JOIN {$CFG->prefix}course_modules c
+                         ON a.id = c.instance
+                    LEFT JOIN {$CFG->prefix}assignment_submissions s
+                         ON s.assignment = a.id
+                    WHERE c.module = {$this->modules['assignment']->id}
+                    AND c.visible = 1
+                    AND a.course = $this->id
+                    AND s.timemarked < s.timemodified
+                    AND NOT (a.resubmit = 0 AND s.timemarked > 0)
+                    AND s.userid IN($this->student_ids)
+                    ORDER BY a.id
+                  ";
+            $this->course_assessments($sql, 'assignment');
+            $sql = "
+                    SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified, j.id, c.id as cmid
+                    FROM {$CFG->prefix}journal_entries je
+                    INNER JOIN {$CFG->prefix}journal j
+                       ON je.journal = j.id
+                    INNER JOIN {$CFG->prefix}course_modules c
+                             ON j.id = c.instance
+                    WHERE c.module = {$this->modules['journal']->id}
+                    AND c.visible = 1
+                    AND j.assessed <> 0
+                    AND je.modified > je.timemarked
+                    AND je.userid IN($this->student_ids)
+                    AND j.course = $this->id
+                   ";
+            $this->course_assessments($sql, 'journal');
+            $sql = "SELECT s.id as submissionid, s.userid, w.id, w.name, w.course, w.description, c.id as cmid
+                    FROM
+                       ( {$CFG->prefix}workshop w
+                    INNER JOIN {$CFG->prefix}course_modules c
+                         ON w.id = c.instance)
+                    LEFT JOIN {$CFG->prefix}workshop_submissions s
+                         ON s.workshopid = w.id
+                    LEFT JOIN {$CFG->prefix}workshop_assessments a
+                    ON (s.id = a.submissionid)
+                    WHERE (a.userid != {$this->userid}
+                      OR (a.userid = {$this->userid}
+                            AND a.grade = -1))
+                    AND c.module = {$this->modules['workshop']->id}
+                    AND c.visible = 1
+                    AND w.course = $this->id
+                    AND s.userid IN ($this->student_ids)
+                    ORDER BY w.id
+                  ";
+            $this->course_assessments($sql, 'workshop');
+            $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.type, f.id, f.name, f.intro as description, c.id as cmid
+                        FROM
+                            {$CFG->prefix}forum f
+                        INNER JOIN {$CFG->prefix}course_modules c
+                             ON f.id = c.instance
+                        INNER JOIN {$CFG->prefix}forum_discussions d
+                             ON d.forum = f.id
+                        INNER JOIN {$CFG->prefix}forum_posts p
+                             ON p.discussion = d.id
+                        LEFT JOIN {$CFG->prefix}forum_ratings r
+                             ON  p.id = r.post
+                        WHERE p.userid <> $this->userid
+                            AND p.userid IN ($this->student_ids)
+                            AND (r.userid <> $this->userid OR r.userid IS NULL)
+                            AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
+                            AND c.module = {$this->modules['forum']->id}
+                            AND c.visible = 1
+                            AND f.course = $this->id
+                            AND f.assessed > 0
+                        ORDER BY f.id
+                  ";
+            $this->course_assessments($sql, 'forum');
             $this->quizzes();
+
             $this->output .= "]"; // end JSON array
+            break;
 
-
-        } elseif ($this->type == "config_course") {
+        case "config_course":
             $this->get_course_students($this->id); // we must make sure we only get work from enrolled students
 
             $this->config = true;
-            $this->output = '[{"type":"'.$this->type.'"}'; // begin JSON array
+            $this->output = '[{"type":"config_course"}'; // begin JSON array
           
             $this->config_assessments($this->id, 'assignment');
             $this->config_assessments($this->id, 'journal');
             $this->config_assessments($this->id, 'workshop');
             $this->config_assessments($this->id, 'forum');
             $this->config_assessments($this->id, 'quiz');
-            $this->output .= "]"; // end JSON array
 
-        } elseif ($this->type == "assignment") {
+            $this->output .= "]"; // end JSON array
+            break;
+
+        case "assignment":
             $this->assignment_submissions();
-        } elseif ($this->type == "workshop") {
+            break;
+
+        case "workshop":
             $this->workshop_submissions();
-        } elseif ($this->type == "forum") {
+            break;
+
+        case "forum":
             $this->forum_submissions();
-        } elseif ($this->type == "quiz_question") {
+            break;
+
+        case "quiz_question":
             $this->quiz_submissions();
-        } elseif ($this->type == "quiz") {
+            break;
+
+        case "quiz":
             $this->quiz_questions();
-        } elseif ($this->type == "journal_submissions") {
+            break;
+
+        case "journal_submissions":
             $this->journal_submissions();
-        } elseif ($this->type == "config_groups") {
+            break;
+
+        case "config_groups":
             $this->config_groups();
-        } elseif ($this->type == "config_set") {
+            break;
+
+        case "config_set":
             $this->config_set();
-        } elseif ($this->type == "config_check") {
+            break;
+
+        case "config_check":
             $this->config_check();
-        } elseif ($this->type == "config_group_save") {
+            break;
+
+        case "config_group_save":
             $this->config_group_save();
-        }
+            break;
+
+        case 'quiz_diagnostic':
+            $this->get_course_students($this->id);
+            $this->quizzes();
+            break;
+
+        } // end switch
+
         print_r($this->output);
     }	
 
@@ -163,22 +238,21 @@ class ajax_marking_functions {
         // admins will have a problem as they will see all the courses on the entire site
         // TODO - this has big issues around language. role names will not be the same in diffferent translations.
 
-        //$ne_teacher_role=get_field('role','id','shortname','teacher'); // retrieve the non-editing teacher role id (4)
-
+       
         // begin JSON array
         $this->output = '[{"type":"main"}';
+        
          
-        // get all unmarked assignment_submissions for all courses
+        // get all unmarked submissions for all courses, so they can be sorted out later
+
         if (array_key_exists("assignment", $this->modules)) {
              $assignment_submissions = $this->get_all_unmarked_assignments();
         }
 
-        // get all unmarked workshops
         if (array_key_exists("workshop", $this->modules)) {
             $workshop_submissions = $this->get_all_unmarked_workshops();
         }
 
-        // forums
         if (array_key_exists("forum", $this->modules)) {
             $forum_submissions = $this->get_all_unmarked_forums();
         }
@@ -195,10 +269,11 @@ class ajax_marking_functions {
         // adding the course to the JSON output if any appear
         foreach ($this->courses as $course) {	                                                        
         
-            $count = 0;             // set assessments counter to 0	
+            $count = 0;             // set course assessments counter to 0
 
             // we must make sure we only get work from enrolled students
-            $this->get_course_students($course->id); if (!$this->student_ids) {
+            $this->get_course_students($course->id);
+            if (!$this->student_ids) {
                 continue;
             }
 
@@ -236,6 +311,7 @@ class ajax_marking_functions {
                 $this->output .= '{';
               
                 $this->output .= '"id":"'.$cid.'",';
+
                 if ($this->type == "config_main") {
                         $this->output .= '"type":"config_course",';
                         $this->output .= '"name":"'.$this->clean_name_text($course->shortname, -1).'",';
@@ -253,6 +329,115 @@ class ajax_marking_functions {
         $this->output .= "]"; //end JSON array
     } // end function
 
+
+    /**
+     * This function will check through all of the assessments of a particular type for a particular course
+     * and return the nodes for a course of the main tree
+     * @global <type> $CFG
+     * @global <type> $SESSION
+     * @param <type> $sql
+     * @param <string> $type The type of assessment we are dealing with e.g. 'assignment'. Never plurals
+     */
+    function course_assessments($sql, $type) {
+
+            global $CFG, $SESSION;
+
+            // the assignment pop up thinks it was called from the table of assignment submissions, so to avoid javascript errors,
+            // we need to set the $SESSION variable to think that all the columns in the table are collapsed so no javascript is generated
+            // to try to update them.
+
+            $assessment_submissions = get_records_sql($sql, $type);
+
+            if ($assessment_submissions) {
+
+                // we need all the assignment ids for the loop, so we make an array of them
+                $assessments = $this->list_assessment_ids($assessment_submissions);
+
+                // each type has a different capability to check for. Might be better to feed this in as a parameter
+                // as it will make for a more felxible approach in future
+                switch ($type) {
+
+                    case 'assignment':
+                        $cap = 'mod/assignment:grade';
+                        break;
+
+                    case 'forum':
+                        $cap = 'mod/forum:viewhiddentimedposts';
+                        break;
+
+                    case 'workshop':
+                        $cap = 'mod/workshop:manage';
+                        break;
+
+                    case 'quiz':
+                        $cap = 'mod/quiz:grade';
+                        break;
+
+                    case 'journal':
+                        $cap = 'mod/assignment:grade';
+                        break;
+                }
+
+                foreach ($assessments as $assessment) {
+
+                    // counter for number of unmarked submissions
+                    $count = 0;
+
+                    // permission to grade?
+                    $modulecontext = get_context_instance(CONTEXT_MODULE, $assessment->cmid);
+                    if (!has_capability($cap, $modulecontext, $this->userid)) {continue;}
+
+                    if(!$this->config) { //we are making the main block tree, not the configuration tree
+
+                        // has this assignment been set to invisible in the config settings?
+                        $check = $this->get_groups_settings($type, $assessment->id);
+                        if ($check) {
+                            if ($check->showhide == 3) {
+                                continue;
+                            }
+
+                        }
+
+                        // If the submission is for this assignment and group settings are 'display all', or 'display by groups' and
+                        // the user is a group member of one of them, count it.
+                        foreach($assessment_submissions as $assessment_submission) {
+                            if ($assessment_submission->id == $assessment->id) {
+                                if (!isset($assessment_submission->userid)) {
+                                    continue;
+                                }
+                                if ((!$check) || ($check && ($check->showhide == 2) && $this->check_group_membership($check->groups, $assessment_submission->userid)) || ($check->showhide == 1)) {
+                                    $count++;
+                                }
+                            }
+                        }
+
+                        // if there are no unmarked assignments, just skip this one. Important not to skip
+                        // it in the SQL as config tree needs all assignments
+                        if ($count == 0) {
+                            continue;
+                        }
+                    }
+
+                    // journals are a special case as they do not have submissions nodes normally.
+                    // They may have group nodes however.
+                    if ($this->type == 'journal') {
+                        
+                        // set the type to reflect whether or not there are group nodes to come.
+                        $journal_type = '';
+                        if ($check && $check->showhide == 2) {
+                            $journal_type = "journal_groups";
+                        } else {
+                            $journal_type = "journal";
+                        }
+                        $this->make_submission_node($assessment->name, $assessment->id, $assessment->cmid, $assessment->description, $journal_type, $assessment->timemodified, $count);
+                    } else {
+                        // all other assessments
+                        $this->make_assessment_node($assessment->name, $assessment->id, $assessment->cmid, $assessment->description, $type, $count);
+                    }
+            
+                }// end foreach assignment
+            } // end if assignment_submissions
+	} // end asssignments function
 	////////////////////////////////////////////////////
 	//  procedure for assignments
 	////////////////////////////////////////////////////
@@ -272,7 +457,7 @@ class ajax_marking_functions {
          * @global <type> $CFG
          * @global <type> $SESSION
          */
-	
+	/*
 	function assignments() {
 
             global $CFG, $SESSION;
@@ -291,6 +476,7 @@ class ajax_marking_functions {
                     AND c.visible = 1
                     AND a.course = $this->id
                     AND s.timemarked < s.timemodified
+                    AND NOT (a.resubmit = 0 AND s.timemarked > 0)
                     AND s.userid IN($this->student_ids)
                     ORDER BY a.id
                   ";
@@ -306,8 +492,7 @@ class ajax_marking_functions {
 
                     // counter for number of unmarked submissions
                     $count = 0;
-                    //echo " ASSIGNMENT ";
-
+               
                     // permission to grade?				
                     $modulecontext = get_context_instance(CONTEXT_MODULE, $assignment->cmid);
                     if (!has_capability('mod/assignment:grade', $modulecontext, $this->userid)) {continue;}
@@ -315,12 +500,12 @@ class ajax_marking_functions {
                     if(!$this->config) { //we are making the main block tree, not the configuration tree
 
                         // has this assignment been set to invisible in the config settings?
-                        //$combinedref = ;
-                        //echo "checking";
                         $check = $this->get_groups_settings('assignment', $assignment->id);
                         if ($check) {
-                            //echo "check OK";
-                            if ($check->showhide == 3) {continue;}
+                          
+                            if ($check->showhide == 3) {
+                                continue;
+                            }
                             
                         }
                         
@@ -328,7 +513,9 @@ class ajax_marking_functions {
                         // the user is a group member of one of them, count it.
                         foreach($assignment_submissions as $assignment_submission) {
                             if ($assignment_submission->id == $assignment->id) {
-                                if (!isset($assignment_submission->userid)) {continue;}
+                                if (!isset($assignment_submission->userid)) {
+                                    continue;
+                                }
                                 if ((!$check) || ($check && ($check->showhide == 2) && $this->check_group_membership($check->groups, $assignment_submission->userid)) || ($check->showhide == 1)) {
                                     $count++;
                                 }
@@ -337,7 +524,9 @@ class ajax_marking_functions {
                         
                         // if there are no unmarked assignments, just skip this one. Important not to skip 
                         // it in the SQL as config tree needs all assignments
-                        if ($count == 0) { continue; }
+                        if ($count == 0) { 
+                            continue;
+                        }
                     }
 
 
@@ -362,11 +551,13 @@ class ajax_marking_functions {
                     $this->output .= '"summary":"'.$this->clean_summary_text($shortsum).'",';
                     $this->output .= '"count":"'.$count.'"';
                     $this->output .= '}';
-*/
+
                 }// end foreach assignment
             } // end if assignment_submissions
 	} // end asssignments function
-	
+
+
+*/
 	/**
 	 * procedure for assignment submissions. We have to deal with several situations -
 	 * just show all the submissions at once (default)
@@ -388,13 +579,16 @@ class ajax_marking_functions {
             
 		$this->get_course_students($assignment->course);
 		
-		$sql = "SELECT a.id as subid, a.userid, a.timemodified, c.id as cmid
-                        FROM {$CFG->prefix}assignment_submissions a
+		$sql = "SELECT s.id as subid, s.userid, s.timemodified, c.id as cmid
+                        FROM {$CFG->prefix}assignment_submissions s
                         INNER JOIN {$CFG->prefix}course_modules c
-                             ON a.assignment = c.instance
-                        WHERE assignment = $this->id
-                            AND userid IN ($this->student_ids)
-                            AND timemarked < timemodified
+                             ON s.assignment = c.instance
+                        INNER JOIN {$CFG->prefix}assignment a
+                             ON s.assignment = a.id
+                        WHERE s.assignment = $this->id
+                            AND s.userid IN ($this->student_ids)
+                            AND s.timemarked < s.timemodified
+                            AND NOT (a.resubmit = 0 AND s.timemarked > 0)
                             AND c.module = {$this->modules['assignment']->id}
                         ORDER BY timemodified ASC";
 		
@@ -595,21 +789,17 @@ class ajax_marking_functions {
                     if (!isset($submission->userid)) {continue;}
                         if ($this->group && !$this->check_group_membership($this->group, $submission->userid)) {continue;}
 
-                        // get the user's name from the user table
-                        // $rec = get_record('user', 'id', $submission->userid);
-                        //echo "rec id: ".$rec->id."<br />";
-                        //$name = $rec->firstname." ".$rec->lastname;
                         $name = $this->get_fullname($submission->userid);
 
-                        // get coursemoduleid
-                        //$wid = $rec2->id;
                         $sid = $submission->id;
 
                         // sort out the time stuff
                         $now = time();
                         $seconds = ($now - $submission->timecreated);
-                                        $summary = $this->make_time_summary($seconds);
-
+                        $summary = $this->make_time_summary($seconds);
+                        $this->output .= $this->make_submission_node($name, $sid, $this->id, $summary, 'workshop_answer', $seconds, $submission->timecreated);
+                        
+                       /*
                         $this->output .= ','; // add a comma if there was a preceding submission
 
                         $this->output .= '{';
@@ -622,6 +812,8 @@ class ajax_marking_functions {
                         $this->output .= '"time":"'.$submission->timecreated.'",'; // send the time of submission for tooltip
                         $this->output .= '"count":"1"';
                         $this->output .= '}';
+                        * */
+
                 }
                 $this->output .= "]"; // end JSON array
             }
@@ -631,7 +823,7 @@ class ajax_marking_functions {
 	 * function for adding forums with unrated posts
 	 */
 	
-	
+	/*
 	function forums() {
 	
 	global $CFG;
@@ -649,7 +841,6 @@ class ajax_marking_functions {
                              ON p.discussion = d.id
                         LEFT JOIN {$CFG->prefix}forum_ratings r
                              ON  p.id = r.post
-
                         WHERE p.userid <> $this->userid
                             AND p.userid IN ($this->student_ids)
                             AND (r.userid <> $this->userid OR r.userid IS NULL)
@@ -664,9 +855,9 @@ class ajax_marking_functions {
 		$forum_posts = get_records_sql($sql);
                 
 		if ($forum_posts) {
-                    //print_r($forum_posts);
+                   
                     $forums = $this->list_assessment_ids($forum_posts);
-                //print_r($forums);
+              
 			foreach ($forums as $forum) {
                             
                             // counter for number of unmarked submissions
@@ -679,27 +870,28 @@ class ajax_marking_functions {
                             if(!$this->config) { //we are making the main block tree, not the configuration tree
                                 
                                 // has this assignment been set to invisible in the config settings?
-                                // $combinedref = 'forum'.$forum->id;
+                               
                                 $check = $this->get_groups_settings('forum', $forum->id);
                                 if ($check) {
-                                    if ($check->showhide == 3) {continue;}
+                                    if ($check->showhide == 3) {
+                                        continue;
+                                    }
                                 }
 
                                 foreach($forum_posts as $forum_post) {
                                     if (!isset($forum_post->userid)) {
                                         continue;
-
-                                        }
-                                        //echo "forum id hit";
-                                    //if (forum->type == 'eachuser' && $forum->post)
+                                    }
+                                  
                                     if ($forum_post->id == $forum->id) {
-                                        //echo "forum id hit";
                                         if (!$check || ($check && $check->showhide == 2 && $this->check_group_membership($check->groups, $forum_post->userid)) || ($check && $check->showhide == 1)) {
                                             $count++;
                                         }
                                     }
                                 }
-                                if ($count == 0) {continue;}
+                                if ($count == 0) {
+                                    continue;
+                                }
                             }
 
                             $this->make_assessment_node($forum->name, $forum->id, $forum->cmid, $forum->description, 'forum', $count);
@@ -723,11 +915,11 @@ class ajax_marking_functions {
                             $this->output .= '"summary":"'.$this->clean_summary_text($shortsum).'",';
                             $this->output .= '"count":"'.$count.'"';
                             $this->output .= '}';
-				*/
+				
 			} // foreach forum
 		} // if forums
 	} // end function
-	
+	*/
 	/**
 	 * function to make nodes for forum submissions
 	 */
@@ -739,33 +931,33 @@ class ajax_marking_functions {
 		$this->get_course_students($forum->course);
 		
 		$discussions = get_records('forum_discussions', 'forum', $this->id);
-               // if ($forum->type == 'eachuser') {
-               //     $sql = "SELECT p.userid FROM forum_discussions.d, forum_posts.p INNER JOIN forum_discussions.d ON p.discussion = d.id  WHERE d.id = $this->id AND p.userid != $this->userid AND NOT EXISTS (SELECT 1 FROM forum_ratings.r WHERE r.post = p.id)";
-               //     $posts = get_records_sql($sql);
-                    
-               // } else {
-                    $sql = "SELECT p.id, p.userid, p.created, p.message, d.id as discussionid
-                            FROM 
-                                {$CFG->prefix}forum_discussions d ";
-                    if ($forum->type == 'eachuser') {
-                         $sql .= "INNER JOIN {$CFG->prefix}forum f ON d.forum = f.id "  ;
-                    }
-                    $sql .= "INNER JOIN
-                                {$CFG->prefix}forum_posts p
-                                 ON p.discussion = d.id
-                            LEFT JOIN {$CFG->prefix}forum_ratings r
-                                ON  p.id = r.post
-                            WHERE p.userid <> $this->userid
-                            AND p.userid IN ($this->student_ids)
-                            AND (r.userid <> $this->userid OR r.userid IS NULL)
+           
+                $sql = "SELECT p.id, p.userid, p.created, p.message, d.id as discussionid
+                        FROM
+                            {$CFG->prefix}forum_discussions d ";
 
-                            ";
-                    if ($forum->type == 'eachuser') {
-                        $sql .= " AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))";
-                    }
-                
-                    $posts = get_records_sql($sql);
-                //}
+                if ($forum->type == 'eachuser') {
+                    // add a bit to link to forum so we can check the type is correct
+                    $sql .= "INNER JOIN {$CFG->prefix}forum f ON d.forum = f.id "  ;
+                }
+
+                $sql .= "INNER JOIN
+                            {$CFG->prefix}forum_posts p
+                             ON p.discussion = d.id
+                        LEFT JOIN {$CFG->prefix}forum_ratings r
+                            ON  p.id = r.post
+                        WHERE p.userid <> $this->userid
+                        AND p.userid IN ($this->student_ids)
+                        AND (r.userid <> $this->userid OR r.userid IS NULL)
+
+                        ";
+                if ($forum->type == 'eachuser') {
+                    // make sure that it is just the first posts that we get
+                    $sql .= " AND (f.type = 'eachuser' AND p.id = d.firstpost)";
+                }
+
+                $posts = get_records_sql($sql);
+               
 
                 if(!$this->group) {
                        $group_filter = $this->assessment_groups_filter($posts, "forum", $forum->id);
@@ -774,230 +966,263 @@ class ajax_marking_functions {
 
 		if ($discussions) {
 		  
+                    $this->output = '[{"type":"submissions"}';      // begin json object.
 
-                            $this->output = '[{"type":"submissions"}';      // begin json object.
-                            $i = 0;                   // counter to keep track of where commas go in in the loop.
+                    foreach ($discussions as $discussion) {
 
-                            foreach ($discussions as $discussion) {
+                            if ($this->group && !groups_is_member($this->group, $discussion->userid)) {continue;}
 
-                                    if ($this->group && !groups_is_member($this->group, $discussion->userid)) {continue;}
+                            $count = 0;
+                            $sid = 0; // this variable will hold the id of the first post which is unrated, so it can be used
+                                                      // in the link to load the pop up with the discussion page at that position.
+                            $time = time(); // start seconds at current time so we can compare with time created to find the oldest as we cycle through
 
-                                    $count = 0;
-                                    $sid = 0; // this variable will hold the id of the first post which is unrated, so it can be used 
-                                                              // in the link to load the pop up with the discussion page at that position.
-                                    $time = time(); // start seconds at current time so we can compare with time created to find the oldest as we cycle through
+                            // if this forum is set to 'each student posts one discussion', we want to only grade the first one
+                            if ($forum->type == 'eachuser') {
+                                 foreach ($posts as $post) {
+                                     if ($post->id == $discussion->firstpost) {
+                                         $firstpost = $post;
+                                         break;
+                                     }
+                                 }
+                                 if (!$firstpost) {
+                                     // post has been marked already, so this discussion can be ignored.
+                                     continue;
+                                 } else {
+                                      $count = 1;
+                                 }
+                            } else {
 
-                                    // if this forum is set to 'each student posts one discussion', we want to only grade the first one
-                                    if ($forum->type == 'eachuser') {
-                                         foreach ($posts as $post) {
-                                             if ($post->id == $discussion->firstpost) {
-                                                 $firstpost = $post;
-                                                 break;
+                                // any other type of graded forum, we can grade any posts that are not yet graded
+                                // this means counting them first.
+
+                                $time = time(); // start seconds at current time so we can compare with time created to find the oldest as we cycle through
+
+                                $firstpost = '';
+                                $firsttime = '';
+                                foreach ($posts as $post) {
+
+                                   if (!isset($post->userid)) {
+                                       continue;
+                                   }
+                                   if ($forum->assesstimestart != 0) { // this forum doesn't rate posts earlier than X time, so we check.
+                                        if ($post->created > $forum->assesstimestart)  {
+                                             if ($post->created < $forum->assesstimefinish) { // it also has a later limit, so check that too.
+                                                 continue;
                                              }
-                                         }
-                                         if (!$firstpost) {
-                                             // post has been marked already, so this discussion can be ignored.
-                                             continue;
-                                             
-                                         } else {
-                                               // $first_post = get_record('forum_posts', 'id', $discussion->firstpost);
-                                               // $select = " post = $first_post->id ";
-                                               // $student = get_record_select('forum_ratings', $select, 'count(id) as marked' ); // count the ratings so far for this post
-                                               // if ($student->marked==0) {
-                                              $count = 1;
-                                         }
-                                    } else {
-                                        
-                                        // any other type of graded forum, we can grade any posts that are not yet graded
-                                        // this means counting them first.
-
-                                       // $select = " discussion = $discussion->id and userid != $this->userid AND userid IN ($students)"; // added this bit to make sure own posts are not included
-                                       // $posts = get_records_select('forum_posts', $select, 'id');
-                                        $time = time(); // start seconds at current time so we can compare with time created to find the oldest as we cycle through
-                                        //if ($posts) {
-                                        $firstpost = '';
-                                        $firsttime = '';
-                                        foreach ($posts as $post) {
-                                           // print_r($post);
-                                           
-                                           if (!isset($post->userid)) {continue;}
-                                           if ($forum->assesstimestart != 0) { // this forum doesn't rate posts earlier than X time, so we check.
-                                                if ($post->created > $forum->assesstimestart)  {
-                                                     if ($post->created < $forum->assesstimefinish) { // it also has a later limit, so check that too.
-                                                         continue;
-                                                     }
-                                                } else {
-                                                    continue;
-                                                }
-                                            }
-                                            // $select = " post = $post->id ";
-                                            // $student = get_record_select('forum_ratings', $select, 'count(id) as marked' ); // count the ratings so far for this post
-                                            
-                                            if ($discussion->id == $post->discussionid) { //post is relevant
-                                                // link needs the id of the earliest post, so store time if this is the first post; check and modify for subsequent ones
-                                                if ($firstpost) {
-                                                    if ($post->created > $firstpost) {
-                                                        $firstpost = $post;
-                                                    }
-                                                } else {
-                                                    $firstpost = $post;
-                                                }
-                                                // store the time created for the tooltip if its the oldest post yet for this discussion
-                                                if ($firsttime) {
-                                                    if ($post->created < $time) {
-                                                        $time = $post->created; 
-                                                    }
-                                                } else {
-                                                    $firsttime = $post->created;
-                                                }
-                                                $count++;
-                                            }
+                                        } else {
+                                            continue;
                                         }
-                                        //}
                                     }
-
-                                    // add the node if there were any posts -  the node is the discussion with a count of the number of unrated posts
-                                    if ($count > 0) {
-
-                                            // make all the variables ready to put them together into the array
-                                            $seconds = time() - $discussion->timemodified;
-                                           // $first_post = get_record('forum_posts', 'id', $discussion->firstpost);
-                                            if ($forum->type == 'eachuser') { // we will show the student name as the node name as there is only one post that matters
-                                                $name = $this->get_fullname($firstpost->userid);
-                                                    //$rec = get_record('user', 'id', $firstpost->userid);
-                                                    //$name = $rec->firstname." ".$rec->lastname;
-                                            } else { // the name will be the name of the discussion
-                                                    $name = $discussion->name;
-                                                    //$name = $name." (".$count.")";
+                                   
+                                    if ($discussion->id == $post->discussionid) { //post is relevant
+                                        // link needs the id of the earliest post, so store time if this is the first post; check and modify for subsequent ones
+                                        if ($firstpost) {
+                                            if ($post->created > $firstpost) {
+                                                $firstpost = $post;
                                             }
-                                            //$sum = ;
-                                            $sum = strip_tags($firstpost->message);
-                                            //$sumlength = strlen($sum);
-                                            $shortsum = substr($sum, 0, 100);
-                                            if (strlen($shortsum) < strlen($sum)) {$shortsum .= "...";}
-                                            $timesum = $this->make_time_summary($seconds, true);
-                                            if (!isset($discuss)) {
-                                                $discuss = get_string('discussion', 'block_ajax_marking');
+                                        } else {
+                                            $firstpost = $post;
+                                        }
+                                        // store the time created for the tooltip if its the oldest post yet for this discussion
+                                        if ($firsttime) {
+                                            if ($post->created < $time) {
+                                                $time = $post->created;
                                             }
-                                            $summary = "<strong>".$discuss.":</strong> ".$shortsum."<br />".$timesum;
-
-                                            $this->output .= ','; // add a comma before section only if there was a preceding assignment
-
-                                            $this->output .= '{';
-                                            $this->output .= '"name":"'.$this->clean_name_text($name, 1).'",';
-                                            $this->output .= '"sid":"'.$firstpost->id.'",';
-                                            $this->output .= '"type":"discussion",';
-                                            $this->output .= '"aid":"'.$discussion->id.'",';
-                                            //$this->output .= '"summary":"'.$summary.'",';
-
-                                            $this->output .= '"summary":"'.$this->clean_summary_text($summary, false).'",';
-                                            $this->output .= '"time":"'.$time.'",';
-                                            $this->output .= '"count":"'.$count.'",';
-                                            $this->output .= '"seconds":"'.$seconds.'"';
-                                            $this->output .= '}';
-
+                                        } else {
+                                            $firsttime = $post->created;
+                                        }
+                                        $count++;
                                     }
+                                }
                             }
-                            $this->output .= "]"; // end JSON array
-                   // }
+
+                            // add the node if there were any posts -  the node is the discussion with a count of the number of unrated posts
+                            if ($count > 0) {
+
+                                    // make all the variables ready to put them together into the array
+                                    $seconds = time() - $discussion->timemodified;
+                                   // $first_post = get_record('forum_posts', 'id', $discussion->firstpost);
+                                    if ($forum->type == 'eachuser') { // we will show the student name as the node name as there is only one post that matters
+                                        $name = $this->get_fullname($firstpost->userid);
+                                            //$rec = get_record('user', 'id', $firstpost->userid);
+                                            //$name = $rec->firstname." ".$rec->lastname;
+                                    } else { // the name will be the name of the discussion
+                                            $name = $discussion->name;
+
+                                    }
+
+                                    $sum = strip_tags($firstpost->message);
+
+                                    $shortsum = substr($sum, 0, 100);
+                                    if (strlen($shortsum) < strlen($sum)) {$shortsum .= "...";}
+                                    $timesum = $this->make_time_summary($seconds, true);
+                                    if (!isset($discuss)) {
+                                        $discuss = get_string('discussion', 'block_ajax_marking');
+                                    }
+                                    $summary = "<strong>".$discuss.":</strong> ".$shortsum."<br />".$timesum;
+
+
+                                    $this->output .= $this->make_submission_node($name, $firstpost->id, $discussion->id, $summary, 'discussion', $seconds, $time);
+                                    
+                            }
+                    }
+                    $this->output .= "]"; // end JSON array
 		}// if discussions
 	} // end function
 	
 	function quizzes() {
-           //echo "quizzes fired";
-            //$this->get_course_students($this->id);
+           
             global $CFG;
-            require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
-           // $select = " course='$this->id'";
-           // $quizzes = get_records_select('quiz', $select);
+
+            // this is only needed for the constants. might just avoid it and redefine them here...
+            //require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
             
-            $sql = "
-                  SELECT 
-                      qst.id as qstid, qsess.questionid, qa.userid, qz.id, qz.intro as description, qz.name,  c.id as cmid
+          
+            $sql2 .= "
+                  SELECT
+                       qst.id as questionstateid, qst.question as questionstatequestionid, qsess.questionid as questsessquestionid, qsess.id as questionsessionid, qsess.newest as questsessnewest, qsess.attemptid as questsessattemptid, q.id as questionid, q.type as questiontype qa.uniqueid as quizattemptid, qz.*, c.id as cmid
                   FROM
-                    {$CFG->prefix}quiz qz
+
+
+                     {$CFG->prefix}quiz qz
                   INNER JOIN {$CFG->prefix}course_modules c
-                             ON qz.id = c.instance
+                     ON qz.id = c.instance
                   INNER JOIN
                     {$CFG->prefix}quiz_attempts qa
-                      ON 
+                      ON
                         qz.id = qa.quiz
                   INNER JOIN
-                    {$CFG->prefix}question_sessions qsess  
+                    {$CFG->prefix}question_sessions qsess
                       ON
-                        qsess.attemptid = qa.id
-                  INNER JOIN 
-                    {$CFG->prefix}question_states qst
-                     ON 
-                        qsess.newest = qst.id     
+                        qsess.attemptid = qa.uniqueid
                   INNER JOIN {$CFG->prefix}question q
-                     ON 
-                        qsess.questionid = q.id      
+                     ON
+                        qsess.questionid = q.id
+                  INNER JOIN
+                    {$CFG->prefix}question_states qst
+                     ON
+                        qsess.newest = qst.id
+
+
+
                   WHERE
-                    qa.userid 
-                      IN ($this->student_ids) 
-                  AND qa.timefinish > 0 
-                  AND qa.preview = 0 
+                    qa.userid
+                      IN ($this->student_ids)
+                  AND qa.timefinish > 0
+                  AND qa.preview = 0
                   AND c.module = {$this->modules['quiz']->id}
                   AND c.visible = 1
                   AND qz.course = {$this->id}
                   AND q.qtype = 'essay'
-                  AND qst.event NOT IN (
+                  AND qst.event NOT IN (3,6,9)";
+            /*
+                        ".QUESTION_EVENTGRADE.",
+                        ".QUESTION_EVENTCLOSEANDGRADE.",
+                        ".QUESTION_EVENTMANUALGRADE."
+                      )
+                  ORDER BY q.id
+                ";
+              */
+            $sql .= "
+                  SELECT
+                      qzatt.id as qzattid,  qzatt.userid, qz.id, qz.intro as description, qz.name,  c.id as cmid
+                  FROM
+                    {$CFG->prefix}quiz qz
+                  INNER JOIN {$CFG->prefix}course_modules c
+                     ON qz.id = c.instance
+                  INNER JOIN
+                    {$CFG->prefix}quiz_attempts qzatt
+                      ON
+                        qz.id = qzatt.quiz
+
+                  INNER JOIN
+                    {$CFG->prefix}question_sessions qsess
+                      ON
+                        qsess.attemptid = qzatt.uniqueid
+
+                  INNER JOIN
+                    {$CFG->prefix}question_states qst
+                     ON
+                        qsess.newest = qst.id
+                  INNER JOIN {$CFG->prefix}question q
+                     ON
+                        qst.question = q.id
+    
+                      
+                  WHERE
+                    qzatt.userid
+                      IN ($this->student_ids) 
+                  AND qzatt.timefinish > 0
+                  AND qzatt.preview = 0
+                  AND c.module = {$this->modules['quiz']->id}
+                  AND c.visible = 1
+                  AND qz.course = {$this->id}
+                  AND q.qtype = 'essay'
+                  AND qst.event NOT IN (3,6,9)
+                  ORDER BY q.id";
+            /*
                         ".QUESTION_EVENTGRADE.", 
                         ".QUESTION_EVENTCLOSEANDGRADE.", 
                         ".QUESTION_EVENTMANUALGRADE."
                       )
                   ORDER BY q.id
-                ";
-           //echo $sql;
+            ";
+           */
             $quiz_submissions = get_records_sql($sql);
 
-            if ($this->quiz_diagnostic) {
+            if ($this->type == 'quiz_diagnostic') {
+                echo $sql;
+                echo '<br /><br />';
                 print_r($quiz_submissions);
+                $quiz_submissions2 = get_records_sql($sql2);
+                echo '<br /><br />';
+                echo $sql2;
+                echo '<br /><br />';
+                print_r($quiz_submissions2);
+                return;
             }
             if ($quiz_submissions) {
                
                  // we need all the assignment ids for the loop, so we make an array of them
                  $quizzes = $this->list_assessment_ids($quiz_submissions);
-//print_r($quizzes);
+
                  foreach ($quizzes as $quiz) {
-//echo "quiz hit <br />";
+
                     // counter for number of unmarked submissions
                     $count = 0;
 
                     // permission to grade?				
                     $modulecontext = get_context_instance(CONTEXT_MODULE, $quiz->cmid);
                     if (!has_capability('mod/quiz:grade', $modulecontext, $this->userid)) {continue;}
-//echo "cap ok  ";
+
                     if(!$this->config) { //we are making the main block tree, not the configuration tree
-//echo "not conf  ";
+
                         // has this assignment been set to invisible in the config settings?
-                        //$combinedref = ;
+                   
                         $check = $this->get_groups_settings('quiz', $quiz->id);
                         if ($check) {
-                            if ($check->showhide == 3) {continue;}
+                            if ($check->showhide == 3) {
+                                continue;
+                            }
                         }
                         foreach ($quiz_submissions as $quiz_submission) {
-                            if (!isset($quiz_submission->userid)) {continue;}
+                            if (!isset($quiz_submission->userid)) {
+                                continue;
+                            }
                             if ($quiz_submission->id == $quiz->id) {
-                                //echo "id match  ";
-                              //  echo "check: ".print_r($check);
                                 if (!$check) {
-                                  //  echo " nocheck ";
                                     $count ++;
                                 } elseif ($check->showhide == 2) {
                                     $groupmatch = $this->check_group_membership($check->groups, $quiz_submission->userid);
-                                    //echo "group hit ";
-                                    //echo "groups: ".$check->groups;
+                               
                                     if ($groupmatch) {
-
                                      $count++;
                                     }
                                 } elseif ( $check->showhide == 1) {
-                                  //  echo "showall";
                                     $count++;
                                 } else {
-                                   // echo "no matches ";
+                               
                                 }
                             }
                         }
@@ -1005,16 +1230,18 @@ class ajax_marking_functions {
                         // if there are no unmarked assignments, just skip this one. Important not to skip 
                         // it in the SQL as config tree needs all assignments
                         if ($count == 0) {
-                            echo "count empty ";
-                            continue;}
+                           
+                            continue;
+                        }
                     }
 
-                    //$name = $quiz->name;
                     $fid = $quiz->id;
                     $sum = $quiz->description;
                     $sumlength = strlen($sum);
                     $shortsum = substr($sum, 0, 100);
-                    if (strlen($shortsum) < strlen($sum)) {$shortsum .= "...";}
+                    if (strlen($shortsum) < strlen($sum)) {
+                        $shortsum .= "...";
+                    }
                     $this->output .= ','; // add a comma before section only if there was a preceding assignment
 
                     $this->output .= '{';
@@ -1045,21 +1272,22 @@ class ajax_marking_functions {
          * @return <type>
          */
 	function quiz_questions() {
-	    //echo "quiz questions fired";
+	   
 	    $quiz = get_record('quiz', 'id', $this->id); //needed?
             $this->get_course_students($quiz->course);
 
             global $CFG;
-            require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
-
-            $i = 0;       // counter to keep track of where commas go in in the loop.
+            // needed for the constants, but a big include - maybe not necessary.
+            // constants have been replaced with their numerical values. Will need changing if they alter.
+            // require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
 
             //permission to grade?
             $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', 13, 'instance', $quiz->id) ;
             $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
-            if (!has_capability('mod/quiz:grade', $modulecontext, $this->userid)) {return;}
+            if (!has_capability('mod/quiz:grade', $modulecontext, $this->userid)) {
+                return;
+            }
 
-            
             $csv_questions = get_record_sql("SELECT questions FROM {$CFG->prefix}quiz WHERE id = $this->id");
           
             $sql = "
@@ -1077,7 +1305,7 @@ class ajax_marking_functions {
                   INNER JOIN
                     {$CFG->prefix}quiz_attempts qa
                       ON 
-                        qs.attemptid = qa.id
+                        qs.attemptid = qa.uniqueid
                   WHERE
                     qa.quiz = $quiz->id 
                   AND 
@@ -1087,19 +1315,23 @@ class ajax_marking_functions {
                   AND qa.preview = 0 
                   AND qs.questionid IN ($csv_questions->questions)
                   AND q.qtype = 'essay'
-                  AND qst.event NOT IN (
+                  AND qst.event NOT IN (3,6,9)";
+            /*
                         ".QUESTION_EVENTGRADE.", 
                         ".QUESTION_EVENTCLOSEANDGRADE.", 
                         ".QUESTION_EVENTMANUALGRADE.") 
             ";
-            
+            */
             $question_attempts = get_records_sql($sql);
-            // echo $sql;
+
+            // not the same as $csv_questions as some of those questions will have no attempts needing attention
             $questions = $this->list_assessment_ids($question_attempts);
              
             if (!$this->group) {
                 $group_check = $this->assessment_groups_filter($question_attempts, 'quiz', $this->id);
-                if (!$group_check) {return;} //stuff came back, still needs question nodes built.
+                if (!$group_check) {
+                    return;
+                }
             }
             
        
@@ -1115,10 +1347,9 @@ class ajax_marking_functions {
                     // also ignore attempts not relevant to this question
                     // if () { //if a group has been specified, ignore any in ohter groups
                     if (($this->group && !$this->check_group_membership($this->group, $question_attempt->userid)) || (!($question_attempt->id == $question->id))) {
-                        //echo "group check failed for group ".$this->group.", userid ".$question_attempt->userid;
+                       
                         continue;
-                    }
-                 		
+                    }	
                     $count = $count + 1;
                 }
 
@@ -1128,8 +1359,10 @@ class ajax_marking_functions {
                     $sum = $question->description;
                     $sumlength = strlen($sum);
                     $shortsum = substr($sum, 0, 100);
-                    if (strlen($shortsum) < strlen($sum)) {$shortsum .= "...";}
-                    $this->output .= ','; // add a comma before section only if there was a preceding assignment
+                    if (strlen($shortsum) < strlen($sum)) {
+                        $shortsum .= "...";
+                    }
+                    $this->output .= ','; 
 
                     $this->output .= '{';
                     $this->output .= '"name":"'.$this->clean_name_text($name, 1).'",';
@@ -1159,13 +1392,13 @@ class ajax_marking_functions {
              //permission to grade?
             $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', 13, 'instance', $quiz->id) ;
             $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
-            if (!has_capability('mod/quiz:grade', $modulecontext, $this->userid)) {return;}
+            if (!has_capability('mod/quiz:grade', $modulecontext, $this->userid)) {
+                return;
+            }
             
             $this->get_course_students($quiz->course);
             global $CFG;
-            require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
-
-           // $i = 0;                   // counter to keep track of where commas go in in the loop.
+            //require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
 
             $question_attempts = get_records_sql("
 
@@ -1180,7 +1413,7 @@ class ajax_marking_functions {
                   INNER JOIN
                     {$CFG->prefix}quiz_attempts qa
                       ON 
-                        qs.attemptid = qa.id
+                        qs.attemptid = qa.uniqueid
                   WHERE 
                     qa.quiz = $this->quizid 
                   AND 
@@ -1189,34 +1422,37 @@ class ajax_marking_functions {
                   AND qa.timefinish > 0 
                   AND qa.preview = 0 
                   AND qs.questionid = $this->id
-                  AND qst.event NOT IN (
+                  AND qst.event NOT IN (3,6,9)
+             ");
+            /*
                         ".QUESTION_EVENTGRADE.", 
                         ".QUESTION_EVENTCLOSEANDGRADE.", 
                         ".QUESTION_EVENTMANUALGRADE.") 
-              ");
-            
+            ");
+            */
             $this->output = '[{"type":"submissions"}';      // begin json object.
 
-            
-
             foreach ($question_attempts as $question_attempt) {
-                if (!isset($question_attempt->userid)) {continue;}
+                if (!isset($question_attempt->userid)) {
+                    continue;
+                }
                 // ignore those where the group is not set
                 if ($this->group && ($this->group != 'undefined')) {
-                    //echo "group hit $this->group";
-                 $check = $this->check_group_membership($this->group, $question_attempt->userid);
-                 if(!$check)  {
-                     continue;
-                 }
-            }
+                     $check = $this->check_group_membership($this->group, $question_attempt->userid);
+                     if(!$check)  {
+                         continue;
+                     }
+                }
 
-                  //print_r($question_attempts);
-                 //print_r($question_attempts);
                 $name = $this->get_fullname($question_attempt->userid);
 
                 $now = time();
                 $seconds = ($now - $question_attempt->timemodified);
                 $summary = $this->make_time_summary($seconds);
+
+                $this->output .= $this->make_submission_node($name, $question_attempt->useid, $this->id, $summary, 'quiz_answer', $seconds, $question_attempt->timemodified);
+
+                /*
                 $this->output .= ','; // add a comma before section only if there was a preceding assignment
 
                 $this->output .= '{';
@@ -1229,7 +1465,7 @@ class ajax_marking_functions {
                 $this->output .= '"count":"1",';
                 $this->output .= '"time":"'.$question_attempt->timemodified.'"'; // send the time of submission for tooltip
                 $this->output .= '}';
-              
+                */
             }
             $this->output .= "]"; // end JSON array	
 	}
@@ -1239,8 +1475,9 @@ class ajax_marking_functions {
          * Gets all of the journals ready for node display. If groups are set, 
          * the node will be an expanding one for groups. Otherwise, it will be just clickable 
          */
+        
         function journals() {
-           // echo "journals";
+           
             global $CFG;
             $this->get_course_students($this->id);
   
@@ -1256,26 +1493,26 @@ class ajax_marking_functions {
                     AND j.assessed <> 0
                     AND je.modified > je.timemarked
                     AND je.userid IN($this->student_ids)
+                    AND j.course = $this->id
                    ";
-            //echo $sql;
+         
             $journal_entries = get_records_sql($sql);
-//print_r($journal_entries);
+
             if ($journal_entries) {
                 
                 $journals = $this->list_assessment_ids($journal_entries);
 
                 foreach($journals as $journal) {
-//print_r($journals);
+
                     $count = 0;
 
                     //permission to grade?
                     $context = get_context_instance(CONTEXT_COURSE, $this->id);
                     if (!has_capability('mod/assignment:grade', $context)) {continue;} // could not find journal capabilities - will this work?
 
-                    if (!$this->config) {
+                    if (!$this->config) { // its the main tree
 
-                         // has this assignment been set to invisible in the config settings?
-                        //$combinedref = 'journal'.$journal->id;
+                        // has this assignment been set to invisible in the config settings?
                         $check = $this->get_groups_settings('journal', $journal->id);
                         if ($check) {
                             if ($check->showhide == 3) {continue;}
@@ -1293,7 +1530,7 @@ class ajax_marking_functions {
                     }//end if !$this->config
 
                     // there are some entries so we add the journal node
-                    $this->make_assessment_node($journal->name, $journal->id, $journal->cmid, $journal->description, $count);
+                    $this->make_assessment_node($journal->name, $journal->id, $journal->cmid, $journal->description, 'journal', $count);
                     /*
 
                     $aid = $journal->id;
@@ -1321,34 +1558,9 @@ class ajax_marking_functions {
                 } // end foreach journal
             }
 	}
-        
-        function journal_submissions() {
-            
-            global $CFG;
-            $this->get_course_students($this->id);
-  
-            $sql = "
-                    SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.id, c.id as cmid,
-                    FROM {$CFG->prefix}journal_entries je
-                    INNER JOIN {$CFG->prefix}journal j
-                       ON je.journal = j.id
-                    INNER JOIN {$CFG->prefix}course_modules c
-                             ON j.id = c.instance
-                    WHERE c.module = 9
-                    AND c.visible = 1
-                    AND j.assessed <> 0
-                    AND je.modified > je.timemarked
-                    AND je.userid IN($this->student_ids)
-                   ";
-            
-            $journal_entries = get_records_sql($sql);
+   
 
-            if ($journal_entries) {
 
-                $group_check = $this->assessment_groups_filter($journal_entries, 'journal', $this->id);
-                return; 
-            }     
-	}
 	
         /**
          * Formats the summary text so that it works in the tooltips without odd characters
@@ -1363,14 +1575,7 @@ class ajax_marking_functions {
                     $text = strip_tags($text, '<strong>');
             }
             $text = str_replace(array("\n","\r",'"'),array("","","&quot;"),$text);
-            // now add breaks so we don't have a huge long tooltip across half the page
-           // $text = explode(' ', $text);
-           // foreach ($text as $position => $word) {
-            //    if (($position > 0) && (is_int($position / 5))) {
-            //        $text[$position] = $word."<br />";
-            //    }
-           // }
-           // $text = implode(' ', $text);
+     
             return $text;
 	}
 	
@@ -1421,9 +1626,9 @@ class ajax_marking_functions {
          * @return <type>
          */
 	function get_course_students($courseid) {
-	 // echo "get students ";
+	 
 		$course_context = $this->courses[$courseid]->context;
-              //  print_r($this->courses[$courseid]);
+             
 		$student_array = array();
                 $student_details = array();
 		
@@ -1542,8 +1747,7 @@ class ajax_marking_functions {
          */
 	
 	function config_groups() { //writes to the db that we are to use config groups, then returns all the groups.
-	    //echo $this->assessmenttype;
-            //echo $this->id;
+	    
             $this->output = '[{"type":"config_groups"}'; 	// begin JSON array
 
             //first set the config to 'display by group'
@@ -1584,7 +1788,6 @@ class ajax_marking_functions {
 		$this->data->userid = $this->userid;
                 $this->data->assessmenttype = $this->assessmenttype;
                 $this->data->assessmentid = $this->assessmentid;
-               // $this->data->combinedref = $this->combinedref;
 		$this->data->showhide = $this->showhide;
 	}
 
@@ -1598,24 +1801,14 @@ class ajax_marking_functions {
 	function config_write() { 
             $check = NULL;
             $check2 = NULL;
-            //if(get_record('block_ajax_marking', 'combinedref', $this->combinedref, 'userid', $this->userid, $fields='id')) {echo "worked";}
+            
             $check = get_record('block_ajax_marking', 'assessmenttype', $this->assessmenttype, 'assessmentid', $this->assessmentid, 'userid', $this->userid);
             if ($check) {
-                //echo "assessmenttype: $this->assessmenttype";
-                //print_r($check);
+              
                 // record exists, so we update
                 $this->data->id = $check->id;
-                
-                //  if ($this->groups) { //groups came from the config screen and need to be saved as they are
-                //     $this->data->groups = $this->groups;
-                // } else
-                //  if (!$this->data->groups) {
-                             // }
-                // echo "group fix";
-                //    $this->data->groups = $check->groups;
-                // }
-                //update_record('block_ajax_marking', $this->data);
                 $check2 = update_record('block_ajax_marking', $this->data);
+
                 if($check2) {
                     return true;
                 } else {
@@ -1623,7 +1816,7 @@ class ajax_marking_functions {
                 }
             } else {
                 // no record, so we create
-                //echo "creating...";
+               
                 $check = insert_record('block_ajax_marking', $this->data);
                 if ($check) {
                     return true;
@@ -1684,7 +1877,7 @@ class ajax_marking_functions {
 		
                     //only make the array if there is not a null value
                     if ($config_settings->groups && ($config_settings->groups != 'none') && ($config_settings->groups != NULL)) { 
-                            //echo "making groups array";
+                            
                             $current_groups = explode(' ', $config_settings->groups); //turn space separated list of groups from possible config entry into an array
                     } 
                 }
@@ -2002,7 +2195,9 @@ class ajax_marking_functions {
          */
         function make_submission_node($name, $sid, $aid, $summary, $type, $seconds, $timemodified) {
             $this->output .= ','; 
-
+            //if ($type != 'journal') {
+            //    $summary = $this->make_time_summary($seconds);
+            //}
             $this->output .= '{';
                     $this->output .= '"name":"'.$name.'",';
                     $this->output .= '"sid":"'.$sid.'",'; // id of submission for hyperlink
@@ -2035,9 +2230,10 @@ class ajax_marking_functions {
                     if (!$check) {
                             $ids[$submission->id]->id = $submission->id;
                            
-                            $ids[$submission->id]->cmid        = (isset($submission->cmid))        ? $submission->cmid        : NULL;
-                            $ids[$submission->id]->description = (isset($submission->description)) ? $submission->description : NULL;
-                            $ids[$submission->id]->name        = (isset($submission->name))        ? $submission->name        : NULL;
+                            $ids[$submission->id]->cmid         = (isset($submission->cmid))         ? $submission->cmid         : NULL;
+                            $ids[$submission->id]->description  = (isset($submission->description))  ? $submission->description  : NULL;
+                            $ids[$submission->id]->name         = (isset($submission->name))         ? $submission->name         : NULL;
+                            $ids[$submission->id]->timemodified = (isset($submission->timemodified)) ? $submission->timemodified : NULL;
                     }
                 }
                 return $ids;
@@ -2063,34 +2259,6 @@ class ajax_marking_functions {
             if (!$this->assessment_grading_permission($type, $assessment->cmid)) {
                 unset($assessments[$key]);
             }
-            /*
-            $modulecontext = get_context_instance(CONTEXT_MODULE, $assessment->cmid); 
-            switch ($type) {
-                case "assignment":
-                $cap = 'mod/assignment:grade';
-                break;
-                
-                case "workshop":
-                $cap = 'mod/workshop:manage';
-                break;
-                
-                case "forum":
-                $cap = 'mod/forum:viewhiddentimedposts';
-                break;
-                
-                case "quiz":
-                $cap = 'mod/quiz:grade';
-                break;
-                
-                case "journal":
-                $cap = 'mod/assignment:grade';
-                break;
-            }            
-            if (!has_capability($cap, $modulecontext, $this->userid)) {
-                unset($assessments[$key]);
-            }
-
-             */
         }
      
         foreach ($submissions as $submission) {
@@ -2098,28 +2266,24 @@ class ajax_marking_functions {
             $check = NULL;
 
             // Is this assignment attached to this course?
-            if(!($submission->course == $course))                {continue;}
+            if(!($submission->course == $course))  {continue;}
 
             //the object may contain assessments with no submissions
-            if(!isset($submission->userid))                {continue;}
+            if(!isset($submission->userid))                {
+                continue;
+            } else {
+                // is the submission from a current user of this course
+                if(!in_array($submission->userid, $this->student_array)) {continue;}
+            }
 
             // check against previously filtered list of assignments - permission to grade?
-            if(!isset($assessments[$submission->id]))                {continue;}
-
-            // is the submission from a current user of this course
-            if(!in_array($submission->userid, $this->student_array)) {continue;}
+            if(!isset($assessments[$submission->id]))  {continue;}
 
             // get groups settings
-            //$combinedref = $type.$submission->id;
             $check = $this->get_groups_settings($type, $submission->id);
 
             // ignore if the group is set to hidden
-            if ($check && $check->showhide == 3) {
-                if ($type == 'forum') {
-                   // what was this for?
-                }
-                continue;
-            }
+            if ($check && ($check->showhide == 3)) { continue; }
 
             // if there are no settings (default is show), 'display by group' is selected and the group matches, or 'display all' is selected, count it.
             if ((!$check) || ($check && $check->showhide == 2 && $this->check_group_membership($check->groups, $submission->userid)) || ($check && $check->showhide == 1)) {
@@ -2235,6 +2399,7 @@ class ajax_marking_functions {
             AND c.visible = 1
             AND a.course IN ($this->course_ids)
             AND s.timemarked < s.timemodified
+            AND NOT (a.resubmit = 0 AND s.timemarked > 0)
             ORDER BY a.id
          ";
          $assignment_submissions = get_records_sql($sql);
@@ -2307,22 +2472,22 @@ class ajax_marking_functions {
      */
     function get_all_forums() {
         global $CFG;
-        $sql = "
+        $sql = '
             SELECT f.id, f.course, f.intro as summary, f.name, f.type, c.id as cmid
             FROM
-                {$CFG->prefix}forum f
-            INNER JOIN {$CFG->prefix}course_modules c
+                '.$CFG->prefix.'forum f
+            INNER JOIN '.$CFG->prefix.'course_modules c
                  ON f.id = c.instance
 
             WHERE
 
-                c.module = {$this->modules['forum']->id}
+                c.module = '.$this->modules['forum']->id.'
                 AND c.visible = 1
-                AND f.course IN ($this->course_ids)
+                AND f.course IN ('.$this->course_ids.')
                 AND f.assessed > 0
                 
             ORDER BY f.id
-        ";
+        ';
         $forums = get_records_sql($sql);
         return $forums;
     }
@@ -2333,42 +2498,48 @@ class ajax_marking_functions {
      */
      function get_all_unmarked_quizzes() {
         global $CFG;
-        require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
-        $sql = "
+        
+        //require_once ($CFG->dirroot.'/mod/quiz/locallib.php');
+        $sql = '
               SELECT
                   qst.id as qstid, qsess.questionid, qz.id, qz.course, qa.userid, c.id as cmid
               FROM
-                {$CFG->prefix}quiz qz
-              INNER JOIN {$CFG->prefix}course_modules c
+                '.$CFG->prefix.'quiz qz
+              INNER JOIN '.$CFG->prefix.'course_modules c
                          ON qz.id = c.instance
               INNER JOIN
-                {$CFG->prefix}quiz_attempts qa
+                '.$CFG->prefix.'quiz_attempts qa
                   ON
                     qz.id = qa.quiz
               INNER JOIN
-                {$CFG->prefix}question_sessions qsess
+                '.$CFG->prefix.'question_sessions qsess
                   ON
-                    qsess.attemptid = qa.id
+                    qsess.attemptid = qa.uniqueid
               INNER JOIN
-                {$CFG->prefix}question_states qst
+                '.$CFG->prefix.'question_states qst
                  ON
                     qsess.newest = qst.id
-              INNER JOIN {$CFG->prefix}question q
+              INNER JOIN '.$CFG->prefix.'question q
                  ON
                     qsess.questionid = q.id
               WHERE
                    qa.timefinish > 0
               AND qa.preview = 0
-              AND c.module = {$this->modules['quiz']->id}
+              AND c.module = '.$this->modules['quiz']->id.'
               AND c.visible = 1
-              AND q.qtype = 'essay'
-              AND qz.course IN ($this->course_ids)
-              AND qst.event NOT IN (
-                    ".QUESTION_EVENTGRADE.",
-                    ".QUESTION_EVENTCLOSEANDGRADE.",
-                    ".QUESTION_EVENTMANUALGRADE.")
+              AND q.qtype = \'essay\'
+              AND qz.course IN ('.$this->course_ids.')
+              AND qst.event NOT IN (3,6,9)
               ORDER BY q.id
-            ";
+              ';
+            /*
+                    '.QUESTION_EVENTGRADE.',
+                    '.QUESTION_EVENTCLOSEANDGRADE.',
+                    '.QUESTION_EVENTMANUALGRADE.')
+              ORDER BY q.id
+            ';
+         */
+
             $quiz_submissions = get_records_sql($sql);
             return $quiz_submissions;
     }
@@ -2378,8 +2549,9 @@ class ajax_marking_functions {
      * @return <type>
      */
      function get_all_quizzes() {
+
          global $CFG;
-         //require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
+        
          $sql = "
               SELECT 
                    qz.id, qz.course, qz.intro as summary, qz.name, c.id as cmid
@@ -2401,9 +2573,9 @@ class ajax_marking_functions {
               AND qz.course IN ($this->course_ids)
               ORDER BY qz.id
             ";
+
             $quizzes = get_records_sql($sql);
-            //print_r($quizzes);
-            //echo "total quizzes = ".count($quizzes);
+          
             return $quizzes;
     }
 
@@ -2411,7 +2583,9 @@ class ajax_marking_functions {
       * gets all unmarked journal submissions from all courses
       */
     function get_all_unmarked_journals() {
+
         global $CFG;
+
         $sql = "
             SELECT je.id as entryid, je.userid, j.course, j.id, c.id as cmid
             FROM {$CFG->prefix}journal_entries je
@@ -2424,9 +2598,8 @@ class ajax_marking_functions {
             AND c.visible = 1
             AND j.assessed <> 0
             AND je.modified > je.timemarked
-
            ";
-
+        
         $journal_submissions = get_records_sql($sql);
         return $journal_submissions;
     }
@@ -2437,7 +2610,9 @@ class ajax_marking_functions {
      * @return <type>
      */
     function get_all_assignments() {
+
         global $CFG;
+
         $sql = "
             SELECT  a.id, a.name, a.description as summary, a.course, c.id as cmid
             FROM
@@ -2449,6 +2624,7 @@ class ajax_marking_functions {
             AND a.course IN ($this->course_ids)
             ORDER BY a.id
          ";
+
          $assignments = get_records_sql($sql);
          return $assignments;
     }
@@ -2457,23 +2633,24 @@ class ajax_marking_functions {
      * gets all workshops for the config tree
      */
     function get_all_workshops() {
+
         global $CFG;
-        $sql = "SELECT w.id, w.course, w.name, w.description as summary, c.id as cmid
-                    FROM
-                        {$CFG->prefix}workshop w
-                    INNER JOIN {$CFG->prefix}course_modules c
-                         ON w.id = c.instance
 
-                    WHERE
-                        c.module = {$this->modules['workshop']->id}
-                    AND c.visible = 1
-                    AND w.course IN ($this->course_ids)
+        $sql = "
+                SELECT w.id, w.course, w.name, w.description as summary, c.id as cmid
+                FROM
+                    {$CFG->prefix}workshop w
+                INNER JOIN {$CFG->prefix}course_modules c
+                     ON w.id = c.instance
 
-                    ORDER BY w.id
-                  ";
-           // echo $sql;
+                WHERE
+                    c.module = {$this->modules['workshop']->id}
+                AND c.visible = 1
+                AND w.course IN ($this->course_ids)
+                ORDER BY w.id
+              ";
+          
             $workshops = get_records_sql($sql);
-            //print_r($workshops);
             return $workshops;
     }
 
@@ -2481,18 +2658,20 @@ class ajax_marking_functions {
      * gets all journals for all courses ready for the config tree
      */
     function get_all_journals() {
+
         global $CFG;
+
         $sql = "
-                    SELECT j.id, j.intro as summary, j.name, j.course, c.id as cmid
-                    FROM  {$CFG->prefix}journal j
-                    INNER JOIN {$CFG->prefix}course_modules c
-                             ON j.id = c.instance
-                    WHERE c.module = {$this->modules['journal']->id}
-                    AND c.visible = 1
-                    AND j.assessed <> 0
-                    AND j.course IN ($this->course_ids)
-                   ";
-            //echo $sql;
+                SELECT j.id, j.intro as summary, j.name, j.course, c.id as cmid
+                FROM  {$CFG->prefix}journal j
+                INNER JOIN {$CFG->prefix}course_modules c
+                         ON j.id = c.instance
+                WHERE c.module = {$this->modules['journal']->id}
+                AND c.visible = 1
+                AND j.assessed <> 0
+                AND j.course IN ($this->course_ids)
+               ";
+            
             $journals = get_records_sql($sql);
             return $journals;
     }
@@ -2507,7 +2686,6 @@ class ajax_marking_functions {
                 break;
             case 'quiz':
                 $assessments = $this->get_all_quizzes();
-                //echo "there are ".count($assessments)." quizzes";
                 break;
             case 'forum':
                 $assessments = $this->get_all_forums();
@@ -2519,17 +2697,15 @@ class ajax_marking_functions {
                 $assessments = $this->get_all_journals();
                 break;
         }
+
         foreach ($assessments as $assessment) {
             if (!$this->assessment_grading_permission($type, $assessment->cmid)) {
-                //echo "no permission";
                 continue;
             }
             if ($assessment->course == $course) {
                 $this->make_assessment_node($assessment->name, $assessment->id, $assessment->cmid, $assessment->summary, $type, NULL);
-                
             }
         }
-        
         
     }
 
@@ -2542,15 +2718,16 @@ class ajax_marking_functions {
      * @return int count of items
      */
     function count_course_assessments($assessments, $course, $type) {
+
         $count = 0;
+
         foreach ($assessments as $assessment) {
-            //echo "assessment ";
             // permissions check
             if (!$this->assessment_grading_permission($type, $assessment->cmid)) {
                 continue;
             }
+            //is it for this course?
             if ($assessment->course == $course) {
-                //echo " counted ";
                 $count++;
             }
         }
@@ -2564,7 +2741,9 @@ class ajax_marking_functions {
      * @cmid int the coursemodule id of the assessment being checked.
      */
     function assessment_grading_permission($type, $cmid) {
+
         $modulecontext = get_context_instance(CONTEXT_MODULE, $cmid);
+
         switch ($type) {
             case "assignment":
             $cap = 'mod/assignment:grade';
@@ -2586,11 +2765,13 @@ class ajax_marking_functions {
             $cap = 'mod/assignment:grade';
             break;
         }
+
         if (has_capability($cap, $modulecontext, $this->userid, false)) {
             return true;
         } else {
             return false;
         }
+
     }
 
     /**
@@ -2609,23 +2790,25 @@ class ajax_marking_functions {
 
         $this->output .= ','; // add a comma before section only if there was a preceding assignment
         $this->output .= '{';
+
         if ($this->type == 'config_course') {
             $this->output .= '"name":"'.$this->clean_name_text($name, -2).'",';
         } else {
             $this->output .= '"name":"'.$this->clean_name_text($name, 1).'",';
         }
+
         $this->output .= '"id":"'.$aid.'",';
         $this->output .= '"assid":"a'.$aid.'",';
         $this->output .= '"cmid":"'.$cmid.'",';
         $this->output .= '"type":"'.$type.'",';
         $this->output .= '"summary":"'.$this->clean_summary_text($shortsum).'"';
+
         if ($count) {
             $this->output .= ',"count":"'.$count.'"';
         }
+
         $this->output .= '}';
     }
-
-
 
 }// end class
 
