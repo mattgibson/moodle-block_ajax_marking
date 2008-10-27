@@ -325,7 +325,7 @@ AJAXmarking = {
                   } else {
                      
                         tree.tree.subscribe('clickEvent', function(oArgs) {
-                            alert('config onclick');
+                            //alert('config onclick');
 
                           var title = document.getElementById('configInstructions');
                           var check = document.getElementById('configshowform');
