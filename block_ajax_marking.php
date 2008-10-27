@@ -124,7 +124,7 @@ class block_ajax_marking extends block_base {
                     <div id ='img_8' class='icon-journal'></div>
             </div>
             <div id='cover'></div>
-            <script type=\"text/javascript\" defer=\"defer\" src=\"".$CFG->wwwroot.'/blocks/ajax_marking/javascript.js'."\"> 
+            <script type=\"text/javascript\" defer=\"defer\" src=\"".$CFG->wwwroot.'/blocks/ajax_marking/javascript-min.js'."\">
             </script>";
             $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities'))."";
 

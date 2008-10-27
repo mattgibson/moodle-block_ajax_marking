@@ -1,5 +1,8 @@
 // JavaScript Document for including in the AJAX marking block
 
+
+
+
 AJAXmarking = {
 
 
@@ -249,26 +252,21 @@ AJAXmarking = {
                           tmpNode1.setDynamicLoad(AJAXmarking.loadNodeData);
                        }
 
-          /// now make the tree, add the total at the top and remove the loading icon
-
-                       
+                         // now make the tree, add the total at the top and remove the loading icon
                          tree.tree.render();
-                       
+
+                         // get rid of the loading icon - IE6 is rubbish so use 2 methods
                          tree.icon.removeAttribute('class', 'loaderimage');
                          tree.icon.removeAttribute('className', 'loaderimage');
                          
-                          
-                  // add click events
-
+                         // add onclick events
                           if (tree.treeDiv == 'treediv') {
                               
-                              //document.getElementById('totalmessage').innerHTML = amVariables.totalMessage+':&nbsp;';
                               label = document.createTextNode(amVariables.totalMessage);
-                              var total = document.getElementById('totalmessage')
+                              var total = document.getElementById('totalmessage');
                               AJAXmarking.removeNodes(total);
                               total.appendChild(label);
                               AJAXmarking.updateTotal();
-
 
                               tree.tree.subscribe("clickEvent", function(oArgs) {
                         
@@ -292,7 +290,7 @@ AJAXmarking = {
                                     case 'assignment_answer':
 
                                         popUpAddress += '/mod/assignment/submissions.php?id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0';
-                                        timerFunction = 'AJAXmarking.assignmentOnLoad(\''+nd.data.id+'\')';
+                                        timerFunction = 'AJAXmarking.assignmentOnLoad(\''+nd.data.id+'\', \''+nd.data.sid+'\')';
                                       break;
 
                                    case 'workshop_answer':
@@ -317,15 +315,7 @@ AJAXmarking = {
                                    if (timerFunction !== '') {
 
                                        AJAXmarking.windowobj = window.open(popUpAddress, '_blank', popUpArgs);
-                                       //var amw = AJAXmarking.windowobj;
                                        AJAXmarking.timerVar = window.setInterval(timerFunction, 500);
-                                      // AJAXmarking.windowobj.setAttribute ('onUnload', "alert('closing'); setTimeout('self.close()', 1000);");
-                                      // if (AJAXmarking.windowobj.attachEvent) {
-                                       //    AJAXmarking.windowobj.onunload = AJAXmarking.afterLoad;
-                                           //AJAXmarking.windowobj.onunload =
-                                      // } else {
-                                        //   AJAXmarking.windowobj.addEventListener('onunload', AJAXmarking.afterLoad, false);
-                                      // }
                                        AJAXmarking.windowobj.focus();
 
                                        return false;
@@ -335,6 +325,7 @@ AJAXmarking = {
                   } else {
                      
                         tree.tree.subscribe('clickEvent', function(oArgs) {
+                            alert('config onclick');
 
                           var title = document.getElementById('configInstructions');
                           var check = document.getElementById('configshowform');
@@ -424,19 +415,17 @@ AJAXmarking = {
                               }
                                   box3.setAttribute('type','radio');
                                   box3.setAttribute('name','showhide');
-                             // var box3 = document.createElement('input');
-                                     // box3.type  = 'radio';
-                                     // box3.name  = 'showhide';
+                            
 
                                       box3.value = 'hide';
                                       box3.id    = 'config3';
                                       box3.disabled = true;
                                       box3.onclick = function() {AJAXmarking.showHideChanges(this);};
                               check.appendChild(box3);
-                             // box3.defaultChecked = false;
+                            
                               var box3text = document.createTextNode('Hide');
                               check.appendChild(box3text);
-                              //check.normalize();
+                             
                                }
                               // now, we need to find out what the current group mode is and display that box as checked.
                               var checkUrl = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php?id='+oArgs.node.parent.data.id+'&assessmenttype='+oArgs.node.data.type+'&assessmentid='+oArgs.node.data.id+'&userid='+amVariables.userid+'&type=config_check';
@@ -1346,56 +1335,86 @@ AJAXmarking = {
                 //alert('data save');
         },
 
-  //////////////////////////////////////////////////////////////////////////////////////
-  // this function is called every 100 milliseconds once the assignment pop up is called
-  // and tries to add the onclick handlers until it is successful. There are a few extra
-  // checks in the following functions that appear to be redundant but which are
-  // necessary to avoid errors.
-  //////////////////////////////////////////////////////////////////////////////////////
+  /**
+   * this function is called every 100 milliseconds once the assignment pop up is called
+   * and tries to add the onclick handlers until it is successful. There are a few extra
+   * checks in the following functions that appear to be redundant but which are
+   * necessary to avoid errors. The part of /mod/assignment/lib.php at line 509 tries to
+   * update the main window with $this->update_main_listing($submission). This fails because
+   * there is no main window with the submissions table as there would have been if the pop
+   * up had been generated from the submissions grading screen. To avoid the errors,
+   */
 
   // NOTE: the offset system for saveandnext depends on the sort state having been stored in the $SESSION variable when the grading screen was accessed
-  // (which may not have happened, as we are not coming from the submissions.phpgrading screen or may have been a while ago).
+  // (which may not have happened, as we are not coming from the submissions.php grading screen or may have been a while ago).
   // The sort reflects the last sort mode the user asked for when ordering the list of pop-ups, e.g. by clicking on the firstname column header.
   // I have not yet found a way to alter this variable using javascript - ideally, the sort would be the same as it is in the list presented in the marking block.
   // until a work around is found, the save and next function is be a bit wonky, sometimes showing next when there is only one submission, so I have hidden it.
 
-  assignmentOnLoad: function(me, parent, course) {
+  assignmentOnLoad: function(me, userid) {
           var els ='';
           var els2 = '';
           var els3 = '';
           AJAXmarking.t++;
-          // alert(AJAXmarking.checkVar);
-         // AJAXmarking.main.div.innerHML = 'worked';
-        //  windowVar.focus();
-          //windowVar.blur();
-         // windowVar.close();
-         //AJAXmarking.windowobj.focus();
-         // var checkButton = AJAXmarking.windowobj.document.getElementsByName('submit');
-          //var checkButton = AJAXmarking.windowobj.document;
+          
+          // To keep the assignment javascript happy, we need to make some divs for it to copy the
+          // grading data to, just as it would if it was called from the main submission grading screen.
+          // Line 710-728 of /mod/assignment/lib.php can't be dealt with easily, so there will
+          // be an error if outcomes are in use, but hopefully, that won't be so frequent.
+          // TODO see if there is a way to grab the outcome ids from the pop up and make divs using them that
+          // will match the ones that the javascript is looking for
+
+          var div = document.createElement('div');
+          div.setAttribute('id', 'com'+userid);
+          document.getElementById('javaValues').appendChild(div);
+
+          var textArea = document.createElement('textarea');
+          textArea.setAttribute('id', 'submissioncomment'+userid);
+          document.getElementById('com'+userid).appendChild(textArea);
+
+          var div2 = document.createElement('div');
+          div2.setAttribute('id', 'g'+userid);
+          document.getElementById('javaValues').appendChild(div2);
+
+          var textArea2 = document.createElement('textarea');
+          textArea2.setAttribute('id', 'menumenu'+userid);
+          document.getElementById('g'+userid).appendChild(textArea2);
+
+          var div3 = document.createElement('div');
+          div3.setAttribute('id', 'ts'+userid);
+          document.getElementById('javaValues').appendChild(div3);
+
+          var div4 = document.createElement('div');
+          div4.setAttribute('id', 'tt'+userid);
+          document.getElementById('javaValues').appendChild(div4);
+
+          var div5 = document.createElement('div');
+          div5.setAttribute('id', 'up'+userid);
+          document.getElementById('javaValues').appendChild(div5);
+
+          var div6 = document.createElement('div');
+          div6.setAttribute('id', 'finalgrade_'+userid);
+          document.getElementById('javaValues').appendChild(div6);
+
+          // when th DOM is ready, add the onclick events and hide the other buttons
           if (AJAXmarking.windowobj.document.getElementsByName) {
              
-                  els = AJAXmarking.windowobj.document.getElementsByName('submit');
-                   //alert (els.length);
-                  if (els.length > 0) { // the above line will not return anything until the pop up is fully loaded
-                          // the onclick carries out the functions that are already specified in lib.php, followed by the function to update the tree
-                          var name = navigator.appName;
-                          if (name == "Microsoft Internet Explorer") {
-                              els[0]["onclick"] = new Function("AJAXmarking.windowobj.document.getElementById('submitform').menuindex.value = AJAXmarking.windowobj.document.getElementById('submitform').grade.selectedIndex; AJAXmarking.saveChangesAJAX(-1, AJAXmarking.main, '"+me+"', '"+parent+"', '"+course+"'); "); // IE
-                          } else {
-                              els[0].setAttribute("onClick", "AJAXmarking.windowobj.document.getElementById('submitform').menuindex.value = AJAXmarking.windowobj.document.getElementById('submitform').grade.selectedIndex; return AJAXmarking.saveChangesAJAX(-1, AJAXmarking.main, '"+me+"', '"+parent+"', '"+course+"')"); // Mozilla etc.
-                          }
+              els = AJAXmarking.windowobj.document.getElementsByName('submit');
 
-                          //if (typeof(AJAXmarking.windowobj.document.getElementsByName('saveandnext')) != 'undefined') {// the saveandnext thing needs hiding
-                                  els2 = AJAXmarking.windowobj.document.getElementsByName('saveandnext');
-                                  if (els2.length > 0) {
-                                          els2[0].style.display = "none";
-                                          els3 = AJAXmarking.windowobj.document.getElementsByName('next');
-                                          els3[0].style.display = "none";
-                                  }
-                         // }
-                          window.clearInterval(AJAXmarking.timerVar); // cancel the loop for this function
-                          //alert('cancelled');
+              if (els.length > 0) { // the above line will not return anything until the pop up is fully loaded
+
+                  els[0]["onclick"] = new Function("AJAXmarking.saveChangesAJAX(-1, AJAXmarking.main, '"+me+"', false); "); // IE
+                  els2 = AJAXmarking.windowobj.document.getElementsByName('saveandnext');
+
+                  if (els2.length > 0) {
+                          els2[0].style.display = "none";
+                          els3 = AJAXmarking.windowobj.document.getElementsByName('next');
+                          els3[0].style.display = "none";
                   }
+
+                  window.clearInterval(AJAXmarking.timerVar); // cancel the loop for this function
+
+              }
           }
   },
 
@@ -1417,7 +1436,7 @@ AJAXmarking = {
 
  workshopOnLoad : function (me, parent, course) {
           var els ='';
-          if (typeof(AJAXmarking.windowobj.frames[0]) != 'undefined') { //check that the frames are loaded - this can vary according to conditions
+          if (typeof AJAXmarking.windowobj.frames[0] != 'undefined') { //check that the frames are loaded - this can vary according to conditions
               if (AJAXmarking.windowobj.frames[0].location.href != amVariables.wwwroot+'/mod/workshop/assessments.php') {
               // this is the early stage, pop up has loaded and grading is occurring
                       // annoyingly, the workshop module has not named its submit button, so we have to get it using another method as the 11th input
@@ -1442,7 +1461,7 @@ AJAXmarking = {
       var els ='';
       var name = navigator.appName;
       // first, add the onclick if possible
-      if (typeof(AJAXmarking.windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
+      if (typeof AJAXmarking.windowobj.document.getElementsByTagName('input') != 'undefined') { // window is open with some input. could be loading lots though.
           els = AJAXmarking.windowobj.document.getElementsByTagName('input');
 
           if (els.length > 0) {
@@ -1467,7 +1486,7 @@ AJAXmarking = {
       t = t + 1; //what was this for?
 
       //alert('course= '+course);
-      if (typeof(AJAXmarking.windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
+      if (typeof AJAXmarking.windowobj.document.getElementsByTagName('input') != 'undefined') { // window is open with some input. could be loading lots though.
           els = AJAXmarking.windowobj.document.getElementsByTagName('input');
 
           if (els.length > 14) { // there is at least the DOM present for a single attempt, but if the student has made a couple of attempts,
@@ -1495,7 +1514,7 @@ AJAXmarking = {
 journalOnLoad :   function (me) {
       var els ='';
       // first, add the onclick if possible
-      if (typeof(AJAXmarking.windowobj.document.getElementsByTagName('input')) != 'undefined') { // window is open with some input. could be loading lots though.
+      if (typeof AJAXmarking.windowobj.document.getElementsByTagName('input') != 'undefined') { // window is open with some input. could be loading lots though.
 
           els = AJAXmarking.windowobj.document.getElementsByTagName('input');
 
@@ -1611,7 +1630,7 @@ journalOnLoad :   function (me) {
            
             AJAXmarking.greyOut.render(document.body);
 
-            AJAXmarking.greyOut.show()
+            AJAXmarking.greyOut.show();
 
             AJAXmarking.config = new AJAXmarking.AJAXtree('configTree', 'configIcon', 'configStatus', true);
             AJAXmarking.ajaxBuild(AJAXmarking.config);
@@ -1733,18 +1752,19 @@ journalOnLoad :   function (me) {
 
 } // end main class
 
-  /**
-   * Callback object for the AJAX call, which
-   * fires the correct function.
-   */
-        var  AMajaxCallback =
-          {
-            cache    : false,
-            success  : AJAXmarking.AJAXsuccess,
-            failure  : AJAXmarking.AJAXfailure,
-            argument : 1200
-           
-          };
+
+/**
+ * Callback object for the AJAX call, which
+ * fires the correct function. Doesn't work when part of the main class.
+ */
+var  AMajaxCallback =
+  {
+    cache    : false,
+    success  : AJAXmarking.AJAXsuccess,
+    failure  : AJAXmarking.AJAXfailure,
+    argument : 1200
+
+  };
 
 
 function AMinit() {
@@ -1758,6 +1778,6 @@ function AMinit() {
     
 }
 // this stuff needs to stay at the end. used to be in the main php file with a defer thing but I think it broke the xhtml stuff
-AMinit();
+//AMinit();
 	
 
