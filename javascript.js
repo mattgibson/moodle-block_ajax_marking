@@ -1366,34 +1366,53 @@ AJAXmarking = {
 
           var div = document.createElement('div');
           div.setAttribute('id', 'com'+userid);
+          //div.setAttribute('display', 'none');
+          div.style.display = 'none';
           document.getElementById('javaValues').appendChild(div);
 
           var textArea = document.createElement('textarea');
           textArea.setAttribute('id', 'submissioncomment'+userid);
+          //textArea.setAttribute('display', 'none');
+          textArea.style.display = 'none';
           document.getElementById('com'+userid).appendChild(textArea);
 
           var div2 = document.createElement('div');
           div2.setAttribute('id', 'g'+userid);
+          //div2.setAttribute('display', 'none');
+          div2.style.display = 'none';
           document.getElementById('javaValues').appendChild(div2);
 
           var textArea2 = document.createElement('textarea');
           textArea2.setAttribute('id', 'menumenu'+userid);
+          //textArea2.setAttribute('display', 'none');
+          textArea2.style.display = 'none';
           document.getElementById('g'+userid).appendChild(textArea2);
 
           var div3 = document.createElement('div');
           div3.setAttribute('id', 'ts'+userid);
+          //div3.setAttribute('display', 'none');
+          div3.style.display = 'none';
           document.getElementById('javaValues').appendChild(div3);
+
 
           var div4 = document.createElement('div');
           div4.setAttribute('id', 'tt'+userid);
+          //div4.setAttribute('display', 'none');
+          div4.style.display = 'none';
           document.getElementById('javaValues').appendChild(div4);
+          
 
           var div5 = document.createElement('div');
           div5.setAttribute('id', 'up'+userid);
+          //div5.setAttribute('display', 'none');
+          div5.style.display = 'none';
           document.getElementById('javaValues').appendChild(div5);
 
+         
           var div6 = document.createElement('div');
           div6.setAttribute('id', 'finalgrade_'+userid);
+          //div6.setAttribute('display', 'none');
+          div6.style.display = 'none';
           document.getElementById('javaValues').appendChild(div6);
 
           // when th DOM is ready, add the onclick events and hide the other buttons
@@ -1778,6 +1797,6 @@ function AMinit() {
     
 }
 // this stuff needs to stay at the end. used to be in the main php file with a defer thing but I think it broke the xhtml stuff
-//AMinit();
+AMinit();
 	
 

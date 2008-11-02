@@ -1135,12 +1135,10 @@ class ajax_marking_functions {
                     {$CFG->prefix}quiz_attempts qzatt
                       ON
                         qz.id = qzatt.quiz
-
                   INNER JOIN
                     {$CFG->prefix}question_sessions qsess
                       ON
                         qsess.attemptid = qzatt.uniqueid
-
                   INNER JOIN
                     {$CFG->prefix}question_states qst
                      ON
@@ -1148,11 +1146,8 @@ class ajax_marking_functions {
                   INNER JOIN {$CFG->prefix}question q
                      ON
                         qst.question = q.id
-    
-                      
                   WHERE
-                    qzatt.userid
-                      IN ($this->student_ids) 
+                      qzatt.userid IN ($this->student_ids)
                   AND qzatt.timefinish > 0
                   AND qzatt.preview = 0
                   AND c.module = {$this->modules['quiz']->id}
@@ -2493,7 +2488,7 @@ class ajax_marking_functions {
     }
 
     /**
-     * gets all unmarked quiz question from all courses
+     * gets all unmarked quiz question from all courses. used for the courses count
      *
      */
      function get_all_unmarked_quizzes() {
