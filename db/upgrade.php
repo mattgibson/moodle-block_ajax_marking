@@ -36,9 +36,6 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         $result = $result && create_table($table);
     }
 
-  
-
-
     return $result;
 }
 

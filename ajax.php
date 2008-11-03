@@ -2096,7 +2096,7 @@ class ajax_marking_functions {
          * @return <type>
          */
         function get_groups_settings($assessmenttype, $assessmentid) {
-            if (isset($this->groupconfig)) {
+            if ($this->groupconfig) {
                 foreach($this->groupconfig as $key => $config_row) {
                     if (($config_row->assessmenttype == $assessmenttype) && ($config_row->assessmentid == $assessmentid)) {
                         $config_settings = $config_row;
