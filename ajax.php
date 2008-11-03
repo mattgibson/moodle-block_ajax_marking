@@ -1042,11 +1042,10 @@ class ajax_marking_functions {
 
                                     // make all the variables ready to put them together into the array
                                     $seconds = time() - $discussion->timemodified;
-                                   // $first_post = get_record('forum_posts', 'id', $discussion->firstpost);
+                                  
                                     if ($forum->type == 'eachuser') { // we will show the student name as the node name as there is only one post that matters
                                         $name = $this->get_fullname($firstpost->userid);
-                                            //$rec = get_record('user', 'id', $firstpost->userid);
-                                            //$name = $rec->firstname." ".$rec->lastname;
+                                            
                                     } else { // the name will be the name of the discussion
                                             $name = $discussion->name;
 
@@ -1061,7 +1060,6 @@ class ajax_marking_functions {
                                         $discuss = get_string('discussion', 'block_ajax_marking');
                                     }
                                     $summary = "<strong>".$discuss.":</strong> ".$shortsum."<br />".$timesum;
-
 
                                     $this->output .= $this->make_submission_node($name, $firstpost->id, $discussion->id, $summary, 'discussion', $seconds, $time);
                                     
@@ -1079,7 +1077,7 @@ class ajax_marking_functions {
             //require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
             
           
-            $sql2 .= "
+            $sql2 = "
                   SELECT
                        qst.id as questionstateid, qst.question as questionstatequestionid, qsess.questionid as questsessquestionid, qsess.id as questionsessionid, qsess.newest as questsessnewest, qsess.attemptid as questsessattemptid, q.id as questionid, q.type as questiontype qa.uniqueid as quizattemptid, qz.*, c.id as cmid
                   FROM
@@ -1124,7 +1122,7 @@ class ajax_marking_functions {
                   ORDER BY q.id
                 ";
               */
-            $sql .= "
+            $sql = "
                   SELECT
                       qzatt.id as qzattid,  qzatt.userid, qz.id, qz.intro as description, qz.name,  c.id as cmid
                   FROM
@@ -1445,7 +1443,7 @@ class ajax_marking_functions {
                 $seconds = ($now - $question_attempt->timemodified);
                 $summary = $this->make_time_summary($seconds);
 
-                $this->output .= $this->make_submission_node($name, $question_attempt->useid, $this->id, $summary, 'quiz_answer', $seconds, $question_attempt->timemodified);
+                $this->output .= $this->make_submission_node($name, $question_attempt->userid, $this->id, $summary, 'quiz_answer', $seconds, $question_attempt->timemodified);
 
                 /*
                 $this->output .= ','; // add a comma before section only if there was a preceding assignment
