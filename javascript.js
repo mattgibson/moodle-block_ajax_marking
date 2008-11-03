@@ -1356,72 +1356,79 @@ AJAXmarking = {
           var els2 = '';
           var els3 = '';
           AJAXmarking.t++;
-          
-          // To keep the assignment javascript happy, we need to make some divs for it to copy the
-          // grading data to, just as it would if it was called from the main submission grading screen.
-          // Line 710-728 of /mod/assignment/lib.php can't be dealt with easily, so there will
-          // be an error if outcomes are in use, but hopefully, that won't be so frequent.
-          // TODO see if there is a way to grab the outcome ids from the pop up and make divs using them that
-          // will match the ones that the javascript is looking for
-
-          var div = document.createElement('div');
-          div.setAttribute('id', 'com'+userid);
-          //div.setAttribute('display', 'none');
-          div.style.display = 'none';
-          document.getElementById('javaValues').appendChild(div);
-
-          var textArea = document.createElement('textarea');
-          textArea.setAttribute('id', 'submissioncomment'+userid);
-          //textArea.setAttribute('display', 'none');
-          textArea.style.display = 'none';
-          document.getElementById('com'+userid).appendChild(textArea);
-
-          var div2 = document.createElement('div');
-          div2.setAttribute('id', 'g'+userid);
-          //div2.setAttribute('display', 'none');
-          div2.style.display = 'none';
-          document.getElementById('javaValues').appendChild(div2);
-
-          var textArea2 = document.createElement('textarea');
-          textArea2.setAttribute('id', 'menumenu'+userid);
-          //textArea2.setAttribute('display', 'none');
-          textArea2.style.display = 'none';
-          document.getElementById('g'+userid).appendChild(textArea2);
-
-          var div3 = document.createElement('div');
-          div3.setAttribute('id', 'ts'+userid);
-          //div3.setAttribute('display', 'none');
-          div3.style.display = 'none';
-          document.getElementById('javaValues').appendChild(div3);
-
-
-          var div4 = document.createElement('div');
-          div4.setAttribute('id', 'tt'+userid);
-          //div4.setAttribute('display', 'none');
-          div4.style.display = 'none';
-          document.getElementById('javaValues').appendChild(div4);
-          
-
-          var div5 = document.createElement('div');
-          div5.setAttribute('id', 'up'+userid);
-          //div5.setAttribute('display', 'none');
-          div5.style.display = 'none';
-          document.getElementById('javaValues').appendChild(div5);
-
+          //alert ('fired');
          
-          var div6 = document.createElement('div');
-          div6.setAttribute('id', 'finalgrade_'+userid);
-          //div6.setAttribute('display', 'none');
-          div6.style.display = 'none';
-          document.getElementById('javaValues').appendChild(div6);
 
-          // when th DOM is ready, add the onclick events and hide the other buttons
+             // when th DOM is ready, add the onclick events and hide the other buttons
           if (AJAXmarking.windowobj.document.getElementsByName) {
-             
+
               els = AJAXmarking.windowobj.document.getElementsByName('submit');
 
               if (els.length > 0) { // the above line will not return anything until the pop up is fully loaded
 
+                  // To keep the assignment javascript happy, we need to make some divs for it to copy the
+                  // grading data to, just as it would if it was called from the main submission grading screen.
+                  // Line 710-728 of /mod/assignment/lib.php can't be dealt with easily, so there will
+                  // be an error if outcomes are in use, but hopefully, that won't be so frequent.
+                  // TODO see if there is a way to grab the outcome ids from the pop up and make divs using them that
+                  // will match the ones that the javascript is looking for
+                  var div = document.createElement('div');
+                  div.setAttribute('id', 'com'+userid);
+                  //div.setAttribute('display', 'none');
+                  div.style.display = 'none';
+
+
+                  var textArea = document.createElement('textarea');
+                  textArea.setAttribute('id', 'submissioncomment'+userid);
+                  //textArea.setAttribute('display', 'none');
+                  textArea.style.display = 'none';
+                  textArea.setAttribute('rows', "2");
+                  textArea.setAttribute('cols', "20");
+                  div.appendChild(textArea);
+                  window.document.getElementById('javaValues').appendChild(div);
+
+                  var div2 = document.createElement('div');
+                  div2.setAttribute('id', 'g'+userid);
+                  //div2.setAttribute('display', 'none');
+                  div2.style.display = 'none';
+                  window.document.getElementById('javaValues').appendChild(div2);
+
+                  var textArea2 = document.createElement('textarea');
+                  textArea2.setAttribute('id', 'menumenu'+userid);
+                  //textArea2.setAttribute('display', 'none');
+                  textArea2.style.display = 'none';
+                  textArea2.setAttribute('rows', "2");
+                  textArea2.setAttribute('cols', "20");
+                  window.document.getElementById('g'+userid).appendChild(textArea2);
+
+                  var div3 = document.createElement('div');
+                  div3.setAttribute('id', 'ts'+userid);
+                  //div3.setAttribute('display', 'none');
+                  div3.style.display = 'none';
+                  window.document.getElementById('javaValues').appendChild(div3);
+
+
+                  var div4 = document.createElement('div');
+                  div4.setAttribute('id', 'tt'+userid);
+                  //div4.setAttribute('display', 'none');
+                  div4.style.display = 'none';
+                  window.document.getElementById('javaValues').appendChild(div4);
+
+
+                  var div5 = document.createElement('div');
+                  div5.setAttribute('id', 'up'+userid);
+                  //div5.setAttribute('display', 'none');
+                  div5.style.display = 'none';
+                  window.document.getElementById('javaValues').appendChild(div5);
+
+
+                  var div6 = document.createElement('div');
+                  div6.setAttribute('id', 'finalgrade_'+userid);
+                  //div6.setAttribute('display', 'none');
+                  div6.style.display = 'none';
+                  window.document.getElementById('javaValues').appendChild(div6);
+
+                  // now add onclick
                   els[0]["onclick"] = new Function("AJAXmarking.saveChangesAJAX(-1, AJAXmarking.main, '"+me+"', false); "); // IE
                   els2 = AJAXmarking.windowobj.document.getElementsByName('saveandnext');
 
