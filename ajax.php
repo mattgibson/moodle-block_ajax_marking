@@ -1124,7 +1124,7 @@ class ajax_marking_functions {
               */
             $sql = "
                   SELECT
-                      qzatt.id as qzattid,  qzatt.userid, qz.id, qz.intro as description, qz.name,  c.id as cmid
+                      qsess.id as qsessid, qzatt.userid, qz.id, qz.intro as description, qz.name,  c.id as cmid
                   FROM
                     {$CFG->prefix}quiz qz
                   INNER JOIN {$CFG->prefix}course_modules c
@@ -1143,7 +1143,7 @@ class ajax_marking_functions {
                         qsess.newest = qst.id
                   INNER JOIN {$CFG->prefix}question q
                      ON
-                        qst.question = q.id
+                        qsess.questionid = q.id
                   WHERE
                       qzatt.userid IN ($this->student_ids)
                   AND qzatt.timefinish > 0

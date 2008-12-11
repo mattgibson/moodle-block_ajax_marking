@@ -282,13 +282,14 @@ AJAXmarking = {
                                 switch (nd.data.type) {
 
                                     case 'quiz_answer':
-
+                                          //alert(nd.data.type);
                                           popUpAddress += '/mod/quiz/report.php?mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'';
                                           timerFunction = 'AJAXmarking.quizOnLoad(\''+nd.data.id+'\')';
-                                      break;
+                                         
+                                          break;
 
                                     case 'assignment_answer':
-
+                                       // alert('timerFunction');
                                         popUpAddress += '/mod/assignment/submissions.php?id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0';
                                         timerFunction = 'AJAXmarking.assignmentOnLoad(\''+nd.data.id+'\', \''+nd.data.sid+'\')';
                                       break;
@@ -315,7 +316,8 @@ AJAXmarking = {
                                    if (timerFunction !== '') {
 
                                        AJAXmarking.windowobj = window.open(popUpAddress, '_blank', popUpArgs);
-                                       AJAXmarking.timerVar = window.setInterval(timerFunction, 500);
+                                       AJAXmarking.timerVar =  window.setInterval(timerFunction, 500);
+                                       //AJAXmarking.quizOnLoad(nd.data.id);
                                        AJAXmarking.windowobj.focus();
 
                                        return false;
@@ -1062,7 +1064,7 @@ AJAXmarking = {
     */
 
     saveChangesAJAX : function(loc, tree, thisNodeId, frames) {
-
+        //alert('savechangesajax');
         var checkNode = "";
         var parentNode = "";
         var marker = 0;
@@ -1352,14 +1354,14 @@ AJAXmarking = {
   // until a work around is found, the save and next function is be a bit wonky, sometimes showing next when there is only one submission, so I have hidden it.
 
   assignmentOnLoad: function(me, userid) {
-          var els ='';
-          var els2 = '';
-          var els3 = '';
-          AJAXmarking.t++;
-          //alert ('fired');
-         
+      var els ='';
+      var els2 = '';
+      var els3 = '';
+      AJAXmarking.t++;
+      //alert ('fired');
 
-             // when th DOM is ready, add the onclick events and hide the other buttons
+      // when th DOM is ready, add the onclick events and hide the other buttons
+      if (AJAXmarking.windowobj.document) {
           if (AJAXmarking.windowobj.document.getElementsByName) {
 
               els = AJAXmarking.windowobj.document.getElementsByName('submit');
@@ -1429,7 +1431,7 @@ AJAXmarking = {
                   window.document.getElementById('javaValues').appendChild(div6);
 
                   // now add onclick
-                  els[0]["onclick"] = new Function("AJAXmarking.saveChangesAJAX(-1, AJAXmarking.main, '"+me+"', false); "); // IE
+                  els[0]["onclick"] = new Function("return AJAXmarking.saveChangesAJAX(-1, AJAXmarking.main, '"+me+"', false); "); // IE
                   els2 = AJAXmarking.windowobj.document.getElementsByName('saveandnext');
 
                   if (els2.length > 0) {
@@ -1442,6 +1444,7 @@ AJAXmarking = {
 
               }
           }
+      }
   },
 
 
@@ -1468,7 +1471,7 @@ AJAXmarking = {
                       // annoyingly, the workshop module has not named its submit button, so we have to get it using another method as the 11th input
                           els = AJAXmarking.windowobj.frames[0].document.getElementsByTagName('input');
                           if (els.length == 11) {
-                                  els[10]["onclick"] = new Function("AJAXmarking.saveChangesAJAX('/mod/workshop/assessments.php', AJAXmarking.main, '"+me+"', true);"); // IE
+                                  els[10]["onclick"] = new Function("return AJAXmarking.saveChangesAJAX('/mod/workshop/assessments.php', AJAXmarking.main, '"+me+"', true);"); // IE
                                 
                                   window.clearInterval(AJAXmarking.timerVar);	// cancel loop
                               
@@ -1509,24 +1512,25 @@ AJAXmarking = {
   quizOnLoad : function (me) {
       var els = '';
       var lastButOne = '';
-      t = t + 1; //what was this for?
+     // t = t + 1; //what was this for?
 
-      //alert('course= '+course);
+     // alert('onload');
       if (typeof AJAXmarking.windowobj.document.getElementsByTagName('input') != 'undefined') { // window is open with some input. could be loading lots though.
           els = AJAXmarking.windowobj.document.getElementsByTagName('input');
 
           if (els.length > 14) { // there is at least the DOM present for a single attempt, but if the student has made a couple of attempts,
                                   // there will be a larger window.
               lastButOne = els.length - 1;
+              //alert(els[lastButOne].value);
               if (els[lastButOne].value == amVariables.quizSaveString) {
-
+//alert ('adding onclick');
                   // the onclick carries out the functions that are already specified in lib.php, followed by the function to update the tree
-                  var name = navigator.appName;
-                  if (name == "Microsoft Internet Explorer") {
-                  els[lastButOne]["onclick"] = new Function("AJAXmarking.saveChangesAJAX('/mod/quiz/report.php', AJAXmarking.main, '"+me+"'); "); // IE
-                  } else {
-                          els[lastButOne].setAttribute("onClick", "window.opener.AJAXmarking.saveChangesAJAX('/mod/quiz/report.php', AJAXmarking.main, '"+me+"')"); // Mozilla etc.
-                  }
+                 //var name = navigator.appName;
+                 // if (name == "Microsoft Internet Explorer") {
+                      els[lastButOne]["onclick"] = new Function("return AJAXmarking.saveChangesAJAX('/mod/quiz/report.php', AJAXmarking.main, '"+me+"'); "); // IE
+                  //} else {
+                         // els[lastButOne].setAttribute("onClick", "AJAXmarking.saveChangesAJAX('/mod/quiz/report.php', AJAXmarking.main, '"+me+"')"); // Mozilla etc.
+                  //}
                   window.clearInterval(AJAXmarking.timerVar); // cancel the loop for this function
                 
               }
@@ -1550,7 +1554,7 @@ journalOnLoad :   function (me) {
               
               if (els[key].value == amVariables.journalSaveString) { // does the last input have the 'send in my ratings' string as label, showing that all the rating are loaded?
                   
-                  els[key].setAttribute("onClick", "return AJAXmarking.saveChangesAJAX('/mod/journal/report.php', AJAXmarking.main, '"+me+"')"); // mozilla and all other good browsers
+                 // els[key].setAttribute("onClick", "return AJAXmarking.saveChangesAJAX('/mod/journal/report.php', AJAXmarking.main, '"+me+"')"); // mozilla and all other good browsers
                   
                   els[key]["onclick"] = new Function("return AJAXmarking.saveChangesAJAX('/mod/journal/report.php', AJAXmarking.main, '"+me+"');"); // IE
 

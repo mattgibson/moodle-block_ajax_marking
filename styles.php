@@ -122,7 +122,7 @@
   background: url(<?php echo $CFG->wwwroot ?>/blocks/ajax_marking/images/ajax-loader.gif) 0 0 no-repeat;
   width: 15px;
   height: 15px;
-  disaply: block;
+  display: block;
 }
 #count {
   font-weight: bold;
