@@ -66,6 +66,8 @@ class ajax_marking_functions {
 
         $sql                     = "SELECT * FROM {$CFG->prefix}block_ajax_marking WHERE userid = $this->userid";
         $this->groupconfig       = get_records_sql($sql);
+        $this->get_teachers();
+       // echo $this->teachers;
 
         switch ($this->type) {
         case "main":
@@ -143,7 +145,8 @@ class ajax_marking_functions {
                              ON  p.id = r.post
                         WHERE p.userid <> $this->userid
                             AND p.userid IN ($this->student_ids)
-                            AND (r.userid <> $this->userid OR r.userid IS NULL)
+                            AND (((r.userid <> $this->userid) AND (r.userid NOT IN ($this->teachers))) OR r.userid IS NULL)
+
                             AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
                             AND c.module = {$this->modules['forum']->id}
                             AND c.visible = 1
@@ -151,6 +154,7 @@ class ajax_marking_functions {
                             AND f.assessed > 0
                         ORDER BY f.id
                   ";
+
             $this->course_assessments($sql, 'forum');
             $this->quizzes();
 
@@ -406,6 +410,7 @@ class ajax_marking_functions {
                                     continue;
                                 }
                                 if ((!$check) || ($check && ($check->showhide == 2) && $this->check_group_membership($check->groups, $assessment_submission->userid)) || ($check->showhide == 1)) {
+                                   // if ($type == 'forum') {print_r($assessment_submission);}
                                     $count++;
                                 }
                             }
@@ -931,7 +936,9 @@ class ajax_marking_functions {
 		$this->get_course_students($forum->course);
 		
 		$discussions = get_records('forum_discussions', 'forum', $this->id);
-           
+                if (!$discussions) {
+                    return;
+                }
                 $sql = "SELECT p.id, p.userid, p.created, p.message, d.id as discussionid
                         FROM
                             {$CFG->prefix}forum_discussions d ";
@@ -948,7 +955,7 @@ class ajax_marking_functions {
                             ON  p.id = r.post
                         WHERE p.userid <> $this->userid
                         AND p.userid IN ($this->student_ids)
-                        AND (r.userid <> $this->userid OR r.userid IS NULL)
+                        AND (((r.userid <> $this->userid)  AND (r.userid NOT IN ($this->teachers))) OR r.userid IS NULL)
 
                         ";
                 if ($forum->type == 'eachuser') {
@@ -964,106 +971,114 @@ class ajax_marking_functions {
                        if (!$group_filter) {return;}
                 }
 
-		if ($discussions) {
+		if ($posts) {
 		  
                     $this->output = '[{"type":"submissions"}';      // begin json object.
 
                     foreach ($discussions as $discussion) {
 
-                            if ($this->group && !groups_is_member($this->group, $discussion->userid)) {continue;}
+                        $firstpost = '';
+                        if ($this->group && !groups_is_member($this->group, $discussion->userid)) {
+                            continue;
+                        }
 
-                            $count = 0;
-                            $sid = 0; // this variable will hold the id of the first post which is unrated, so it can be used
-                                                      // in the link to load the pop up with the discussion page at that position.
+
+                        $count = 0;
+                        $sid = 0; // this variable will hold the id of the first post which is unrated, so it can be used
+                                                  // in the link to load the pop up with the discussion page at that position.
+                        $time = time(); // start seconds at current time so we can compare with time created to find the oldest as we cycle through
+
+                        // if this forum is set to 'each student posts one discussion', we want to only grade the first one
+                        if ($forum->type == 'eachuser') {
+                             foreach ($posts as $post) {
+                                 if ($post->id == $discussion->firstpost) {
+                                     $firstpost = $post;
+                                     $count = 1;
+                                     break;
+                                 }
+                             }
+                             if (!$firstpost) {
+                                 // post has been marked already, so this discussion can be ignored.
+                                 continue;
+                             }
+                        } else {
+
+                            // any other type of graded forum, we can grade any posts that are not yet graded
+                            // this means counting them first.
+
                             $time = time(); // start seconds at current time so we can compare with time created to find the oldest as we cycle through
 
-                            // if this forum is set to 'each student posts one discussion', we want to only grade the first one
-                            if ($forum->type == 'eachuser') {
-                                 foreach ($posts as $post) {
-                                     if ($post->id == $discussion->firstpost) {
-                                         $firstpost = $post;
-                                         break;
-                                     }
-                                 }
-                                 if (!$firstpost) {
-                                     // post has been marked already, so this discussion can be ignored.
-                                     continue;
-                                 } else {
-                                      $count = 1;
-                                 }
-                            } else {
+                            $firsttime = '';
+                            foreach ($posts as $post) {
 
-                                // any other type of graded forum, we can grade any posts that are not yet graded
-                                // this means counting them first.
+                               if (!isset($post->userid)) {
+                                   continue;
+                               }
+                                // Maybe this forum doesn't rate posts earlier than X time, so we check.
+                               if ($forum->assesstimestart != 0) {
 
-                                $time = time(); // start seconds at current time so we can compare with time created to find the oldest as we cycle through
-
-                                $firstpost = '';
-                                $firsttime = '';
-                                foreach ($posts as $post) {
-
-                                   if (!isset($post->userid)) {
-                                       continue;
-                                   }
-                                   if ($forum->assesstimestart != 0) { // this forum doesn't rate posts earlier than X time, so we check.
-                                        if ($post->created > $forum->assesstimestart)  {
-                                             if ($post->created < $forum->assesstimefinish) { // it also has a later limit, so check that too.
-                                                 continue;
-                                             }
-                                        } else {
-                                            continue;
-                                        }
-                                    }
-                                   
-                                    if ($discussion->id == $post->discussionid) { //post is relevant
-                                        // link needs the id of the earliest post, so store time if this is the first post; check and modify for subsequent ones
-                                        if ($firstpost) {
-                                            if ($post->created > $firstpost) {
-                                                $firstpost = $post;
-                                            }
-                                        } else {
-                                            $firstpost = $post;
-                                        }
-                                        // store the time created for the tooltip if its the oldest post yet for this discussion
-                                        if ($firsttime) {
-                                            if ($post->created < $time) {
-                                                $time = $post->created;
-                                            }
-                                        } else {
-                                            $firsttime = $post->created;
-                                        }
-                                        $count++;
+                                    if (!($post->created > $forum->assesstimestart))  {
+                                        continue;
                                     }
                                 }
-                            }
+                                // Same for later cut-off time
+                                if ($forum->assesstimefinish != 0) {
+                                    if (!($post->created < $forum->assesstimefinish)) { // it also has a later limit, so check that too.
+                                         continue;
+                                     }
+                                }
+                                if ($discussion->id == $post->discussionid) {
+                                    //post is relevant
+                                    $count++;
 
-                            // add the node if there were any posts -  the node is the discussion with a count of the number of unrated posts
-                            if ($count > 0) {
-
-                                    // make all the variables ready to put them together into the array
-                                    $seconds = time() - $discussion->timemodified;
-                                  
-                                    if ($forum->type == 'eachuser') { // we will show the student name as the node name as there is only one post that matters
-                                        $name = $this->get_fullname($firstpost->userid);
-                                            
-                                    } else { // the name will be the name of the discussion
-                                            $name = $discussion->name;
-
+                                    // link needs the id of the earliest post, so store time if this is the first post; check and modify for subsequent ones
+                                    if ($firstpost) {
+                                        if ($post->created > $firstpost) {
+                                            $firstpost = $post;
+                                        }
+                                    } else {
+                                        $firstpost = $post;
                                     }
-
-                                    $sum = strip_tags($firstpost->message);
-
-                                    $shortsum = substr($sum, 0, 100);
-                                    if (strlen($shortsum) < strlen($sum)) {$shortsum .= "...";}
-                                    $timesum = $this->make_time_summary($seconds, true);
-                                    if (!isset($discuss)) {
-                                        $discuss = get_string('discussion', 'block_ajax_marking');
+                                    // store the time created for the tooltip if its the oldest post yet for this discussion
+                                    if ($firsttime) {
+                                        if ($post->created < $time) {
+                                            $time = $post->created;
+                                        }
+                                    } else {
+                                        $firsttime = $post->created;
                                     }
-                                    $summary = "<strong>".$discuss.":</strong> ".$shortsum."<br />".$timesum;
-
-                                    $this->output .= $this->make_submission_node($name, $firstpost->id, $discussion->id, $summary, 'discussion', $seconds, $time);
                                     
-                            }
+                                }
+                            } // end foreach posts
+                        } // end any other graded forum
+
+                        // add the node if there were any posts -  the node is the discussion with a count of the number of unrated posts
+                        if ($count > 0) {
+
+                                // make all the variables ready to put them together into the array
+                                $seconds = time() - $discussion->timemodified;
+
+                                if ($forum->type == 'eachuser') { // we will show the student name as the node name as there is only one post that matters
+                                    $name = $this->get_fullname($firstpost->userid);
+
+                                } else { // the name will be the name of the discussion
+                                        $name = $discussion->name;
+
+                                }
+
+                                $sum = strip_tags($firstpost->message);
+
+                                $shortsum = substr($sum, 0, 100);
+                                if (strlen($shortsum) < strlen($sum)) {$shortsum .= "...";}
+                                $timesum = $this->make_time_summary($seconds, true);
+                                if (!isset($discuss)) {
+                                    $discuss = get_string('discussion', 'block_ajax_marking');
+                                }
+                                $summary = $discuss.": ".$shortsum."<br />".$timesum;
+
+                                $this->output .= $this->make_submission_node($name, $firstpost->id, $discussion->id, $summary, 'discussion', $seconds, $time, $count);
+
+                        }
                     }
                     $this->output .= "]"; // end JSON array
 		}// if discussions
@@ -1586,6 +1601,7 @@ class ajax_marking_functions {
 		if ($stripbr == true) {
 			$text = strip_tags($text, '<strong>');
 		}
+                $text = htmlentities($text, ENT_QUOTES);
 		switch($level) {
 		
                 case -2:
@@ -1639,8 +1655,12 @@ class ajax_marking_functions {
 				}
 			}
 		}
-		if (count($student_array > 0)) { // some students were returned
-                    $student_ids = implode(",", $student_array); //convert to comma separated
+		if (count($student_array) > 0) {
+                    // some students were returned
+
+                    // convert to comma separated list
+                    $student_ids = implode(",", $student_array);
+
                     $this->student_ids = $student_ids;
                     $this->student_array = $student_array;
                     $this->student_details = $student_details;
@@ -1649,39 +1669,84 @@ class ajax_marking_functions {
 		}
 	}
 
-	////////////////////////////////////////////////////
-	// function to make the summary for submission nodes
-	////////////////////////////////////////////////////
+        
+        /**
+         * This is to get the teachers so that forum posts that have been graded by another teacher
+         * can be hidden automatically. No courseid = get all teachers in all courses.
+         * 
+         * TODO Can this be cached?
+         * 
+         * @param <type> $courseid
+         * @return <type> 
+         */
+        function get_teachers() {
+
+            $teacher_array = array();
+            $teacher_details = array();
+
+            // TODO get the roles that are specified as being able to grade forums
+            $teacher_roles = array(3, 4);
+
+            foreach ($this->courses as $course) {
+
+                // this mulidimensional array isn't currently used.
+                //$teacher_array[$coure->id] = array();
+
+                $course_teachers = get_role_users($teacher_roles, $course->context); // get teachers in this course with this role
+                if ($course_teachers) {
+
+                    foreach($course_teachers as $course_teacher) {
+
+                        if (!in_array($course_teacher->id, $teacher_array)) {
+
+                            $teacher_array[] = $course_teacher->id;
+
+                         }
+                    }
+                }
+            }
+            if (count($teacher_array, 1) > 0) { // some teachers were returned
+                 $this->teacher_array = $teacher_array;
+                 $this->teachers = implode(',', $teacher_array);
+            } else {
+                 $this->teacher_array = false;
+            }
+	}
+
+	/**
+	 * function to make the summary for submission nodes, showing how long ago it was
+         * submitted
+	 */
 	
 	function make_time_summary($seconds, $discussion=false) {
-		$weeksstr = get_string('weeks', 'block_ajax_marking');
-		$weekstr = get_string('week', 'block_ajax_marking');
-		$daysstr = get_string('days', 'block_ajax_marking');
-		$daystr = get_string('day', 'block_ajax_marking');
-		$hoursstr = get_string('hours', 'block_ajax_marking');
-		$hourstr = get_string('hour', 'block_ajax_marking');
-		$submitted = ""; // make the time bold unless its a discussion where there is already a lot of bolding
-		$ago = get_string('ago', 'block_ajax_marking');
-		
-		if ($seconds<3600) {
-		   $name = $submitted."<1 ".$hourstr;
-		}
-		if ($seconds<7200) {
-		   $name = $submitted."1 ".$hourstr;
-		}
-		elseif ($seconds<86400) {
-		   $hours = floor($seconds/3600);
-		   $name = $submitted.$hours." ".$hoursstr;
-		}
-		elseif ($seconds<172800) {
-		   $name = $submitted."1 ".$daystr;
-		}
-		else {
-		   $days = floor($seconds/86400);
-		   $name = $submitted.$days." ".$daysstr;
-		}
-		$name .= " ".$ago;
-		return $name;
+            $weeksstr = get_string('weeks', 'block_ajax_marking');
+            $weekstr = get_string('week', 'block_ajax_marking');
+            $daysstr = get_string('days', 'block_ajax_marking');
+            $daystr = get_string('day', 'block_ajax_marking');
+            $hoursstr = get_string('hours', 'block_ajax_marking');
+            $hourstr = get_string('hour', 'block_ajax_marking');
+            $submitted = ""; // make the time bold unless its a discussion where there is already a lot of bolding
+            $ago = get_string('ago', 'block_ajax_marking');
+
+            if ($seconds<3600) {
+               $name = $submitted."<1 ".$hourstr;
+            }
+            if ($seconds<7200) {
+               $name = $submitted."1 ".$hourstr;
+            }
+            elseif ($seconds<86400) {
+               $hours = floor($seconds/3600);
+               $name = $submitted.$hours." ".$hoursstr;
+            }
+            elseif ($seconds<172800) {
+               $name = $submitted."1 ".$daystr;
+            }
+            else {
+               $days = floor($seconds/86400);
+               $name = $submitted.$days." ".$daysstr;
+            }
+            $name .= " ".$ago;
+            return $name;
 	}
 	
 
@@ -1691,7 +1756,6 @@ class ajax_marking_functions {
      * 
      */
     function config_courses() {
-       
 
             $this->output = '[{"type":"config_main"}';
 
@@ -2186,20 +2250,21 @@ class ajax_marking_functions {
          * @param int $seconds Number of second ago that this was submitted - for the colour coding
          * @param int $timemodified - Time submitted in unix format, for the tooltip(?)
          */
-        function make_submission_node($name, $sid, $aid, $summary, $type, $seconds, $timemodified) {
+        function make_submission_node($name, $sid, $aid, $summary, $type, $seconds, $timemodified, $count) {
             $this->output .= ','; 
             //if ($type != 'journal') {
             //    $summary = $this->make_time_summary($seconds);
             //}
+
             $this->output .= '{';
-                    $this->output .= '"name":"'.$name.'",';
+                    $this->output .= '"name":"'.htmlentities($name, ENT_QUOTES).'",';
                     $this->output .= '"sid":"'.$sid.'",'; // id of submission for hyperlink
                     $this->output .= '"aid":"'.$aid.'",'; // id of assignment for hyperlink
                     $this->output .= '"summary":"'.$this->clean_summary_text($summary).'",';
                     $this->output .= '"type":"'.$type.'",';
                     $this->output .= '"seconds":"'.$seconds.'",'; // 'seconds ago' sent to allow style to change according to how long it has been
                     $this->output .= '"time":"'.$timemodified.'",'; // send the time of submission for tooltip
-                    $this->output .= '"count":"1"';
+                    $this->output .= '"count":"'.(isset($count) ? $count : 1 ).'"';
             $this->output .= '}';
         }
         
@@ -2428,7 +2493,8 @@ class ajax_marking_functions {
     }
 
     /**
-     *
+     * Gets all unmarked forum posts, but defines unmarked as not marked by the current account. If
+     * another teacher has marked it, that is a problem.
      * @return <type> gets all unmarked forum discussions for all courses
      */
     function get_all_unmarked_forums() {
@@ -2446,7 +2512,7 @@ class ajax_marking_functions {
             LEFT JOIN {$CFG->prefix}forum_ratings r
                  ON  p.id = r.post
             WHERE p.userid <> $this->userid
-                AND ((r.userid <> $this->userid) OR r.userid IS NULL)
+                AND (((r.userid <> $this->userid) AND (r.userid NOT IN ($this->teachers))) OR r.userid IS NULL)
                 AND c.module = {$this->modules['forum']->id}
                 AND c.visible = 1
                 AND f.course IN ($this->course_ids)
@@ -2454,6 +2520,7 @@ class ajax_marking_functions {
                 AND f.assessed > 0
             ORDER BY f.id
         ";
+        
         $forum_submissions = get_records_sql($sql);
         return $forum_submissions;
     }
@@ -2802,6 +2869,7 @@ class ajax_marking_functions {
 
         $this->output .= '}';
     }
+
 
 }// end class
 
