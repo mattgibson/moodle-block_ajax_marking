@@ -40,16 +40,16 @@ class ajax_marking_functions {
         $this->student_array     = '';
         $this->student_details   = '';
 
-        $this->type              = required_param('type', PARAM_TEXT); // refers to the part being built
-        $this->id                = optional_param('id', NULL, PARAM_INT);
-        $this->userid            = optional_param('userid', NULL, PARAM_INT);
-        $this->quizid            = optional_param('quizid', NULL, PARAM_INT);
-        $this->groups            = optional_param('groups', NULL, PARAM_TEXT);
-        $this->assessmenttype    = optional_param('assessmenttype', NULL, PARAM_TEXT);
-        $this->assessmentid      = optional_param('assessmentid', NULL, PARAM_INT);
-        $this->showhide          = optional_param('showhide', NULL, PARAM_INT);
-        $this->group             = optional_param('group', NULL, PARAM_TEXT);
-        $this->courseid          = optional_param('courseid', NULL, PARAM_TEXT);
+        $this->type              = required_param('type',                   PARAM_TEXT); // refers to the part being built
+        $this->id                = optional_param('id',               NULL, PARAM_INT);
+        $this->userid            = optional_param('userid',           NULL, PARAM_INT);
+        $this->quizid            = optional_param('quizid',           NULL, PARAM_INT);
+        $this->groups            = optional_param('groups',           NULL, PARAM_TEXT);
+        $this->assessmenttype    = optional_param('assessmenttype',   NULL, PARAM_TEXT);
+        $this->assessmentid      = optional_param('assessmentid',     NULL, PARAM_INT);
+        $this->showhide          = optional_param('showhide',         NULL, PARAM_INT);
+        $this->group             = optional_param('group',            NULL, PARAM_TEXT);
+        $this->courseid          = optional_param('courseid',         NULL, PARAM_TEXT);
         
         // call expensive queries only when needed
         if ($this->type == 'quiz_diagnostic' || $this->type == 'main' || $this->type == 'config_course' ||  $this->type == 'config_main' || $this->type == 'course' || $this->type == 'assignment' || $this->type == 'workshop' || $this->type == 'forum' || $this->type == 'quiz_question' || $this->type == 'quiz' || $this->type == 'journal_submissions') {
@@ -104,7 +104,7 @@ class ajax_marking_functions {
                     INNER JOIN {$CFG->prefix}journal j
                        ON je.journal = j.id
                     INNER JOIN {$CFG->prefix}course_modules c
-                             ON j.id = c.instance
+                       ON j.id = c.instance
                     WHERE c.module = {$this->modules['journal']->id}
                     AND c.visible = 1
                     AND j.assessed <> 0
@@ -114,16 +114,15 @@ class ajax_marking_functions {
                    ";
             $this->course_assessments($sql, 'journal');
             $sql = "SELECT s.id as submissionid, s.userid, w.id, w.name, w.course, w.description, c.id as cmid
-                    FROM
-                       ( {$CFG->prefix}workshop w
+                    FROM ( {$CFG->prefix}workshop w
                     INNER JOIN {$CFG->prefix}course_modules c
-                         ON w.id = c.instance)
+                        ON w.id = c.instance)
                     LEFT JOIN {$CFG->prefix}workshop_submissions s
-                         ON s.workshopid = w.id
+                        ON s.workshopid = w.id
                     LEFT JOIN {$CFG->prefix}workshop_assessments a
-                    ON (s.id = a.submissionid)
+                        ON (s.id = a.submissionid)
                     WHERE (a.userid != {$this->userid}
-                      OR (a.userid = {$this->userid}
+                        OR (a.userid = {$this->userid}
                             AND a.grade = -1))
                     AND c.module = {$this->modules['workshop']->id}
                     AND c.visible = 1
@@ -940,39 +939,63 @@ class ajax_marking_functions {
                     return;
                 }
                 $sql = "SELECT p.id, p.userid, p.created, p.message, d.id as discussionid
-                        FROM
-                            {$CFG->prefix}forum_discussions d ";
+                        FROM {$CFG->prefix}forum_discussions d ";
 
                 if ($forum->type == 'eachuser') {
                     // add a bit to link to forum so we can check the type is correct
                     $sql .= "INNER JOIN {$CFG->prefix}forum f ON d.forum = f.id "  ;
                 }
 
-                $sql .= "INNER JOIN
-                            {$CFG->prefix}forum_posts p
+                $sql .= "INNER JOIN {$CFG->prefix}forum_posts p
                              ON p.discussion = d.id
-                        LEFT JOIN {$CFG->prefix}forum_ratings r
-                            ON  p.id = r.post
-                        WHERE p.userid <> $this->userid
-                        AND p.userid IN ($this->student_ids)
-                        AND (((r.userid <> $this->userid)  AND (r.userid NOT IN ($this->teachers))) OR r.userid IS NULL)
+                         LEFT JOIN {$CFG->prefix}forum_ratings r
+                             ON  p.id = r.post
+                         WHERE d.forum = $this->id
+                         AND p.userid <> $this->userid
+                         AND p.userid IN ($this->student_ids)
+                         AND (((r.userid <> $this->userid)  AND (r.userid NOT IN ($this->teachers))) OR r.userid IS NULL)
+                         ";
 
-                        ";
                 if ($forum->type == 'eachuser') {
                     // make sure that it is just the first posts that we get
                     $sql .= " AND (f.type = 'eachuser' AND p.id = d.firstpost)";
                 }
 
                 $posts = get_records_sql($sql);
-               
-
-                if(!$this->group) {
-                       $group_filter = $this->assessment_groups_filter($posts, "forum", $forum->id);
-                       if (!$group_filter) {return;}
-                }
 
 		if ($posts) {
-		  
+                    foreach ($posts as $key=>$post) {
+
+                      // sort for obvious exclusions
+                      if (!isset($post->userid)) {
+                           unset($posts[$key]);
+                           continue;
+                       }
+                       // Maybe this forum doesn't rate posts earlier than X time, so we check.
+                       if ($forum->assesstimestart != 0) {
+
+                            if (!($post->created > $forum->assesstimestart))  {
+                                unset($posts[$key]);
+                                continue;
+                            }
+                        }
+                        // Same for later cut-off time
+                        if ($forum->assesstimefinish != 0) {
+                            if (!($post->created < $forum->assesstimefinish)) { // it also has a later limit, so check that too.
+                                unset($posts[$key]);
+                                continue;
+                             }
+                        }
+                    }
+
+                    // Check to see if group nodes need to be made instead of submissions
+                    //print_r($posts);
+                    if(!$this->group) {
+                           $group_filter = $this->assessment_groups_filter($posts, "forum", $forum->id);
+                           if (!$group_filter) {return;}
+                    }
+
+                    // Submissions nodes are needed, so make one per discussion
                     $this->output = '[{"type":"submissions"}';      // begin json object.
 
                     foreach ($discussions as $discussion) {
@@ -982,25 +1005,14 @@ class ajax_marking_functions {
                             continue;
                         }
 
-
                         $count = 0;
                         $sid = 0; // this variable will hold the id of the first post which is unrated, so it can be used
                                                   // in the link to load the pop up with the discussion page at that position.
                         $time = time(); // start seconds at current time so we can compare with time created to find the oldest as we cycle through
 
-                        // if this forum is set to 'each student posts one discussion', we want to only grade the first one
+                        // if this forum is set to 'each student posts one discussion', we want to only grade the first one, which is the only one returned.
                         if ($forum->type == 'eachuser') {
-                             foreach ($posts as $post) {
-                                 if ($post->id == $discussion->firstpost) {
-                                     $firstpost = $post;
-                                     $count = 1;
-                                     break;
-                                 }
-                             }
-                             if (!$firstpost) {
-                                 // post has been marked already, so this discussion can be ignored.
-                                 continue;
-                             }
+                             $count = 1;
                         } else {
 
                             // any other type of graded forum, we can grade any posts that are not yet graded
@@ -1009,24 +1021,9 @@ class ajax_marking_functions {
                             $time = time(); // start seconds at current time so we can compare with time created to find the oldest as we cycle through
 
                             $firsttime = '';
-                            foreach ($posts as $post) {
+                            foreach ($posts as $key=>$post) {
 
-                               if (!isset($post->userid)) {
-                                   continue;
-                               }
-                                // Maybe this forum doesn't rate posts earlier than X time, so we check.
-                               if ($forum->assesstimestart != 0) {
-
-                                    if (!($post->created > $forum->assesstimestart))  {
-                                        continue;
-                                    }
-                                }
-                                // Same for later cut-off time
-                                if ($forum->assesstimefinish != 0) {
-                                    if (!($post->created < $forum->assesstimefinish)) { // it also has a later limit, so check that too.
-                                         continue;
-                                     }
-                                }
+                               
                                 if ($discussion->id == $post->discussionid) {
                                     //post is relevant
                                     $count++;
@@ -1048,7 +1045,7 @@ class ajax_marking_functions {
                                         $firsttime = $post->created;
                                     }
                                     
-                                }
+                                } 
                             } // end foreach posts
                         } // end any other graded forum
 
@@ -1079,7 +1076,7 @@ class ajax_marking_functions {
                                 $this->output .= $this->make_submission_node($name, $firstpost->id, $discussion->id, $summary, 'discussion', $seconds, $time, $count);
 
                         }
-                    }
+                    }// end foreach discussion
                     $this->output .= "]"; // end JSON array
 		}// if discussions
 	} // end function
@@ -2041,6 +2038,7 @@ class ajax_marking_functions {
                 // assuming an array of ids are passed, along with a space separated list of groups, we need to make both into arrays
                 $groupsarray = explode(" ", $trimmed_groups);
                 $csv_groups = implode(',', $groupsarray);
+                //TODO make this into a cached query for all groups in this course.
                 $sql = "SELECT id, name, description FROM {$CFG->prefix}groups WHERE id IN ($csv_groups)";
                 $groupdetails = get_records_sql($sql);
 
