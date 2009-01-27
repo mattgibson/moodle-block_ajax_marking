@@ -61,82 +61,97 @@ class block_ajax_marking extends block_base {
         }
         if ($coursecheck>0) { // display the block
 
-            $AMfullname = fullname($USER);
-            $variables = array(
+            if($CFG->enableajax && $USER->ajax) {
 
-                'wwwroot'             => $CFG->wwwroot,
-                'totalMessage'        => get_string('total', 'block_ajax_marking'),
-                'userid'              => $USER->id,
-                'assignmentString'    => get_string('modulename', 'assignment'),
-                'workshopString'      => get_string('modulename', 'workshop'),
-                'forumString'         => get_string('modulename', 'forum'),
-                'instructions'        => get_string('instructions', 'block_ajax_marking'),
-                'configNothingString' => get_string('config_nothing', 'block_ajax_marking'),
-                'nothingString'       => get_string('nothing', 'block_ajax_marking'),
-                'collapseString'      => get_string('collapse', 'block_ajax_marking'),
-                'forumSaveString'     => get_string('sendinratings', 'forum'),
-                'quizString'          => get_string('modulename', 'quiz'),
-                'quizSaveString'      => get_string('savechanges'),
-                'journalString'       => get_string('modulename', 'journal'),
-                'journalSaveString'   => get_string('saveallfeedback', 'journal'),
-                'connectFail'         => get_string('connect_fail', 'block_ajax_marking'),
-                'nogroups'            => get_string('nogroups', 'block_ajax_marking'),
-                'headertext'          => get_string('headertext', 'block_ajax_marking'),
-                'fullname'            => $AMfullname
+                $AMfullname = fullname($USER);
+                $variables = array(
 
-            );
+                    'wwwroot'             => $CFG->wwwroot,
+                    'totalMessage'        => get_string('total', 'block_ajax_marking'),
+                    'userid'              => $USER->id,
+                    'assignmentString'    => get_string('modulename', 'assignment'),
+                    'workshopString'      => get_string('modulename', 'workshop'),
+                    'forumString'         => get_string('modulename', 'forum'),
+                    'instructions'        => get_string('instructions', 'block_ajax_marking'),
+                    'configNothingString' => get_string('config_nothing', 'block_ajax_marking'),
+                    'nothingString'       => get_string('nothing', 'block_ajax_marking'),
+                    'collapseString'      => get_string('collapse', 'block_ajax_marking'),
+                    'forumSaveString'     => get_string('sendinratings', 'forum'),
+                    'quizString'          => get_string('modulename', 'quiz'),
+                    'quizSaveString'      => get_string('savechanges'),
+                    'journalString'       => get_string('modulename', 'journal'),
+                    'journalSaveString'   => get_string('saveallfeedback', 'journal'),
+                    'connectFail'         => get_string('connect_fail', 'block_ajax_marking'),
+                    'nogroups'            => get_string('nogroups', 'block_ajax_marking'),
+                    'headertext'          => get_string('headertext', 'block_ajax_marking'),
+                    'fullname'            => $AMfullname
 
-            //start building content output
-            $this->content = new stdClass;
-            // for integrating the block_marking stuff, this stuff (divs) should all be created by javascript.
-            $this->content->text = "
+                );
 
-            <div id='total'>
-                <div id='totalmessage'></div>
-                <div id='count'></div>
-                <div id='mainIcon'></div>
-            </div>
-            <div id='status'> </div>
-            <div id='treediv' class='yui-skin-sam'>
-                <noscript><p>AJAX marking block requires javascript, but you have it turned off.</p></noscript>
-            </div>
-            <div id='javaValues'>
-            <script type=\"text/javascript\" defer=\"defer\">
-                // function am_go() {
-                     var amVariables = {";
-                                       $check = 0;
-                                       foreach ($variables as $variable => $value) {
-                                           if ($check > 0) {$this->content->text .= ", ";}
-                                           $this->content->text .= $variable.": '".$value."'";
-                                           $check ++;
-                                       }
-            $this->content->text .=    "};
-                </script>
-            </div>
-            <div id='hidden-icons'>
-                    <div id ='img_1' class='icon-course'></div>
-                    <div id ='img_2' class='icon-assign'></div>
-                    <div id ='img_3' class='icon-user'></div>
-                    <div id ='img_4' class='icon-workshop'></div>
-                    <div id ='img_5' class='icon-forum'></div>
-                    <div id ='img_6' class='icon-quiz'></div>
-                    <div id ='img_7' class='icon-question'></div>
-                    <div id ='img_8' class='icon-journal'></div>
-            </div>
-            <div id='cover'></div>
-            <script type=\"text/javascript\" defer=\"defer\" src=\"".$CFG->wwwroot.'/blocks/ajax_marking/javascript.js'."\">
-            </script>";
-            $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities'))."";
+                //start building content output
+                $this->content = new stdClass;
+                // for integrating the block_marking stuff, this stuff (divs) should all be created by javascript.
+                $this->content->text = "
 
-            $this->content->footer = '
-                <div id="conf_left">
-                    <a href="javascript:" onclick="AJAXmarking.refreshTree(AJAXmarking.main); return false">'.get_string("collapse", "block_ajax_marking").'</a>
+                <div id='total'>
+                    <div id='totalmessage'></div>
+                    <div id='count'></div>
+                    <div id='mainIcon'></div>
                 </div>
-                <div id="conf_right">
-                    <a href="#" onclick="AJAXmarking.greyBuild();return false">'.get_string('configure', 'block_ajax_marking').'</a>
+                <div id='status'> </div>
+                <div id='treediv' class='yui-skin-sam'>
+                    <noscript><p>AJAX marking block requires javascript, but you have it turned off.</p></noscript>
                 </div>
+                <div id='javaValues'>
+                <script type=\"text/javascript\" defer=\"defer\">
+                    // function am_go() {
+                         var amVariables = {";
+                                           $check = 0;
+                                           foreach ($variables as $variable => $value) {
+                                               if ($check > 0) {$this->content->text .= ", ";}
+                                               $this->content->text .= $variable.": '".$value."'";
+                                               $check ++;
+                                           }
+                $this->content->text .=    "};
+                    </script>
+                </div>
+                <div id='hidden-icons'>
+                        <div id ='img_1' class='icon-course'></div>
+                        <div id ='img_2' class='icon-assign'></div>
+                        <div id ='img_3' class='icon-user'></div>
+                        <div id ='img_4' class='icon-workshop'></div>
+                        <div id ='img_5' class='icon-forum'></div>
+                        <div id ='img_6' class='icon-quiz'></div>
+                        <div id ='img_7' class='icon-question'></div>
+                        <div id ='img_8' class='icon-journal'></div>
+                </div>
+                <div id='cover'></div>
+                <script type=\"text/javascript\" defer=\"defer\" src=\"".$CFG->wwwroot.'/blocks/ajax_marking/javascript.js'."\">
+                </script>";
+                $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities'))."";
 
-            ';
+            } else {// end if ajax is enabled
+
+                // if ajax is not enabled, we want to see the non-ajax list
+
+                include("html_list.php");
+                if ($isset($response)) {
+                    unset($response);
+                }
+                $response = new html_list;
+                $this->content->text .= $initial_object->output;
+
+            }
+                $this->content->footer = '
+                    <div id="conf_left">
+                        <a href="javascript:" onclick="AJAXmarking.refreshTree(AJAXmarking.main); return false">'.get_string("collapse", "block_ajax_marking").'</a>
+                    </div>
+                    <div id="conf_right">
+                        <a href="#" onclick="AJAXmarking.greyBuild();return false">'.get_string('configure', 'block_ajax_marking').'</a>
+                    </div>
+                ';
+           
+
         } // end of if has capability
         return $this->content;	
     }	

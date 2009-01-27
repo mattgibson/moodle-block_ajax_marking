@@ -818,15 +818,15 @@ AJAXmarking = {
 
             for (var k=0;k<nodesLeng;k++) {
 
-    /// set up a unique id so the node can be removed when needed
+                /// set up a unique id so the node can be removed when needed
 
                 //aidHolder = ;
                 //sidHolder = ;
                 //typeHolder = ;
                 uniqueId = nodesArray[k].type + nodesArray[k].aid + 'sid' + nodesArray[k].sid + '';
 
-/// set up time-submitted thing for tooltip. This is set to make the time match the browser's local timezone,
-/// but I can't find a way to use the user's specified timezone from \$USER. Not sure if this really matters.
+                /// set up time-submitted thing for tooltip. This is set to make the time match the browser's local timezone,
+                /// but I can't find a way to use the user's specified timezone from \$USER. Not sure if this really matters.
 
                 var secs = parseInt(nodesArray[k].seconds, 10);
                 var time = parseInt(nodesArray[k].time, 10)*1000; // javascript likes to work in miliseconds, whereas moodle uses unix format (whole seconds)
