@@ -692,7 +692,7 @@ class ajax_marking_functions {
 	/**
 	 * function to make nodes for forum submissions
 	 */
-
+/*
 	function forum_submissions() {
 	    global $CFG;
             $discussions = '';
@@ -844,7 +844,7 @@ class ajax_marking_functions {
                 $this->output .= "]"; // end JSON array
             }// if discussions
 	} // end function
-
+*/
 	function quizzes() {
 
             $courseid = $this->id;
@@ -941,7 +941,7 @@ class ajax_marking_functions {
            */
             $quiz_submissions = get_records_sql($sql);
 
-            if ($this->type == 'quiz_diagnostic') {
+          /*  if ($this->type == 'quiz_diagnostic') {
                 echo $sql;
                 echo '<br /><br />';
                 print_r($quiz_submissions);
@@ -952,6 +952,8 @@ class ajax_marking_functions {
                 print_r($quiz_submissions2);
                 return;
             }
+
+           */
             if ($quiz_submissions) {
 
                  // we need all the assignment ids for the loop, so we make an array of them
