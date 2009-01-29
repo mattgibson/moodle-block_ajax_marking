@@ -1780,7 +1780,7 @@ journalOnLoad :   function (me) {
   }
 
 
-} // end main class
+}; // end main class
 
 
 /**
