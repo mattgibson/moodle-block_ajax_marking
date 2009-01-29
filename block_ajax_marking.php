@@ -130,8 +130,20 @@ class block_ajax_marking extends block_base {
                 </script>";
                 $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities'))."";
 
+                $this->content->footer = '
+                    <div id="conf_left">
+                        <a href="javascript:" onclick="AJAXmarking.refreshTree(AJAXmarking.main); return false">'.get_string("collapse", "block_ajax_marking").'</a>
+                    </div>
+                    <div id="conf_right">
+                        <a href="#" onclick="AJAXmarking.greyBuild();return false">'.get_string('configure', 'block_ajax_marking').'</a>
+                    </div>
+                ';
+
+
             } else {// end if ajax is enabled
 
+                $this->content->text .= 'This block requires you to enable \'AJAX and javascript\' in your <a href="'.$CFG->wwwroot.'/user/edit.php?id='.$USER->id.'&course=1">profile settings</a> (click \'show advanced\')';
+                $this->content->footer = '';
                 // if ajax is not enabled, we want to see the non-ajax list
                  /*
                 include("html_list.php");
@@ -144,14 +156,7 @@ class block_ajax_marking extends block_base {
                   */
 
             }
-                $this->content->footer = '
-                    <div id="conf_left">
-                        <a href="javascript:" onclick="AJAXmarking.refreshTree(AJAXmarking.main); return false">'.get_string("collapse", "block_ajax_marking").'</a>
-                    </div>
-                    <div id="conf_right">
-                        <a href="#" onclick="AJAXmarking.greyBuild();return false">'.get_string('configure', 'block_ajax_marking').'</a>
-                    </div>
-                ';
+                
            
 
         } // end of if has capability
