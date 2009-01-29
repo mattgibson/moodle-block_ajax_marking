@@ -164,7 +164,7 @@ class block_ajax_marking extends block_base {
     }	
 	
     function instance_allow_config() {
-        return true;
+        return false;
     }
 }
 ?>
