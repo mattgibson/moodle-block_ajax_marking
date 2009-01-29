@@ -133,13 +133,15 @@ class block_ajax_marking extends block_base {
             } else {// end if ajax is enabled
 
                 // if ajax is not enabled, we want to see the non-ajax list
-
+                 /*
                 include("html_list.php");
-                if ($isset($response)) {
+                if (isset($response)) {
                     unset($response);
                 }
                 $response = new html_list;
                 $this->content->text .= $initial_object->output;
+
+                  */
 
             }
                 $this->content->footer = '
