@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2008110401;
+        $this->version = 2009032501;
     }
 	
     function specialization() {
@@ -17,22 +17,28 @@ class block_ajax_marking extends block_base {
     }
 	
     function get_content() {
+
         if ($this->content !== NULL) {
-                return $this->content;
+            return $this->content;
         }
 		
        global $CFG, $USER;
-       // $id = $USER->id;
+       
 
        // admins will have a problem as they will see all the courses on the entire site
-       $teacher_role=get_field('role','id','shortname','editingteacher'); // retrieve the teacher role id (3)
-       $ne_teacher_role=get_field('role','id','shortname','teacher'); // retrieve the non-editing teacher role id (4)
+       $teacher_role     =  get_field('role','id','shortname','editingteacher'); // retrieve the teacher role id (3)
+       $ne_teacher_role  =  get_field('role','id','shortname','teacher'); // retrieve the non-editing teacher role id (4)
 
        // check to see if any roles allow grading of assessments
        $coursecheck = 0;
-       $courses = get_my_courses($USER->id, $sort='fullname', $fields='id, visible', $doanything=false) ;
-        foreach ($courses as $course) {
-            if ($course->id == 1) {continue;} // exclude the front page
+       $courses = get_my_courses($USER->id, $sort='fullname', $fields='id, visible', $doanything=false);
+
+       foreach ($courses as $course) {
+
+            // exclude the front page
+            if ($course->id == 1) {
+                continue;
+            }
 
             // role check bit borrowed from block_narking, thanks to Mark J Tyers [ZANNET]
             $context = get_context_instance(CONTEXT_COURSE, $course->id);
@@ -40,21 +46,24 @@ class block_ajax_marking extends block_base {
                 $teachers = get_role_users($teacher_role, $context, true); // check for editing teachers
                 $correct_role = false;
                 if ($teachers) {
-                        foreach($teachers as $teacher) {
-                                if ($teacher->id == $USER->id) {
-                                        $correct_role = true;
-                                }
+                    foreach($teachers as $teacher) {
+                        if ($teacher->id == $USER->id) {
+                                $correct_role = true;
                         }
+                    }
                 }
                 $teachers_ne = get_role_users($ne_teacher_role, $context, true); // check for non-editing teachers
                 if ($teachers_ne) {
-                        foreach($teachers_ne as $teacher) {
-                                if ($teacher->id == $USER->id) {
-                                        $correct_role = true;
-                                }
+                    foreach($teachers_ne as $teacher) {
+                        if ($teacher->id == $USER->id) {
+                            $correct_role = true;
                         }
+                    }
                 }
-                if (!$correct_role) {continue;} // skip this course if no teacher or teacher_non_editing role
+                // skip this course if no teacher or teacher_non_editing role
+                if (!$correct_role) {
+                    continue;
+                }
 
                 $coursecheck++;
 
@@ -106,12 +115,15 @@ class block_ajax_marking extends block_base {
                 <script type=\"text/javascript\" defer=\"defer\">
                     // function am_go() {
                          var amVariables = {";
+
+                                           // loop through the variables above, printing them in the right format
                                            $check = 0;
                                            foreach ($variables as $variable => $value) {
                                                if ($check > 0) {$this->content->text .= ", ";}
                                                $this->content->text .= $variable.": '".$value."'";
                                                $check ++;
                                            }
+
                 $this->content->text .=    "};
                     </script>
                 </div>
@@ -128,7 +140,8 @@ class block_ajax_marking extends block_base {
                 <div id='cover'></div>
                 <script type=\"text/javascript\" defer=\"defer\" src=\"".$CFG->wwwroot.'/blocks/ajax_marking/javascript.js'."\">
                 </script>";
-                $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities'))."";
+                
+                $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json'))."";
 
                 $this->content->footer = '
                     <div id="conf_left">

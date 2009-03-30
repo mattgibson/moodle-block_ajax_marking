@@ -1,12 +1,25 @@
 <?php
     // either use the theme icons, or if there are none, the standard ones.
+    //global $USER;
+    //echo "user obj: <br />";
+    //print_r($USER);
+    //echo "<br />";
+
     function icon_check($icon_name, $type) {
-        global $CFG;
+        global $CFG, $USER, $THEME;
         if ($type=='mod') {
-            $icon_name_mod = '/theme/'.$CFG->theme.'/pix/'.$icon_name;
+            $icon_name_mod = '/theme/'.current_theme().'/pix/'.$icon_name;
         } else {
-            $icon_name_mod = '/theme/'.$CFG->theme.'/'.$icon_name;
+            $icon_name_mod = '/theme/'.current_theme().'/'.$icon_name;
         }
+
+
+        if ($icon_name == 'pix/i/course.gif') {
+            //echo $CFG->dirroot.$icon_name_mod;
+           // echo ' '.$USER->id.' ';
+            print_r($USER);
+        }
+
         if (file_exists($CFG->dirroot.$icon_name_mod)) {
             echo $CFG->wwwroot.$icon_name_mod;
         } else {
@@ -14,22 +27,31 @@
         }
     }
 ?>
-.icon-course, .icon-assign, .icon-workshop, .icon-forum, .icon-quiz, .icon-question, .icon-journal, .icon-group {
-  padding-left: 20px;
+.icon-course, .icon-assignment, .icon-workshop, .icon-forum, .icon-quiz, .icon-quiz_question, .icon-journal, .icon-group {
+  padding-left: 0px;
   padding-bottom: 0px;
   background-repeat: no-repeat;
-  
+  cursor:pointer;
   background-color: transparent;
- /* white-space: nowrap; */
+
+  /* white-space: nowrap; */
   margin-left: 0px;
   display: block;
   float: left;
 }
-.icon-course {
-  background-image: url(<?php icon_check('pix/i/course.gif'); ?>);
-  padding-left: 17px;
+.amb-icon {
+  width: 20px;
+  padding-right: 3px;
+  margin-bottom: -5px;
 }
-.icon-assign {
+.icon-course {
+  padding-left: 0px;
+
+}
+/*
+
+No longer needed.
+.icon-assignment {
   background-image: url(<?php icon_check('mod/assignment/icon.gif', 'mod') ?>);
 }
 .icon-workshop {
@@ -41,7 +63,7 @@
 .icon-quiz {
   background-image: url(<?php icon_check('mod/quiz/icon.gif', 'mod') ?>);
 }
-.icon-question {
+.icon-quiz_question {
   background-image: url(<?php icon_check('pix/i/questions.gif') ?>);
 }
 .icon-journal {
@@ -50,7 +72,7 @@
 .icon-group {
   background-image: url(<?php icon_check('pix/i/users.gif') ?>);
 }
-
+*/
 /* the following 8 styles give different coloured borders to 
    submissions depending on when they were submitted. The 
    colours may not be the best for your theme so change them
@@ -60,16 +82,20 @@
 */
    
 .icon-user-one, .icon-user-two, .icon-user-three, .icon-user-four, .icon-user-five, .icon-user-six, .icon-user-seven, .icon-user-eight {
-  padding-left: 20px;
+  padding-left: 0px;
   padding-right: 2px;
-  background-image: url(<?php icon_check('pix/i/user.gif') ?>);
+  cursor:pointer;
+ /*
   background-repeat: no-repeat;
+  white-space: nowrap;
 
-  background-color: transparent; 
+  background-color: transparent;
+  */
   border-style: none;
   border-width: 2px;
   overflow: hidden;
-  max-width: 140px;
+  width: 150px;
+  height: 40px;
   margin: 0;
 }
 .icon-user-one {
@@ -140,107 +166,213 @@
   margin-left: 8px;
 }
 
+
+
+
+/* The SAM treeview skin, copied from the lib fine so that proper URLs can be added for the images */
+
 /*
-Copyright (c) 2007, Yahoo! Inc. All rights reserved.
+Copyright (c) 2008, Yahoo! Inc. All rights reserved.
 Code licensed under the BSD License:
 http://developer.yahoo.net/yui/license.txt
-version: 2.3.0
+version: 2.6.0
 */
+/*
+Copyright (c) 2008, Yahoo! Inc. All rights reserved.
+Code licensed under the BSD License:
+http://developer.yahoo.net/yui/license.txt
+version: 2.5.2
+*/
+
+/* the style of the div around each node */
+.ygtvitem { }
+
+.ygtvitem table {
+    margin-bottom:0; border:none;
+}
+
+/*.ygtvitem td {*/
+.ygtvrow td {
+    border: none; padding: 0;
+}
+.ygtvrow td a {
+	text-decoration:none;
+}
 
 
 /* first or middle sibling, no children */
 .ygtvtn {
-	width:18px; height:22px; 
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -5600px no-repeat;
+    width:18px; height:22px;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -5600px no-repeat;
 }
+
 /* first or middle sibling, collapsable */
 .ygtvtm {
-	width:18px; height:22px; 
-	cursor:pointer;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -4000px no-repeat;
+    width:18px; height:22px;
+    cursor:pointer ;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -4000px no-repeat;
 }
+
 /* first or middle sibling, collapsable, hover */
-.ygtvtmh {
-	width:18px; height:22px; 
-	cursor:pointer;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -4800px no-repeat;
+.ygtvtmh,.ygtvtmhh {
+    width:18px; height:22px;
+    cursor:pointer ;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -4800px no-repeat;
 }
+
 /* first or middle sibling, expandable */
 .ygtvtp {
-	width:18px; height:22px; 
-	cursor:pointer;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -6400px no-repeat;
+    width:18px; height:22px;
+    cursor:pointer ;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -6400px no-repeat;
 }
+
 /* first or middle sibling, expandable, hover */
-.ygtvtph {
-	width:18px; height:22px; 
-	cursor:pointer;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -7200px no-repeat;
+.ygtvtph ,.ygtvtphh {
+    width:18px; height:22px;
+    cursor:pointer ;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -7200px no-repeat;
 }
+
 /* last sibling, no children */
 .ygtvln {
-	width:18px; height:22px; 
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -1600px no-repeat;
+    width:18px; height:22px;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -1600px no-repeat;
 }
+
 /* Last sibling, collapsable */
 .ygtvlm {
-	width:18px; height:22px; 
-	cursor:pointer;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 0px no-repeat;
+    width:18px; height:22px;
+    cursor:pointer ;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 0px no-repeat;
 }
+
 /* Last sibling, collapsable, hover */
-.ygtvlmh {
-	width:18px; height:22px; 
-	cursor:pointer;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -800px no-repeat;
+.ygtvlmh,.ygtvlmhh {
+    width:18px; height:22px;
+    cursor:pointer ;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -800px no-repeat;
 }
+
 /* Last sibling, expandable */
-.ygtvlp { 
-	width:18px; height:22px; 
-	cursor:pointer;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -2400px no-repeat;
+.ygtvlp {
+    width:18px; height:22px;
+    cursor:pointer ;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -2400px no-repeat;
 }
+
 /* Last sibling, expandable, hover */
-.ygtvlph { 
-	width:18px; height:22px; cursor:pointer ;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -3200px no-repeat;
+.ygtvlph,.ygtvlphh {
+    width:18px; height:22px; cursor:pointer ;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -3200px no-repeat;
 }
+
 /* Loading icon */
-.ygtvloading { 
-	width:18px; height:22px; 
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-loading.gif) 0 0 no-repeat;
+.ygtvloading {
+    width:18px; height:22px;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-loading.gif) 0 0 no-repeat;
 }
-/* the style for the empty cells that are used for rendering the depth 
+
+/* the style for the empty cells that are used for rendering the depth
  * of the node */
-.ygtvdepthcell { 
-	width:18px; height:22px;
-	background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -8000px no-repeat;
+.ygtvdepthcell {
+    width:18px; height:22px;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -8000px no-repeat;
 }
 
 .ygtvblankdepthcell { width:18px; height:22px; }
 
-/* the style of the div around each node */
-.ygtvitem { }  
 
 /* the style of the div around each node's collection of children */
-.ygtvchildren {  }  
-* html .ygtvchildren { height:2%; }  
+.ygtvchildren {  }
+* html .ygtvchildren { height:2%; }
 
 /* the style of the text label in ygTextNode */
-.ygtvlabel, .ygtvlabel:link, .ygtvlabel:visited, .ygtvlabel:hover { 
+.ygtvlabel, .ygtvlabel:link, .ygtvlabel:visited, .ygtvlabel:hover {
     margin-left:2px;
     text-decoration: none;
     background-color: white; /* workaround for IE font smoothing bug */
+	cursor:pointer;
 }
 
-.ygtvspacer {
-  height: 22px;
-  width: 18px;
+.ygtvcontent {
+	cursor:default;
 }
 
-.ygtvloading + td, .ygtvlp + td, .ygtvlph + td, .ygtvtp + td, .ygtvtph + td, .ygtvtm + td, .ygtvtmh + td, .ygtvlm + td, .ygtvlmh + td {
-  vertical-align:top;
+.ygtvspacer { height: 22px; width: 12px; }
+
+.ygtvfocus {
+	background-color: #c0e0e0;
+	border: none;
 }
+.ygtvfocus .ygtvlabel, .ygtvfocus .ygtvlabel:link, .ygtvfocus .ygtvlabel:visited, .ygtvfocus .ygtvlabel:hover {
+	background-color: #c0e0e0;
+}
+
+.ygtvfocus a , .ygtvrow  td a {
+	outline-style:none;
+}
+
+
+.ygtvok {
+    width:18px; height:22px;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -8800px no-repeat;
+}
+
+.ygtvok:hover {
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -8844px no-repeat;
+}
+
+.ygtvcancel {
+    width:18px; height:22px;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -8822px no-repeat;
+}
+
+.ygtvcancel:hover  {
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif) 0 -8866px no-repeat;
+}
+
+.ygtv-label-editor {
+	background-color:#f2f2f2;
+	border: 1px solid silver;
+	position:absolute;
+	display:none;
+	overflow:hidden;
+	margin:auto;
+	z-index:9000;
+}
+
+.ygtv-edit-TextNode  {
+	width: 190px;
+}
+
+.ygtv-edit-TextNode .ygtvcancel, .ygtv-edit-TextNode .ygtvok  {
+	border:none;
+}
+
+.ygtv-edit-TextNode .ygtv-button-container {
+	float: right;
+}
+
+.ygtv-edit-TextNode .ygtv-input  input{
+	width: 140px;
+}
+
+.ygtv-edit-DateNode .ygtvcancel {
+	border:none;
+}
+.ygtv-edit-DateNode .ygtvok  {
+	display:none;
+}
+
+.ygtv-edit-DateNode   .ygtv-button-container {
+	text-align:right;
+	margin:auto;
+}
+
+
+
+
       
 /* Debug styles */
 
@@ -360,13 +492,362 @@ stuff from the container.css file, cleaned up to make it validate
     display: none;
 }
 
+
+
 /* added bits for the panel */
 
 <?php include 'container.css'; ?>
+<?php// include '../../lib/yui/menu/assets/skins/menu-core.css' ?>
+<?php //include '../../lib/yui/menu/assets/skins/sam/menu.css' ?>
 
 .yui-skin-sam .container-close {
   background:url(<?php echo $CFG->wwwroot; ?>/lib/yui/assets/skins/sam/sprite.png) no-repeat 0 -300px;
 }
 .yui-skin-sam .yui-panel .hd {
   background:url(<?php echo $CFG->wwwroot; ?>/lib/yui/assets/skins/sam/sprite.png) repeat-x 0 -200px;
+}
+
+
+
+
+
+
+
+/*
+Copyright (c) 2008, Yahoo! Inc. All rights reserved.
+Code licensed under the BSD License:
+http://developer.yahoo.net/yui/license.txt
+version: 2.6.0
+*/
+.yuimenu{top:-999em;left:-999em;}.yuimenubar{position:static;}.yuimenu .yuimenu,.yuimenubar .yuimenu{position:absolute;}.yuimenubar li,.yuimenu li{list-style-type:none;}.yuimenubar ul,.yuimenu ul,.yuimenubar li,.yuimenu li,.yuimenu h6,.yuimenubar h6{margin:0;padding:0;}.yuimenuitemlabel,.yuimenubaritemlabel{text-align:left;white-space:nowrap;}.yuimenubar ul{*zoom:1;}.yuimenubar .yuimenu ul{*zoom:normal;}.yuimenubar>.bd>ul:after{content:".";display:block;clear:both;visibility:hidden;height:0;line-height:0;}.yuimenubaritem{float:left;}.yuimenubaritemlabel,.yuimenuitemlabel{display:block;}.yuimenuitemlabel .helptext{font-style:normal;display:block;margin:-1em 0 0 10em;}.yui-menu-shadow{position:absolute;visibility:hidden;z-index:-1;}.yui-menu-shadow-visible{top:2px;right:-3px;left:-3px;bottom:-3px;visibility:visible;}.hide-scrollbars *{overflow:hidden;}.hide-scrollbars select{display:none;}.yuimenu.show-scrollbars,.yuimenubar.show-scrollbars{overflow:visible;}.yuimenu.hide-scrollbars .yui-menu-shadow,.yuimenubar.hide-scrollbars .yui-menu-shadow{overflow:hidden;}.yuimenu.show-scrollbars .yui-menu-shadow,.yuimenubar.show-scrollbars .yui-menu-shadow{overflow:auto;}.yui-skin-sam .yuimenubar{font-size:93%;line-height:2;*line-height:1.9;border:solid 1px #808080;background:url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png) repeat-x 0 0;}.yui-skin-sam .yuimenubarnav .yuimenubaritem{border-right:solid 1px #ccc;}.yui-skin-sam .yuimenubaritemlabel{padding:0 10px;color:#000;text-decoration:none;cursor:default;border-style:solid;border-color:#808080;border-width:1px 0;*position:relative;margin:-1px 0;}.yui-skin-sam .yuimenubarnav .yuimenubaritemlabel{padding-right:20px;*display:inline-block;}.yui-skin-sam .yuimenubarnav .yuimenubaritemlabel-hassubmenu{background:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menubaritem_submenuindicator.png) right center no-repeat;}.yui-skin-sam .yuimenubaritem-selected{background:url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png) repeat-x 0 -1700px;}.yui-skin-sam .yuimenubaritemlabel-selected{border-color:#7D98B8;}.yui-skin-sam .yuimenubarnav .yuimenubaritemlabel-selected{border-left-width:1px;margin-left:-1px;*left:-1px;}.yui-skin-sam .yuimenubaritemlabel-disabled{cursor:default;color:#A6A6A6;}.yui-skin-sam .yuimenubarnav .yuimenubaritemlabel-hassubmenu-disabled{background-image:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menubaritem_submenuindicator_disabled.png);}.yui-skin-sam .yuimenu{font-size:93%;line-height:1.5;*line-height:1.45;}.yui-skin-sam .yuimenubar .yuimenu,.yui-skin-sam .yuimenu .yuimenu{font-size:100%;}.yui-skin-sam .yuimenu .bd{*zoom:1;_zoom:normal;border:solid 1px #808080;background-color:#fff;}.yui-skin-sam .yuimenu .yuimenu .bd{*zoom:normal;}.yui-skin-sam .yuimenu ul{padding:3px 0;border-width:1px 0 0 0;border-color:#ccc;border-style:solid;}.yui-skin-sam .yuimenu ul.first-of-type{border-width:0;}.yui-skin-sam .yuimenu h6{font-weight:bold;border-style:solid;border-color:#ccc;border-width:1px 0 0 0;color:#a4a4a4;padding:3px 10px 0 10px;}.yui-skin-sam .yuimenu ul.hastitle,.yui-skin-sam .yuimenu h6.first-of-type{border-width:0;}.yui-skin-sam .yuimenu .yui-menu-body-scrolled{border-color:#ccc #808080;overflow:hidden;}.yui-skin-sam .yuimenu .topscrollbar,.yui-skin-sam .yuimenu .bottomscrollbar{height:16px;border:solid 1px #808080;background:#fff url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png) no-repeat 0 0;}.yui-skin-sam .yuimenu .topscrollbar{border-bottom-width:0;background-position:center -950px;}.yui-skin-sam .yuimenu .topscrollbar_disabled{background-position:center -975px;}.yui-skin-sam .yuimenu .bottomscrollbar{border-top-width:0;background-position:center -850px;}.yui-skin-sam .yuimenu .bottomscrollbar_disabled{background-position:center -875px;}.yui-skin-sam .yuimenuitem{_border-bottom:solid 1px #fff;}.yui-skin-sam .yuimenuitemlabel{padding:0 20px;color:#000;text-decoration:none;cursor:default;}.yui-skin-sam .yuimenuitemlabel .helptext{margin-top:-1.5em;*margin-top:-1.45em;}.yui-skin-sam .yuimenuitem-hassubmenu{background-image:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_submenuindicator.png);background-position:right center;background-repeat:no-repeat;}.yui-skin-sam .yuimenuitem-checked{background-image:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_checkbox.png);background-position:left center;background-repeat:no-repeat;}.yui-skin-sam .yui-menu-shadow-visible{background-color:#000;opacity:.12;*filter:alpha(opacity=12);}.yui-skin-sam .yuimenuitem-selected{background-color:#B3D4FF;}.yui-skin-sam .yuimenuitemlabel-disabled{cursor:default;color:#A6A6A6;}.yui-skin-sam .yuimenuitem-hassubmenu-disabled{background-image:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_submenuindicator_disabled.png);}.yui-skin-sam .yuimenuitem-checked-disabled{background-image:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_checkbox_disabled.png);}
+
+
+
+
+/* menu SAM skin menu-skin.css file included so image paths can be fixed. */
+
+/*
+Copyright (c) 2008, Yahoo! Inc. All rights reserved.
+Code licensed under the BSD License:
+http://developer.yahoo.net/yui/license.txt
+version: 2.6.0
+*/
+/* MenuBar style rules */
+
+.yui-skin-sam .yuimenubar {
+
+    font-size: 93%;  /* 12px */
+    line-height: 2;  /* ~24px */
+    *line-height: 1.9; /* For IE */
+    border: solid 1px #808080;
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png) repeat-x 0 0;
+
+}
+
+
+/* MenuBarItem style rules */
+
+.yui-skin-sam .yuimenubarnav .yuimenubaritem {
+
+    border-right: solid 1px #ccc;
+
+}
+
+.yui-skin-sam .yuimenubaritemlabel {
+
+    padding: 0 10px;
+    color: #000;
+    text-decoration: none;
+    cursor: default;
+    border-style: solid;
+    border-color: #808080;
+    border-width: 1px 0;
+    *position: relative; /*  Necessary to get negative margins in IE. */
+    margin: -1px 0;
+
+}
+
+.yui-skin-sam .yuimenubarnav .yuimenubaritemlabel {
+
+    padding-right: 20px;
+
+    /*
+        Prevents the label from shifting left in IE when the
+        ".yui-skin-sam .yuimenubarnav .yuimenubaritemlabel-selected"
+        rule us applied.
+    */
+
+    *display: inline-block;
+
+}
+
+.yui-skin-sam .yuimenubarnav .yuimenubaritemlabel-hassubmenu {
+
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menubaritem_submenuindicator.png) right center no-repeat;
+
+}
+
+
+
+/* MenuBarItem states */
+
+/* Selected MenuBarItem */
+
+.yui-skin-sam .yuimenubaritem-selected {
+
+    background: url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png) repeat-x 0 -1700px;
+
+}
+
+.yui-skin-sam .yuimenubaritemlabel-selected {
+
+    border-color: #7D98B8;
+
+}
+
+.yui-skin-sam .yuimenubarnav .yuimenubaritemlabel-selected {
+
+    border-left-width: 1px;
+    margin-left: -1px;
+    *left: -1px;    /* For IE */
+
+}
+
+
+/* Disabled  MenuBarItem */
+
+.yui-skin-sam .yuimenubaritemlabel-disabled {
+
+    cursor: default;
+    color: #A6A6A6;
+
+}
+
+.yui-skin-sam .yuimenubarnav .yuimenubaritemlabel-hassubmenu-disabled {
+
+    background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menubaritem_submenuindicator_disabled.png);
+
+}
+
+
+
+/* Menu style rules */
+
+.yui-skin-sam .yuimenu {
+
+    font-size: 93%;  /* 12px */
+    line-height: 1.5;  /* 18px */
+    *line-height: 1.45; /* For IE */
+
+}
+
+.yui-skin-sam .yuimenubar .yuimenu,
+.yui-skin-sam .yuimenu .yuimenu {
+
+    font-size: 100%;
+
+}
+
+.yui-skin-sam .yuimenu .bd {
+
+	/*
+		The following application of zoom:1 prevents first tier submenus of a MenuBar from hiding
+		when the mouse is moving from an item in a MenuBar to a submenu in IE 7.
+	*/
+
+	*zoom: 1;
+	_zoom: normal;	/* Remove this rule for IE 6. */
+    border: solid 1px #808080;
+    background-color: #fff;
+
+}
+
+.yui-skin-sam .yuimenu .yuimenu .bd {
+
+	*zoom: normal;
+
+}
+
+.yui-skin-sam .yuimenu ul {
+
+    padding: 3px 0;
+    border-width: 1px 0 0 0;
+    border-color: #ccc;
+    border-style: solid;
+
+}
+
+.yui-skin-sam .yuimenu ul.first-of-type {
+
+    border-width: 0;
+
+}
+
+
+/* Group titles */
+
+.yui-skin-sam .yuimenu h6 {
+
+    font-weight: bold;
+    border-style: solid;
+    border-color: #ccc;
+    border-width: 1px 0 0 0;
+    color: #a4a4a4;
+    padding: 3px 10px 0 10px;
+
+}
+
+.yui-skin-sam .yuimenu ul.hastitle,
+.yui-skin-sam .yuimenu h6.first-of-type {
+
+    border-width: 0;
+
+}
+
+
+/* Top and bottom scroll controls */
+
+.yui-skin-sam .yuimenu .yui-menu-body-scrolled {
+
+    border-color: #ccc #808080;
+    overflow: hidden;
+
+}
+
+.yui-skin-sam .yuimenu .topscrollbar,
+.yui-skin-sam .yuimenu .bottomscrollbar {
+
+    height: 16px;
+    border: solid 1px #808080;
+    background: #fff url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png) no-repeat 0 0;
+
+}
+
+.yui-skin-sam .yuimenu .topscrollbar {
+
+    border-bottom-width: 0;
+    background-position: center -950px;
+
+}
+
+.yui-skin-sam .yuimenu .topscrollbar_disabled {
+
+    background-position: center -975px;
+
+}
+
+.yui-skin-sam .yuimenu .bottomscrollbar {
+
+    border-top-width: 0;
+    background-position: center -850px;
+
+}
+
+.yui-skin-sam .yuimenu .bottomscrollbar_disabled {
+
+    background-position: center -875px;
+
+}
+
+
+/* MenuItem style rules */
+
+.yui-skin-sam .yuimenuitem {
+
+    /*
+        For IE 7 Quirks and IE 6 Strict Mode and Quirks Mode:
+        Used to collapse superfluous white space between <li> elements
+        that is triggered by the "display" property of the <a> elements being
+        set to "block."
+    */
+
+    _border-bottom: solid 1px #fff;
+
+}
+
+.yui-skin-sam .yuimenuitemlabel {
+
+    padding: 0 20px;
+    color: #000;
+    text-decoration: none;
+    cursor: default;
+
+}
+
+.yui-skin-sam .yuimenuitemlabel .helptext {
+
+    margin-top: -1.5em;
+    *margin-top: -1.45em;  /* For IE*/
+
+}
+
+.yui-skin-sam .yuimenuitem-hassubmenu {
+
+    background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_submenuindicator.png);
+    background-position: right center;
+    background-repeat: no-repeat;
+
+}
+
+.yui-skin-sam .yuimenuitem-checked {
+
+    background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_checkbox.png);
+    background-position: left center;
+    background-repeat: no-repeat;
+
+}
+
+
+/* Menu states */
+
+
+/* Visible Menu */
+
+.yui-skin-sam .yui-menu-shadow-visible {
+
+    background-color: #000;
+
+    /*
+        Opacity can be expensive, so defer the use of opacity until the
+        menu is visible.
+    */
+
+    opacity: .12;
+    *filter: alpha(opacity=12);  /* For IE */
+
+}
+
+
+
+/* MenuItem states */
+
+
+/* Selected MenuItem */
+
+.yui-skin-sam .yuimenuitem-selected {
+
+    background-color: #B3D4FF;
+
+}
+
+
+/* Disabled MenuItem */
+
+.yui-skin-sam .yuimenuitemlabel-disabled {
+
+    cursor: default;
+    color: #A6A6A6;
+
+}
+
+.yui-skin-sam .yuimenuitem-hassubmenu-disabled {
+
+    background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_submenuindicator_disabled.png);
+
+}
+
+.yui-skin-sam .yuimenuitem-checked-disabled {
+
+    background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_checkbox_disabled.png);
+
 }

@@ -13,21 +13,28 @@ class assignment_functions extends module_base {
      * are accessible
      *
      */
+
+    // declare this variable in the main class so it's accessible to all functions
+    //private $ref = '';
+
     function assignment_functions(&$reference) {
-        $this->reference = $reference;
+
+        //$this->ref = $reference;
+        $this->mainobject = $reference;
         // must be the same as th DB modulename
         $this->type = 'assignment';
         $this->capability = 'mod/assignment:grade';
+        $this->levels = 3;
     }
 
-    // procedure to fetch data and store it in the object
+    // procedures to fetch data and store it in the object
 
      /**
      * function called from courses() which returns all
-     * unmarked assignments from all courses ready for sorting through
+     * unmarked assignments from all courses ready for sorting through and counting
      * @return Boolean
      */
-    function get_all_unmarked() {
+    public function get_all_unmarked() {
 
        
         global $CFG;
@@ -39,17 +46,17 @@ class assignment_functions extends module_base {
                  ON a.id = c.instance
             LEFT JOIN {$CFG->prefix}assignment_submissions s
                  ON s.assignment = a.id
-            WHERE c.module = {$this->reference->module_ids['assignment']->id}
+            WHERE c.module = {$this->mainobject->module_ids['assignment']->id}
             AND c.visible = 1
-            AND a.course IN ({$this->reference->course_ids})
+            AND a.course IN ({$this->mainobject->course_ids})
             AND s.timemarked < s.timemodified
             AND NOT (a.resubmit = 0 AND s.timemarked > 0)
             ORDER BY a.id
          ";
-         $submissions = get_records_sql($sql);
-         return $submissions;
-           
-         
+         $this->all_submissions = get_records_sql($sql);
+         return true;
+         //return $this->submissions;
+ 
     }
 
 
@@ -68,9 +75,9 @@ class assignment_functions extends module_base {
                     {$CFG->prefix}assignment a
                 INNER JOIN {$CFG->prefix}course_modules c
                      ON a.id = c.instance
-                WHERE c.module = {$this->reference->module_ids['assignment']->id}
+                WHERE c.module = {$this->mainobject->module_ids['assignment']->id}
                 AND c.visible = 1
-                AND a.course IN ($this->reference->course_ids)
+                AND a.course IN ($this->mainobject->course_ids)
                 ORDER BY a.id
              ";
 
@@ -94,15 +101,16 @@ class assignment_functions extends module_base {
                      ON a.id = c.instance
                 LEFT JOIN {$CFG->prefix}assignment_submissions s
                      ON s.assignment = a.id
-                WHERE c.module = {$this->reference->module_ids['assignment']->id}
+                WHERE c.module = {$this->mainobject->module_ids['assignment']->id}
                 AND c.visible = 1
                 AND a.course = $courseid
                 AND s.timemarked < s.timemodified
                 AND NOT (a.resubmit = 0 AND s.timemarked > 0)
-                AND s.userid IN({$this->reference->student_ids->$courseid})
+                AND s.userid IN({$this->mainobject->student_ids->$courseid})
                 ORDER BY a.id
               ";
 
+            //$this->submissions = get_records_sql($sql, 'assignment');
             $unmarked = get_records_sql($sql, 'assignment');
             return $unmarked;
         
@@ -123,7 +131,7 @@ class assignment_functions extends module_base {
         global $CFG, $USER;
 
         // need to get course id in order to retrieve students
-        $assignment = get_record('assignment', 'id', $this->reference->id);
+        $assignment = get_record('assignment', 'id', $this->mainobject->id);
         $courseid = $assignment->course;
 
         //permission to grade?
@@ -133,7 +141,7 @@ class assignment_functions extends module_base {
             return;
         }
 
-        $this->reference->get_course_students($courseid);
+        $this->mainobject->get_course_students($courseid);
 
         $sql = "SELECT s.id as subid, s.userid, s.timemodified, c.id as cmid
                 FROM {$CFG->prefix}assignment_submissions s
@@ -141,11 +149,11 @@ class assignment_functions extends module_base {
                      ON s.assignment = c.instance
                 INNER JOIN {$CFG->prefix}assignment a
                      ON s.assignment = a.id
-                WHERE s.assignment = {$this->reference->id}
-                    AND s.userid IN ({$this->reference->student_ids->$courseid})
+                WHERE s.assignment = {$this->mainobject->id}
+                    AND s.userid IN ({$this->mainobject->student_ids->$courseid})
                     AND s.timemarked < s.timemodified
                     AND NOT (a.resubmit = 0 AND s.timemarked > 0)
-                    AND c.module = {$this->reference->module_ids['assignment']->id}
+                    AND c.module = {$this->mainobject->module_ids['assignment']->id}
                 ORDER BY timemodified ASC";
 
         $submissions = get_records_sql($sql);
@@ -156,15 +164,15 @@ class assignment_functions extends module_base {
             // see if the config settings say display by groups and display them if they are (returning false). If there are no
             // groups, the function will return true and we carry on, but if the config settings say 'don't display'
             // then it will return false and we skip this assignment
-            if(!$this->reference->group) {
-               $group_filter = $this->reference->assessment_groups_filter($submissions, $this->type, $this->reference->id);
+            if(!$this->mainobject->group) {
+               $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $this->mainobject->id);
                if (!$group_filter) {
                    return;
                }
             }
 
             // begin json object
-            $this->reference->output = '[{"type":"submissions"}';
+            $this->mainobject->output = '[{"type":"submissions"}';
 
             foreach ($submissions as $submission) {
             // add submission to JSON array of objects
@@ -173,21 +181,21 @@ class assignment_functions extends module_base {
                 }
 
                 // if we are displaying for just one group, skip this submission if it doesn't match
-                if ($this->reference->group && !$this->reference->check_group_membership($this->reference->group, $submission->userid)) {
+                if ($this->mainobject->group && !$this->mainobject->check_group_membership($this->mainobject->group, $submission->userid)) {
                     continue;
                 }
                 
-                $name = $this->reference->get_fullname($submission->userid);
+                $name = $this->mainobject->get_fullname($submission->userid);
                 
                 // sort out the time info
                 $now     = time();
                 $seconds = ($now - $submission->timemodified);
-                $summary = $this->reference->make_time_summary($seconds);
+                $summary = $this->mainobject->make_time_summary($seconds);
                 
-                $this->reference->make_submission_node($name, $submission->userid, $submission->cmid, $summary, 'assignment_answer', $seconds, $submission->timemodified);
+                $this->mainobject->make_submission_node($name, $submission->userid, $submission->cmid, $summary, 'assignment_answer', $seconds, $submission->timemodified);
          
             }
-            $this->reference->output .= "]"; // end JSON array
+            $this->mainobject->output .= "]"; // end JSON array
                
         }
     }

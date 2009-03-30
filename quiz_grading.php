@@ -5,11 +5,286 @@ require_login(1, false);
 class quiz_functions extends module_base {
 
     function quiz_functions(&$reference) {
-        $this->reference = $reference;
+        $this->mainobject = $reference;
         // must be the same as th DB modulename
         $this->type = 'quiz';
         $this->capability = 'mod/quiz:grade';
+        $this->levels = 4;
     }
+
+
+    function get_all_course_unmarked($courseid) {
+
+        global $CFG;
+
+         $sql = "
+                  SELECT
+                      qsess.id as qsessid, qzatt.userid, qz.id, qz.intro as description, qz.name,  c.id as cmid
+                  FROM
+                    {$CFG->prefix}quiz qz
+                  INNER JOIN {$CFG->prefix}course_modules c
+                     ON qz.id = c.instance
+                  INNER JOIN {$CFG->prefix}quiz_attempts qzatt
+                      ON qz.id = qzatt.quiz
+                  INNER JOIN {$CFG->prefix}question_sessions qsess
+                      ON qsess.attemptid = qzatt.uniqueid
+                  INNER JOIN {$CFG->prefix}question_states qst
+                     ON qsess.newest = qst.id
+                  INNER JOIN {$CFG->prefix}question q
+                     ON qsess.questionid = q.id
+                  WHERE
+                  qzatt.userid IN ({$this->mainobject->student_ids->$courseid})
+                  AND qzatt.timefinish > 0
+                  AND qzatt.preview = 0
+                  AND c.module = {$this->mainobject->module_ids['quiz']->id}
+                  AND c.visible = 1
+                  AND qz.course = {$courseid}
+                  AND q.qtype = 'essay'
+                  AND qst.event NOT IN (3,6,9)
+                  ORDER BY q.id";
+
+            $submissions = get_records_sql($sql);
+            return $submissions;
+    }
+
+
+    /**
+     * gets all unmarked quiz question from all courses. used for the courses count
+     *
+     */
+     function get_all_unmarked() {
+        global $CFG;
+
+        $sql = '
+              SELECT
+                  qst.id as qstid, qsess.questionid, qz.id, qz.name, qz.course, qa.userid, c.id as cmid
+              FROM
+                '.$CFG->prefix.'quiz qz
+              INNER JOIN '.$CFG->prefix.'course_modules c
+                         ON qz.id = c.instance
+              INNER JOIN
+                '.$CFG->prefix.'quiz_attempts qa
+                  ON
+                    qz.id = qa.quiz
+              INNER JOIN
+                '.$CFG->prefix.'question_sessions qsess
+                  ON
+                    qsess.attemptid = qa.uniqueid
+              INNER JOIN
+                '.$CFG->prefix.'question_states qst
+                 ON
+                    qsess.newest = qst.id
+              INNER JOIN '.$CFG->prefix.'question q
+                 ON
+                    qsess.questionid = q.id
+              WHERE
+                   qa.timefinish > 0
+              AND qa.preview = 0
+              AND c.module = '.$this->mainobject->module_ids['quiz']->id.'
+              AND c.visible = 1
+              AND q.qtype = \'essay\'
+              AND qz.course IN ('.$this->mainobject->course_ids.')
+              AND qst.event NOT IN (3,6,9)
+              ORDER BY q.id
+              ';
+
+            $this->all_submissions = get_records_sql($sql);
+            return true;
+    }
+
+
+     /**
+         * Gets all of the question attempts for the current quiz. Uses the group filtering function to display groups first if
+         * that has been specified via config. Seemed like abetter idea than questions then groups as tutors will mostly have a class to mark
+         * rather than a question to mark.
+         *
+         * Uses $this->id as the quiz id
+         * @global <type> $CFG
+         * @return <type>
+         */
+	function quiz_questions() {
+
+	    $quiz = get_record('quiz', 'id', $this->mainobject->id);
+            $courseid = $quiz->course;
+
+            $this->mainobject->get_course_students($quiz->course);
+
+            global $CFG;
+            // needed for the constants, but a big include - maybe not necessary.
+            // constants have been replaced with their numerical values. Will need changing if they alter.
+            // require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
+
+            //permission to grade?
+            $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', 13, 'instance', $quiz->id) ;
+            $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
+            if (!has_capability('mod/quiz:grade', $modulecontext, $this->mainobject->userid)) {
+                return;
+            }
+
+            $csv_questions = get_record_sql("SELECT questions FROM {$CFG->prefix}quiz WHERE id = {$this->mainobject->id}");
+
+            $sql = "
+                  SELECT
+                    qst.id as qstid, qst.event, qs.questionid as id, q.name, qa.userid, q.questiontext as description, q.qtype, qa.userid, qa.timemodified
+                  FROM
+                    {$CFG->prefix}question_states qst
+                  INNER JOIN
+                    {$CFG->prefix}question_sessions qs
+                     ON
+                        qs.newest = qst.id
+                  INNER JOIN {$CFG->prefix}question q
+                     ON
+                        qs.questionid = q.id
+                  INNER JOIN
+                    {$CFG->prefix}quiz_attempts qa
+                      ON
+                        qs.attemptid = qa.uniqueid
+                  WHERE
+                    qa.quiz = $quiz->id
+                  AND
+                    qa.userid
+                      IN ({$this->mainobject->student_ids->$courseid})
+                  AND qa.timefinish > 0
+                  AND qa.preview = 0
+                  AND qs.questionid IN ($csv_questions->questions)
+                  AND q.qtype = 'essay'
+                  AND qst.event NOT IN (3,6,9)";
+
+            $question_attempts = get_records_sql($sql);
+
+            // not the same as $csv_questions as some of those questions will have no attempts needing attention
+            $questions = $this->mainobject->list_assessment_ids($question_attempts);
+
+            if (!$this->mainobject->group) {
+                $group_check = $this->mainobject->assessment_groups_filter($question_attempts, 'quiz', $this->mainobject->id);
+                if (!$group_check) {
+                    return;
+                }
+            }
+
+
+            $this->mainobject->output = '[{"type":"quiz_question"}';      // begin json object.   Why course?? Children treatment?
+
+            foreach ($questions as $question) {
+
+                $count = 0;
+
+                foreach ($question_attempts as $question_attempt) {
+                    if (!isset($question_attempt->userid)) {continue;}
+                    // if we have come from a group node, ignore attempts where the user is not in the right group
+                    // also ignore attempts not relevant to this question
+                    // if () { //if a group has been specified, ignore any in ohter groups
+                    if (($this->mainobject->group && !$this->mainobject->check_group_membership($this->mainobject->group, $question_attempt->userid)) || (!($question_attempt->id == $question->id))) {
+
+                        continue;
+                    }
+                    $count = $count + 1;
+                }
+
+                if ($count > 0) {
+                    $name = $question->name;
+                    $qid = $question->id;
+                    $sum = $question->description;
+                    $sumlength = strlen($sum);
+                    $shortsum = substr($sum, 0, 100);
+                    if (strlen($shortsum) < strlen($sum)) {
+                        $shortsum .= "...";
+                    }
+                    $this->mainobject->output .= ',';
+
+                    $this->mainobject->output .= '{';
+                    $this->mainobject->output .= '"label":"'.$this->mainobject->add_icon('question').$this->mainobject->clean_name_text($name, 1).' ('.$count.')",';
+                    $this->mainobject->output .= '"name":"'.$this->mainobject->add_icon('question').$this->mainobject->clean_name_text($name, 1).'",';
+                    $this->mainobject->output .= '"id":"'.$qid.'",';
+
+                    $this->mainobject->output .= $this->mainobject->group ? '"group":"'.$this->mainobject->group.'",' : '';
+                   // if ($this->mainobject->group) {
+                   //     $this->mainobject->output .= '"group":"'.$this->mainobject->group.'",';
+                   // }
+                    $this->mainobject->output .= '"assid":"qq'.$qid.'",';
+                    $this->mainobject->output .= '"type":"quiz_question",';
+                    $this->mainobject->output .= '"summary":"'.$this->mainobject->clean_summary_text($shortsum).'",';
+                    $this->mainobject->output .= '"count":"'.$count.'"';
+                    $this->mainobject->output .= '}';
+                }
+            }
+        $this->mainobject->output .= "]"; // end JSON array
+	}
+
+
+        /**
+         * Makes the nodes with the student names for each question. works either with or without a group having been set.
+         * @global <type> $CFG
+         * @return <type>
+         */
+
+	function submissions() {
+
+            $quiz = get_record('quiz', 'id', $this->mainobject->quizid);
+            $courseid = $quiz->course;
+
+             //permission to grade?
+            $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', 13, 'instance', $quiz->id) ;
+            $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
+            if (!has_capability('mod/quiz:grade', $modulecontext, $this->mainobject->userid)) {
+                return;
+            }
+
+            $this->mainobject->get_course_students($quiz->course);
+            global $CFG;
+
+            $question_attempts = get_records_sql("
+
+                  SELECT
+                    qst.id, qst.event, qs.questionid, qa.userid, qa.timemodified
+                  FROM
+                    {$CFG->prefix}question_states qst
+                  INNER JOIN
+                    {$CFG->prefix}question_sessions qs
+                     ON
+                        qs.newest = qst.id
+                  INNER JOIN
+                    {$CFG->prefix}quiz_attempts qa
+                      ON
+                        qs.attemptid = qa.uniqueid
+                  WHERE
+                    qa.quiz = {$this->mainobject->quizid}
+                  AND
+                    qa.userid
+                      IN ({$this->mainobject->student_ids->$courseid})
+                  AND qa.timefinish > 0
+                  AND qa.preview = 0
+                  AND qs.questionid = {$this->mainobject->id}
+                  AND qst.event NOT IN (3,6,9)
+             ");
+
+            if($question_attempts) {
+
+                $this->mainobject->output = '[{"type":"submissions"}';      // begin json object.
+
+                foreach ($question_attempts as $question_attempt) {
+                    if (!isset($question_attempt->userid)) {
+                        continue;
+                    }
+                    // ignore those where the group is not set
+                    if ($this->mainobject->group && !$this->mainobject->check_group_membership($this->mainobject->group, $question_attempt->userid)) {
+                         continue;
+                    }
+
+                    $name = $this->mainobject->get_fullname($question_attempt->userid);
+
+                    $now = time();
+                    $seconds = ($now - $question_attempt->timemodified);
+                    $summary = $this->mainobject->make_time_summary($seconds);
+
+                    $this->output .= $this->mainobject->make_submission_node($name, $question_attempt->userid, $this->mainobject->id, $summary, 'quiz_answer', $seconds, $question_attempt->timemodified);
+
+                }
+                $this->mainobject->output .= "]"; // end JSON array
+            }
+        }
+
+   
 
 
 }

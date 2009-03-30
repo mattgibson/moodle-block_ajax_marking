@@ -4,10 +4,11 @@ require_login(1, false);
 
 class forum_functions extends module_base {
     function forum_functions(&$reference) {
-        $this->reference = $reference;
+        $this->mainobject = $reference;
         // must be the same as th DB modulename
         $this->type = 'forum';
         $this->capability = 'mod/forum:viewhiddentimedposts';
+        $this->levels = 3;
     }
 
 
@@ -19,32 +20,30 @@ class forum_functions extends module_base {
     function get_all_unmarked() {
         global $CFG, $USER;
 
-        
-            $sql = "
-                SELECT p.id as postid, p.userid, d.id, f.id, f.name, f.course, c.id as cmid
-                FROM
-                    {$CFG->prefix}forum f
-                INNER JOIN {$CFG->prefix}course_modules c
-                     ON f.id = c.instance
-                INNER JOIN {$CFG->prefix}forum_discussions d
-                     ON d.forum = f.id
-                INNER JOIN {$CFG->prefix}forum_posts p
-                     ON p.discussion = d.id
-                LEFT JOIN {$CFG->prefix}forum_ratings r
-                     ON  p.id = r.post
-                WHERE p.userid <> $USER->id
-                    AND (((r.userid <> $USER->id) AND (r.userid NOT IN ({$this->reference->teachers}))) OR r.userid IS NULL)
-                    AND c.module = {$this->reference->module_ids['forum']->id}
-                    AND c.visible = 1
-                    AND f.course IN ({$this->reference->course_ids})
-                    AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
-                    AND f.assessed > 0
-                ORDER BY f.id
-            ";
+        $sql = "
+            SELECT p.id as postid, p.userid, d.id, f.id, f.name, f.course, c.id as cmid
+            FROM {$CFG->prefix}forum_posts p
+            LEFT JOIN {$CFG->prefix}forum_ratings r
+                 ON  p.id = r.post
+            INNER JOIN {$CFG->prefix}forum_discussions d
+                 ON p.discussion = d.id
+            INNER JOIN {$CFG->prefix}forum f
+                 ON d.forum = f.id
+            INNER JOIN {$CFG->prefix}course_modules c
+                 ON f.id = c.instance
 
-            $submissions = get_records_sql($sql);
-            return $submissions;
-     
+            WHERE p.userid <> $USER->id
+                AND (((r.userid <> $USER->id) AND (r.userid NOT IN ({$this->mainobject->teachers}))) OR r.userid IS NULL)
+                AND c.module = {$this->mainobject->module_ids['forum']->id}
+                AND c.visible = 1
+                AND f.course IN ({$this->mainobject->course_ids})
+                AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
+                AND f.assessed > 0
+            ORDER BY f.id
+        ";
+
+        $this->all_submissions = get_records_sql($sql);
+        return true;
     }
 
 
@@ -65,20 +64,17 @@ class forum_functions extends module_base {
                 LEFT JOIN {$CFG->prefix}forum_ratings r
                      ON  p.id = r.post
                 WHERE p.userid <> $USER->id
-                    AND p.userid IN ({$this->reference->student_ids->$courseid})
-                    AND (((r.userid <> $USER->id) AND (r.userid NOT IN ({$this->reference->teachers}))) OR r.userid IS NULL)
-
+                    AND p.userid IN ({$this->mainobject->student_ids->$courseid})
+                    AND (((r.userid <> $USER->id) AND (r.userid NOT IN ({$this->mainobject->teachers}))) OR r.userid IS NULL)
                     AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
-                    AND c.module = {$this->reference->module_ids['forum']->id}
+                    AND c.module = {$this->mainobject->module_ids['forum']->id}
                     AND c.visible = 1
                     AND f.course = $courseid
                     AND f.assessed > 0
                 ORDER BY f.id
-          ";
+                ";
         $unmarked = get_records_sql($sql, $this->type);
         return $unmarked;
-
-
     }
 
 
@@ -91,11 +87,11 @@ class forum_functions extends module_base {
         global $CFG, $USER;
 
         $discussions = '';
-        $forum = get_record('forum', 'id', $this->reference->id);
+        $forum = get_record('forum', 'id', $this->mainobject->id);
         $courseid = $forum->course;
-        $this->reference->get_course_students($courseid);
+        $this->mainobject->get_course_students($courseid);
 
-        $discussions = get_records('forum_discussions', 'forum', $this->reference->id);
+        $discussions = get_records('forum_discussions', 'forum', $this->mainobject->id);
         if (!$discussions) {
             return;
         }
@@ -113,10 +109,10 @@ class forum_functions extends module_base {
                      ON p.discussion = d.id
                  LEFT JOIN {$CFG->prefix}forum_ratings r
                      ON  p.id = r.post
-                 WHERE d.forum = {$this->reference->id}
+                 WHERE d.forum = {$this->mainobject->id}
                  AND p.userid <> {$USER->id}
-                 AND p.userid IN ({$this->reference->student_ids->$courseid})
-                 AND (((r.userid <> {$USER->id})  AND (r.userid NOT IN ({$this->reference->teachers}))) OR r.userid IS NULL)
+                 AND p.userid IN ({$this->mainobject->student_ids->$courseid})
+                 AND (((r.userid <> {$USER->id})  AND (r.userid NOT IN ({$this->mainobject->teachers}))) OR r.userid IS NULL)
                  ";
 
         if ($forum->type == 'eachuser') {
@@ -153,15 +149,15 @@ class forum_functions extends module_base {
 
             // Check to see if group nodes need to be made instead of submissions
 
-            if(!$this->reference->group) {
-                   $group_filter = $this->reference->assessment_groups_filter($posts, $this->type, $forum->id);
+            if(!$this->mainobject->group) {
+                   $group_filter = $this->mainobject->assessment_groups_filter($posts, $this->type, $forum->id);
                    if (!$group_filter) {
                        return;
                    }
             }
 
             // Submissions nodes are needed, so make one per discussion
-            $this->reference->output = '[{"type":"submissions"}';      // begin json object.
+            $this->mainobject->output = '[{"type":"submissions"}';      // begin json object.
 
             // we may have excluded all of them now, so check again
             if (count($posts) > 0) {
@@ -170,7 +166,7 @@ class forum_functions extends module_base {
                     $firstpost = '';
                    // $settings =
                     //check_submission_display_settings($check, $userid)
-                    if ($this->reference->group && !$this->reference->check_group_membership($this->reference->group, $discussion->userid)) {
+                    if ($this->mainobject->group && !$this->mainobject->check_group_membership($this->mainobject->group, $discussion->userid)) {
                     //if ($this->group && !groups_is_member($this->group, $discussion->userid)) {
                         continue;
                     }
@@ -224,10 +220,10 @@ class forum_functions extends module_base {
                         $seconds = time() - $discussion->timemodified;
 
                         if ($forum->type == 'eachuser') { // we will show the student name as the node name as there is only one post that matters
-                            $name = $this->reference->get_fullname($firstpost->userid);
+                            $name = $this->mainobject->get_fullname($firstpost->userid);
 
                         } else { // the name will be the name of the discussion
-                                $name = $discussion->name;
+                                $name = $discussion->name.' ('.$count.')';
 
                         }
 
@@ -235,18 +231,18 @@ class forum_functions extends module_base {
 
                         $shortsum = substr($sum, 0, 100);
                         if (strlen($shortsum) < strlen($sum)) {$shortsum .= "...";}
-                        $timesum = $this->reference->make_time_summary($seconds, true);
+                        $timesum = $this->mainobject->make_time_summary($seconds, true);
                         if (!isset($discuss)) {
                             $discuss = get_string('discussion', 'block_ajax_marking');
                         }
                         $summary = $discuss.": ".$shortsum."<br />".$timesum;
 
-                        $this->reference->output .= $this->reference->make_submission_node($name, $firstpost->id, $discussion->id, $summary, 'discussion', $seconds, $time, $count);
+                        $this->mainobject->output .= $this->mainobject->make_submission_node($name, $firstpost->id, $discussion->id, $summary, 'discussion', $seconds, $time, $count);
 
                     }
                 }// end foreach discussion
             }
-            $this->reference->output .= "]"; // end JSON array
+            $this->mainobject->output .= "]"; // end JSON array
         }// if discussions
     } // end function
 

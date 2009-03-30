@@ -10,6 +10,12 @@
 
 include("../../config.php");
 require_login(1, false);
+
+// TODO needed if possible but doesn't yet work as no session created yet
+// if (!confirm_sesskey()) {
+//       echo 'session error';
+// }
+
 include("lib.php");
 
 
@@ -20,20 +26,19 @@ class ajax_response extends ajax_marking_functions {
      * deal with the request, before printing the output.
      * @global <type> $CFG
      */
+
     function ajax_response() {
     // constructor retrieves GET data and works out what type of AJAX call has been made before running the correct function
     // TODO: should check capability with $USER here to improve security. currently, this is only checked when making course nodes.
 
-        global $CFG;
+        global $CFG, $USER;
 
         $this->get_variables();
         $this->initial_setup();
 
-
-
-       // echo $this->teachers;
-
         switch ($this->type) {
+
+        
         case "main":
            $this->courses();
            break;
@@ -44,11 +49,9 @@ class ajax_response extends ajax_marking_functions {
             break;
 
         case "course":
-            $this->get_course_students($this->id); // we must make sure we only get work from enrolled students
+
             $courseid = $this->id;
-            //echo $courseid;
-             
-            //echo $this->student_ids->$courseid;
+            $this->get_course_students($courseid); // we must make sure we only get work from enrolled students
 
             $this->output = '[{"type":"course"}'; // begin JSON array
             /*
@@ -68,8 +71,8 @@ class ajax_response extends ajax_marking_functions {
                   ";
              
              */
-            $this->modules->assignment->functions->course_assessments($courseid);
-            //$this->course_assessments($sql, 'assignment');
+            $this->assignment->course_assessment_nodes($courseid);
+            //$this->course_assessment_nodes($sql, 'assignment');
             $sql = "
                     SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified, j.id, c.id as cmid
                     FROM {$CFG->prefix}journal_entries je
@@ -82,9 +85,10 @@ class ajax_response extends ajax_marking_functions {
                     AND j.assessed <> 0
                     AND je.modified > je.timemarked
                     AND je.userid IN({$this->student_ids->$courseid})
-                    AND j.course = $this->id
+                    AND j.course = $courseid
                    ";
-            $this->course_assessments($sql, 'journal');
+           // $this->course_assessment_nodes($sql, 'journal');
+            $this->journal->course_assessment_nodes($courseid);
             $sql = "SELECT s.id as submissionid, s.userid, w.id, w.name, w.course, w.description, c.id as cmid
                     FROM ( {$CFG->prefix}workshop w
                     INNER JOIN {$CFG->prefix}course_modules c
@@ -93,16 +97,16 @@ class ajax_response extends ajax_marking_functions {
                         ON s.workshopid = w.id
                     LEFT JOIN {$CFG->prefix}workshop_assessments a
                         ON (s.id = a.submissionid)
-                    WHERE (a.userid != {$this->userid}
-                        OR (a.userid = {$this->userid}
+                    WHERE (a.userid != {$USER->id}
+                        OR (a.userid = {$USER->id}
                             AND a.grade = -1))
                     AND c.module = {$this->module_ids['workshop']->id}
                     AND c.visible = 1
-                    AND w.course = $this->id
+                    AND w.course = $courseid
                     AND s.userid IN ({$this->student_ids->$courseid})
                     ORDER BY w.id
                   ";
-            $this->course_assessments($sql, 'workshop');
+            $this->course_assessment_nodes($sql, 'workshop');
             /*
             $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.type, f.id, f.name, f.intro as description, c.id as cmid
                         FROM
@@ -127,9 +131,11 @@ class ajax_response extends ajax_marking_functions {
                         ORDER BY f.id
                   ";
             */
-            $this->modules->forum->functions->course_assessments($courseid);
-            //$this->course_assessments($sql, 'forum');
-            $this->quizzes();
+            $this->forum->course_assessment_nodes($courseid);
+            //$this->course_assessment_nodes($sql, 'forum');
+
+            $this->quiz->course_assessment_nodes($courseid);
+          
 
             $this->output .= "]"; // end JSON array
             break;
@@ -150,7 +156,7 @@ class ajax_response extends ajax_marking_functions {
             break;
 
         case "assignment":
-            $this->modules->assignment->functions->submissions();
+            $this->assignment->submissions();
             //$this->assignment_submissions();
             break;
 
@@ -159,21 +165,23 @@ class ajax_response extends ajax_marking_functions {
             break;
 
         case "forum":
-            $this->modules->forum->functions->submissions();
+            $this->forum->submissions();
            // $this->forum_submissions();
             break;
 
         case "quiz_question":
-            $this->quiz_submissions();
+            $this->quiz->submissions();
+            //$this->quiz_submissions();
             break;
 
         case "quiz":
-            $this->quiz_questions();
+            $this->quiz->quiz_questions();
+            //$this->quiz_questions();
             break;
 
-        case "journal_submissions":
-            $this->journal_submissions();
-            break;
+       // case "journal_submissions":
+          //  $this->journal_submissions();
+          //  break;
 
         case "config_groups":
             $this->config_groups();
@@ -192,7 +200,7 @@ class ajax_response extends ajax_marking_functions {
             break;
 
         case 'quiz_diagnostic':
-            $this->get_course_students($this->id);
+            $this->get_course_students($courseid);
             $this->quizzes();
             break;
 
@@ -200,19 +208,14 @@ class ajax_response extends ajax_marking_functions {
 
         print_r($this->output);
     }
-
-
 }
-
-
-
 
 
 // initialise the object, beginning the response process
 if (isset($response)) {
     unset($response);
 }
-$response = new ajax_response;
+$AMB_AJAX_response = new ajax_response;
 
 
 ?>
