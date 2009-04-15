@@ -1,6 +1,7 @@
 <?php
 
 require_login(1, false);
+
 /**
  * preparing for the modularisation in future, all assignment relateed code should live in here
  */
@@ -13,10 +14,6 @@ class assignment_functions extends module_base {
      * are accessible
      *
      */
-
-    // declare this variable in the main class so it's accessible to all functions
-    //private $ref = '';
-
     function assignment_functions(&$reference) {
 
         //$this->ref = $reference;
@@ -29,12 +26,12 @@ class assignment_functions extends module_base {
 
     // procedures to fetch data and store it in the object
 
-     /**
+    /**
      * function called from courses() which returns all
      * unmarked assignments from all courses ready for sorting through and counting
      * @return Boolean
      */
-    public function get_all_unmarked() {
+    function get_all_unmarked() {
 
        
         global $CFG;
@@ -56,40 +53,15 @@ class assignment_functions extends module_base {
          $this->all_submissions = get_records_sql($sql);
          return true;
          //return $this->submissions;
- 
     }
 
 
-     /**
-     * gets all assignments that could potentially have
-     * graded work, even if there is none there now. Used by the config tree.
-     * @return <type>
+    /**
+     *fetches all of the unmarked assignment submissions for a course
+     * @global <type> $CFG
+     * @param int $courseid The courseid from the main database.
+     * @return object The results straight from the DB
      */
-    function get_all_items() {
-
-        global $CFG;
-        if (!$this->assignments) {
-            $sql = "
-                SELECT  a.id, a.name, a.description as summary, a.course, c.id as cmid
-                FROM
-                    {$CFG->prefix}assignment a
-                INNER JOIN {$CFG->prefix}course_modules c
-                     ON a.id = c.instance
-                WHERE c.module = {$this->mainobject->module_ids['assignment']->id}
-                AND c.visible = 1
-                AND a.course IN ($this->mainobject->course_ids)
-                ORDER BY a.id
-             ";
-
-             $assignments = get_records_sql($sql);
-             $this->items = $assignments;
-             return $assignments;
-         } else {
-             return $this->assignments;
-         }
-    }
-
-    // fetches all of the unmarked assignment submissions for a course
     function get_all_course_unmarked($courseid) {
 
         global $CFG;
@@ -110,12 +82,8 @@ class assignment_functions extends module_base {
                 ORDER BY a.id
               ";
 
-            //$this->submissions = get_records_sql($sql, 'assignment');
-            $unmarked = get_records_sql($sql, 'assignment');
-            return $unmarked;
-        
-
-
+        $unmarked = get_records_sql($sql, 'assignment');
+        return $unmarked;
     }
 
 
@@ -125,7 +93,6 @@ class assignment_functions extends module_base {
 	 * divert this request to the groups function if the config asks for that
 	 * show the selected group's students
 	 */
-
     function submissions() {
         
         global $CFG, $USER;
@@ -200,6 +167,32 @@ class assignment_functions extends module_base {
         }
     }
 
+
+     /**
+     * gets all assignments that could potentially have
+     * graded work, even if there is none there now. Used by the config tree.
+     * @return <type>
+     */
+    function get_all_gradable_items() {
+
+        global $CFG;
+   
+        $sql = "
+            SELECT  a.id, a.name, a.description as summary, a.course, c.id as cmid
+            FROM
+                {$CFG->prefix}assignment a
+            INNER JOIN {$CFG->prefix}course_modules c
+                 ON a.id = c.instance
+            WHERE c.module = {$this->mainobject->module_ids['assignment']->id}
+            AND c.visible = 1
+            AND a.course IN ({$this->mainobject->course_ids})
+            ORDER BY a.id
+         ";
+
+         $assignments = get_records_sql($sql);
+         $this->assessments = $assignments;
+  
+    }
 
     // count for all assignments in a course
 

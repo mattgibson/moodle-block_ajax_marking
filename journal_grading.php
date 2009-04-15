@@ -65,6 +65,29 @@ class journal_functions extends module_base {
         return $unmarked;
 
     }
+
+    /**
+     * gets all journals for all courses ready for the config tree
+     */
+    function get_all_gradable_items() {
+
+        global $CFG;
+
+        $sql = "
+            SELECT j.id, j.intro as summary, j.name, j.course, c.id as cmid
+            FROM  {$CFG->prefix}journal j
+            INNER JOIN {$CFG->prefix}course_modules c
+                     ON j.id = c.instance
+            WHERE c.module = {$this->mainobject->module_ids['journal']->id}
+            AND c.visible = 1
+            AND j.assessed <> 0
+            AND j.course IN ({$this->mainobject->course_ids})
+        ";
+
+        $journals = get_records_sql($sql);
+        $this->assessments = $journals;
+    }
+
 }
 
 ?>

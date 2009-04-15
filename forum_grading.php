@@ -3,8 +3,8 @@
 require_login(1, false);
 
 class forum_functions extends module_base {
-    function forum_functions(&$reference) {
-        $this->mainobject = $reference;
+    function forum_functions(&$mainobject) {
+        $this->mainobject = $mainobject;
         // must be the same as th DB modulename
         $this->type = 'forum';
         $this->capability = 'mod/forum:viewhiddentimedposts';
@@ -245,6 +245,38 @@ class forum_functions extends module_base {
             $this->mainobject->output .= "]"; // end JSON array
         }// if discussions
     } // end function
+
+
+
+    /**
+     * gets all of the forums for all courses, ready for the config tree.
+     * @global <type> $CFG
+     * @return <type>
+     */
+    function get_all_gradable_items() {
+        global $CFG;
+        $sql = '
+            SELECT f.id, f.course, f.intro as summary, f.name, f.type, c.id as cmid
+            FROM
+                '.$CFG->prefix.'forum f
+            INNER JOIN '.$CFG->prefix.'course_modules c
+                 ON f.id = c.instance
+            WHERE
+                c.module = '.$this->mainobject->module_ids['forum']->id.'
+                AND c.visible = 1
+                AND f.course IN ('.$this->mainobject->course_ids.')
+                AND f.assessed > 0
+
+            ORDER BY f.id
+        ';
+        $forums = get_records_sql($sql);
+        $this->assessments = $forums;
+        
+    }
+
+
+
+
 
 } // end class
 

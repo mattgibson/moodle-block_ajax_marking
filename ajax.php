@@ -33,178 +33,97 @@ class ajax_response extends ajax_marking_functions {
 
         global $CFG, $USER;
 
+        // TODO - not necessary to load all things for all types. submissions level doesn't need the data for all the other types
         $this->get_variables();
         $this->initial_setup();
 
         switch ($this->type) {
-
         
-        case "main":
-           $this->courses();
-           break;
+            case "main":
+               $this->courses();
+               break;
 
-       case "config_main":
-            $this->config = true;
-            $this->config_courses();
-            break;
+            case "config_main":
+                $this->config = true;
+                $this->config_courses();
+                break;
 
-        case "course":
+            case "course":
+                $courseid = $this->id;
+                // we must make sure we only get work from enrolled students
+                $this->get_course_students($courseid);
 
-            $courseid = $this->id;
-            $this->get_course_students($courseid); // we must make sure we only get work from enrolled students
+                $this->output = '[{"type":"course"}';
 
-            $this->output = '[{"type":"course"}'; // begin JSON array
-            /*
-            $sql = "SELECT s.id as subid, s.userid, a.id, a.name, a.description, c.id as cmid  FROM
-                        {$CFG->prefix}assignment a
-                    INNER JOIN {$CFG->prefix}course_modules c
-                         ON a.id = c.instance
-                    LEFT JOIN {$CFG->prefix}assignment_submissions s
-                         ON s.assignment = a.id
-                    WHERE c.module = {$this->module_ids['assignment']->id}
-                    AND c.visible = 1
-                    AND a.course = $this->id
-                    AND s.timemarked < s.timemodified
-                    AND NOT (a.resubmit = 0 AND s.timemarked > 0)
-                    AND s.userid IN({$this->student_ids->$courseid})
-                    ORDER BY a.id
-                  ";
-             
-             */
-            $this->assignment->course_assessment_nodes($courseid);
-            //$this->course_assessment_nodes($sql, 'assignment');
-            $sql = "
-                    SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified, j.id, c.id as cmid
-                    FROM {$CFG->prefix}journal_entries je
-                    INNER JOIN {$CFG->prefix}journal j
-                       ON je.journal = j.id
-                    INNER JOIN {$CFG->prefix}course_modules c
-                       ON j.id = c.instance
-                    WHERE c.module = {$this->module_ids['journal']->id}
-                    AND c.visible = 1
-                    AND j.assessed <> 0
-                    AND je.modified > je.timemarked
-                    AND je.userid IN({$this->student_ids->$courseid})
-                    AND j.course = $courseid
-                   ";
-           // $this->course_assessment_nodes($sql, 'journal');
-            $this->journal->course_assessment_nodes($courseid);
-            $sql = "SELECT s.id as submissionid, s.userid, w.id, w.name, w.course, w.description, c.id as cmid
-                    FROM ( {$CFG->prefix}workshop w
-                    INNER JOIN {$CFG->prefix}course_modules c
-                        ON w.id = c.instance)
-                    LEFT JOIN {$CFG->prefix}workshop_submissions s
-                        ON s.workshopid = w.id
-                    LEFT JOIN {$CFG->prefix}workshop_assessments a
-                        ON (s.id = a.submissionid)
-                    WHERE (a.userid != {$USER->id}
-                        OR (a.userid = {$USER->id}
-                            AND a.grade = -1))
-                    AND c.module = {$this->module_ids['workshop']->id}
-                    AND c.visible = 1
-                    AND w.course = $courseid
-                    AND s.userid IN ({$this->student_ids->$courseid})
-                    ORDER BY w.id
-                  ";
-            $this->course_assessment_nodes($sql, 'workshop');
-            /*
-            $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.type, f.id, f.name, f.intro as description, c.id as cmid
-                        FROM
-                            {$CFG->prefix}forum f
-                        INNER JOIN {$CFG->prefix}course_modules c
-                             ON f.id = c.instance
-                        INNER JOIN {$CFG->prefix}forum_discussions d
-                             ON d.forum = f.id
-                        INNER JOIN {$CFG->prefix}forum_posts p
-                             ON p.discussion = d.id
-                        LEFT JOIN {$CFG->prefix}forum_ratings r
-                             ON  p.id = r.post
-                        WHERE p.userid <> $this->userid
-                            AND p.userid IN ({$this->student_ids->$courseid})
-                            AND (((r.userid <> $this->userid) AND (r.userid NOT IN ($this->teachers))) OR r.userid IS NULL)
+                $this->assignment->course_assessment_nodes($courseid);
+                $this->forum->course_assessment_nodes($courseid);
+                $this->quiz->course_assessment_nodes($courseid);
+                $this->journal->course_assessment_nodes($courseid);
+                $this->workshop->course_assessment_nodes($courseid);
 
-                            AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
-                            AND c.module = {$this->module_ids['forum']->id}
-                            AND c.visible = 1
-                            AND f.course = $this->id
-                            AND f.assessed > 0
-                        ORDER BY f.id
-                  ";
-            */
-            $this->forum->course_assessment_nodes($courseid);
-            //$this->course_assessment_nodes($sql, 'forum');
+                $this->output .= "]";
+                break;
 
-            $this->quiz->course_assessment_nodes($courseid);
-          
+            case "config_course":
+                $this->get_course_students($this->id);
 
-            $this->output .= "]"; // end JSON array
-            break;
+                $this->config = true;
+                $this->output = '[{"type":"config_course"}';
 
-        case "config_course":
-            $this->get_course_students($this->id); // we must make sure we only get work from enrolled students
+                foreach ($this->modules as $module) {
+                    $this->config_assessments($this->id, $module);
+                }
+                //$this->config_assessments($this->id, 'assignment');
+                //$this->config_assessments($this->id, 'journal');
+                //$this->config_assessments($this->id, 'workshop');
+                //$this->config_assessments($this->id, 'forum');
+                //$this->config_assessments($this->id, 'quiz');
 
-            $this->config = true;
-            $this->output = '[{"type":"config_course"}'; // begin JSON array
+                $this->output .= "]";
+                break;
 
-            $this->config_assessments($this->id, 'assignment');
-            $this->config_assessments($this->id, 'journal');
-            $this->config_assessments($this->id, 'workshop');
-            $this->config_assessments($this->id, 'forum');
-            $this->config_assessments($this->id, 'quiz');
+            case "assignment":
+                $this->assignment->submissions();
+                break;
 
-            $this->output .= "]"; // end JSON array
-            break;
+            case "workshop":
+                $this->workshop->submissions();
+                break;
 
-        case "assignment":
-            $this->assignment->submissions();
-            //$this->assignment_submissions();
-            break;
+            case "forum":
+                $this->forum->submissions();
+                break;
 
-        case "workshop":
-            $this->workshop_submissions();
-            break;
+            case "quiz_question":
+                $this->quiz->submissions();
+                break;
 
-        case "forum":
-            $this->forum->submissions();
-           // $this->forum_submissions();
-            break;
+            case "quiz":
+                $this->quiz->quiz_questions();
+                break;
 
-        case "quiz_question":
-            $this->quiz->submissions();
-            //$this->quiz_submissions();
-            break;
+            case "config_groups":
+                $this->config_groups();
+                break;
 
-        case "quiz":
-            $this->quiz->quiz_questions();
-            //$this->quiz_questions();
-            break;
+            case "config_set":
+                $this->config_set();
+                break;
 
-       // case "journal_submissions":
-          //  $this->journal_submissions();
-          //  break;
+            case "config_check":
+                $this->config_check();
+                break;
 
-        case "config_groups":
-            $this->config_groups();
-            break;
+            case "config_group_save":
+                $this->config_group_save();
+                break;
 
-        case "config_set":
-            $this->config_set();
-            break;
+            case 'quiz_diagnostic':
+                $this->get_course_students($courseid);
+                $this->quizzes();
+                break;
 
-        case "config_check":
-            $this->config_check();
-            break;
-
-        case "config_group_save":
-            $this->config_group_save();
-            break;
-
-        case 'quiz_diagnostic':
-            $this->get_course_students($courseid);
-            $this->quizzes();
-            break;
-
-        } // end switch
+        }
 
         print_r($this->output);
     }

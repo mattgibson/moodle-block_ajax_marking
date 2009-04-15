@@ -13,42 +13,7 @@ class quiz_functions extends module_base {
     }
 
 
-    function get_all_course_unmarked($courseid) {
-
-        global $CFG;
-
-         $sql = "
-                  SELECT
-                      qsess.id as qsessid, qzatt.userid, qz.id, qz.intro as description, qz.name,  c.id as cmid
-                  FROM
-                    {$CFG->prefix}quiz qz
-                  INNER JOIN {$CFG->prefix}course_modules c
-                     ON qz.id = c.instance
-                  INNER JOIN {$CFG->prefix}quiz_attempts qzatt
-                      ON qz.id = qzatt.quiz
-                  INNER JOIN {$CFG->prefix}question_sessions qsess
-                      ON qsess.attemptid = qzatt.uniqueid
-                  INNER JOIN {$CFG->prefix}question_states qst
-                     ON qsess.newest = qst.id
-                  INNER JOIN {$CFG->prefix}question q
-                     ON qsess.questionid = q.id
-                  WHERE
-                  qzatt.userid IN ({$this->mainobject->student_ids->$courseid})
-                  AND qzatt.timefinish > 0
-                  AND qzatt.preview = 0
-                  AND c.module = {$this->mainobject->module_ids['quiz']->id}
-                  AND c.visible = 1
-                  AND qz.course = {$courseid}
-                  AND q.qtype = 'essay'
-                  AND qst.event NOT IN (3,6,9)
-                  ORDER BY q.id";
-
-            $submissions = get_records_sql($sql);
-            return $submissions;
-    }
-
-
-    /**
+ /**
      * gets all unmarked quiz question from all courses. used for the courses count
      *
      */
@@ -92,6 +57,43 @@ class quiz_functions extends module_base {
             return true;
     }
 
+
+    function get_all_course_unmarked($courseid) {
+
+        global $CFG;
+
+         $sql = "
+                  SELECT
+                      qsess.id as qsessid, qzatt.userid, qz.id, qz.intro as description, qz.name,  c.id as cmid
+                  FROM
+                    {$CFG->prefix}quiz qz
+                  INNER JOIN {$CFG->prefix}course_modules c
+                     ON qz.id = c.instance
+                  INNER JOIN {$CFG->prefix}quiz_attempts qzatt
+                      ON qz.id = qzatt.quiz
+                  INNER JOIN {$CFG->prefix}question_sessions qsess
+                      ON qsess.attemptid = qzatt.uniqueid
+                  INNER JOIN {$CFG->prefix}question_states qst
+                     ON qsess.newest = qst.id
+                  INNER JOIN {$CFG->prefix}question q
+                     ON qsess.questionid = q.id
+                  WHERE
+                  qzatt.userid IN ({$this->mainobject->student_ids->$courseid})
+                  AND qzatt.timefinish > 0
+                  AND qzatt.preview = 0
+                  AND c.module = {$this->mainobject->module_ids['quiz']->id}
+                  AND c.visible = 1
+                  AND qz.course = {$courseid}
+                  AND q.qtype = 'essay'
+                  AND qst.event NOT IN (3,6,9)
+                  ORDER BY q.id";
+
+            $submissions = get_records_sql($sql);
+            return $submissions;
+    }
+
+
+   
 
      /**
          * Gets all of the question attempts for the current quiz. Uses the group filtering function to display groups first if
@@ -204,7 +206,8 @@ class quiz_functions extends module_base {
                     $this->mainobject->output .= '"assid":"qq'.$qid.'",';
                     $this->mainobject->output .= '"type":"quiz_question",';
                     $this->mainobject->output .= '"summary":"'.$this->mainobject->clean_summary_text($shortsum).'",';
-                    $this->mainobject->output .= '"count":"'.$count.'"';
+                    $this->mainobject->output .= '"count":"'.$count.'",';
+                    $this->mainobject->output .= '"dynamic":"true"';
                     $this->mainobject->output .= '}';
                 }
             }
@@ -284,7 +287,44 @@ class quiz_functions extends module_base {
             }
         }
 
-   
+     /**
+     * gets all the quizzes for the config screen. still need the check in there for essay questions.
+     * @global <type> $CFG
+     * @return <type>
+     */
+     function get_all_gradable_items() {
+
+         global $CFG;
+
+         $sql = "
+              SELECT
+                   qz.id, qz.course, qz.intro as summary, qz.name, c.id as cmid
+              FROM
+                {$CFG->prefix}quiz qz
+              INNER JOIN {$CFG->prefix}course_modules c
+                         ON qz.id = c.instance
+              INNER JOIN
+                {$CFG->prefix}quiz_question_instances qqi
+                  ON
+                    qz.id = qqi.quiz
+              INNER JOIN {$CFG->prefix}question q
+                 ON
+                    qqi.question = q.id
+              WHERE
+              c.module = {$this->mainobject->module_ids['quiz']->id}
+              AND c.visible = 1
+              AND q.qtype = 'essay'
+              AND qz.course IN ({$this->mainobject->course_ids})
+              ORDER BY qz.id
+        ";
+
+        $quizzes = get_records_sql($sql);
+        $this->assessments = $quizzes;
+
+    }
+
+
+
 
 
 }
