@@ -123,7 +123,7 @@ class block_ajax_marking extends block_base {
                                                $this->content->text .= $variable.": '".$value."'";
                                                $check ++;
                                            }
-
+                $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json'))."";
                 $this->content->text .=    "};
                     </script>
                 </div>
@@ -141,7 +141,7 @@ class block_ajax_marking extends block_base {
                 <script type=\"text/javascript\" defer=\"defer\" src=\"".$CFG->wwwroot.'/blocks/ajax_marking/javascript.js'."\">
                 </script>";
                 
-                $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json'))."";
+                
 
                 $this->content->footer = '
                     <div id="conf_left">

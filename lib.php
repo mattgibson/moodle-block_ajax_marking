@@ -85,79 +85,7 @@ class ajax_marking_functions {
         $this->groupconfig       = get_records_sql($sql);
     }
 
-    /**
-     * Function to generate the list of courses when the tree is first prepared. Currently either makes a config tree or a main tree
-     * depending on $this->type
-     * @global <type> $CFG
-     */
-    function courses() {
-     
-        $course_ids = NULL;
-        global $CFG;
-
-        // admins will have a problem as they will see all the courses on the entire site
-        // TODO - this has big issues around language. role names will not be the same in diffferent translations.
-
-        // begin JSON array
-        $this->output = '[{"type":"main"}';
-
-        // get all unmarked submissions for all courses, so they can be sorted out later
-        //$this->get_main_level_data();
-       
-        // iterate through each course, checking permisions, counting relevant assignment submissions and
-        // adding the course to the JSON output if any appear
-        foreach ($this->courses as $course) {
-
-            // show nothing if the course is hidden
-            if (!$course->visible == 1)  {
-                continue;
-            }
-
-            // set course assessments counter to 0
-            $count = 0;
-
-            $courseid = $course->id;
-            // we must make sure we only get work from enrolled students
-            $this->get_course_students($courseid);
-
-            // If there are no students, there's no point counting
-            if (!$this->student_ids->$courseid) {
-                continue;
-            }
-            // loop through each module, getting a count for this course id from each one.
-            foreach ($this->modules as $module) {
-                $count += $this->$module->count_course_submissions($courseid);
-            }
-
-            // TO DO: need to check in future for who has been assigned to mark them (new groups stuff) in 1.9
-            //$coursecontext = get_context_instance(CONTEXT_COURSE, $course->id);
-
-            if ($count > 0 || $this->config) { // there are some assessments	, or its a config tree, so we include the course always.
-
-                // now add course to JSON array of objects
-                $cid  = $course->id;
-
-                $this->output .= ','; // add a comma if there was a preceding course
-                $this->output .= '{';
-
-                $this->output .= '"id":"'.$cid.'",';
-                $this->output .= '"type":"course",';
-                $this->output .= '"label":"'.$this->add_icon('course').$this->clean_name_text($course->shortname, 0);
-                $this->output .= ($this->config) ? '",' : ' ('.$count.')",';
-                // name is there to allow labels to be reconstructed with a new count after marked nodes are removed
-                $this->output .= '"name":"'.$this->add_icon('course').$this->clean_name_text($course->shortname, 0).'",';
-                $this->output .= '"title":"'.$this->clean_name_text($course->shortname, -2).'",';
-                $this->output .= '"summary":"'.$this->clean_name_text($course->shortname, -2).'",';
-                $this->output .= '"count":"'.$count.'",';
-                $this->output .= '"dynamic":"true",';
-                $this->output .= '"cid":"c'.$cid.'"';
-                $this->output .= '}';
-                
-            } // end if there are some assessments
-        } // end for each courses
-        $this->output .= "]"; //end JSON array
-    } // end function
-
+   
 
     /**
      * This function will check through all of the assessments of a particular type for a particular course
@@ -458,112 +386,26 @@ class ajax_marking_functions {
 	}
 
 
-    /**
-     * Makes the course list for the configuration tree. No need to count anything, just make the nodes
-     * Might be possible to collapse it into the main one with some IF statements.
-     *
-     */
-    function config_courses() {
 
-            $this->output = '[{"type":"config_main"}';
-
-            if ($this->courses) { // might not be any available
-
-                // tell each module to fetch all of the items that are gradable, even if they have no unmarked stuff waiting
-                foreach ($this->modules as $module) {
-                    $this->$module->get_all_gradable_items();
-                }
-
-                foreach ($this->courses as $course) {	
-                    // iterate through each course, checking permisions, counting assignments and
-                    // adding the course to the JSON output if anything is there that can be graded
-                    $count = 0;
-
-                    foreach ($this->modules as $module) {
-                        if ($this->$module->assessments) {
-                            $count = $count + $this->count_course_assessment_nodes($this->$module->assessments, $course->id, $module);
-                        }
-                    }
-                   
-                    if ($count > 0) {
-
-                        $this->output .= ','; // add a comma if there was a preceding course
-                        $this->output .= '{';
-
-                        $this->output .= '"id":"'       .$course->id.'",';
-                        $this->output .= '"type":"config_course",';
-                        $this->output .= '"title":"'    .$this->clean_name_text($course->shortname, -2).'",';
-                        $this->output .= '"label":"'    .$this->add_icon('course').$this->clean_name_text($course->shortname, -2).'",';
-                        // to be used for the title
-                        $this->output .= '"label":"'    .$this->add_icon('course').$this->clean_name_text($course->shortname, -2).'",';
-                        $this->output .= '"summary":"'  .$this->clean_name_text($course->shortname, -2).'",';
-                        $this->output .= '"count":"'    .$count.'"';
-
-                        $this->output .= '}';
-
-                    }
-                }
-            }
-            $this->output .= ']';
-	}
-
-	/**
-         * writes to the db that we are to use config groups, then returns all the groups.
-         * Called only when you click the option 2 of the config, so the next step is for the javascript
-         * functions to build the groups checkboxes.
-         *
-         * Currently returns true regradless of
-         */
-
-	function config_groups() { //writes to the db that we are to use config groups, then returns all the groups.
-
-            $this->output = '[{"type":"config_groups"}'; 	// begin JSON array
-
-            //first set the config to 'display by group'
-            $this->make_data();
-            if ($this->config_write()) {
-                // we will now return all of the groups in a course as an array,
-                $this->return_groups($this->id, $this->assessmenttype, $this->assessmentid);
-            } else {
-                $this->output .= ',{"result":"false"}';
-            }
-            $this->output .= ']';
-	}
-
-        /**
-         * this is to save configuration choices from the radio buttons for 1 and 3 once
-         * they have been clicked. Needed as a wrapper
-         * so that the config_write bit can be used for the function above too
-         */
-
-	function config_set() {
-
-		$this->output = '[{"type":"config_set"}';
-		$this->make_data();
-		if($this->config_write()) {
-			$this->output .= ',{"result":"true"}]';
-		} else {
-			$this->output .= ',{"result":"false"}]';
-		}
-	}
+	
 
         /**
          * This is to build the data ready to be written to the db, using the parameters submitted so far.
          * Others might be added to this object later byt he functions that call it, to match different scenarios
          */
 
-	function make_data() {
-		$this->data = new stdClass;
-		$this->data->userid = $this->userid;
-                $this->data->assessmenttype = $this->assessmenttype;
-                $this->data->assessmentid = $this->assessmentid;
-		$this->data->showhide = $this->showhide;
+	function make_config_data() {
+		$this->data                 = new stdClass;
+		$this->data->userid         = $this->userid;
+        $this->data->assessmenttype = $this->assessmenttype;
+        $this->data->assessmentid   = $this->assessmentid;
+		$this->data->showhide       = $this->showhide;
 	}
 
 	/**
          * takes data as the $this->data object and writes it to the db as either a new record or an updated one.
          * might be to show or not show or show by groups.
-         * Called from config_set, config_groups, return_groups ($this->data->groups)
+         * Called from config_set, config_groups, make_config_groups_radio_buttons ($this->data->groups)
          *
          * @return <type>
          */
@@ -596,31 +438,6 @@ class ajax_marking_functions {
             echo $check;
 	}
 
-	/**
-         * this is to check what the current status of an assessment is so that
-         * the radio buttons can be made with that option selected.
-	 * if its currently 'show by groups', we need to send the group data too.
-         *
-         *
-         * @return nothing
-	 */
-	function config_check() {
-
-            $this->output = '[{"type":"config_check"}'; 	// begin JSON array
-
-            $config_settings = $this->get_groups_settings($this->assessmenttype, $this->assessmentid);
-
-            if ($config_settings) {
-                $this->output .= ',{"value":"'.$config_settings->showhide.'"}';
-                if ($config_settings->showhide == 2) {
-                    $this->return_groups($this->id, $this->assessmenttype, $this->assessmentid);
-                }
-            } else {
-                    $this->output .= ',{"value":"1"}';
-            }
-            $this->output .= ']';
-	}
-
 
 
 
@@ -634,7 +451,7 @@ class ajax_marking_functions {
          * @param int $assessmentid
          */
 
-	function return_groups($courseid, $assessmenttype, $assessmentid) {
+	function make_config_groups_radio_buttons($courseid, $assessmenttype, $assessmentid) {
 		$groups = NULL;
 		$current_settings = NULL;
 		$current_groups = NULL;
@@ -694,24 +511,7 @@ class ajax_marking_functions {
                 // TODO - what if there are no groups - does the return function in javascript deal with this?
 	}// end function
 
-	/** sets the display of a single group from the config screen when its checkbox is clicked. Then, it sends back a confirmation so
-         * that the checkbox can be un-greyed and marked as done
-         *
-         */
-
-	function config_group_save() {
-		$this->output = '[{"type":"config_group_save"},{'; 	// begin JSON array
-
-		$this->make_data();
-                if($this->groups) {
-                    $this->data->groups = $this->groups;
-                }
-		if($this->config_write()) {
-			$this->output .= '"value":"true"}]';
-		} else {
-			$this->output .= '"value":"false"}]';
-		}
-	}
+	
 
 	/**
 	 * This is the function that is called from the assessment_submissions functions to

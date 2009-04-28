@@ -496,7 +496,7 @@ stuff from the container.css file, cleaned up to make it validate
 
 /* added bits for the panel */
 
-<?php include 'container.css'; ?>
+<?php //include 'container.css'; ?>
 <?php // include '../../lib/yui/menu/assets/skins/menu-core.css' ?>
 <?php //include '../../lib/yui/menu/assets/skins/sam/menu.css' ?>
 
