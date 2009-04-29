@@ -99,8 +99,6 @@ class workshop_functions extends module_base {
         if ($submissions) {
 
             // if this is set to display by group, we divert the data to the groups() function
-            // $sql = "SELECT id, groups FROM {$CFG->prefix}block_ajax_marking WHERE combinedref = 'workshop$workshop->id' AND userid = $this->userid AND showhide = 2";
-            // $combinedref = "workshop".$workshop->id;
             if(!$this->mainobject->group) {
                 $group_filter = $this->mainobject->assessment_groups_filter($submissions, "workshop", $workshop->id);
                 if (!$group_filter) {

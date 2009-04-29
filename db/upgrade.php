@@ -20,22 +20,69 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         $table = new XMLDBTable('block_ajax_marking');
 
     /// Adding fields to table block_ajax_marking
-        $table->addFieldInfo('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null, null);
-        $table->addFieldInfo('userid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, null, null);
-        $table->addFieldInfo('assessmenttype', XMLDB_TYPE_CHAR, '40', null, null, null, null, null, null);
-        $table->addFieldInfo('assessmentid', XMLDB_TYPE_INTEGER, '10', null, null, null, null, null, null);
-        $table->addFieldInfo('showhide', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, null, null, '1');
-        $table->addFieldInfo('groups', XMLDB_TYPE_TEXT, 'small', null, null, null, null, null, null);
+        $table->addFieldInfo('id',             XMLDB_TYPE_INTEGER, '10'    , null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null, null);
+        $table->addFieldInfo('userid',         XMLDB_TYPE_INTEGER, '10'    , null, null, null, null, null, null);
+        $table->addFieldInfo('assessmenttype', XMLDB_TYPE_CHAR,    '40'    , null, null, null, null, null, null);
+        $table->addFieldInfo('assessmentid',   XMLDB_TYPE_INTEGER, '10'    , null, null, null, null, null, null);
+        $table->addFieldInfo('showhide',       XMLDB_TYPE_INTEGER, '1'     , null, XMLDB_NOTNULL, null, null, null, '1');
+        $table->addFieldInfo('groups',         XMLDB_TYPE_TEXT,    'small' , null, null, null, null, null, null);
        
 
     /// Adding keys to table block_ajax_marking
-        $table->addKeyInfo('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->addKeyInfo('primary',   XMLDB_KEY_PRIMARY, array('id'));
         $table->addKeyInfo('useridkey', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
 
     /// Launch create table for block_ajax_marking
         $result = $result && create_table($table);
     }
 
+    /**
+     * Check here for new modules to add to the database. This happens every time the block is upgraded.
+     * If you have added your own extension, increment the version number in block_ajax_marking.php
+     * to trigger this process
+     */
+    if ($result && $oldversion >= 2009042901) {
+
+        $modules = array();
+        echo "<br /><br />Scanning site for modules which have an AJAX Marking Block plugin... <br />";
+
+        // make a list of directories to check for module grading files
+        $installed_modules = get_list_of_plugins('mod');
+        $directories = array($CFG->dirroot.'/blocks/ajax_marking');
+        foreach ($installed_modules as $module) {
+            $directories[] = $CFG->dirroot.'/mod/'.$module;
+        }
+
+        // Get files in each directory and check if they fit the naming convention
+        foreach ($directories as $directory) {
+            $files = scandir($directory);
+
+            // check to see if they end in _grading.php
+            foreach ($files as $file) {
+                // this should lead to 'modulename' and 'grading.php'
+                $pieces = explode('_', $file);
+                if ((isset($pieces[1])) && ($pieces[1] == 'grading.php')) {
+
+                    $modname = $pieces[0];
+
+                    // add the modulename part of the filename to the array
+                    $modules[$modname] = array('name' => $modname, 'dir' => $directory);
+
+                    // Echo the message
+
+                   echo "Registered $modname module <br />";
+                   
+                }
+            }
+        }
+        
+        echo '<br />For instructions on how to write extensions for this block, see the documentation on Moodle Docs<br /><br />';
+
+        set_config('modules', serialize($modules), 'block_ajax_marking');
+
+    }
+
+    
     return $result;
 }
 

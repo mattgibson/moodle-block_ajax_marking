@@ -10,6 +10,8 @@ class quiz_functions extends module_base {
         $this->type = 'quiz';
         $this->capability = 'mod/quiz:grade';
         $this->levels = 4;
+        $this->level2_return_function = 'quiz_questions';
+        $this->level3_return_function = 'quiz_submissions';
     }
 
 

@@ -212,6 +212,10 @@ class ajax_marking_response extends ajax_marking_functions {
                 $this->quiz->quiz_questions();
                 break;
 
+             case "journal":
+                $this->journal->submissions();
+                break;
+
             case "config_groups":
 
                // writes to the db that we are to use config groups, then returns all the groups.
@@ -300,6 +304,15 @@ class ajax_marking_response extends ajax_marking_functions {
                 $this->get_course_students($courseid);
                 $this->quizzes();
                 break;
+
+            default:
+                // the above options are for core requests. The default one deals
+                // with assessment nodes being expanded, which may have one, two or more sub-levels
+                // and which are added by the module classes themselves by sending the return_function
+                // strings as part of the ajax response for the assessments in each course. These are then
+                // forwarded as the type variable here, e.g. type = "forum->submissions" leads to
+                // $this->forum->submissions()
+                $this->$type();
 
         }
 

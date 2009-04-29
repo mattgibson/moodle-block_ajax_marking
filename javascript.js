@@ -81,7 +81,8 @@ AJAXmarking = {
         // remove the data object, leaving just the node objects
         responseArray.shift();
 
-
+       // TODO - these are inconsistent. Some refer to where the request
+       // is triggered and some to what it creates.
         switch (type) {
 
             case 'main':
@@ -93,6 +94,11 @@ AJAXmarking = {
 
                 AJAXmarking.makeAssessmentNodes(responseArray, AJAXmarking.main);
                 AJAXmarking.ie_width();
+                break;
+
+            // this replaces the ones above and below
+            case 'assessments':
+                AJAXmarking.makeAssessmentNodes(responseArray, AJAXmarking.main);
                 break;
 
             case 'quiz_question':
@@ -246,7 +252,10 @@ AJAXmarking = {
                         var popUpArgs = 'menubar=0,location=0,scrollbars,resizable,width=780,height=500';
                         var timerFunction = '';
 
-
+                        if (nd.data.dynamic == 'true') {
+                            return true;
+                        }
+                           
                         switch (nd.data.type) {
 
                             case 'quiz_answer':
@@ -276,7 +285,10 @@ AJAXmarking = {
 
                             case 'journal':
 
-                                popUpAddress += '/mod/journal/report.php?id='+nd.data.aid+'';
+                                popUpAddress += '/mod/journal/report.php?id='+nd.data.cmid+'';
+                                // TODO this is for the level 2 ones where there are group nodes that lead to
+                                // a pop-up. Need to make this dynamic - the extension to the url may differ.
+                                (typeof(nd.data.group) != 'undefined') ? popUpAddress += '&group='+nd.data.group+'' : popUpAddress += '' ;
                                 timerFunction = 'AJAXmarking.journalOnLoad(\''+nd.data.id+'\')';
                                 break;
                         }
@@ -293,7 +305,7 @@ AJAXmarking = {
                         return true;
                     }
                 );
-            } else {
+            } else { 
 
                 // procedure for config tree nodes:
                 AJAXtree.tree.subscribe(
@@ -401,7 +413,7 @@ AJAXmarking = {
                         +'&type=config_check';
                         var request = YAHOO.util.Connect.asyncRequest('GET', checkUrl, AMajaxCallback);
 
-                        return false;
+                        return true;
                     }
                 );
             }
@@ -768,9 +780,12 @@ AJAXmarking = {
 
     },
 
-
+    /**
+     * Make the group nodes for an assessment
+     */
     makeGroupNodes : function(responseArray, AJAXtree) {
-        // need to turn the groups for this course into an array and attach it to the course node. Then make the groups bit on screen
+        // need to turn the groups for this course into an array and attach it to the course
+        // node. Then make the groups bit on screen
         // for the config screen??
 
         var arrayLength = responseArray.length;

@@ -10,8 +10,11 @@ class journal_functions extends module_base {
         $this->type = 'journal';
         // doesn't seem to be a journal capability :s
         $this->capability = 'mod/assignment:grade';
-        // How many nodes in total when fully expanded?
+        // How many nodes in total when fully expanded (no groups)?
         $this->levels = 2;
+        // function to trigger for the third level nodes (might be different if there are four
+        //$this->level2_return_function = 'journal_submissions';
+       
     }
 
 
@@ -86,6 +89,52 @@ class journal_functions extends module_base {
 
         $journals = get_records_sql($sql);
         $this->assessments = $journals;
+    }
+
+    /**
+     * this will never actually lead to submissions, but will only be called if there are group
+     * nodes to show.
+     */
+    function submissions() {
+        global $USER, $CFG;
+        // need to get course id in order to retrieve students
+        $journal = get_record('journal', 'id', $this->mainobject->id);
+        $courseid = $journal->course;
+
+        $coursemodule = get_record('course_modules', 'module', '1', 'instance', $journal->id) ;
+        $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
+        if (!has_capability($this->capability, $modulecontext, $USER->id)) {
+            return;
+        }
+
+        $this->mainobject->get_course_students($courseid);
+
+
+        $sql = "
+            SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified, j.id, c.id as cmid
+            FROM {$CFG->prefix}journal_entries je
+            INNER JOIN {$CFG->prefix}journal j
+               ON je.journal = j.id
+            INNER JOIN {$CFG->prefix}course_modules c
+               ON j.id = c.instance
+            WHERE c.module = {$this->mainobject->module_ids['journal']->id}
+            AND c.visible = 1
+            AND j.assessed <> 0
+            AND je.modified > je.timemarked
+            AND je.userid IN({$this->mainobject->student_ids->$courseid})
+            AND j.id = {$this->mainobject->id}
+        ";
+
+        $submissions = get_records_sql($sql, 'journal');
+
+        // This function does not need any checks for group status as it will only be called if groups are set.
+        $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $journal->id);
+           
+        // group nodes have now been printed by the groups function
+        return;
+            
+ 
+
     }
 
 }

@@ -33,7 +33,6 @@ class assignment_functions extends module_base {
      */
     function get_all_unmarked() {
 
-       
         global $CFG;
         $sql = "
             SELECT s.id as subid, s.userid, a.course, a.name,  a.id, c.id as cmid
