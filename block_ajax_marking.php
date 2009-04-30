@@ -153,7 +153,8 @@ class block_ajax_marking extends block_base {
                 ';
 
 
-            } else {// end if ajax is enabled
+            } else {
+                // if ajax is not enabled
 
                 $this->content->text .= 'This block requires you to enable \'AJAX and javascript\' in your <a href="'.$CFG->wwwroot.'/user/edit.php?id='.$USER->id.'&course=1">profile settings</a> (click \'show advanced\')';
                 $this->content->footer = '';
@@ -169,9 +170,7 @@ class block_ajax_marking extends block_base {
                   */
 
             }
-                
-           
-
+               
         } // end of if has capability
         return $this->content;	
     }	
