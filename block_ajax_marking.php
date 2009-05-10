@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009042902;
+        $this->version = 2009050903;
     }
 	
     function specialization() {
@@ -70,6 +70,9 @@ class block_ajax_marking extends block_base {
         }
         if ($coursecheck>0) { // display the block
 
+            //start building content output
+            $this->content = new stdClass;
+
             if($CFG->enableajax && $USER->ajax) {
 
                 $AMfullname = fullname($USER);
@@ -97,8 +100,7 @@ class block_ajax_marking extends block_base {
 
                 );
 
-                //start building content output
-                $this->content = new stdClass;
+                
                 // for integrating the block_marking stuff, this stuff (divs) should all be created by javascript.
                 $this->content->text = "
 
@@ -116,7 +118,7 @@ class block_ajax_marking extends block_base {
                     // function am_go() {
                          var amVariables = {";
 
-                                           // loop through the variables above, printing them in the right format
+                                           // loop through the variables above, printing them in the right format for javascript to pick up
                                            $check = 0;
                                            foreach ($variables as $variable => $value) {
                                                if ($check > 0) {$this->content->text .= ", ";}
@@ -127,22 +129,10 @@ class block_ajax_marking extends block_base {
                 $this->content->text .=    "};
                     </script>
                 </div>
-                <div id='hidden-icons'>
-                        <div id ='img_1' class='icon-course'></div>
-                        <div id ='img_2' class='icon-assign'></div>
-                        <div id ='img_3' class='icon-user'></div>
-                        <div id ='img_4' class='icon-workshop'></div>
-                        <div id ='img_5' class='icon-forum'></div>
-                        <div id ='img_6' class='icon-quiz'></div>
-                        <div id ='img_7' class='icon-question'></div>
-                        <div id ='img_8' class='icon-journal'></div>
-                </div>
-                <div id='cover'></div>
+              
                 <script type=\"text/javascript\" defer=\"defer\" src=\"".$CFG->wwwroot.'/blocks/ajax_marking/javascript.js'."\">
                 </script>";
                 
-                
-
                 $this->content->footer = '
                     <div id="conf_left">
                         <a href="javascript:" onclick="AJAXmarking.refreshTree(AJAXmarking.main); return false">'.get_string("collapse", "block_ajax_marking").'</a>
@@ -156,15 +146,18 @@ class block_ajax_marking extends block_base {
             } else {
                 // if ajax is not enabled
 
-                $this->content->text .= 'This block requires you to enable \'AJAX and javascript\' in your <a href="'.$CFG->wwwroot.'/user/edit.php?id='.$USER->id.'&course=1">profile settings</a> (click \'show advanced\')';
+                include('html_list.php');
+                $AMB_html_list_object = new html_list;
+                $this->content->text .= $AMB_html_list_object->make_html_list();
+
+                //$this->content->text .= 'This block requires you to enable \'AJAX and javascript\' in your <a href="'.$CFG->wwwroot.'/user/edit.php?id='.$USER->id.'&course=1">profile settings</a> (click \'show advanced\')';
                 $this->content->footer = '';
                 // if ajax is not enabled, we want to see the non-ajax list
+
                  /*
-                include("html_list.php");
-                if (isset($response)) {
-                    unset($response);
-                }
-                $response = new html_list;
+                include("html_list");
+               
+                
                 $this->content->text .= $initial_object->output;
 
                   */
