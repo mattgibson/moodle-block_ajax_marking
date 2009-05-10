@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009050903;
+        $this->version = 2009051001;
     }
 	
     function specialization() {

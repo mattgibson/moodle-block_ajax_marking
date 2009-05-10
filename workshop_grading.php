@@ -10,6 +10,7 @@ class workshop_functions extends module_base {
         $this->type = 'workshop';
         $this->capability = 'mod/workshop:manage';
         $this->levels = 3;
+        $this->icon = 'mod/workshop/icon.gif';
     }
 
 
@@ -31,7 +32,7 @@ class workshop_functions extends module_base {
              WHERE (a.userid != {$USER->id}
               OR (a.userid = {$USER->id}
                     AND a.grade = -1))
-             AND c.module = {$this->mainobject->module_ids['workshop']->id}
+             AND c.module = {$this->mainobject->modulesettings['workshop']->id}
              AND w.course IN ({$this->mainobject->course_ids})
              AND c.visible = 1
              ORDER BY w.id
@@ -56,7 +57,7 @@ class workshop_functions extends module_base {
             WHERE (a.userid != {$USER->id}
               OR (a.userid = {$USER->id}
                     AND a.grade = -1))
-            AND c.module = {$this->mainobject->module_ids['workshop']->id}
+            AND c.module = {$this->mainobject->modulesettings['workshop']->id}
             AND c.visible = 1
             AND w.course = $courseid
             AND s.userid IN ({$this->mainobject->student_ids->$courseid})
@@ -146,7 +147,7 @@ class workshop_functions extends module_base {
             FROM {$CFG->prefix}workshop w
             INNER JOIN {$CFG->prefix}course_modules c
             ON w.id = c.instance
-            WHERE c.module = {$this->mainobject->module_ids['workshop']->id}
+            WHERE c.module = {$this->mainobject->modulesettings['workshop']->id}
             AND c.visible = 1
             AND w.course IN ({$this->mainobject->course_ids})
             ORDER BY w.id
@@ -157,7 +158,12 @@ class workshop_functions extends module_base {
 
     }
 
+    function make_html_link($item) {
 
+        global $CFG;
+        $address = $CFG->wwwroot.'/mod/workshop/view.php?id='.$item->cmid;
+        return $address;
+    }
 
 }
 

@@ -9,14 +9,12 @@
  */
 include("../../config.php");
 require_login(1, false);
-
+include("lib.php");
 
 // TODO needed if possible but doesn't yet work as no session created yet?
 // if (!confirm_sesskey()) {
 //       echo 'session error';
 // }
-
-include("lib.php");
 
 
 class ajax_marking_response extends ajax_marking_functions {
@@ -75,8 +73,8 @@ class ajax_marking_response extends ajax_marking_functions {
                         continue;
                     }
                     // loop through each module, getting a count for this course id from each one.
-                    foreach ($this->modules as $module) {
-                        $count += $this->$module->count_course_submissions($courseid);
+                    foreach ($this->modulesettings as $modname => $module) {
+                        $count += $this->$modname->count_course_submissions($courseid);
                     }
 
                     // TO DO: need to check in future for who has been assigned to mark them (new groups stuff) in 1.9
@@ -92,12 +90,16 @@ class ajax_marking_response extends ajax_marking_functions {
 
                         $this->output .= '"id":"'.$cid.'",';
                         $this->output .= '"type":"course",';
-                        $this->output .= '"label":"'.$this->add_icon('course').$this->clean_name_text($course->shortname, 0);
-                        $this->output .= ($this->config) ? '",' : ' ('.$count.')",';
+                        
+                        $this->output .= '"label":"'.$this->add_icon('course');
+                        $this->output .= ($this->config) ? '' : "(<span class='AMB_count'>".$count.'</span>) ';
+                        $this->output .= $this->clean_name_text($course->shortname, 0).'",';
+                        
                         // name is there to allow labels to be reconstructed with a new count after marked nodes are removed
-                        $this->output .= '"name":"'.$this->add_icon('course').$this->clean_name_text($course->shortname, 0).'",';
+                        $this->output .= '"name":"'.$this->clean_name_text($course->shortname, 0).'",';
                         $this->output .= '"title":"'.$this->clean_name_text($course->shortname, -2).'",';
                         $this->output .= '"summary":"'.$this->clean_name_text($course->shortname, -2).'",';
+                        $this->output .= '"icon":"'.$this->add_icon('course').'",';
                         $this->output .= '"count":"'.$count.'",';
                         $this->output .= '"dynamic":"true",';
                         $this->output .= '"cid":"c'.$cid.'"';
@@ -121,19 +123,17 @@ class ajax_marking_response extends ajax_marking_functions {
                 if ($this->courses) { // might not be any available
 
                     // tell each module to fetch all of the items that are gradable, even if they have no unmarked stuff waiting
-                    foreach ($this->modules as $module) {
-                        $this->$module->get_all_gradable_items();
-                    }
+                   // foreach ($this->modulesettings as $modname => $module) {
+                    //    $this->$modname->get_all_gradable_items();
+                    //}
 
                     foreach ($this->courses as $course) {
                         // iterate through each course, checking permisions, counting assignments and
                         // adding the course to the JSON output if anything is there that can be graded
                         $count = 0;
 
-                        foreach ($this->modules as $module) {
-                            if ($this->$module->assessments) {
-                                $count = $count + $this->count_course_assessment_nodes($this->$module->assessments, $course->id, $module);
-                            }
+                        foreach ($this->modulesettings as $modname => $module) {
+                            $count = $count + $this->$modname->count_course_assessment_nodes($course->id);
                         }
 
                         if ($count > 0) {
@@ -167,8 +167,8 @@ class ajax_marking_response extends ajax_marking_functions {
 
                 $this->output = '[{"type":"course"}';
 
-                foreach ($this->modules as $module) {
-                    $this->$module->course_assessment_nodes($courseid);
+                foreach ($this->modulesettings as $modname => $module) {
+                    $this->$modname->course_assessment_nodes($courseid);
                 }
 
                 $this->output .= "]";
@@ -180,15 +180,10 @@ class ajax_marking_response extends ajax_marking_functions {
                 $this->config = true;
                 $this->output = '[{"type":"config_course"}';
 
-                foreach ($this->modules as $module) {
-                    $this->config_assessments($this->id, $module);
+                foreach ($this->modulesettings as $modname => $module) {
+                    $this->$modname->config_assessment_nodes($this->id, $modname);
                 }
-                //$this->config_assessments($this->id, 'assignment');
-                //$this->config_assessments($this->id, 'journal');
-                //$this->config_assessments($this->id, 'workshop');
-                //$this->config_assessments($this->id, 'forum');
-                //$this->config_assessments($this->id, 'quiz');
-
+               
                 $this->output .= "]";
                 break;
 
@@ -289,9 +284,9 @@ class ajax_marking_response extends ajax_marking_functions {
                 $this->output = '[{"type":"config_group_save"},{'; 	// begin JSON array
 
                 $this->make_config_data();
-                        if($this->groups) {
-                            $this->data->groups = $this->groups;
-                        }
+                if($this->groups) {
+                    $this->data->groups = $this->groups;
+                }
                 if($this->config_write()) {
                     $this->output .= '"value":"true"}]';
                 } else {

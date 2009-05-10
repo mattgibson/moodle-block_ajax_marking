@@ -52,6 +52,19 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         foreach ($installed_modules as $module) {
             $directories[] = $CFG->dirroot.'/mod/'.$module;
         }
+        
+        // get module ids so that we can store these later
+        $comma_modules = $installed_modules;
+        foreach($comma_modules as $key => $comma_module) {
+            $comma_modules[$key] = "'".$comma_module."'";
+        }
+        $comma_modules = implode(', ', $comma_modules);
+        $sql = "
+            SELECT name, id FROM {$CFG->prefix}modules
+            WHERE visible = 1
+            AND name IN (".$comma_modules.")
+        ";
+        $module_ids = get_records_sql($sql);
 
         // Get files in each directory and check if they fit the naming convention
         foreach ($directories as $directory) {
@@ -66,7 +79,10 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
                     $modname = $pieces[0];
 
                     // add the modulename part of the filename to the array
-                    $modules[$modname] = array('name' => $modname, 'dir' => $directory);
+                    $modules[$modname] = new stdClass;
+                    $modules[$modname]->name = $modname;
+                    $modules[$modname]->dir  = $directory;
+                    $modules[$modname]->id   = $module_ids[$modname]->id;
 
                     // Echo the message
 

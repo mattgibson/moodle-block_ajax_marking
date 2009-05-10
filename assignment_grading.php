@@ -22,6 +22,8 @@ class assignment_functions extends module_base {
         $this->type = 'assignment';
         $this->capability = 'mod/assignment:grade';
         $this->levels = 3;
+        $this->icon = 'mod/assignment/icon.gif';
+
     }
 
     // procedures to fetch data and store it in the object
@@ -35,14 +37,14 @@ class assignment_functions extends module_base {
 
         global $CFG;
         $sql = "
-            SELECT s.id as subid, s.userid, a.course, a.name,  a.id, c.id as cmid
+            SELECT s.id as subid, s.userid, a.course, a.name, a.description, a.id, c.id as cmid
             FROM
                 {$CFG->prefix}assignment a
             INNER JOIN {$CFG->prefix}course_modules c
                  ON a.id = c.instance
             LEFT JOIN {$CFG->prefix}assignment_submissions s
                  ON s.assignment = a.id
-            WHERE c.module = {$this->mainobject->module_ids['assignment']->id}
+            WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
             AND c.visible = 1
             AND a.course IN ({$this->mainobject->course_ids})
             AND s.timemarked < s.timemodified
@@ -72,7 +74,7 @@ class assignment_functions extends module_base {
                      ON a.id = c.instance
                 LEFT JOIN {$CFG->prefix}assignment_submissions s
                      ON s.assignment = a.id
-                WHERE c.module = {$this->mainobject->module_ids['assignment']->id}
+                WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
                 AND c.visible = 1
                 AND a.course = $courseid
                 AND s.timemarked < s.timemodified
@@ -119,7 +121,7 @@ class assignment_functions extends module_base {
                     AND s.userid IN ({$this->mainobject->student_ids->$courseid})
                     AND s.timemarked < s.timemodified
                     AND NOT (a.resubmit = 0 AND s.timemarked > 0)
-                    AND c.module = {$this->mainobject->module_ids['assignment']->id}
+                    AND c.module = {$this->mainobject->modulesettings['assignment']->id}
                 ORDER BY timemodified ASC";
 
         $submissions = get_records_sql($sql);
@@ -182,7 +184,7 @@ class assignment_functions extends module_base {
                 {$CFG->prefix}assignment a
             INNER JOIN {$CFG->prefix}course_modules c
                  ON a.id = c.instance
-            WHERE c.module = {$this->mainobject->module_ids['assignment']->id}
+            WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
             AND c.visible = 1
             AND a.course IN ({$this->mainobject->course_ids})
             ORDER BY a.id
@@ -191,6 +193,13 @@ class assignment_functions extends module_base {
          $assignments = get_records_sql($sql);
          $this->assessments = $assignments;
   
+    }
+
+    function make_html_link($item) {
+
+        global $CFG;
+        $address = $CFG->wwwroot.'/mod/assignment/submissions.php?id='.$item->cmid;
+        return $address;
     }
 
     // count for all assignments in a course

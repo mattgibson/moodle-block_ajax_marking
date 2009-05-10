@@ -127,7 +127,10 @@ AJAXmarking = {
 
             case 'config_groups':
 
-                AJAXmarking.makeGroupsList(responseArray, AJAXmarking.config);
+                // called when the groups settings have been updated.
+                //alert('config groups ajax case');
+                // TODO - only change the select value, don't totally re build them
+                AJAXmarking.makeConfigGroupsList(responseArray, AJAXmarking.config);
                 break;
 
             case 'config_set':
@@ -142,6 +145,8 @@ AJAXmarking = {
                 break;
 
             case 'config_check':
+                // called when any data about config comes back after a request (not a data setting request)
+
                 // make the id of the radio button div
                 var checkId = 'config'+responseArray[0].value;
 
@@ -152,7 +157,7 @@ AJAXmarking = {
                     // remove the config bit leaving just the groups.
                     responseArray.shift();
                     //make the groups bit
-                    AJAXmarking.makeGroupsList(responseArray);
+                    AJAXmarking.makeConfigGroupsList(responseArray);
                 }
                 //allow the radio buttons to be clicked again
                 AJAXmarking.enableRadio();
@@ -203,12 +208,13 @@ AJAXmarking = {
             AJAXtree.div.appendChild(label);
             AJAXtree.icon.removeAttribute('class', 'loaderimage');
             AJAXtree.icon.removeAttribute('className', 'loaderimage');
-        } else { // there is a tree to be drawn
+        } else { 
+            // there is a tree to be drawn
 
             // cycle through the array and make the nodes
             for (n=0;n<nodesLeng;n++) {
                 if (AJAXtree.treeDiv === 'treediv') { //only show the marking totals if its not a config tree
-                    label = nodesArray[n].name+' ('+nodesArray[n].count+')';
+                    label = '('+nodesArray[n].count+') '+nodesArray[n].name;
                 } else {
                     label = nodesArray[n].name;
                 }
@@ -658,6 +664,9 @@ AJAXmarking = {
             AJAXtree.textNodeMap[tmpNode2.labelElId] = tmpNode2;
 
             // style the node acording to its type
+
+            // tmpNode2.labelStyle = 'icon-'+nodesArray[m].type;
+            /*
             switch (nodesArray[m].type) {
 
                 case 'assignment':
@@ -679,7 +688,7 @@ AJAXmarking = {
                     tmpNode2.labelStyle = 'icon-journal';
                     break;
             }
-
+            */
             // set the node to load data dynamically, unless it is marked as not dynamic e.g. journal
             if ((!AJAXtree.config) && (nodesArray[m].dynamic == 'true')) {
                tmpNode2.setDynamicLoad(AJAXmarking.loadNodeData);
@@ -1004,9 +1013,13 @@ AJAXmarking = {
      * Makes a list of groups as checkboxes and appends them to the config div next to the config tree.
      * Called when the 'show by groups' check box is selected for a node.
      */
-    makeGroupsList : function(data) { // uses the data returned by the ajax call (array of objects) from the checkbox onclick to make a checklist of groups
+    makeConfigGroupsList : function(data, tree) { 
+
+        //alert('groups list fired');
 
         var groupDiv = document.getElementById('configGroups');
+        AJAXmarking.removeNodes(groupDiv);
+
         var dataLength = data.length;
         //continue the numbering of the ids from 4 (main checkboxes are 1-3). This allows us to disable/enable them
         var idCounter = 4;  
@@ -1014,7 +1027,7 @@ AJAXmarking = {
             var emptyLabel = document.createTextNode(amVariables.nogroups);
             groupDiv.appendChild(emptyLabel);
         }
-        for(var v=0;v<dataLength;v++) {
+        for(var v=0; v<dataLength; v++) {
 
             var box = '';
             try{
@@ -1056,8 +1069,8 @@ AJAXmarking = {
      * function to alter a node's label with a new count once the children are removed or reloaded
      */
     countAlter : function (newNode, newCount) {
-        var name = newNode.data.name;
-        var newLabel = name+' ('+newCount+')';
+        //var name = newNode.data.name;
+        var newLabel = newNode.data.icon+'(<span class="AMB_count">'+newCount+'</span>) '+newNode.data.name;
         newNode.data.count = newCount;
         newNode.label = newLabel;
     },

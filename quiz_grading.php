@@ -12,6 +12,7 @@ class quiz_functions extends module_base {
         $this->levels = 4;
         $this->level2_return_function = 'quiz_questions';
         $this->level3_return_function = 'quiz_submissions';
+        $this->icon = 'mod/quiz/icon.gif';
     }
 
 
@@ -47,7 +48,7 @@ class quiz_functions extends module_base {
               WHERE
                    qa.timefinish > 0
               AND qa.preview = 0
-              AND c.module = '.$this->mainobject->module_ids['quiz']->id.'
+              AND c.module = '.$this->mainobject->modulesettings['quiz']->id.'
               AND c.visible = 1
               AND q.qtype = \'essay\'
               AND qz.course IN ('.$this->mainobject->course_ids.')
@@ -83,7 +84,7 @@ class quiz_functions extends module_base {
                   qzatt.userid IN ({$this->mainobject->student_ids->$courseid})
                   AND qzatt.timefinish > 0
                   AND qzatt.preview = 0
-                  AND c.module = {$this->mainobject->module_ids['quiz']->id}
+                  AND c.module = {$this->mainobject->modulesettings['quiz']->id}
                   AND c.visible = 1
                   AND qz.course = {$courseid}
                   AND q.qtype = 'essay'
@@ -313,7 +314,7 @@ class quiz_functions extends module_base {
                  ON
                     qqi.question = q.id
               WHERE
-              c.module = {$this->mainobject->module_ids['quiz']->id}
+              c.module = {$this->mainobject->modulesettings['quiz']->id}
               AND c.visible = 1
               AND q.qtype = 'essay'
               AND qz.course IN ({$this->mainobject->course_ids})
@@ -325,6 +326,13 @@ class quiz_functions extends module_base {
 
     }
 
+
+    function make_html_link($item) {
+
+        global $CFG;
+        $address = $CFG->wwwroot.'/mod/quiz/report.php?q='.$item->id.'&mode=grading';
+        return $address;
+    }
 
 
 

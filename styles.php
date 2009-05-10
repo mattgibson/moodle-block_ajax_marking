@@ -851,3 +851,29 @@ version: 2.6.0
     background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_checkbox_disabled.png);
 
 }
+
+/* Stuff to make the lists display right with AJAX turned off */
+ul.AMB_html {
+  padding-left: 5px;
+  list-style-type: none;
+  margin: 0;
+  margin-left: 10px;
+
+}
+li.AMB_html, li.AMB_html_course {
+  text-indent: -24px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+li.AMB_html_course {
+  background-color: #ddd;
+}
+ul.AMB_html_items {
+  padding-left: 15px;
+  margin-top: 5px;
+
+  list-style-type: none;
+}
+span.AMB_count {
+  font-weight: bold;
+}

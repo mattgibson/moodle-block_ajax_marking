@@ -14,6 +14,7 @@ class journal_functions extends module_base {
         $this->levels = 2;
         // function to trigger for the third level nodes (might be different if there are four
         //$this->level2_return_function = 'journal_submissions';
+        $this->icon = 'mod/journal/icon.gif';
        
     }
 
@@ -33,7 +34,7 @@ class journal_functions extends module_base {
                 ON je.journal = j.id
             INNER JOIN {$CFG->prefix}course_modules c
                 ON j.id = c.instance
-            WHERE c.module = {$this->mainobject->module_ids['journal']->id}
+            WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
             AND j.course IN ({$this->mainobject->course_ids})
             AND c.visible = 1
             AND j.assessed <> 0
@@ -56,12 +57,12 @@ class journal_functions extends module_base {
                ON je.journal = j.id
             INNER JOIN {$CFG->prefix}course_modules c
                ON j.id = c.instance
-            WHERE c.module = {$this->mainobject->module_ids['journal']->id}
+            WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
             AND c.visible = 1
             AND j.assessed <> 0
             AND je.modified > je.timemarked
             AND je.userid IN({$this->mainobject->student_ids->$courseid})
-            AND j.course = {$this->mainobject->id}
+            AND j.course = {$courseid}
         ";
 
         $unmarked = get_records_sql($sql, 'journal');
@@ -81,7 +82,7 @@ class journal_functions extends module_base {
             FROM  {$CFG->prefix}journal j
             INNER JOIN {$CFG->prefix}course_modules c
                      ON j.id = c.instance
-            WHERE c.module = {$this->mainobject->module_ids['journal']->id}
+            WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
             AND c.visible = 1
             AND j.assessed <> 0
             AND j.course IN ({$this->mainobject->course_ids})
@@ -117,7 +118,7 @@ class journal_functions extends module_base {
                ON je.journal = j.id
             INNER JOIN {$CFG->prefix}course_modules c
                ON j.id = c.instance
-            WHERE c.module = {$this->mainobject->module_ids['journal']->id}
+            WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
             AND c.visible = 1
             AND j.assessed <> 0
             AND je.modified > je.timemarked
@@ -132,9 +133,13 @@ class journal_functions extends module_base {
            
         // group nodes have now been printed by the groups function
         return;
-            
- 
+    }
 
+    function make_html_link($item) {
+
+        global $CFG;
+        $address = $CFG->wwwroot.'/mod/journal/report.php?id='.$item->cmid;
+        return $address;
     }
 
 }

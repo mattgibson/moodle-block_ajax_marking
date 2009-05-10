@@ -9,6 +9,7 @@ class forum_functions extends module_base {
         $this->type = 'forum';
         $this->capability = 'mod/forum:viewhiddentimedposts';
         $this->levels = 3;
+        $this->icon = 'mod/forum/icon.gif';
     }
 
 
@@ -34,7 +35,7 @@ class forum_functions extends module_base {
 
             WHERE p.userid <> $USER->id
                 AND (((r.userid <> $USER->id) AND (r.userid NOT IN ({$this->mainobject->teachers}))) OR r.userid IS NULL)
-                AND c.module = {$this->mainobject->module_ids['forum']->id}
+                AND c.module = {$this->mainobject->modulesettings['forum']->id}
                 AND c.visible = 1
                 AND f.course IN ({$this->mainobject->course_ids})
                 AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
@@ -67,7 +68,7 @@ class forum_functions extends module_base {
                     AND p.userid IN ({$this->mainobject->student_ids->$courseid})
                     AND (((r.userid <> $USER->id) AND (r.userid NOT IN ({$this->mainobject->teachers}))) OR r.userid IS NULL)
                     AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
-                    AND c.module = {$this->mainobject->module_ids['forum']->id}
+                    AND c.module = {$this->mainobject->modulesettings['forum']->id}
                     AND c.visible = 1
                     AND f.course = $courseid
                     AND f.assessed > 0
@@ -262,7 +263,7 @@ class forum_functions extends module_base {
             INNER JOIN '.$CFG->prefix.'course_modules c
                  ON f.id = c.instance
             WHERE
-                c.module = '.$this->mainobject->module_ids['forum']->id.'
+                c.module = '.$this->mainobject->modulesettings['forum']->id.'
                 AND c.visible = 1
                 AND f.course IN ('.$this->mainobject->course_ids.')
                 AND f.assessed > 0
@@ -275,7 +276,12 @@ class forum_functions extends module_base {
     }
 
 
+    function make_html_link($item) {
 
+        global $CFG;
+        $address = $CFG->wwwroot.'/mod/forum/view.php?id='.$item->cmid;
+        return $address;
+    }
 
 
 } // end class
