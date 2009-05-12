@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009051001;
+        $this->version = 2009051201;
     }
 	
     function specialization() {
@@ -68,13 +68,36 @@ class block_ajax_marking extends block_base {
                 $coursecheck++;
 
         }
-        if ($coursecheck>0) { // display the block
+        if ($coursecheck>0) { 
+            // Grading permissions exist in at least one course, so display the block
 
             //start building content output
             $this->content = new stdClass;
 
+            // Add a style to hide the HTML list if javascript is enabled in the client and AJAX is to be used
             if($CFG->enableajax && $USER->ajax) {
+                $this->content->text .= '<script type="text/javascript" defer="defer">
+                                            var styleElement = document.createElement("style");
+                                            styleElement.type = "text/css";
+                                            if (styleElement.styleSheet) {
+                                                styleElement.styleSheet.cssText = "#AMB_html_list { display: none; }";
+                                            } else {
+                                                styleElement.appendChild(document.createTextNode("#AMB_html_list { display: none; }"));
+                                            }
+                                            document.getElementsByTagName("head")[0].appendChild(styleElement);
+                                        </script>';
+            }
 
+            // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if necessary
+            include('html_list.php');
+            $AMB_html_list_object = new html_list;
+            $this->content->text .= '<div id="AMB_html_list">';
+            $this->content->text .= $AMB_html_list_object->make_html_list();
+            $this->content->text .= '</div>';
+            $this->content->footer = '';
+
+            if($CFG->enableajax && $USER->ajax) {
+                // Seeing as the site and user both want to use AJAX,
                 $AMfullname = fullname($USER);
                 $variables = array(
 
@@ -102,7 +125,7 @@ class block_ajax_marking extends block_base {
 
                 
                 // for integrating the block_marking stuff, this stuff (divs) should all be created by javascript.
-                $this->content->text = "
+                $this->content->text .= "
 
                 <div id='total'>
                     <div id='totalmessage'></div>
@@ -115,7 +138,7 @@ class block_ajax_marking extends block_base {
                 </div>
                 <div id='javaValues'>
                 <script type=\"text/javascript\" defer=\"defer\">
-                    // function am_go() {
+                   
                          var amVariables = {";
 
                                            // loop through the variables above, printing them in the right format for javascript to pick up
@@ -125,24 +148,27 @@ class block_ajax_marking extends block_base {
                                                $this->content->text .= $variable.": '".$value."'";
                                                $check ++;
                                            }
-                $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json'))."";
+                $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json', 'yui_button'))."";
                 $this->content->text .=    "};
                     </script>
                 </div>
               
                 <script type=\"text/javascript\" defer=\"defer\" src=\"".$CFG->wwwroot.'/blocks/ajax_marking/javascript.js'."\">
                 </script>";
-                
+
+                // TODO- make this dynamically so it doesn't show up without AJAX.
                 $this->content->footer = '
                     <div id="conf_left">
-                        <a href="javascript:" onclick="AJAXmarking.refreshTree(AJAXmarking.main); return false">'.get_string("collapse", "block_ajax_marking").'</a>
+                        <!-- <a href="javascript:" onclick="AJAXmarking.refreshTree(AJAXmarking.main); return false">'.get_string("collapse", "block_ajax_marking").'</a> -->
                     </div>
                     <div id="conf_right">
-                        <a href="#" onclick="AJAXmarking.greyBuild();return false">'.get_string('configure', 'block_ajax_marking').'</a>
+                        <!-- <a href="#" onclick="AJAXmarking.greyBuild();return false">'.get_string('configure', 'block_ajax_marking').'</a> -->
                     </div>
                 ';
 
 
+            } 
+            /*
             } else {
                 // if ajax is not enabled
 
@@ -160,10 +186,10 @@ class block_ajax_marking extends block_base {
                 
                 $this->content->text .= $initial_object->output;
 
-                  */
+                  
 
             }
-               
+            */
         } // end of if has capability
         return $this->content;	
     }	

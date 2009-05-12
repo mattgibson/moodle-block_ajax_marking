@@ -222,7 +222,7 @@ AJAXmarking = {
                 var tmpNode1 = new YAHOO.widget.TextNode(nodesArray[n], AJAXtree.root, false);
 
                 // save reference in the map for the context menu
-                AJAXtree.textNodeMap[tmpNode1.labelElId] = tmpNode1;
+               // AJAXtree.textNodeMap[tmpNode1.labelElId] = tmpNode1;
 
                 tmpNode1.labelStyle = 'icon-course';
                 tmpNode1.setDynamicLoad(AJAXmarking.loadNodeData);
@@ -292,6 +292,7 @@ AJAXmarking = {
                             case 'journal':
 
                                 popUpAddress += '/mod/journal/report.php?id='+nd.data.cmid+'';
+                                popUpArgs = 'menubar=0,location=0,scrollbars,resizable,width=900,height=500';
                                 // TODO this is for the level 2 ones where there are group nodes that lead to
                                 // a pop-up. Need to make this dynamic - the extension to the url may differ.
                                 (typeof(nd.data.group) != 'undefined') ? popUpAddress += '&group='+nd.data.group+'' : popUpAddress += '' ;
@@ -311,6 +312,11 @@ AJAXmarking = {
                         return true;
                     }
                 );
+                // Make the footer divs if they don't exist
+                if (!document.getElementById('AMBcollapse')) {
+                    AJAXmarking.makeFooter();
+                }
+
             } else { 
 
                 // procedure for config tree nodes:
@@ -661,7 +667,7 @@ AJAXmarking = {
             // use the object to create a new node
             tmpNode2 = new YAHOO.widget.TextNode(nodesArray[m], AJAXmarking.nodeHolder , false);
 
-            AJAXtree.textNodeMap[tmpNode2.labelElId] = tmpNode2;
+            //AJAXtree.textNodeMap[tmpNode2.labelElId] = tmpNode2;
 
             // style the node acording to its type
 
@@ -849,7 +855,7 @@ AJAXmarking = {
 
         // holds a map of textnodes for the context menu 
         // http://developer.yahoo.com/yui/examples/menu/treeviewcontextmenu.html
-        this.textNodeMap = {};
+        //this.textNodeMap = {};
 
         this.treeDiv = treeDiv;
         this.icon    = document.getElementById(icon);
@@ -868,16 +874,16 @@ AJAXmarking = {
         this.root = this.tree.getRoot();
 
 
-        this.contextMenu = new YAHOO.widget.ContextMenu("maincontextmenu", {
-            trigger: treeDiv,
-            lazyload: true,  
-            itemdata: [
+        //this.contextMenu = new YAHOO.widget.ContextMenu("maincontextmenu", {
+        //    trigger: treeDiv,
+        //    lazyload: true,
+        //    itemdata: [
                 // Each of these is one line of the context menu when the tree is right clicked.
                 // { text: this.currentTextNode.label  },
-                { text: "Current group mode:", onclick: { } }
-            ] 
-        });
-
+         //       { text: "Current group mode:", onclick: { } }
+         //   ]
+        //});
+/*
         this.contextMenu.subscribe(
             "triggerContextMenu",  
             
@@ -897,6 +903,7 @@ AJAXmarking = {
 
             }
         );
+        */
     }, 
 
 
@@ -998,13 +1005,16 @@ AJAXmarking = {
     */
     refreshTree : function(treeObj) {
 
+
         treeObj.loadCounter = 0;
 
         if (treeObj.root.children.length >0) {
             treeObj.tree.removeChildren(treeObj.root);
             treeObj.root.refresh();
         }
-       
+
+        AJAXmarking.removeNodes(document.getElementById('conf_right'));
+        AJAXmarking.removeNodes(document.getElementById('conf_left'));
         AJAXmarking.removeNodes(treeObj.div);
         AJAXmarking.ajaxBuild(treeObj);
     },
@@ -1518,6 +1528,30 @@ AJAXmarking = {
                 el.removeChild(el.firstChild);
             }
         }
+    },
+
+    /**
+     * This is to generate the footer controls once the tree has loaded
+     */
+    makeFooter: function () {
+        // Create all text nodes
+
+        // the two links
+        var collapseButton = new YAHOO.widget.Button({
+	                            label:"Refresh",
+	                            id:"AMBcollapse",
+                                onclick: {fn: function() {AJAXmarking.refreshTree(AJAXmarking.main)} },
+	                            container:"conf_left" });
+
+        var configButton = new YAHOO.widget.Button({
+	                            label:"Configure",
+	                            id:"AMBconfig",
+                                onclick: {fn: function() {AJAXmarking.greyBuild()} },
+	                            container:"conf_right" });
+        //collapseButton.on("click", function (){AJAXmarking.refreshTree(AJAXmarking.main)});
+
+        // Add bits to them like onclick
+        // append them to each other and the DOM
     }
   
 // end main class
