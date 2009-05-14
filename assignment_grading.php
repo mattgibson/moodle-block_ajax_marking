@@ -68,7 +68,7 @@ class assignment_functions extends module_base {
         global $CFG;
         $unmarked = '';
         
-             $sql = "SELECT s.id as subid, s.userid, a.id, a.name, a.description, c.id as cmid  FROM
+             $sql = "SELECT s.id as subid, s.userid, a.id, a.name, a.course, a.description, c.id as cmid  FROM
                     {$CFG->prefix}assignment a
                 INNER JOIN {$CFG->prefix}course_modules c
                      ON a.id = c.instance
@@ -133,7 +133,7 @@ class assignment_functions extends module_base {
             // groups, the function will return true and we carry on, but if the config settings say 'don't display'
             // then it will return false and we skip this assignment
             if(!$this->mainobject->group) {
-               $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $this->mainobject->id);
+               $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $this->mainobject->id, $assignment->course);
                if (!$group_filter) {
                    return;
                }

@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009051201;
+        $this->version = 2009051401;
     }
 	
     function specialization() {
@@ -110,7 +110,8 @@ class block_ajax_marking extends block_base {
                     'instructions'        => get_string('instructions', 'block_ajax_marking'),
                     'configNothingString' => get_string('config_nothing', 'block_ajax_marking'),
                     'nothingString'       => get_string('nothing', 'block_ajax_marking'),
-                    'collapseString'      => get_string('collapse', 'block_ajax_marking'),
+                    'refreshString'      => get_string('refresh', 'block_ajax_marking'),
+                    'configureString'     => get_string('configure', 'block_ajax_marking'),
                     'forumSaveString'     => get_string('sendinratings', 'forum'),
                     'quizString'          => get_string('modulename', 'quiz'),
                     'quizSaveString'      => get_string('savechanges'),
@@ -119,7 +120,11 @@ class block_ajax_marking extends block_base {
                     'connectFail'         => get_string('connect_fail', 'block_ajax_marking'),
                     'nogroups'            => get_string('nogroups', 'block_ajax_marking'),
                     'headertext'          => get_string('headertext', 'block_ajax_marking'),
-                    'fullname'            => $AMfullname
+                    'fullname'            => $AMfullname,
+                    'confShow'            => get_string('confShow', 'block_ajax_marking'),
+                    'confGroups'          => get_string('confGroups', 'block_ajax_marking'),
+                    'confHide'            => get_string('confHide', 'block_ajax_marking'),
+                    'confDefault'         => get_string('confDefault', 'block_ajax_marking'),
 
                 );
 
@@ -148,7 +153,10 @@ class block_ajax_marking extends block_base {
                                                $this->content->text .= $variable.": '".$value."'";
                                                $check ++;
                                            }
-                $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json', 'yui_button'))."";
+                //$this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json', 'yui_button'))."";
+                // this line adds the debug versions
+                $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_logger',  $CFG->wwwroot.'/lib/yui/treeview/treeview-debug.js', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json', 'yui_button'))."";
+
                 $this->content->text .=    "};
                     </script>
                 </div>

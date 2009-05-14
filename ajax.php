@@ -144,9 +144,10 @@ class ajax_marking_response extends ajax_marking_functions {
                             $this->output .= '"id":"'       .$course->id.'",';
                             $this->output .= '"type":"config_course",';
                             $this->output .= '"title":"'    .$this->clean_name_text($course->shortname, -2).'",';
-                            $this->output .= '"label":"'    .$this->add_icon('course').$this->clean_name_text($course->shortname, -2).'",';
+                            $this->output .= '"name":"'     .$this->clean_name_text($course->shortname).'",';
                             // to be used for the title
-                            $this->output .= '"label":"'    .$this->add_icon('course').$this->clean_name_text($course->shortname, -2).'",';
+                            $this->output .= '"icon":"'     .$this->add_icon('course').'",';
+                            $this->output .= '"label":"'    .$this->add_icon('course').$this->clean_name_text($course->shortname).'",';
                             $this->output .= '"summary":"'  .$this->clean_name_text($course->shortname, -2).'",';
                             $this->output .= '"count":"'    .$count.'"';
 
@@ -240,11 +241,22 @@ class ajax_marking_response extends ajax_marking_functions {
                  */
 
                 $this->output = '[{"type":"config_set"}';
-                $this->make_config_data();
-                if($this->config_write()) {
-                    $this->output .= ',{"result":"true"}]';
+
+                // if the settings have been put back to default, destroy the existing record
+                if ($this->showhide == AMB_CONF_DEFAULT) {
+                    if (delete_records('block_ajax_marking', 'assessmenttype', $this->assessmenttype, 'assessmentid', $this->assessmentid, 'userid', $USER->id)) {
+                        $this->output .= ',{"result":"true"}]';
+                    } else {
+                        $this->output .= ',{"result":"false"}]';
+                    }
                 } else {
-                    $this->output .= ',{"result":"false"}]';
+
+                    $this->make_config_data();
+                    if($this->config_write()) {
+                        $this->output .= ',{"result":"true"}]';
+                    } else {
+                        $this->output .= ',{"result":"false"}]';
+                    }
                 }
 
                 break;
@@ -255,21 +267,41 @@ class ajax_marking_response extends ajax_marking_functions {
                 * this is to check what the current status of an assessment is so that
                 * the radio buttons can be made with that option selected.
                 * if its currently 'show by groups', we need to send the group data too.
+                * 
+                * This might be for an assessment node or a course node
                 */
 
-                $this->output = '[{"type":"config_check"}'; 	// begin JSON array
+                // begin JSON array
+                $this->output = '[{"type":"config_check"}'; 	
 
-                $config_settings = $this->get_groups_settings($this->assessmenttype, $this->assessmentid);
+                $assessment_settings = $this->get_groups_settings($this->assessmenttype, $this->assessmentid);
+                $course_settings     = $this->get_groups_settings('course', $this->courseid);
 
-                if ($config_settings) {
-                    $this->output .= ',{"value":"'.$config_settings->showhide.'"}';
-                    if ($config_settings->showhide == 2) {
-                        $this->make_config_groups_radio_buttons($this->id, $this->assessmenttype, $this->assessmentid);
+                // Procedure if it's an assessment
+                if ($this->assessmentid) {
+                    if ($assessment_settings) {
+                        $this->output .= ',{"value":"'.$assessment_settings->showhide.'"}';
+                        if ($assessment_settings->showhide == 2) {
+                            $this->make_config_groups_radio_buttons($this->courseid, $this->assessmenttype, $this->assessmentid);
+                       
+                        }
+                    }  else {
+                        // no settings, so use course default.
+                        $this->output .= ',{"value":"0"}';
                     }
                 } else {
-                    // default to 'show'
-                    $this->output .= ',{"value":"1"}';
+                    // Procedure for courses
+                    if ($course_settings) {
+                        $this->output .= ',{"value":"'.$course_settings->showhide.'"}';
+                        if ($course_settings->showhide == 2) {
+                            $this->make_config_groups_radio_buttons($this->courseid, 'course');
+                        }
+                    } else {
+                        // If there are no settings, default to 'show'
+                        $this->output .= ',{"value":"1"}';
+                    }
                 }
+
                 $this->output .= ']';
 
                 break;
@@ -301,13 +333,22 @@ class ajax_marking_response extends ajax_marking_functions {
                 break;
 
             default:
+
                 // the above options are for core requests. The default one deals
                 // with assessment nodes being expanded, which may have one, two or more sub-levels
                 // and which are added by the module classes themselves by sending the return_function
                 // strings as part of the ajax response for the assessments in each course. These are then
-                // forwarded as the type variable here, e.g. type = "forum->submissions" leads to
+                // forwarded as the type variable here, e.g. type = "forum_submissions" leads to
                 // $this->forum->submissions()
-                $this->$type();
+
+                //TODO - check whcih types are sent and whether they are set up right for this.
+                // Maybe use a returnType variable
+                $bits = explode('_', $this->type);
+                if ($bits[1]) {
+                    $this->$bits[0]->$bits[1]();
+                } else {
+                    $this->$bits[0]();
+                }
 
         }
 

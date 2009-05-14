@@ -53,7 +53,7 @@ class forum_functions extends module_base {
         global $CFG, $USER;
         $unmarked = '';
 
-        $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.type, f.id, f.name, f.intro as description, c.id as cmid
+        $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.course, f.type, f.id, f.name, f.intro as description, c.id as cmid
                 FROM
                     {$CFG->prefix}forum f
                 INNER JOIN {$CFG->prefix}course_modules c
@@ -151,7 +151,7 @@ class forum_functions extends module_base {
             // Check to see if group nodes need to be made instead of submissions
 
             if(!$this->mainobject->group) {
-                   $group_filter = $this->mainobject->assessment_groups_filter($posts, $this->type, $forum->id);
+                   $group_filter = $this->mainobject->assessment_groups_filter($posts, $this->type, $forum->id, $forum->course);
                    if (!$group_filter) {
                        return;
                    }

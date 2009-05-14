@@ -26,7 +26,7 @@ class ajax_marking_functions {
     function get_variables() {
         $this->type              = required_param('type',                   PARAM_TEXT); // refers to the part being built
         $this->id                = optional_param('id',               NULL, PARAM_INT);
-        $this->userid            = optional_param('userid',           NULL, PARAM_INT);
+        //$this->userid            = optional_param('userid',           NULL, PARAM_INT);
         $this->quizid            = optional_param('quizid',           NULL, PARAM_INT);
         $this->groups            = optional_param('groups',           NULL, PARAM_TEXT);
         $this->assessmenttype    = optional_param('assessmenttype',   NULL, PARAM_TEXT);
@@ -34,6 +34,9 @@ class ajax_marking_functions {
         $this->showhide          = optional_param('showhide',         NULL, PARAM_INT);
         $this->group             = optional_param('group',            NULL, PARAM_TEXT);
         $this->courseid          = optional_param('courseid',         NULL, PARAM_TEXT);
+
+        
+        
 
 
     }
@@ -51,6 +54,13 @@ class ajax_marking_functions {
             $this->type = 'html';
         }
         global $USER, $CFG;
+
+        // show/hide constants for config settings
+        define('AMB_CONF_DEFAULT', 0);
+        define('AMB_CONF_SHOW',    1);
+        define('AMB_CONF_GROUPS',  2);
+        define('AMB_CONF_HIDE',    3);
+        
 
 
         // call expensive queries only when needed
@@ -102,119 +112,6 @@ class ajax_marking_functions {
     }
 
    
-
-    /**
-     * This function will check through all of the assessments of a particular type for a particular course
-     * and return the nodes for a course of the main tree
-     * @global <type> $CFG
-     * @global <type> $SESSION
-     * @param <type> $sql
-     * @param <string> $type The type of assessment we are dealing with e.g. 'assignment'. Never plurals
-     */
-    /*
-    function course_assessment_nodes($sql, $type) {
-
-            global $CFG, $SESSION;
-
-            // the assignment pop up thinks it was called from the table of assignment submissions, so to avoid javascript errors,
-            // we need to set the $SESSION variable to think that all the columns in the table are collapsed so no javascript is generated
-            // to try to update them.
-
-            $assessment_submissions = get_records_sql($sql, $type);
-
-            if ($assessment_submissions) {
-
-                // we need all the assignment ids for the loop, so we make an array of them
-                $assessments = $this->list_assessment_ids($assessment_submissions);
-
-                // each type has a different capability to check for. Might be better to feed this in as a parameter
-                // as it will make for a more felxible approach in future
-                switch ($type) {
-
-                    case 'assignment':
-                        $cap = 'mod/assignment:grade';
-                        break;
-
-                    case 'forum':
-                        $cap = 'mod/forum:viewhiddentimedposts';
-                        break;
-
-                    case 'workshop':
-                        $cap = 'mod/workshop:manage';
-                        break;
-
-                    case 'quiz':
-                        $cap = 'mod/quiz:grade';
-                        break;
-
-                    case 'journal':
-                        $cap = 'mod/assignment:grade';
-                        break;
-                }
-
-                foreach ($assessments as $assessment) {
-
-                    // counter for number of unmarked submissions
-                    $count = 0;
-
-                    // permission to grade?
-                    $modulecontext = get_context_instance(CONTEXT_MODULE, $assessment->cmid);
-                    if (!has_capability($cap, $modulecontext, $this->userid)) {continue;}
-
-                    if(!$this->config) { //we are making the main block tree, not the configuration tree
-
-                        // has this assignment been set to invisible in the config settings?
-                        $check = $this->get_groups_settings($type, $assessment->id);
-                        if ($check) {
-                            if ($check->showhide == 3) {
-                                continue;
-                            }
-
-                        }
-
-                        // If the submission is for this assignment and group settings are 'display all', or 'display by groups' and
-                        // the user is a group member of one of them, count it.
-                        foreach($assessment_submissions as $assessment_submission) {
-                            if ($assessment_submission->id == $assessment->id) {
-                                if (!isset($assessment_submission->userid)) {
-                                    continue;
-                                }
-                                if ((!$check) || ($check && ($check->showhide == 2) && $this->check_group_membership($check->groups, $assessment_submission->userid)) || ($check->showhide == 1)) {
-                                   // if ($type == 'forum') {print_r($assessment_submission);}
-                                    $count++;
-                                }
-                            }
-                        }
-
-                        // if there are no unmarked assignments, just skip this one. Important not to skip
-                        // it in the SQL as config tree needs all assignments
-                        if ($count == 0) {
-                            continue;
-                        }
-                    }
-
-                    // journals are a special case as they do not have submissions nodes normally.
-                    // They may have group nodes however.
-                    if ($this->type == 'journal') {
-
-                        // set the type to reflect whether or not there are group nodes to come.
-                        $journal_type = '';
-                        if ($check && $check->showhide == 2) {
-                            $journal_type = "journal_groups";
-                        } else {
-                            $journal_type = "journal";
-                        }
-                        $this->make_submission_node($assessment->name, $assessment->id, $assessment->cmid, $assessment->description, $journal_type, $assessment->timemodified, $count);
-                    } else {
-                        // all other assessments
-                        $this->make_assessment_node($assessment->name, $assessment->id, $assessment->cmid, $assessment->description, $type, $count);
-                    }
-
-                }// end foreach assignment
-            } // end if assignment_submissions
-	} // end course assessments
-
-*/
 
         /**
          * Formats the summary text so that it works in the tooltips without odd characters
@@ -397,8 +294,9 @@ class ajax_marking_functions {
          */
 
 	function make_config_data() {
+        global $USER;
 		$this->data                 = new stdClass;
-		$this->data->userid         = $this->userid;
+		$this->data->userid         = $USER->id;
         $this->data->assessmenttype = $this->assessmenttype;
         $this->data->assessmentid   = $this->assessmentid;
 		$this->data->showhide       = $this->showhide;
@@ -447,64 +345,69 @@ class ajax_marking_functions {
 
 
 
-	/**
-         * finds the groups info for a given course for the config tree. It then needs to check if those groups
-         * are to be displayed for this assessment and user. can probably be merged with the function above.
-         * Outputs a json object straight to AJAX
-         *
-         * @param int $courseid
-         * @param string $type type of assessment e.g. forum, workshop
-         * @param int $assessmentid
-         */
+   /**
+    * finds the groups info for a given course for the config tree. It then needs to check if those groups
+    * are to be displayed for this assessment and user. can probably be merged with the function above.
+    * Outputs a json object straight to AJAX
+    *
+    * The call might be for a course, not an assessment, so the presence of $assessmentid is used to determine this.
+    *
+    *
+    * @param int $courseid
+    * @param string $type type of assessment e.g. forum, workshop
+    * @param int $assessmentid
+    */
 
-	function make_config_groups_radio_buttons($courseid, $assessmenttype, $assessmentid) {
-		$groups = NULL;
-		$current_settings = NULL;
-		$current_groups = NULL;
-		$groupslist = '';
+	function make_config_groups_radio_buttons($courseid, $assessmenttype, $assessmentid=NULL) {
+		$groups           = '';
+		$current_settings = '';
+		$current_groups   = '';
+		$groupslist       = '';
 
-                // get currently saved groups settings, if there are any, so that check boxes can be marked correctly
-		$config_settings = $this->get_groups_settings($assessmenttype, $assessmentid);
-                if ($config_settings) {
+        // get currently saved groups settings, if there are any, so that check boxes can be marked correctly
+        if ($assessmentid) {
+		    $config_settings = $this->get_groups_settings($assessmenttype, $assessmentid);
+        } else {
+            $config_settings = $this->get_groups_settings('course', $courseid);
+        }
+        
+        if ($config_settings) {
 
-                    //only make the array if there is not a null value
-                    if ($config_settings->groups && ($config_settings->groups != 'none') && ($config_settings->groups != NULL)) {
+            //only make the array if there is not a null value
+            if ($config_settings->groups && ($config_settings->groups != 'none') && ($config_settings->groups != NULL)) {
 
-                            $current_groups = explode(' ', $config_settings->groups); //turn space separated list of groups from possible config entry into an array
-                    }
-                }
-                $groups = get_records('groups', 'courseid', $courseid);
-                if ($groups) { //there are some groups
+                $current_groups = explode(' ', $config_settings->groups); //turn space separated list of groups from possible config entry into an array
+            }
+        }
+        $groups = get_records('groups', 'courseid', $courseid);
+        if ($groups) { //there are some groups
 
 
 			foreach($groups as $group) {
 
-                           // make a space separated list for saving if this is the first time
-                            if (!$config_settings || !$config_settings->groups) {
-                                    $groupslist .= $group->id." ";
+                // make a space separated list for saving if this is the first time
+                if (!$config_settings || !$config_settings->groups) {
+                        $groupslist .= $group->id." ";
 
-                            }
-                            $this->output .= ',{';
-                            
-                            // do they have a record for which groups to display? if no records yet made, default to display, i.e. box is checked
-                            if ($current_groups) {
-                                $this->output .= (in_array($group->id, $current_groups)) ? '"display":"true",' : '"display":"false",';
-                                //if (in_array($group->id, $current_groups)) { // the group id is in the array of groups that were stored in the db
-                                //        $this->output .= '"display":"true",';
-                                //} else { // it was not set in the db
-                                //        $this->output .= '"display":"false",';
-                                //}
-                            } elseif ($config_settings && ($config_settings->groups == 'none')) {// all groups should not be displayed.
-                                $this->output .= '"display":"false",';
+                }
+                $this->output .= ',{';
 
-                            } else {
-                                //default to display if there was no entry so far (first time)
-                                $this->output .= '"display":"true",';
-                            }
-                            $this->output .= '"label":"'.$group->name.'",';
-                            $this->output .= '"name":"'.$group->name.'",';
-                            $this->output .= '"id":"'.$group->id.'"';
-                            $this->output .= '}';
+                // do they have a record for which groups to display? if no records yet made, default to display, i.e. box is checked
+                if ($current_groups) {
+                    $this->output .= (in_array($group->id, $current_groups)) ? '"display":"true",' : '"display":"false",';
+                  
+                } elseif ($config_settings && ($config_settings->groups == 'none')) {
+                    // all groups should not be displayed.
+                    $this->output .= '"display":"false",';
+
+                } else {
+                    //default to display if there was no entry so far (first time)
+                    $this->output .= '"display":"true",';
+                }
+                $this->output .= '"label":"'.$group->name.'",';
+                $this->output .= '"name":"' .$group->name.'",';
+                $this->output .= '"id":"'   .$group->id.'"';
+                $this->output .= '}';
 			}
 			if (!$config_settings || !$config_settings->groups) {
 				// save the groups if this is the first time
@@ -535,78 +438,101 @@ class ajax_marking_functions {
          *
 	 */
 
-	function assessment_groups_filter($submissions, $type, $assessmentid) {
+	function assessment_groups_filter($submissions, $type, $assessmentid, $courseid) {
 	    //unset($config_settings);
         global $CFG;
 
         //need to get the groups for this assignment from the config object
         //$combinedrefs = $type.$assessmentid;
         $config_settings = $this->get_groups_settings($type, $assessmentid);
+        $course_settings = $this->get_groups_settings('course', $courseid);
 
         // maybe nothing was there, so we need a default, i.e. show all.
         if (!$config_settings) {
-            return true;
+            if (!$course_settings) {
+                // no settings at all, default to show
+                return true;
+            } else {
+                // use the course settings
+
+                if ($course_settings->showhide == AMB_CONF_SHOW) {
+                    return true;
+                }
+                // perhaps it is set to hidden
+                if ($course_settings->showhide == AMB_CONF_HIDE) {
+                    return false;
+                }
+
+                // we will use this further down
+                $settings = $course_settings;
+
+            }
+
         } else {
             // maybe its set to show all
-            if ($config_settings->showhide == 1) {
+            if ($config_settings->showhide == AMB_CONF_SHOW) {
                 return true;
             }
             // perhaps it is set to hidden
-            if ($config_settings->showhide == 3) {
+            if ($config_settings->showhide == AMB_CONF_HIDE) {
                 return false;
             }
 
-            // it must otherwise be set to groups, so we make the groups output and then stop.
-            $this->output   = '[{"type":"groups"}';
-            $trimmed_groups = trim($config_settings->groups);
-           
-            // assuming an array of ids are passed, along with a space separated list of groups, we need to make both into arrays
-            $groupsarray = explode(" ", $trimmed_groups);
-            $csv_groups  = implode(',', $groupsarray);
-            //TODO make this into a cached query for all groups in this course.
-            $sql = "SELECT id, name, description FROM {$CFG->prefix}groups WHERE id IN ($csv_groups)";
-            $groupdetails = get_records_sql($sql);
+            $settings = $config_settings;
+        }
 
-            //now cycle through each group, plucking out the correct members for each one.
-            //some people may be in 2 groups, so will show up twice. not sure what to do about that. Maybe use groups mode from DB...
+        // no return so far means it must be set to groups, so we make the groups output and then stop.
+        $this->output   = '[{"type":"groups"}';
+        $trimmed_groups = trim($settings->groups);
 
-            foreach($groupsarray as $group) {
+        // prepare an array of ids along with array, from the space separated list of groupsfrom the DB
+        $groupsarray = explode(" ", $trimmed_groups);
+        $csv_groups  = implode(',', $groupsarray);
+        //TODO make this into a cached query for all groups in this course.
+        $sql = "SELECT id, name, description FROM {$CFG->prefix}groups WHERE id IN ($csv_groups)";
+        $groupdetails = get_records_sql($sql);
 
-                $count = 0;
+        //now cycle through each group, plucking out the correct members for each one.
+        //some people may be in 2 groups, so will show up twice. not sure what to do about that. Maybe use groups mode from DB...
 
-                foreach($submissions as $submission) {
+        foreach($groupsarray as $group) {
 
-                    // check against the group members to see if 1. this is the right group and 2. the id is a member
-                    if ($this->check_group_membership($group, $submission->userid))  {
-                        $count++;
-                    }
-                }
+            $count = 0;
 
+            foreach($submissions as $submission) {
 
-                $summary = $groupdetails[$group]->description ? $groupdetails[$group]->description : "no summary";
-                $assessment = get_record($type, 'id', $assessmentid);
-                $coursemodule = get_record('course_modules', 'module', $this->modulesettings[$type]->id, 'instance', $assessment->id) ;
-
-                if ($count > 0) {
-                    $this->output .= ',';
-                    $this->output .= '{';
-                    $this->output .= '"label":"'        .$this->add_icon('group')."(<span class='AMB_count'>".$count.'</span>) '.$groupdetails[$group]->name.'",';
-                    $this->output .= '"name":"'         .$groupdetails[$group]->name.'",';
-                    $this->output .= '"group":"'        .$group.'",'; // id of submission for hyperlink
-                    $this->output .= '"id":"'           .$assessmentid.'",'; // id of assignment for hyperlink
-                    $this->output .= '"title":"'        .$summary.'",';
-                    $this->output .= '"cmid":"'         .$coursemodule->id.'",';
-                    $this->output .= '"icon":"'         .$this->add_icon('group').'",';
-                    $this->output .= '"type":"'         .$type.'",';
-                    //$this->output .= '"seconds":"'.$seconds.'",'; // seconds sent to allow style to change according to how long it has been
-                    //$this->output .= '"time":"'.$submission->timemodified.'",'; // send the time of submission for tooltip
-                    $this->output .= '"count":"'        .$count.'"';
-                    $this->output .= '}';
+                // check against the group members to see if 1. this is the right group and 2. the id is a member
+                if ($this->check_group_membership($group, $submission->userid))  {
+                    $count++;
                 }
             }
-            $this->output .= ']';
-            return false;
+
+
+            $summary = $groupdetails[$group]->description ? $groupdetails[$group]->description : "no summary";
+            $assessment = get_record($type, 'id', $assessmentid);
+            $coursemodule = get_record('course_modules', 'module', $this->modulesettings[$type]->id, 'instance', $assessment->id) ;
+
+            if ($count > 0) {
+                // make the group node
+                $this->output .= ',';
+                $this->output .= '{';
+                $this->output .= '"label":"'        .$this->add_icon('group')."(<span class='AMB_count'>".$count.'</span>) '.$groupdetails[$group]->name.'",';
+                $this->output .= '"name":"'         .$groupdetails[$group]->name.'",';
+                $this->output .= '"group":"'        .$group.'",'; // id of submission for hyperlink
+                $this->output .= '"id":"'           .$assessmentid.'",'; // id of assignment for hyperlink
+                $this->output .= '"title":"'        .$summary.'",';
+                $this->output .= '"cmid":"'         .$coursemodule->id.'",';
+                $this->output .= '"icon":"'         .$this->add_icon('group').'",';
+                $this->output .= '"type":"'         .$type.'",';
+                //$this->output .= '"seconds":"'.$seconds.'",'; // seconds sent to allow style to change according to how long it has been
+                //$this->output .= '"time":"'.$submission->timemodified.'",'; // send the time of submission for tooltip
+                $this->output .= '"count":"'        .$count.'"';
+                $this->output .= '}';
+            }
         }
+        $this->output .= ']';
+        return false;
+        
 	}
 
     /**
@@ -702,32 +628,65 @@ class ajax_marking_functions {
          * @param <type> $config 
          * 
          */
-        function check_assessment_display_settings($settings) {
+        function check_assessment_display_settings($assessmenttype, $assessmentid, $courseid) {
 
-             if ($settings) {
-                 if ($settings->showhide == 3) {
-                     return false;
-                 } else {
-                     return true;
-                 }
-             }
-             return true;
+            // find the relevant row of the config object
+            $settings = $this->get_groups_settings($assessmenttype, $assessmentid);
+
+            //if (!isset($assessment->course)) {
+               // print_r($assessment);
+           // }
+
+            $course_settings = $this->get_groups_settings('course', $courseid);
+
+            if ($settings) {
+                if ($settings->showhide == 3) {
+                    return false;
+                } else {
+                    return true;
+                }
+            } elseif ($course_settings) {
+                // if there was no settings object for the item, check for a course level default
+                if ($course_settings->showhide == 3) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+            // default to show
+            return true;
         }
 
         /**
-         * This takes the settings object for a particular assessment item and checks whether the student
+         * This takes the settings for a particular assessment item and checks whether the student
          * id supplied should be added tothe count for it, depending on display and group info.
          *
          * @param <type> $check
          * @param <type> $userid
          * @return <type> Boolean
          */
-        function check_submission_display_settings($check, $userid) {
+        function check_submission_display_settings($assessmenttype, $submission) {
 
-            if ((!$check) || ($check && ($check->showhide == 2) && $this->check_group_membership($check->groups, $userid)) || ($check->showhide == 1)) {
-                return true;
+            $settings        = $this->get_groups_settings($assessmenttype, $submission->id);
+            //$coursemodule = ;
+            //$coursemodule = get_record('course_modules', 'module', $this->modulesettings[$type]->id, 'instance', $assessment->id) ;
+            $course_settings = $this->get_groups_settings('course', $submission->course);
+
+            // several options:
+            // 1. there are no settings, so default to show
+            // 2. there are settings and it is set to show by group, so show, but only if the student is in a group that is shown
+            // 3. the settings say 'show'
+            if ($settings) {
+                if (($settings && ($settings->showhide == 2) && $this->check_group_membership($settings->groups, $submission->userid)) || ($settings->showhide == 1)) {
+                    return true;
+                }
             } else {
-                return false;
+                // check at course level for a default
+                if ((!$course_settings) || ($course_settings && ($course_settings->showhide == 2) && $this->check_group_membership($course_settings->groups, $submission->userid)) || ($course_settings->showhide == 1)) {
+                    return true;
+                } else {
+                    return false;
+                }
             }
         }
 
@@ -1177,7 +1136,7 @@ class module_base {
             $this->get_all_unmarked();
         }
 
-        // maybe there is nothing to mark
+        // maybe there is nothing to mark?
         if (isset($this->all_submissions) && !$this->all_submissions) {
             return 0;
         }
@@ -1195,13 +1154,13 @@ class module_base {
                 unset($this->assessment_ids[$key]);
             }
             // TODO get the group settings here and attach them to the array, avoiding a get_groups_settings function call later for each submission
-            $settings = $this->mainobject->get_groups_settings($this->type, $assessment->id);
+            //$settings = $this->mainobject->get_groups_settings();
             // This assessment might be set to 'hidden'
-            if (!$this->mainobject->check_assessment_display_settings($settings)) {
+            if (!$this->mainobject->check_assessment_display_settings($this->type, $assessment->id, $course)) {
                 unset($this->assessment_ids[$key]);
             }
             // store them to allow quick reuse later
-            $this->assessment_ids[$key]->group_settings = $settings;
+            //$this->assessment_ids[$key]->group_settings = $settings;
         }
         
         $count = 0;
@@ -1232,15 +1191,15 @@ class module_base {
             }
 
             // get groups settings for this assessment
-            $settings = $this->mainobject->get_groups_settings($this->type, $submission->id);
+            //$settings = $this->mainobject->get_groups_settings($this->type, $submission->id);
             // check if this should be displayed and if so, is the student in the right group.
             // settings have been stored previously
-            if (!$this->mainobject->check_assessment_display_settings($settings)) {
+            //if (!$this->mainobject->check_assessment_display_settings($this->type, $assessment->id)) {
             // if (!$this->mainobject->check_assessment_display_settings($this->assessment_ids[$submission->id]->group_settings)) {
-                continue;
-            }
+            //    continue;
+            //}
            
-            if(!$this->mainobject->check_submission_display_settings($settings, $submission->userid) ) {
+            if(!$this->mainobject->check_submission_display_settings($this->type, $submission) ) {
                 continue;
             }
 
@@ -1312,10 +1271,10 @@ class module_base {
                 if(!$this->mainobject->config) { //we are making the main block tree, not the configuration tree
 
                     // retrieve the user-defined display settings for this assessment item
-                    $settings = $this->mainobject->get_groups_settings($this->type, $assessment->id);
+                    //$settings = $this->mainobject->get_groups_settings($this->type, $assessment->id);
 
                     // check if this item should be displayed at all
-                    if(!$this->mainobject->check_assessment_display_settings($settings)) {
+                    if(!$this->mainobject->check_assessment_display_settings($this->type, $assessment->id, $courseid)) {
                         continue;
                     }
 
@@ -1331,7 +1290,7 @@ class module_base {
 
                             // if the item is set to group display, it may not be right to add the student's submission
                             // if they are in the wrong group
-                            if (!$this->mainobject->check_submission_display_settings($settings, $assessment_submission->userid)) {
+                            if (!$this->mainobject->check_submission_display_settings($this->type, $assessment_submission)) {
                                 continue;
                             }
                             $count++;
@@ -1345,17 +1304,27 @@ class module_base {
                     }
                 }
 
-
+              // if there are only two levels, there will only need to be dynamic load if there are groups to display
               if($this->levels == 2) {
 
-                    // set the type to reflect whether or not there are group nodes to come.
-                    if ($settings && $settings->showhide == 2) {
-                       // $type = $this->type;
+                  
+                    $assessment_settings        = $this->mainobject->get_groups_settings($this->type, $assessment->id);
+                    $course_settings = $this->mainobject->get_groups_settings('course', $courseid);
+
+                    // default to false
+                    $dynamic = false;
+
+                    if ($assessment_settings) {
+                        if ($assessment_settings->showhide == AMB_CONF_GROUPS) {
+                      
+                            $dynamic = true;
+                        }
+                        
+                    } elseif ($course_settings && ($course_settings->showhide == AMB_CONF_GROUPS)) {
                         $dynamic = true;
-                    } else {
-                        //$type = "submissions";
-                        $dynamic = false;
-                    }
+                    } 
+                        
+                    
                     //$seconds = (time() - $assessment->timemodified);
                     //$this->mainobject->make_submission_node($assessment->name.' ('.$count.')', $assessment->id, $assessment->cmid, $assessment->description, $this->type, $seconds, $assessment->timemodified, $count, $dynamic);
                 } 

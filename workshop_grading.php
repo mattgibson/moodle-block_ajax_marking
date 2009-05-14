@@ -101,7 +101,7 @@ class workshop_functions extends module_base {
 
             // if this is set to display by group, we divert the data to the groups() function
             if(!$this->mainobject->group) {
-                $group_filter = $this->mainobject->assessment_groups_filter($submissions, "workshop", $workshop->id);
+                $group_filter = $this->mainobject->assessment_groups_filter($submissions, "workshop", $workshop->id, $workshop->course);
                 if (!$group_filter) {
                     return;
                 }

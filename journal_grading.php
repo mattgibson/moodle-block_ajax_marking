@@ -51,7 +51,7 @@ class journal_functions extends module_base {
         global $CFG;
 
         $sql = "
-            SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified, j.id, c.id as cmid
+            SELECT je.id as entryid, je.userid, j.intro as description, j.course, j.name, j.timemodified, j.id, c.id as cmid
             FROM {$CFG->prefix}journal_entries je
             INNER JOIN {$CFG->prefix}journal j
                ON je.journal = j.id
@@ -129,7 +129,7 @@ class journal_functions extends module_base {
         $submissions = get_records_sql($sql, 'journal');
 
         // This function does not need any checks for group status as it will only be called if groups are set.
-        $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $journal->id);
+        $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $journal->id, $journal->course);
            
         // group nodes have now been printed by the groups function
         return;
