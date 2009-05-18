@@ -26,7 +26,6 @@ class ajax_marking_functions {
     function get_variables() {
         $this->type              = required_param('type',                   PARAM_TEXT); // refers to the part being built
         $this->id                = optional_param('id',               NULL, PARAM_INT);
-        //$this->userid            = optional_param('userid',           NULL, PARAM_INT);
         $this->quizid            = optional_param('quizid',           NULL, PARAM_INT);
         $this->groups            = optional_param('groups',           NULL, PARAM_TEXT);
         $this->assessmenttype    = optional_param('assessmenttype',   NULL, PARAM_TEXT);
@@ -61,8 +60,6 @@ class ajax_marking_functions {
         define('AMB_CONF_GROUPS',  2);
         define('AMB_CONF_HIDE',    3);
         
-
-
         // call expensive queries only when needed
         // ones that dont need this are all the submissions ones and some of the config save ones
         $get_my_courses_types = array('html', 'quiz_diagnostic', 'main', 'config_course', 'config_main', 'course', 'assignment', 'workshop', 'forum', 'quiz_question', 'quiz', 'journal');
@@ -640,14 +637,14 @@ class ajax_marking_functions {
             $course_settings = $this->get_groups_settings('course', $courseid);
 
             if ($settings) {
-                if ($settings->showhide == 3) {
+                if ($settings->showhide == AMB_CONF_HIDE) {
                     return false;
                 } else {
                     return true;
                 }
             } elseif ($course_settings) {
                 // if there was no settings object for the item, check for a course level default
-                if ($course_settings->showhide == 3) {
+                if ($course_settings->showhide == AMB_CONF_HIDE) {
                     return false;
                 } else {
                     return true;
@@ -677,12 +674,12 @@ class ajax_marking_functions {
             // 2. there are settings and it is set to show by group, so show, but only if the student is in a group that is shown
             // 3. the settings say 'show'
             if ($settings) {
-                if (($settings && ($settings->showhide == 2) && $this->check_group_membership($settings->groups, $submission->userid)) || ($settings->showhide == 1)) {
+                if (($settings && ($settings->showhide == AMB_CONF_GROUPS) && $this->check_group_membership($settings->groups, $submission->userid)) || ($settings->showhide == AMB_CONF_SHOW)) {
                     return true;
                 }
             } else {
                 // check at course level for a default
-                if ((!$course_settings) || ($course_settings && ($course_settings->showhide == 2) && $this->check_group_membership($course_settings->groups, $submission->userid)) || ($course_settings->showhide == 1)) {
+                if ((!$course_settings) || ($course_settings && ($course_settings->showhide == AMB_CONF_GROUPS) && $this->check_group_membership($course_settings->groups, $submission->userid)) || ($course_settings->showhide == AMB_CONF_SHOW)) {
                     return true;
                 } else {
                     return false;
@@ -1011,34 +1008,64 @@ class ajax_marking_functions {
      * @param <string> $type the db name of the module, or the type of node e.g. 'user', 'group'
      * @param <type> $count
      */
-    function make_assessment_node($assessment) {
+    function make_assessment_node($assessment, $config=false) {
 
         // cut it at 200 characters
         $shortsum = substr($assessment->description, 0, 200);
         if (strlen($shortsum) < strlen($assessment->description)) {$shortsum .= "...";}
+        $length = ($config) ? false : 30;
 
         $this->output .= ','; 
         $this->output .= '{';
-
-        $length = ($this->type == 'config_course') ? false : 30;
-        
-        $this->output .= '"label":"'.$this->add_icon($assessment->type);
+        $this->output .= '"label":"'        .$this->add_icon($assessment->type);
         $this->output .= ($this->config) ? '' : "(<span class='AMB_count'>".$assessment->count."</span>) ";
         $this->output .= $this->clean_name_text($assessment->name, $length).'",';
         
-        $this->output .= '"name":"'.$this->clean_name_text($assessment->name, $length).'",';
         // Level 2 only nodes will be marked as non-dynamic if they are set to 'show' and dynamic if they are set to 'groups'.
         $this->output .= ($assessment->dynamic) ? '"dynamic":"true",' : '"dynamic":"false",';
+        
+        $this->output .= '"name":"'         .$this->clean_name_text($assessment->name, $length).'",';
+        
         $this->output .= '"id":"'           .$assessment->id.'",';
-        $this->output .= '"icon":"'.$this->add_icon($assessment->type).'",';
+        $this->output .= '"icon":"'         .$this->add_icon($assessment->type).'",';
         $this->output .= '"assessmentid":"a'.$assessment->id.'",';
         $this->output .= '"cmid":"'         .$assessment->cmid.'",';
         $this->output .= '"type":"'         .$assessment->type.'",';
-        $this->output .= '"title":"'        .$this->clean_summary_text($shortsum).'"';
+        
+        $this->output .= '"title":"';
+        if ($config) {
+            // make a tooltip showing current settings
+            $course_settings = $this->get_groups_settings('course', $assessment->course);
+
+            $this->output .= get_string('confCurrent', 'block_ajax_marking').': ';
+            if (isset($course_settings->showhide)) {
+                switch ($course_settings->showhide) {
+
+                    case 1:
+                        $this->output .= get_string('confCourseShow', 'block_ajax_marking');
+                        break;
+
+                    case 2:
+                        $this->output .= get_string('confGroups', 'block_ajax_marking');
+                        break;
+
+                    case 3:
+                        $this->output .= get_string('confCourseHide', 'block_ajax_marking');
+                }
+            } else {
+                $this->output .= get_string('confCourseShow', 'block_ajax_marking');
+            }
+
+            // end tooltip bit
+            $this->output .= '"';
+        } else {
+            $this->output .= $this->clean_summary_text($shortsum).'"';
+        }
 
         if ($assessment->count) {
             $this->output .= ',"count":"'   .$assessment->count.'"';
         }
+        
 
         $this->output .= '}';
     }
@@ -1408,7 +1435,7 @@ class module_base {
                     $assessment->description = $assessment->summary;
                     $assessment->dynamic = false;
                     $assessment->count = false;
-                    $this->mainobject->make_assessment_node($assessment);
+                    $this->mainobject->make_assessment_node($assessment, true);
                 }
             }
         }

@@ -2,7 +2,7 @@
 
 //include("../../config.php");
 require_login(1, false);
-include("lib.php");
+include($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 
 /**
  * This class alows the building of the <ul> list of clickable links for non-javascript enabled browsers

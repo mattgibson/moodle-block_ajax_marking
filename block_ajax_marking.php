@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009051401;
+        $this->version = 2009051801;
     }
 	
     function specialization() {
@@ -102,29 +102,31 @@ class block_ajax_marking extends block_base {
                 $variables = array(
 
                     'wwwroot'             => $CFG->wwwroot,
-                    'totalMessage'        => get_string('total', 'block_ajax_marking'),
+                    'totalMessage'        => get_string('total',              'block_ajax_marking'),
                     'userid'              => $USER->id,
-                    'assignmentString'    => get_string('modulename', 'assignment'),
-                    'workshopString'      => get_string('modulename', 'workshop'),
-                    'forumString'         => get_string('modulename', 'forum'),
-                    'instructions'        => get_string('instructions', 'block_ajax_marking'),
-                    'configNothingString' => get_string('config_nothing', 'block_ajax_marking'),
-                    'nothingString'       => get_string('nothing', 'block_ajax_marking'),
-                    'refreshString'      => get_string('refresh', 'block_ajax_marking'),
-                    'configureString'     => get_string('configure', 'block_ajax_marking'),
-                    'forumSaveString'     => get_string('sendinratings', 'forum'),
-                    'quizString'          => get_string('modulename', 'quiz'),
+                    'assignmentString'    => get_string('modulename',         'assignment'),
+                    'workshopString'      => get_string('modulename',         'workshop'),
+                    'forumString'         => get_string('modulename',         'forum'),
+                    'instructions'        => get_string('instructions',       'block_ajax_marking'),
+                    'configNothingString' => get_string('config_nothing',     'block_ajax_marking'),
+                    'nothingString'       => get_string('nothing',            'block_ajax_marking'),
+                    'refreshString'       => get_string('refresh',            'block_ajax_marking'),
+                    'configureString'     => get_string('configure',          'block_ajax_marking'),
+                    'forumSaveString'     => get_string('sendinratings',      'forum'),
+                    'quizString'          => get_string('modulename',         'quiz'),
                     'quizSaveString'      => get_string('savechanges'),
-                    'journalString'       => get_string('modulename', 'journal'),
-                    'journalSaveString'   => get_string('saveallfeedback', 'journal'),
-                    'connectFail'         => get_string('connect_fail', 'block_ajax_marking'),
-                    'nogroups'            => get_string('nogroups', 'block_ajax_marking'),
-                    'headertext'          => get_string('headertext', 'block_ajax_marking'),
+                    'journalString'       => get_string('modulename',         'journal'),
+                    'journalSaveString'   => get_string('saveallfeedback',    'journal'),
+                    'connectFail'         => get_string('connect_fail',       'block_ajax_marking'),
+                    'nogroups'            => get_string('nogroups',           'block_ajax_marking'),
+                    'headertext'          => get_string('headertext',         'block_ajax_marking'),
                     'fullname'            => $AMfullname,
-                    'confShow'            => get_string('confShow', 'block_ajax_marking'),
-                    'confGroups'          => get_string('confGroups', 'block_ajax_marking'),
-                    'confHide'            => get_string('confHide', 'block_ajax_marking'),
-                    'confDefault'         => get_string('confDefault', 'block_ajax_marking'),
+                    'confAssessmentShow'  => get_string('confAssessmentShow', 'block_ajax_marking'),
+                    'confCourseShow'      => get_string('confCourseShow',     'block_ajax_marking'),
+                    'confGroups'          => get_string('confGroups',         'block_ajax_marking'),
+                    'confAssessmentHide'  => get_string('confAssessmentHide', 'block_ajax_marking'),
+                    'confCourseHide'      => get_string('confCourseHide',     'block_ajax_marking'),
+                    'confDefault'         => get_string('confDefault',        'block_ajax_marking'),
 
                 );
 

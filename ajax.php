@@ -138,12 +138,40 @@ class ajax_marking_response extends ajax_marking_functions {
 
                         if ($count > 0) {
 
+                            $course_settings = $this->get_groups_settings('course', $course->id);
+
                             $this->output .= ','; // add a comma if there was a preceding course
                             $this->output .= '{';
 
                             $this->output .= '"id":"'       .$course->id.'",';
                             $this->output .= '"type":"config_course",';
-                            $this->output .= '"title":"'    .$this->clean_name_text($course->shortname, -2).'",';
+                            $this->output .= '"title":"';
+                            $this->output .= get_string('confCurrent', 'block_ajax_marking').': ';
+
+                            // add the current settings to the tooltip
+                            if (isset($course_settings->showhide)) {
+                                switch ($course_settings->showhide) {
+
+                                    case 1:
+                                        $this->output .= get_string('confCourseShow', 'block_ajax_marking');
+                                        break;
+
+                                    case 2:
+                                        $this->output .= get_string('confGroups', 'block_ajax_marking');
+                                        break;
+
+                                    case 3:
+                                        $this->output .= get_string('confCourseHide', 'block_ajax_marking');
+
+                                    //default:
+                                        //no settings
+                                        //$this->output .= get_string('confCourseShow', 'block_ajax_marking');
+                                }
+                            } else {
+                                $this->output .= get_string('confCourseShow', 'block_ajax_marking');
+                            }
+
+                            $this->output .= '",';
                             $this->output .= '"name":"'     .$this->clean_name_text($course->shortname).'",';
                             // to be used for the title
                             $this->output .= '"icon":"'     .$this->add_icon('course').'",';

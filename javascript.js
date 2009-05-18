@@ -156,6 +156,12 @@ YAHOO.AJAXmarking = {
                     break;
 
                 case 'config_set':
+
+                    // update the tooltip of this item
+                    YAHOO.AJAXmarking.nodeHolder.label = 'new label';
+                    YAHOO.AJAXmarking.nodeHolder.parent.refresh();
+                    //alert(YAHOO.AJAXmarking.nodeHolder.label);
+
                     //just need to un-disable the radio button
                     
                     if (responseArray[0].value === false) {
@@ -442,13 +448,25 @@ YAHOO.AJAXmarking = {
                         formDiv.appendChild(hidden3);
 
                         // For non courses, add a default checkbox that will remove the record
-                        makeBox('default',   'config0', amVariables.confDefault);
+                        if (oArgs.node.data.type != 'config_course') {
+                            makeBox('default',   'config0', amVariables.confDefault);
+                            // make the three main checkboxes, appending them to the form as we go along
+                            makeBox('show',   'config1', amVariables.confAssessmentShow);
+                            makeBox('groups', 'config2', amVariables.confGroups);
+                            makeBox('hide',   'config3', amVariables.confAssessmentHide);
+
+                        } else {
+                            makeBox('show',   'config1', amVariables.confCourseShow);
+                            makeBox('groups', 'config2', amVariables.confGroups);
+                            makeBox('hide',   'config3', amVariables.confCourseHide);
+
+                        }
 
 
                         // make the three main checkboxes, appending them to the form as we go along
-                        makeBox('show',   'config1', amVariables.confShow);
-                        makeBox('groups', 'config2', amVariables.confGroups);
-                        makeBox('hide',   'config3', amVariables.confHide);
+                        //makeBox('show',   'config1', amVariables.confAssessmentShow);
+                        //makeBox('groups', 'config2', amVariables.confGroups);
+                        //makeBox('hide',   'config3', amVariables.confAssessmentHide);
 
                         // now, we need to find out what the current group mode is and display that box as checked.
                         var AJAXUrl   = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
@@ -990,31 +1008,31 @@ YAHOO.AJAXmarking = {
        
         var checkNode = "";
         var parentNode = "";
+        var parentNode1 = null;
+        var parentNode2 = null;
+        var parentNode3 = null;
        
-        /// remove the node that was just marked
+        /// get the node that was just marked
         checkNode = AJAXtree.tree.getNodeByProperty("id", thisNodeId);
 
         // Now, we need to update all of the nodes up the tree hierarchy.
         // There are an uncertain number of levels, as different type have different 
         // sub-nodes, group nodes, etc
         parentNode  = AJAXtree.tree.getNodeByIndex(checkNode.parent.index);
+
+        // this will return null for journals with no groups, otherwise it will be the course node
         parentNode1 = AJAXtree.tree.getNodeByIndex(parentNode.parent.index);
         
-        // this will be the course node if there is a quiz or groups
-        if (parentNode1 && (typeof(parentNode1) != 'undefined') && !parentNode1.parent.isRoot()) { // the node above is not root so we need it
+        // parentNode2 will be the course node if there is a quiz or groups
+        if ((parentNode1 != null) && (!parentNode1.parent.isRoot())) { 
             parentNode2 = AJAXtree.tree.getNodeByIndex(parentNode1.parent.index);
-        } else {
-            parentNode2 = null;
-        }
+        } 
         
         // this will be the course node if there is both a quiz and groups
-        if ((typeof(parentNode2) != 'undefined') && (!parentNode2.parent.isRoot())) {
-            
+        if ((parentNode2 != null) && (!parentNode2.parent.isRoot())) {
             parentNode3 = AJAXtree.tree.getNodeByIndex(parentNode2.parent.index);
-        } else {
-            parentNode3 = null;
-        }
-
+        } 
+        // remove the node that was just marked
         AJAXtree.tree.removeNode(checkNode, true);
 
         YAHOO.AJAXmarking.parentUpdate(AJAXtree, parentNode);
