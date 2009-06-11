@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009051801;
+        $this->version = 2009061101;
     }
 	
     function specialization() {
@@ -76,16 +76,17 @@ class block_ajax_marking extends block_base {
 
             // Add a style to hide the HTML list if javascript is enabled in the client and AJAX is to be used
             if($CFG->enableajax && $USER->ajax) {
-                $this->content->text .= '<script type="text/javascript" defer="defer">
-                                            var styleElement = document.createElement("style");
-                                            styleElement.type = "text/css";
-                                            if (styleElement.styleSheet) {
-                                                styleElement.styleSheet.cssText = "#AMB_html_list { display: none; }";
-                                            } else {
-                                                styleElement.appendChild(document.createTextNode("#AMB_html_list { display: none; }"));
-                                            }
-                                            document.getElementsByTagName("head")[0].appendChild(styleElement);
-                                        </script>';
+                $this->content->text .= '
+                    <script type="text/javascript" defer="defer">
+                        var styleElement = document.createElement("style");
+                        styleElement.type = "text/css";
+                        if (styleElement.styleSheet) {
+                            styleElement.styleSheet.cssText = "#AMB_html_list { display: none; }";
+                        } else {
+                            styleElement.appendChild(document.createTextNode("#AMB_html_list { display: none; }"));
+                        }
+                        document.getElementsByTagName("head")[0].appendChild(styleElement);
+                    </script>';
             }
 
             // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if necessary
@@ -148,16 +149,15 @@ class block_ajax_marking extends block_base {
                    
                          var amVariables = {";
 
-                                           // loop through the variables above, printing them in the right format for javascript to pick up
-                                           $check = 0;
-                                           foreach ($variables as $variable => $value) {
-                                               if ($check > 0) {$this->content->text .= ", ";}
-                                               $this->content->text .= $variable.": '".$value."'";
-                                               $check ++;
-                                           }
-                //$this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_treeview', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json', 'yui_button'))."";
-                // this line adds the debug versions
-                $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_logger',  $CFG->wwwroot.'/lib/yui/treeview/treeview-debug.js', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json', 'yui_button'))."";
+                   // loop through the variables above, printing them in the right format for javascript to pick up
+                   $check = 0;
+                   foreach ($variables as $variable => $value) {
+                       if ($check > 0) {$this->content->text .= ", ";}
+                       $this->content->text .= $variable.": '".$value."'";
+                       $check ++;
+                   }
+                    // this line adds the debug versions
+                    $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_logger',  $CFG->wwwroot.'/lib/yui/treeview/treeview-debug.js', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json', 'yui_button'))."";
 
                 $this->content->text .=    "};
                     </script>
@@ -178,34 +178,79 @@ class block_ajax_marking extends block_base {
 
 
             } 
-            /*
-            } else {
-                // if ajax is not enabled
-
-                include('html_list.php');
-                $AMB_html_list_object = new html_list;
-                $this->content->text .= $AMB_html_list_object->make_html_list();
-
-                //$this->content->text .= 'This block requires you to enable \'AJAX and javascript\' in your <a href="'.$CFG->wwwroot.'/user/edit.php?id='.$USER->id.'&course=1">profile settings</a> (click \'show advanced\')';
-                $this->content->footer = '';
-                // if ajax is not enabled, we want to see the non-ajax list
-
-                 /*
-                include("html_list");
-               
-                
-                $this->content->text .= $initial_object->output;
-
-                  
-
-            }
-            */
+ 
         } // end of if has capability
         return $this->content;	
     }	
 	
     function instance_allow_config() {
         return false;
+    }
+
+    /**
+     * Runs the check for plugins after the first install.
+     */
+    function after_install() {
+
+        global $CFG;
+
+        $modules = array();
+        echo "<br /><br />Scanning site for modules which have an AJAX Marking Block plugin... <br /><br />";
+
+        // make a list of directories to check for module grading files
+        $installed_modules = get_list_of_plugins('mod');
+        $directories = array($CFG->dirroot.'/blocks/ajax_marking');
+        foreach ($installed_modules as $module) {
+            $directories[] = $CFG->dirroot.'/mod/'.$module;
+        }
+
+
+        // get installed module ids so that we can store these later
+        $comma_modules = array();
+        foreach($installed_modules as $key => $installed_module) {
+            $comma_modules[$key] = "'".$installed_module."'";
+        }
+        $comma_modules = implode(', ', $comma_modules);
+        $sql = "
+            SELECT name, id
+            FROM {$CFG->prefix}modules
+            WHERE name IN (".$comma_modules.")
+        ";
+        $module_ids = get_records_sql($sql);
+
+
+        // Get files in each directory and check if they fit the naming convention
+        foreach ($directories as $directory) {
+            $files = scandir($directory);
+
+            // check to see if they end in _grading.php
+            foreach ($files as $file) {
+                // this should lead to 'modulename' and 'grading.php'
+                $pieces = explode('_', $file);
+                if ((isset($pieces[1])) && ($pieces[1] == 'grading.php')) {
+
+                    // Only add modules that are installed and activated? Could causes problems when those modules are re-enabled
+                    if(in_array($pieces[0], $installed_modules)) {
+
+                        $modname = $pieces[0];
+
+                        // add the modulename part of the filename to the array
+                        $modules[$modname] = new stdClass;
+                        $modules[$modname]->name = $modname;
+                        $modules[$modname]->dir  = $directory;
+                        $modules[$modname]->id  = $module_ids[$modname]->id;
+                        
+
+                        echo "Registered $modname module <br />";
+                    }
+
+                }
+            }
+        }
+
+        echo '<br />For instructions on how to write extensions for this block, see the documentation on Moodle Docs<br /><br />';
+
+        set_config('modules', serialize($modules), 'block_ajax_marking');
     }
 }
 ?>

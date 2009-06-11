@@ -39,13 +39,25 @@ class html_list extends ajax_marking_functions {
                 // no students in this course
                 continue;
             }
+            
+            // see which modules are currently enabled
+            $sql = "
+                SELECT name 
+                FROM {$CFG->prefix}modules
+                WHERE visible = 1
+            ";
+            $enabledmods =  get_records_sql($sql);
+            $enabledmods = array_keys($enabledmods);
+           
+            // loop through each module, getting a count for this course id from each one.
             foreach ($this->modulesettings as $modname => $module) {
+                if(in_array($modname, $enabledmods)) {
 
-
-                $mod_output = $this->$modname->course_assessment_nodes($course->id, true);
-                if ($mod_output['count'] > 0) {
-                    $course_count  += $mod_output['count'];
-                    $course_output .= $mod_output['data'];
+                    $mod_output = $this->$modname->course_assessment_nodes($course->id, true);
+                    if ($mod_output['count'] > 0) {
+                        $course_count  += $mod_output['count'];
+                        $course_output .= $mod_output['data'];
+                    }
                 }
                 
             }

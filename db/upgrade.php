@@ -41,40 +41,38 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
      * If you have added your own extension, increment the version number in block_ajax_marking.php
      * to trigger this process
      */
-    if ($result && $oldversion >= 2009042901) {
+    $modules = array();
+    echo "<br /><br />Scanning site for modules which have an AJAX Marking Block plugin... <br />";
 
-        $modules = array();
-        echo "<br /><br />Scanning site for modules which have an AJAX Marking Block plugin... <br />";
+    // make a list of directories to check for module grading files
+    $installed_modules = get_list_of_plugins('mod');
+    $directories = array($CFG->dirroot.'/blocks/ajax_marking');
+    foreach ($installed_modules as $module) {
+        $directories[] = $CFG->dirroot.'/mod/'.$module;
+    }
 
-        // make a list of directories to check for module grading files
-        $installed_modules = get_list_of_plugins('mod');
-        $directories = array($CFG->dirroot.'/blocks/ajax_marking');
-        foreach ($installed_modules as $module) {
-            $directories[] = $CFG->dirroot.'/mod/'.$module;
-        }
-        
-        // get module ids so that we can store these later
-        $comma_modules = $installed_modules;
-        foreach($comma_modules as $key => $comma_module) {
-            $comma_modules[$key] = "'".$comma_module."'";
-        }
-        $comma_modules = implode(', ', $comma_modules);
-        $sql = "
-            SELECT name, id FROM {$CFG->prefix}modules
-            WHERE visible = 1
-            AND name IN (".$comma_modules.")
-        ";
-        $module_ids = get_records_sql($sql);
+    // get module ids so that we can store these later
+    $comma_modules = $installed_modules;
+    foreach($comma_modules as $key => $comma_module) {
+        $comma_modules[$key] = "'".$comma_module."'";
+    }
+    $comma_modules = implode(', ', $comma_modules);
+    $sql = "
+        SELECT name, id FROM {$CFG->prefix}modules
+        WHERE name IN (".$comma_modules.")
+    ";
+    $module_ids = get_records_sql($sql);
 
-        // Get files in each directory and check if they fit the naming convention
-        foreach ($directories as $directory) {
-            $files = scandir($directory);
+    // Get files in each directory and check if they fit the naming convention
+    foreach ($directories as $directory) {
+        $files = scandir($directory);
 
-            // check to see if they end in _grading.php
-            foreach ($files as $file) {
-                // this should lead to 'modulename' and 'grading.php'
-                $pieces = explode('_', $file);
-                if ((isset($pieces[1])) && ($pieces[1] == 'grading.php')) {
+        // check to see if they end in _grading.php
+        foreach ($files as $file) {
+            // this should lead to 'modulename' and 'grading.php'
+            $pieces = explode('_', $file);
+            if ((isset($pieces[1])) && ($pieces[1] == 'grading.php')) {
+                if(in_array($pieces[0], $installed_modules)) {
 
                     $modname = $pieces[0];
 
@@ -84,19 +82,18 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
                     $modules[$modname]->dir  = $directory;
                     $modules[$modname]->id   = $module_ids[$modname]->id;
 
-                    // Echo the message
-
-                   echo "Registered $modname module <br />";
-                   
+                    echo "Registered $modname module <br />";
                 }
+
             }
         }
-        
-        echo '<br />For instructions on how to write extensions for this block, see the documentation on Moodle Docs<br /><br />';
-
-        set_config('modules', serialize($modules), 'block_ajax_marking');
-
     }
+
+    echo '<br />For instructions on how to write extensions for this block, see the documentation on Moodle Docs<br /><br />';
+
+    set_config('modules', serialize($modules), 'block_ajax_marking');
+
+
 
     
     return $result;

@@ -301,7 +301,6 @@ YAHOO.AJAXmarking = {
                         switch (nd.data.type) {
 
                             case 'quiz_answer':
-
                                 popUpPost = 'mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid;
                                 popUpUrl = '/mod/quiz/report.php';
                                 popUpAddress += '/mod/quiz/report.php?mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'';
@@ -310,7 +309,7 @@ YAHOO.AJAXmarking = {
                                 break;
 
                             case 'assignment_answer':
-
+                                popUpArgs = 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';
                                 popUpPost = 'id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0';
                                 popUpUrl = '/mod/assignment/submissions.php';
                                 popUpAddress += '/mod/assignment/submissions.php?id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0';

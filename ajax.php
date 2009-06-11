@@ -72,9 +72,22 @@ class ajax_marking_response extends ajax_marking_functions {
                     if (!$this->student_ids->$courseid) {
                         continue;
                     }
+
+                    // see which modules are currently enabled
+                    $sql = "
+                        SELECT name 
+                        FROM {$CFG->prefix}modules
+                        WHERE visible = 1
+                    ";
+                    $enabledmods =  get_records_sql($sql);
+                    $enabledmods = array_keys($enabledmods);
+          
                     // loop through each module, getting a count for this course id from each one.
                     foreach ($this->modulesettings as $modname => $module) {
-                        $count += $this->$modname->count_course_submissions($courseid);
+                        //echo $modname;
+                        if(in_array($modname, $enabledmods)) {
+                            $count += $this->$modname->count_course_submissions($courseid);
+                        }
                     }
 
                     // TO DO: need to check in future for who has been assigned to mark them (new groups stuff) in 1.9
@@ -121,11 +134,6 @@ class ajax_marking_response extends ajax_marking_functions {
                 $this->output = '[{"type":"config_main"}';
 
                 if ($this->courses) { // might not be any available
-
-                    // tell each module to fetch all of the items that are gradable, even if they have no unmarked stuff waiting
-                   // foreach ($this->modulesettings as $modname => $module) {
-                    //    $this->$modname->get_all_gradable_items();
-                    //}
 
                     foreach ($this->courses as $course) {
                         // iterate through each course, checking permisions, counting assignments and

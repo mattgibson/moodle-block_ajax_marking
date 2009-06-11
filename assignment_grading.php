@@ -16,13 +16,12 @@ class assignment_functions extends module_base {
      */
     function assignment_functions(&$reference) {
 
-        //$this->ref = $reference;
         $this->mainobject = $reference;
         // must be the same as th DB modulename
-        $this->type = 'assignment';
+        $this->type       = 'assignment';
         $this->capability = 'mod/assignment:grade';
-        $this->levels = 3;
-        $this->icon = 'mod/assignment/icon.gif';
+        $this->levels     = 3;
+        $this->icon       = 'mod/assignment/icon.gif';
 
     }
 
@@ -53,7 +52,6 @@ class assignment_functions extends module_base {
          ";
          $this->all_submissions = get_records_sql($sql);
          return true;
-         //return $this->submissions;
     }
 
 
