@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009061101;
+        $this->version = 2009061501;
     }
 	
     function specialization() {
@@ -191,66 +191,12 @@ class block_ajax_marking extends block_base {
      * Runs the check for plugins after the first install.
      */
     function after_install() {
-
+        
         global $CFG;
 
-        $modules = array();
-        echo "<br /><br />Scanning site for modules which have an AJAX Marking Block plugin... <br /><br />";
+        include($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
+        AMB_update_modules();
 
-        // make a list of directories to check for module grading files
-        $installed_modules = get_list_of_plugins('mod');
-        $directories = array($CFG->dirroot.'/blocks/ajax_marking');
-        foreach ($installed_modules as $module) {
-            $directories[] = $CFG->dirroot.'/mod/'.$module;
-        }
-
-
-        // get installed module ids so that we can store these later
-        $comma_modules = array();
-        foreach($installed_modules as $key => $installed_module) {
-            $comma_modules[$key] = "'".$installed_module."'";
-        }
-        $comma_modules = implode(', ', $comma_modules);
-        $sql = "
-            SELECT name, id
-            FROM {$CFG->prefix}modules
-            WHERE name IN (".$comma_modules.")
-        ";
-        $module_ids = get_records_sql($sql);
-
-
-        // Get files in each directory and check if they fit the naming convention
-        foreach ($directories as $directory) {
-            $files = scandir($directory);
-
-            // check to see if they end in _grading.php
-            foreach ($files as $file) {
-                // this should lead to 'modulename' and 'grading.php'
-                $pieces = explode('_', $file);
-                if ((isset($pieces[1])) && ($pieces[1] == 'grading.php')) {
-
-                    // Only add modules that are installed and activated? Could causes problems when those modules are re-enabled
-                    if(in_array($pieces[0], $installed_modules)) {
-
-                        $modname = $pieces[0];
-
-                        // add the modulename part of the filename to the array
-                        $modules[$modname] = new stdClass;
-                        $modules[$modname]->name = $modname;
-                        $modules[$modname]->dir  = $directory;
-                        $modules[$modname]->id  = $module_ids[$modname]->id;
-                        
-
-                        echo "Registered $modname module <br />";
-                    }
-
-                }
-            }
-        }
-
-        echo '<br />For instructions on how to write extensions for this block, see the documentation on Moodle Docs<br /><br />';
-
-        set_config('modules', serialize($modules), 'block_ajax_marking');
     }
 }
 ?>
