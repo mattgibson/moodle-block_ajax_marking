@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009061501;
+        $this->version = 2009062001;
     }
 	
     function specialization() {
@@ -194,7 +194,7 @@ class block_ajax_marking extends block_base {
         
         global $CFG;
 
-        include($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
+        require_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
         AMB_update_modules();
 
     }
