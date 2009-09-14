@@ -1,9 +1,46 @@
 <?php
 
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+
+/**
+ * This is the file that contains all the code specific to the assignment module.
+ *
+ * @package   block-ajax_marking
+ * @copyright 2008 Matt Gibson
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 require_login(1, false);
 
 /**
- * preparing for the modularisation in future, all assignment relateed code should live in here
+ * Wrapper for the module_base class which adds the parts that deal with the assignment module.
+ *
+ * It adds these functions to the module_base class, so that the assignment_functions object can then provide the required data through
+ * a standard interface (although there is scope for the interface to be extended or scaled back for modules
+ * that need more or less than 3 levels of nodes e.g. the quiz module has extra functions because it
+ * has an extra level for quiz questions within each quiz and the journal module has only two levels because
+ * it doesn't show students work individually, only aggregated). All module specific files are included at the
+ * start of each request and a module object is instatiated ready to be used. For efficiency, only installed
+ * modules which have grading code available are included & instatiated, so there is a list kept in the block's
+ * config data saying which modules have available module_grading.php files based on a search conducted each time
+ * the block is upgraded by the {@link AMB_update_modules()} function.
+ *
+ * @copyright 2008 Matt Gibson
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class assignment_functions extends module_base {
 

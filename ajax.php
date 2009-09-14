@@ -1,21 +1,49 @@
 <?php
+
+
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+
 /**
- *  Block AJAX Marking -  Copyright Matt Gibson 2008
- *  
- *  This file contains the procedures for getting stuff from the database
- *  in order to create the nodes of the marking block YUI tree. 
- * 
- * Released under terms of the GPL v 3.0
+ * This is the file that is called by all the browser's ajax requests.
+ *
+ * It first includes the main lib.php fie that contains the base class which has all of the functions
+ * in it, then instantiates a new ajax_marking_response object which will process the request.
+ *
+ * @package   block-ajax_marking
+ * @copyright 2008 Matt Gibson                                       
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later 
  */
+
 include("../../config.php");
 require_login(1, false);
 include("lib.php");
 
-// TODO needed if possible but doesn't yet work as no session created yet?
-// if (!confirm_sesskey()) {
-//       echo 'session error';
-// }
-
+/**
+ * Wrapper for the main functions library class which adds the parts that deal with the AJAX request process.
+ *
+ * The block is used in two ways. Firstly when the PHP version is made, necessitating a HTML list of courses +
+ * assessment names, and secondly when an AJAX request is made, which requires a JSON response with just one
+ * set of nodes e.g. courses OR assessments OR student. The logic is that shared functions go in the base
+ * class and this is extended by either the ajax_marking_response class as here, or the HTML_list class
+ * in the html_list.php file.
+ *
+ * @copyright 2008 Matt Gibson
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 
 class ajax_marking_response extends ajax_marking_functions {
 
@@ -43,14 +71,11 @@ class ajax_marking_response extends ajax_marking_functions {
                 
                 $course_ids = NULL;
 
-                // admins will have a problem as they will see all the courses on the entire site
+                // admins will have a problem as they will see all the courses on the entire site. However, they may want this (CONTRIB-1017)
                 // TODO - this has big issues around language. role names will not be the same in diffferent translations.
 
                 // begin JSON array
                 $this->output = '[{"type":"main"}';
-
-                // get all unmarked submissions for all courses, so they can be sorted out later
-                //$this->get_main_level_data();
 
                 // iterate through each course, checking permisions, counting relevant assignment submissions and
                 // adding the course to the JSON output if any appear
@@ -148,7 +173,7 @@ class ajax_marking_response extends ajax_marking_functions {
 
                             $course_settings = $this->get_groups_settings('course', $course->id);
 
-                            $this->output .= ','; // add a comma if there was a preceding course
+                            $this->output .= ','; 
                             $this->output .= '{';
 
                             $this->output .= '"id":"'       .$course->id.'",';
