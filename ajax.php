@@ -80,21 +80,23 @@ class ajax_marking_response extends ajax_marking_functions {
                 // iterate through each course, checking permisions, counting relevant assignment submissions and
                 // adding the course to the JSON output if any appear
                 foreach ($this->courses as $course) {
-
+                    
+                    $courseid = '';
+                    $students = '';
+                    // set course assessments counter to 0
+                    $count = 0;
+                    
                     // show nothing if the course is hidden
                     if (!$course->visible == 1)  {
                         continue;
                     }
-
-                    // set course assessments counter to 0
-                    $count = 0;
 
                     $courseid = $course->id;
                     // we must make sure we only get work from enrolled students
                     $this->get_course_students($courseid);
 
                     // If there are no students, there's no point counting
-                    if (!$this->student_ids->$courseid) {
+                    if (!isset($this->student_ids->$courseid)) {
                         continue;
                     }
 
