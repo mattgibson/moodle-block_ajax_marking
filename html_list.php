@@ -30,7 +30,7 @@
  */
 
 
-require_login(1, false);
+require_login(0, false);
 include($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 
 /**
@@ -50,7 +50,7 @@ include($CFG->dirroot.'/blocks/ajax_marking/lib.php');
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-class html_list extends ajax_marking_functions {
+class AMB_html_list extends ajax_marking_functions {
 
 
     /**
@@ -63,6 +63,8 @@ class html_list extends ajax_marking_functions {
      *
      * The ul list can be recycled to make an accessible config tree in time.
      */
+
+    
     function make_html_list() {
 
         global $CFG;
@@ -70,14 +72,18 @@ class html_list extends ajax_marking_functions {
         $this->initial_setup(true);
 
         // get each module to do the sorting out - perhaps do this once when the request goes out first.
-        $html_list = '';
+        $this->html_list = '';
+
+     
         // Foreach course, ask each module for all of the nodes to be returned as an array, with each item having all the node details.
         foreach ($this->courses as $course) {
+            
+
             $course_output = '';
             $course_count = 0;
             $courseid = $course->id;
             $this->get_course_students($courseid);
-            if ((!isset($this->student_ids->$courseid)) || (!$this->student_ids->$courseid)) {
+            if ((!isset($this->student_ids->$courseid)) || empty($this->student_ids->$courseid)) {
                 // no students in this course
                 continue;
             }
@@ -103,35 +109,35 @@ class html_list extends ajax_marking_functions {
                 }
                 
             }
+            
             if ($course_count > 0) {
                 
-                $html_list .= '<ul class="AMB_html">';
-                $html_list .=     '<li class="AMB_html_course">'.$this->add_icon('course').'<strong>('.$course_count.')</strong> '.$course->shortname.'</li>';
-                $html_list .=     '<ul class="AMB_html_items">';
-                $html_list .=         $course_output;
-                $html_list .=     '</ul>';
-                $html_list .= '</ul>';
+                $this->html_list .= '<ul class="AMB_html">';
+                $this->html_list .=     '<li class="AMB_html_course">'.$this->add_icon('course').'<strong>('.$course_count.')</strong> '.$course->shortname.'</li>';
+                $this->html_list .=     '<ul class="AMB_html_items">';
+                $this->html_list .=         $course_output;
+                $this->html_list .=     '</ul>';
+                $this->html_list .= '</ul>';
             }
+             
+             
         }
-        if ($html_list) {
-            return $html_list;
+
+  
+
+        if ($this->html_list) {
+            return $this->html_list;
         } else {
             return get_string('nothing', 'block_ajax_marking');
         }
 
+ 
+
     }// end function
 
+    
+
 }
-
-
-
-
-
-
-
-
-
-
 
 
 ?>

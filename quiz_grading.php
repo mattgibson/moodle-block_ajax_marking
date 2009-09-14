@@ -1,6 +1,6 @@
 <?php
 
-require_login(1, false);
+require_login(0, false);
 
 class quiz_functions extends module_base {
 

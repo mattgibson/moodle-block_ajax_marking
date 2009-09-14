@@ -42,16 +42,18 @@ class ajax_marking_functions {
     /**
      * Setup of inital variables, run every time.
      */
-    function initial_setup($html=NULL) {
+    function initial_setup($html=false) {
 
         $this->output            = '';
         $this->config            = false;
         $this->student_ids       = '';
         $this->student_array     = '';
         $this->student_details   = array();
+
         if ($html) {
             $this->type = 'html';
         }
+       
         global $USER, $CFG;
 
         // show/hide constants for config settings
@@ -71,6 +73,8 @@ class ajax_marking_functions {
                 $this->get_teachers();
             }
         }
+ 
+ 
         // only the main nodes need groups.
         $get_my_groups_types = array('html', 'main', 'course', 'assignment', 'workshop', 'forum', 'quiz_question', 'quiz', 'journal');
         if (in_array($this->type, $get_my_groups_types)) {
@@ -83,18 +87,10 @@ class ajax_marking_functions {
 
         // TODO - move this to upgrade.php and store the modules array in the block config table.
 
-
-        //$modstring = ;
         $this->modulesettings = unserialize(get_config('block_ajax_marking', 'modules'));
-       // print_r($this->modulesettings);
-
-        //$this->modules = array();
 
         // instantiate function classes for each of the available modules and store them in the modules object
         foreach ($this->modulesettings as $modname => $module) {
-
-            //$modname = $module->name;
-            //$this->modules[$modname] = $module;
 
             include("{$module->dir}/{$modname}_grading.php");
             $classname = $modname.'_functions';
@@ -106,17 +102,18 @@ class ajax_marking_functions {
         // get all configuration options set by this user
         $sql                     = "SELECT * FROM {$CFG->prefix}block_ajax_marking WHERE userid = $USER->id";
         $this->groupconfig       = get_records_sql($sql);
+ 
+ 
     }
 
-   
 
-        /**
-         * Formats the summary text so that it works in the tooltips without odd characters
-         *
-         * @param <type> $text the summary text to formatted
-         * @param <type> $stripbr optional flag which removes <strong> tags
-         * @return <type>
-         */
+    /**
+     * Formats the summary text so that it works in the tooltips without odd characters
+     *
+     * @param <type> $text the summary text to formatted
+     * @param <type> $stripbr optional flag which removes <strong> tags
+     * @return <type>
+     */
 
 	function clean_summary_text($text, $stripbr=true) {
             if ($stripbr == true) {
@@ -127,15 +124,15 @@ class ajax_marking_functions {
             return $text;
 	}
 
-        /**
-         * this function controls how long the names will be in the block. different levels need different lengths as the tree indenting varies.
-         * the aim is for all names to reach as far to the right as possible without causing a line break. Forum discussions will be clipped
-	 * if you don't alter that setting in forum_submissions()
-         * @param <type> $text
-         * @param <type> $level - how many characters to stip, corresponding roughly with how far into the tree we are.
-         * @param <type> $stripbr
-         * @return <type>
-         */
+    /**
+     * this function controls how long the names will be in the block. different levels need different lengths as the tree indenting varies.
+     * the aim is for all names to reach as far to the right as possible without causing a line break. Forum discussions will be clipped
+     * if you don't alter that setting in forum_submissions()
+     * @param <type> $text
+     * @param <type> $level - how many characters to stip, corresponding roughly with how far into the tree we are.
+     * @param <type> $stripbr
+     * @return <type>
+     */
 
 	function clean_name_text($text,  $length=false, $stripbr=true) {
 		

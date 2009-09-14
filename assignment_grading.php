@@ -24,7 +24,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_login(1, false);
+require_login(0, false);
 
 /**
  * Wrapper for the module_base class which adds the parts that deal with the assignment module.

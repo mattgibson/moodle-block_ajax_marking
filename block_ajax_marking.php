@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009062001;
+        $this->version = 2009091401;
     }
 	
     function specialization() {
@@ -91,11 +91,15 @@ class block_ajax_marking extends block_base {
 
             // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if necessary
             include('html_list.php');
-            $AMB_html_list_object = new html_list;
+            $AMB_html_list_object = new AMB_html_list;
             $this->content->text .= '<div id="AMB_html_list">';
             $this->content->text .= $AMB_html_list_object->make_html_list();
             $this->content->text .= '</div>';
             $this->content->footer = '';
+           // if ($CFG->debug > 0) {
+                // temporary debug output
+           //     $this->content->footer .= "html footer";
+           // }
 
             if($CFG->enableajax && $USER->ajax) {
                 // Seeing as the site and user both want to use AJAX,
@@ -167,7 +171,7 @@ class block_ajax_marking extends block_base {
                 </script>";
 
                 // TODO- make this dynamically so it doesn't show up without AJAX.
-                $this->content->footer = '
+                $this->content->footer .= '
                     <div id="conf_left">
                         <!-- <a href="javascript:" onclick="AJAXmarking.refreshTree(AJAXmarking.main); return false">'.get_string("collapse", "block_ajax_marking").'</a> -->
                     </div>

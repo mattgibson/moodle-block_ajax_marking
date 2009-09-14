@@ -157,9 +157,9 @@ YAHOO.AJAXmarking = {
 
                 case 'config_set':
 
-                    // update the tooltip of this item
-                    YAHOO.AJAXmarking.nodeHolder.label = 'new label';
-                    YAHOO.AJAXmarking.nodeHolder.parent.refresh();
+                    // update the tooltip of this item -- experimental: might want to show current status in the tree
+                    //YAHOO.AJAXmarking.nodeHolder.label = 'new label';
+                    // YAHOO.AJAXmarking.nodeHolder.parent.refresh();
                     //alert(YAHOO.AJAXmarking.nodeHolder.label);
 
                     //just need to un-disable the radio button
@@ -228,9 +228,10 @@ YAHOO.AJAXmarking = {
 
         // make the array of nodes
         var nodesLeng = nodesArray.length;
-        // the array is empty, so say there is nothing to mark
+
+        // if the array is empty, say that there is nothing to mark
         if (nodesLeng === 0) {
-            if (AJAXtree.treeDiv === 'treediv') {
+            if (AJAXtree.config) {
                 label = document.createTextNode(amVariables.configNothingString);
             } else {
                 label = document.createTextNode(amVariables.nothingString);
@@ -238,12 +239,15 @@ YAHOO.AJAXmarking = {
             AJAXtree.div.appendChild(label);
             AJAXtree.icon.removeAttribute('class', 'loaderimage');
             AJAXtree.icon.removeAttribute('className', 'loaderimage');
+            if (!document.getElementById('AMBcollapse')) {
+                YAHOO.AJAXmarking.makeFooter();
+            }
         } else { 
             // there is a tree to be drawn
 
             // cycle through the array and make the nodes
             for (n=0;n<nodesLeng;n++) {
-                if (AJAXtree.treeDiv === 'treediv') { //only show the marking totals if its not a config tree
+                if (!AJAXtree.config) { //only show the marking totals if its not a config tree
                     label = '('+nodesArray[n].count+') '+nodesArray[n].name;
                 } else {
                     label = nodesArray[n].name;
@@ -289,11 +293,10 @@ YAHOO.AJAXmarking = {
                         var popUpArgs = 'menubar=0,location=0,scrollbars,resizable,width=780,height=500';
                         var timerFunction = '';
                         var popUpUrl = '';
+
                         // not used yet - waiting to get web services going so this can be ana ajax call for a panel widget
                         var popUpPost = '';
                         
-                        
-
                         if (nd.data.dynamic == 'true') {
                             return true;
                         }
@@ -423,8 +426,6 @@ YAHOO.AJAXmarking = {
                         // grey out the form before ajax call - it will be un-greyed later
                         formDiv.style.color = '#AAA';
 
-                       
-
                         // add hidden variables so they can be used for the later AJAX calls
                         // If it's a course, we send things a bit differently
                        
@@ -485,6 +486,7 @@ YAHOO.AJAXmarking = {
                     }
                 );
             }
+
         }
     },
 
