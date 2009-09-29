@@ -63,6 +63,7 @@ class ajax_marking_response extends ajax_marking_functions {
         $this->get_variables();
         $this->initial_setup();
 
+        // The type here refers to what was clicked, or sets up the tree in the case of 'main' and 'config_main'
         switch ($this->type) {
         
         

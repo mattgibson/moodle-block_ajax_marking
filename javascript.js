@@ -1,9 +1,9 @@
 // JavaScript for the AJAX marking block
 
 
-YAHOO.namespace('AJAXmarking');
+YAHOO.namespace('ajax_marking_block');
 
-YAHOO.AJAXmarking = {
+YAHOO.ajax_marking_block = {
 
     // the following 2 variables sometimes hold different things e.g. user id or submission
     // this holds the assessment id so it can be accessed by other functions
@@ -41,7 +41,7 @@ YAHOO.AJAXmarking = {
      * @ the tree loadcounter (what was this for?)
      * @ the tree ajaxcallback function (same for both?)
      */
-    ajaxBuild : function(tree) {
+    build_ajax_tree : function(tree) {
 
         var sUrl = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
         var postData = '';
@@ -56,7 +56,7 @@ YAHOO.AJAXmarking = {
                 postData = 'id='+amVariables.userid+'&type=main&userid='+amVariables.userid;
             }
 
-            var request = YAHOO.util.Connect.asyncRequest('POST', sUrl, AJAXmarkingCallback, postData);
+            var request = YAHOO.util.Connect.asyncRequest('POST', sUrl, ajax_marking_block_callback, postData);
             tree.loadCounter = 1;
         }
     },
@@ -65,7 +65,7 @@ YAHOO.AJAXmarking = {
      * ajax success function which checks the data coming in and calls the right function.
      * @
      */
-    AJAXsuccess : function (o) {
+    ajax_success_handler : function (o) {
 
         var type = null;
         var responseArray = null;
@@ -86,14 +86,14 @@ YAHOO.AJAXmarking = {
 
             // add it to the panel
 
-            //YAHOO.AJAXmarking.greyOut.setBody(o.responseText);
+            //YAHOO.ajax_marking_block.greyOut.setBody(o.responseText);
 
-            //YAHOO.AJAXmarking.greyOut.beforeHideEvent.subscribe(function() {
+            //YAHOO.ajax_marking_block.greyOut.beforeHideEvent.subscribe(function() {
 
             //});
 
-            //YAHOO.AJAXmarking.greyOut.render(document.body);
-            //YAHOO.AJAXmarking.greyOut.show();
+            //YAHOO.ajax_marking_block.greyOut.render(document.body);
+            //YAHOO.ajax_marking_block.greyOut.show();
 
   
         }
@@ -109,42 +109,42 @@ YAHOO.AJAXmarking = {
 
                 case 'main':
 
-                    YAHOO.AJAXmarking.makeCourseNodes(responseArray, YAHOO.AJAXmarking.main);
+                    YAHOO.ajax_marking_block.build_course_nodes(responseArray, YAHOO.ajax_marking_block.main);
                     break;
 
                 case 'course':
 
-                    YAHOO.AJAXmarking.makeAssessmentNodes(responseArray, YAHOO.AJAXmarking.main);
-                    YAHOO.AJAXmarking.ie_width();
+                    YAHOO.ajax_marking_block.build_assessment_nodes(responseArray, YAHOO.ajax_marking_block.main);
+                    YAHOO.ajax_marking_block.adjust_width_for_ie();
                     break;
 
                 // this replaces the ones above and below
                 case 'assessments':
-                    YAHOO.AJAXmarking.makeAssessmentNodes(responseArray, YAHOO.AJAXmarking.main);
+                    YAHOO.ajax_marking_block.build_assessment_nodes(responseArray, YAHOO.ajax_marking_block.main);
                     break;
 
                 case 'quiz_question':
-                    YAHOO.AJAXmarking.makeAssessmentNodes(responseArray, YAHOO.AJAXmarking.main);
+                    YAHOO.ajax_marking_block.build_assessment_nodes(responseArray, YAHOO.ajax_marking_block.main);
                     break;
 
                 case 'groups':
 
-                    YAHOO.AJAXmarking.makeGroupNodes(responseArray, YAHOO.AJAXmarking.main);
+                    YAHOO.ajax_marking_block.build_group_nodes(responseArray, YAHOO.ajax_marking_block.main);
                     break;
 
                 case 'submissions':
 
-                    YAHOO.AJAXmarking.makeSubmissionNodes(responseArray, YAHOO.AJAXmarking.main);
+                    YAHOO.ajax_marking_block.build_submission_nodes(responseArray, YAHOO.ajax_marking_block.main);
                     break;
 
                 case 'config_main':
 
-                    YAHOO.AJAXmarking.makeCourseNodes(responseArray, YAHOO.AJAXmarking.config);
+                    YAHOO.ajax_marking_block.build_course_nodes(responseArray, YAHOO.ajax_marking_block.config);
                     break;
 
                 case 'config_course':
 
-                    YAHOO.AJAXmarking.makeAssessmentNodes(responseArray, YAHOO.AJAXmarking.config);
+                    YAHOO.ajax_marking_block.build_assessment_nodes(responseArray, YAHOO.ajax_marking_block.config);
                     break;
 
                 case 'config_groups':
@@ -152,24 +152,24 @@ YAHOO.AJAXmarking = {
                     // called when the groups settings have been updated.
 
                     // TODO - only change the select value, don't totally re build them
-                    YAHOO.AJAXmarking.makeConfigGroupsList(responseArray, YAHOO.AJAXmarking.config);
+                    YAHOO.ajax_marking_block.make_config_groups_list(responseArray, YAHOO.ajax_marking_block.config);
                     break;
 
                 case 'config_set':
 
                     // update the tooltip of this item -- experimental: might want to show current status in the tree
-                    //YAHOO.AJAXmarking.nodeHolder.label = 'new label';
-                    // YAHOO.AJAXmarking.nodeHolder.parent.refresh();
-                    //alert(YAHOO.AJAXmarking.nodeHolder.label);
+                    //YAHOO.ajax_marking_block.nodeHolder.label = 'new label';
+                    // YAHOO.ajax_marking_block.nodeHolder.parent.refresh();
+                
 
                     //just need to un-disable the radio button
                     
                     if (responseArray[0].value === false) {
                         label = document.createTextNode(amVariables.configNothingString);
-                        YAHOO.AJAXmarking.removeNodes(YAHOO.AJAXmarking.config.status);
-                        YAHOO.AJAXmarking.config.status.appendChild(label);
+                        YAHOO.ajax_marking_block.remove_all_child_nodes(YAHOO.ajax_marking_block.config.status);
+                        YAHOO.ajax_marking_block.config.status.appendChild(label);
                     } else {
-                        YAHOO.AJAXmarking.enableRadio();
+                        YAHOO.ajax_marking_block.enable_config_radio_buttons();
                     }
                     break;
 
@@ -186,18 +186,18 @@ YAHOO.AJAXmarking = {
                         // remove the config bit leaving just the groups, which were tacked onto the end of the returned array
                         responseArray.shift();
                         //make the groups bit
-                        YAHOO.AJAXmarking.makeConfigGroupsList(responseArray);
+                        YAHOO.ajax_marking_block.make_config_groups_list(responseArray);
                     }
                     //allow the radio buttons to be clicked again
-                    YAHOO.AJAXmarking.enableRadio();
+                    YAHOO.ajax_marking_block.enable_config_radio_buttons();
                     break;
 
                 case 'config_group_save':
 
                     if (responseArray[0].value === false) {
-                        YAHOO.AJAXmarking.config.status.innerHTML = 'AJAX error';
+                        YAHOO.ajax_marking_block.config.status.innerHTML = 'AJAX error';
                     } else {
-                        YAHOO.AJAXmarking.enableRadio();
+                        YAHOO.ajax_marking_block.enable_config_radio_buttons();
                     }
 
                     break;
@@ -210,7 +210,7 @@ YAHOO.AJAXmarking = {
      * function which fires if the AJAX call fails
      * TODO: why does this not fire when the connection times out?
      */
-    AJAXfailure : function (o) {
+    ajax_failure_handler : function (o) {
         if (o.tId == -1) {
             div.innerHTML =  amVariables.collapseString;
         }
@@ -222,13 +222,12 @@ YAHOO.AJAXmarking = {
     /**
      * Creates the initial nodes for both the main block tree or configuration tree.
      */
-    makeCourseNodes : function(nodesArray, AJAXtree) {
+    build_course_nodes : function(nodesArray, AJAXtree) {
 
         var label = '';
 
         // make the array of nodes
         var nodesLeng = nodesArray.length;
-
         // if the array is empty, say that there is nothing to mark
         if (nodesLeng === 0) {
             if (AJAXtree.config) {
@@ -236,11 +235,13 @@ YAHOO.AJAXmarking = {
             } else {
                 label = document.createTextNode(amVariables.nothingString);
             }
-            AJAXtree.div.appendChild(label);
+            messageDiv = document.createElement('div');
+            messageDiv.appendChild(label);
+            AJAXtree.div.appendChild(messageDiv);
             AJAXtree.icon.removeAttribute('class', 'loaderimage');
             AJAXtree.icon.removeAttribute('className', 'loaderimage');
             if (!document.getElementById('AMBcollapse')) {
-                YAHOO.AJAXmarking.makeFooter();
+                YAHOO.ajax_marking_block.make_footer();
             }
         } else { 
             // there is a tree to be drawn
@@ -259,7 +260,7 @@ YAHOO.AJAXmarking = {
                 // AJAXtree.textNodeMap[tmpNode1.labelElId] = tmpNode1;
 
                 tmpNode1.labelStyle = 'icon-course';
-                tmpNode1.setDynamicLoad(YAHOO.AJAXmarking.loadNodeData);
+                tmpNode1.setDynamicLoad(YAHOO.ajax_marking_block.request_node_data);
             }
 
             // now make the tree, add the total at the top and remove the loading icon
@@ -276,9 +277,9 @@ YAHOO.AJAXmarking = {
                 // Alter total count above tree
                 label = document.createTextNode(amVariables.totalMessage);
                 var total = document.getElementById('totalmessage');
-                YAHOO.AJAXmarking.removeNodes(total);
+                YAHOO.ajax_marking_block.remove_all_child_nodes(total);
                 total.appendChild(label);
-                YAHOO.AJAXmarking.updateTotal();
+                YAHOO.ajax_marking_block.update_total_count();
 
                 // this function is the listener for the main tree. Event bubbling means that this will catch all node clicks
                 AJAXtree.tree.subscribe(
@@ -307,7 +308,7 @@ YAHOO.AJAXmarking = {
                                 popUpPost = 'mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid;
                                 popUpUrl = '/mod/quiz/report.php';
                                 popUpAddress += '/mod/quiz/report.php?mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'';
-                                timerFunction = 'YAHOO.AJAXmarking.quizOnLoad(\''+nd.data.id+'\')';
+                                timerFunction = 'YAHOO.ajax_marking_block.alter_quiz_popup(\''+nd.data.id+'\')';
 
                                 break;
 
@@ -316,8 +317,8 @@ YAHOO.AJAXmarking = {
                                 popUpPost = 'id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0';
                                 popUpUrl = '/mod/assignment/submissions.php';
                                 popUpAddress += '/mod/assignment/submissions.php?id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0';
-                                timerFunction = function() {YAHOO.AJAXmarking.assignmentOnLoad(nd.data.id, nd.data.sid);};
-                                // timerFunction = 'YAHOO.AJAXmarking.assignmentOnLoad(\''+nd.data.id+'\', \''+nd.data.sid+'\')';
+                                timerFunction = function() {YAHOO.ajax_marking_block.alter_assignment_popup(nd.data.id, nd.data.sid);};
+                                // timerFunction = 'YAHOO.ajax_marking_block.alter_assignment_popup(\''+nd.data.id+'\', \''+nd.data.sid+'\')';
                                 break;
 
                             case 'workshop_answer':
@@ -325,7 +326,7 @@ YAHOO.AJAXmarking = {
                                 popUpPost = 'id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+amVariables.wwwroot;
                                 popUpUrl = '/mod/workshop/assess.php';
                                 popUpAddress += '/mod/workshop/assess.php?id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+amVariables.wwwroot+'';
-                                timerFunction = 'YAHOO.AJAXmarking.workshopOnLoad(\''+nd.data.id+'\')';
+                                timerFunction = 'YAHOO.ajax_marking_block.alter_workshop_popup(\''+nd.data.id+'\')';
                                 break;
 
                             case 'discussion':
@@ -334,7 +335,7 @@ YAHOO.AJAXmarking = {
                                 popUpUrl = '/mod/forum/discuss.php';
                                 
                                 popUpAddress += '/mod/forum/discuss.php?d='+nd.data.aid+'#p'+nd.data.sid;
-                                timerFunction = 'YAHOO.AJAXmarking.forumOnLoad(\''+nd.data.id+'\')';
+                                timerFunction = 'YAHOO.ajax_marking_block.alter_forum_popup(\''+nd.data.id+'\')';
                                 break;
 
                             case 'journal':
@@ -347,29 +348,29 @@ YAHOO.AJAXmarking = {
                                 // TODO this is for the level 2 ones where there are group nodes that lead to
                                 // a pop-up. Need to make this dynamic - the extension to the url may differ.
                                 ((typeof(nd.data.group)) != 'undefined') ? popUpAddress += '&group='+nd.data.group+'' : popUpAddress += '' ;
-                                timerFunction = function() {YAHOO.AJAXmarking.journalOnLoad(nd.data.id);};
-                                // timerFunction = 'YAHOO.AJAXmarking.journalOnLoad(\''+nd.data.id+'\')';
+                                timerFunction = function() {YAHOO.ajax_marking_block.alter_journal_popup(nd.data.id);};
+                                // timerFunction = 'YAHOO.ajax_marking_block.alter_journal_popup(\''+nd.data.id+'\')';
                                 break;
                         }
 
                         if (timerFunction !== '') {
 
                             // make a panel if it's not there already - can we use the one from greyout?
-                            // if (!YAHOO.AJAXmarking.greyOut) {
-                            //    YAHOO.AJAXmarking.makePanel();
+                            // if (!YAHOO.ajax_marking_block.greyOut) {
+                            //    YAHOO.ajax_marking_block.initialise_config_panel();
                             // }
-                            // var request = YAHOO.util.Connect.asyncRequest('POST', popUpUrl, AJAXmarkingCallback, popUpPost);
+                            // var request = YAHOO.util.Connect.asyncRequest('POST', popUpUrl, ajax_marking_block_callback, popUpPost);
                             // Prepare the vaiables above
 
                             // make a new AJAX call
                             
 
-                            YAHOO.AJAXmarking.windowobj = window.open(popUpAddress, '_blank', popUpArgs);
-                            YAHOO.AJAXmarking.timerVar  = window.setInterval(timerFunction, 2000);
-                            //YAHOO.util.Event.addListener(YAHOO.AJAXmarking.windowobj, 'load', timerFunction);
-                            //YAHOO.AJAXmarking.windowobj.location.href = popUpAddress;
+                            YAHOO.ajax_marking_block.windowobj = window.open(popUpAddress, '_blank', popUpArgs);
+                            YAHOO.ajax_marking_block.timerVar  = window.setInterval(timerFunction, 2000);
+                            //YAHOO.util.Event.addListener(YAHOO.ajax_marking_block.windowobj, 'load', timerFunction);
+                            //YAHOO.ajax_marking_block.windowobj.location.href = popUpAddress;
 
-                            YAHOO.AJAXmarking.windowobj.focus();
+                            YAHOO.ajax_marking_block.windowobj.focus();
                                 
 
                             return false;
@@ -379,7 +380,7 @@ YAHOO.AJAXmarking = {
                 );
                 // Make the footer divs if they don't exist
                 if (!document.getElementById('AMBcollapse')) {
-                    YAHOO.AJAXmarking.makeFooter();
+                    YAHOO.ajax_marking_block.make_footer();
                 }
 
             } else { 
@@ -404,7 +405,7 @@ YAHOO.AJAXmarking = {
                             box.value = value;
                             box.id    = id;
                             box.onclick = function() {
-                                YAHOO.AJAXmarking.configCheckboxAJAXRequest(this);
+                                YAHOO.ajax_marking_block.request_config_checkbox_data(this);
                             };
                             formDiv.appendChild(box);
 
@@ -416,7 +417,7 @@ YAHOO.AJAXmarking = {
                         }
 
                         // remove group nodes from the previous item if they are there.
-                        YAHOO.AJAXmarking.clearGroupConfig();
+                        YAHOO.ajax_marking_block.remove_config_groups();
                         
                         var title   = document.getElementById('configInstructions');
                         title.innerHTML = oArgs.node.data.icon+oArgs.node.data.name;
@@ -480,7 +481,7 @@ YAHOO.AJAXmarking = {
                             AJAXdata += '&assessmenttype=course';
                             AJAXdata += '&type=config_check';
                         }
-                        var request   = YAHOO.util.Connect.asyncRequest('POST', AJAXUrl, AJAXmarkingCallback, AJAXdata);
+                        var request   = YAHOO.util.Connect.asyncRequest('POST', AJAXUrl, ajax_marking_block_callback, AJAXdata);
 
                         return true;
                     }
@@ -491,13 +492,13 @@ YAHOO.AJAXmarking = {
     },
 
     /**
-     * Obsolete function to make tooltips for the whole tree using YUI container widget. Overkill, so disabled
+     * Obsolete function to make add_tooltips for the whole tree using YUI container widget. Overkill, so disabled
      */
-    tooltips : function(tree) {
+    add_tooltips : function(tree) {
 
         var name = navigator.appName;
         if (name.search('iPhone') == -1) {
-            // this is disabled for IE because, although useful, in IE6 (assuming others too) the tooltips seem to sometimes remain as an invisible div on top
+            // this is disabled for IE because, although useful, in IE6 (assuming others too) the add_tooltips seem to sometimes remain as an invisible div on top
             // of the tree structure once nodes has expanded, so that some of the child nodes are unclickable. Firefox is ok with it. This is a pain
             // because a person may not remember the full details of the assignment that was set and a tooltip is better than leaving the front page.
             // I will re-enable it once I find a fix
@@ -508,35 +509,35 @@ YAHOO.AJAXmarking = {
             var m = 0;
             var n = 0;
            
-            if (tree.div != 'treeDiv') {
+            if (ajax_marking_block.config) {
                 return false;
             }
             // 1. all courses loop
             var numberOfCourses = tree.root.children.length;
             for (i=0;i<numberOfCourses;i++) {
                 node = tree.root.children[i];
-                YAHOO.AJAXmarking.make_tooltip(node);
+                YAHOO.ajax_marking_block.make_tooltip(node);
                 var numberOfAssessments = tree.root.children[i].children.length;
                 for (j=0;j<numberOfAssessments;j++) {
                     // assessment level
                     node = tree.root.children[i].children[j];
-                    YAHOO.AJAXmarking.make_tooltip(node);
+                    YAHOO.ajax_marking_block.make_tooltip(node);
                     var numberOfThirdLevelNodes = tree.root.children[i].children[j].children.length;
                     for (k=0;k<numberOfThirdLevelNodes;k++) {
                         // users level (or groups)
                         node = tree.root.children[i].children[j].children[k];
                         check = node.data.time;
                         if (typeof(check) !== null) {
-                            YAHOO.AJAXmarking.make_tooltip(node);
+                            YAHOO.ajax_marking_block.make_tooltip(node);
                         }
                         var numberOfFourthLevelNodes = node.children.length;
                         for (m=0;m<numberOfFourthLevelNodes;m++) {
                             node = tree.root.children[i].children[j].children[k].children[m];
-                            YAHOO.AJAXmarking.make_tooltip(node);
+                            YAHOO.ajax_marking_block.make_tooltip(node);
                             var numberOfFifthLevelNodes = node.children.length;
                             for (n=0;n<numberOfFifthLevelNodes;n++) {
                                 node = tree.root.children[i].children[j].children[k].children[m].children[n];
-                                YAHOO.AJAXmarking.make_tooltip(node);
+                                YAHOO.ajax_marking_block.make_tooltip(node);
                             }
                         }
                     }
@@ -552,7 +553,7 @@ YAHOO.AJAXmarking = {
      * returned a success code.
      *
      */
-    enableRadio : function() {
+    enable_config_radio_buttons : function() {
         var h ='';
         var radio = document.getElementById('configshowform');
         radio.style.color = '#000';
@@ -577,7 +578,7 @@ YAHOO.AJAXmarking = {
     /**
      * This function disables the radio buttons when AJAX request is sent
      */
-    disableRadio : function() {
+    disable_config_radio_buttons : function() {
         var h ='';
         var radio = document.getElementById('configshowform');
         radio.style.color = '#AAA';
@@ -600,11 +601,11 @@ YAHOO.AJAXmarking = {
     /**
      * this function is called when a node is clicked (expanded) and makes the ajax request
      */
-    loadNodeData : function(node, onCompleteCallback) {
+    request_node_data : function(node, onCompleteCallback) {
 
         /// store details of the node that has been clicked in globals for reference by later callback function
-        YAHOO.AJAXmarking.nodeHolder = node;
-        YAHOO.AJAXmarking.compHolder = onCompleteCallback;
+        YAHOO.ajax_marking_block.nodeHolder = node;
+        YAHOO.ajax_marking_block.compHolder = onCompleteCallback;
 
         /// request data using AJAX
         var sUrl = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
@@ -619,7 +620,7 @@ YAHOO.AJAXmarking = {
             postData += '&quizid='+node.parent.data.id;
         } 
 
-        var request = YAHOO.util.Connect.asyncRequest('POST', sUrl, AJAXmarkingCallback, postData);
+        var request = YAHOO.util.Connect.asyncRequest('POST', sUrl, ajax_marking_block_callback, postData);
     },
 
 
@@ -628,7 +629,7 @@ YAHOO.AJAXmarking = {
      * function to update the parent assessment node when it is refreshed dynamically so that
      * if more work has been found, or a piece has now been marked, the count for that label will be accurate
      */
-    parentUpdate : function(AJAXtree, node) {
+    update_parent_node : function(AJAXtree, node) {
 
         var counter = node.children.length;
 
@@ -645,10 +646,10 @@ YAHOO.AJAXmarking = {
                     tempCount += parseInt(tempStr, 10);
                 }
 
-                YAHOO.AJAXmarking.countAlter(node, tempCount);
+                YAHOO.ajax_marking_block.update_node_count(node, tempCount);
             } else {
                 // its an assessment node, so we count the children
-                YAHOO.AJAXmarking.countAlter(node, counter);
+                YAHOO.ajax_marking_block.update_node_count(node, counter);
             }
 
             // TODO - does this still work?
@@ -659,18 +660,18 @@ YAHOO.AJAXmarking = {
 
 
     /**
-     * function to create tooltips. When root.refresh() is called it somehow wipes
-     * out all the tooltips, so it is necessary to rebuild them
+     * function to create add_tooltips. When root.refresh() is called it somehow wipes
+     * out all the add_tooltips, so it is necessary to rebuild them
      * each time part of the tree is collapsed or expanded
-     * tooltips for the courses are a bit pointless, so its just the assignments and submissions
+     * add_tooltips for the courses are a bit pointless, so its just the assignments and submissions
      *
      *
-     * n.b. the width of the tooltips is fixed because not specifying it makes them go narrow in IE6. making them 100% works fine in IE6 but makes FF
+     * n.b. the width of the add_tooltips is fixed because not specifying it makes them go narrow in IE6. making them 100% works fine in IE6 but makes FF
      * stretch them across the whole page. 200px is a guess as to a good width for a 1024x768 screen based on the width of the block. Change it in both places below
      * if you don't like it
      *
-     * IE problem - the tooltips appear to interfere with the submission nodes using ie, so that they are not always clickable, but only when the user
-     * clicks the node text rather than the expand (+) icon. Its not related to the timings as using setTimeout to delay the generation of the tooltips
+     * IE problem - the add_tooltips appear to interfere with the submission nodes using ie, so that they are not always clickable, but only when the user
+     * clicks the node text rather than the expand (+) icon. Its not related to the timings as using setTimeout to delay the generation of the add_tooltips
      * makes no difference
      */
     make_tooltip : function(node) {
@@ -684,7 +685,7 @@ YAHOO.AJAXmarking = {
     /**
      * function to build the assessment nodes once the AJAX request has returned a data object
      */
-    makeAssessmentNodes : function(nodesArray, AJAXtree) {
+    build_assessment_nodes : function(nodesArray, AJAXtree) {
         // uncomment for verbatim on screen output of the AJAX response for assessment and submission nodes
         // this.div.innerHTML += o.responseText;
         // alternatively, use the firebug extension for mozilla firefox - less messy.
@@ -724,7 +725,7 @@ YAHOO.AJAXmarking = {
             }
 
             // use the object to create a new node
-            tmpNode2 = new YAHOO.widget.TextNode(nodesArray[m], YAHOO.AJAXmarking.nodeHolder , false);
+            tmpNode2 = new YAHOO.widget.TextNode(nodesArray[m], YAHOO.ajax_marking_block.nodeHolder , false);
 
             //AJAXtree.textNodeMap[tmpNode2.labelElId] = tmpNode2;
 
@@ -756,21 +757,21 @@ YAHOO.AJAXmarking = {
             */
             // set the node to load data dynamically, unless it is marked as not dynamic e.g. journal
             if ((!AJAXtree.config) && (nodesArray[m].dynamic == 'true')) {
-               tmpNode2.setDynamicLoad(YAHOO.AJAXmarking.loadNodeData);
+               tmpNode2.setDynamicLoad(YAHOO.ajax_marking_block.request_node_data);
             }
 
         } 
 
         //don't do the totals if its a config tree
         if (!AJAXtree.config) {
-            YAHOO.AJAXmarking.parentUpdate(AJAXtree, YAHOO.AJAXmarking.nodeHolder );
+            YAHOO.ajax_marking_block.update_parent_node(AJAXtree, YAHOO.ajax_marking_block.nodeHolder );
         }
 
         // finally, run the function that updates the original node and adds the children
-        YAHOO.AJAXmarking.compHolder();
+        YAHOO.ajax_marking_block.compHolder();
 
         if (!AJAXtree.config) {
-            YAHOO.AJAXmarking.updateTotal();
+            YAHOO.ajax_marking_block.update_total_count();
         }
         AJAXtree.root.refresh();
 
@@ -779,7 +780,7 @@ YAHOO.AJAXmarking = {
     /**
     * makes the submission nodes for each student with unmarked work. Takes ajax data object as input
     */
-    makeSubmissionNodes : function(nodesArray, AJAXtree) {
+    build_submission_nodes : function(nodesArray, AJAXtree) {
 
         var tmpNode3 = '';
 
@@ -800,7 +801,7 @@ YAHOO.AJAXmarking = {
             d.setTime(time);  
 
             // altered - does this work?
-            tmpNode3 = new YAHOO.widget.TextNode(nodesArray[k], YAHOO.AJAXmarking.nodeHolder , false);
+            tmpNode3 = new YAHOO.widget.TextNode(nodesArray[k], YAHOO.ajax_marking_block.nodeHolder , false);
 
             //AJAXtree.textNodeMap[tmpNode3.labelElId] = tmpNode3;
 
@@ -835,29 +836,29 @@ YAHOO.AJAXmarking = {
         } 
 
         // update all the counts on the various nodes
-        YAHOO.AJAXmarking.parentUpdate(AJAXtree, YAHOO.AJAXmarking.nodeHolder);
+        YAHOO.ajax_marking_block.update_parent_node(AJAXtree, YAHOO.ajax_marking_block.nodeHolder);
         //might be a course, might be a group if its a quiz by groups
-        YAHOO.AJAXmarking.parentUpdate(AJAXtree, YAHOO.AJAXmarking.nodeHolder.parent);
-        if (!YAHOO.AJAXmarking.nodeHolder.parent.parent.isRoot()) {
-            this.parentUpdate(AJAXtree, YAHOO.AJAXmarking.nodeHolder.parent.parent);
-            if (!YAHOO.AJAXmarking.nodeHolder.parent.parent.parent.isRoot()) {
-                YAHOO.AJAXmarking.parentUpdate(AJAXtree, YAHOO.AJAXmarking.nodeHolder.parent.parent.parent);
+        YAHOO.ajax_marking_block.update_parent_node(AJAXtree, YAHOO.ajax_marking_block.nodeHolder.parent);
+        if (!YAHOO.ajax_marking_block.nodeHolder.parent.parent.isRoot()) {
+            this.update_parent_node(AJAXtree, YAHOO.ajax_marking_block.nodeHolder.parent.parent);
+            if (!YAHOO.ajax_marking_block.nodeHolder.parent.parent.parent.isRoot()) {
+                YAHOO.ajax_marking_block.update_parent_node(AJAXtree, YAHOO.ajax_marking_block.nodeHolder.parent.parent.parent);
             }
         }
 
         // finally, run the function that updates the original node and adds the children
-        YAHOO.AJAXmarking.compHolder();
-        YAHOO.AJAXmarking.updateTotal();
+        YAHOO.ajax_marking_block.compHolder();
+        YAHOO.ajax_marking_block.update_total_count();
 
-        // then add tooltips.
-        //this.tooltips();
+        // then add add_tooltips.
+        //this.add_tooltips();
 
     },
 
     /**
      * Make the group nodes for an assessment
      */
-    makeGroupNodes : function(responseArray, AJAXtree) {
+    build_group_nodes : function(responseArray, AJAXtree) {
         // need to turn the groups for this course into an array and attach it to the course
         // node. Then make the groups bit on screen
         // for the config screen??
@@ -867,7 +868,7 @@ YAHOO.AJAXmarking = {
 
         for (var n =0; n<arrayLength; n++) {
 
-            tmpNode4 = new YAHOO.widget.TextNode(responseArray[n], YAHOO.AJAXmarking.nodeHolder, false);
+            tmpNode4 = new YAHOO.widget.TextNode(responseArray[n], YAHOO.ajax_marking_block.nodeHolder, false);
 
            // AJAXtree.textNodeMap[tmpNode4.labelElId] = tmpNode4;
 
@@ -877,30 +878,17 @@ YAHOO.AJAXmarking = {
             // node clickable so that the pop up will have the group screen.
             // TODO make this into a dynamic thing based on another attribute of the data object
             if (responseArray[n].type !== 'journal') {
-                tmpNode4.setDynamicLoad(YAHOO.AJAXmarking.loadNodeData);
+                tmpNode4.setDynamicLoad(YAHOO.ajax_marking_block.request_node_data);
             }
         }
 
-        YAHOO.AJAXmarking.parentUpdate(AJAXtree, YAHOO.AJAXmarking.nodeHolder);
-        YAHOO.AJAXmarking.parentUpdate(AJAXtree, YAHOO.AJAXmarking.nodeHolder.parent);
-        YAHOO.AJAXmarking.compHolder();
-        YAHOO.AJAXmarking.updateTotal();
+        YAHOO.ajax_marking_block.update_parent_node(AJAXtree, YAHOO.ajax_marking_block.nodeHolder);
+        YAHOO.ajax_marking_block.update_parent_node(AJAXtree, YAHOO.ajax_marking_block.nodeHolder.parent);
+        YAHOO.ajax_marking_block.compHolder();
+        YAHOO.ajax_marking_block.update_total_count();
 
     },
 
-
-    /**
-     *funtion to refresh all the nodes once the update operations have all been carried out by saveChangesAJAX()
-     */
-
-    refreshRoot : function(tree) {
-        tree.root.refresh();
-        if (tree.root.children.length === 0) {
-            YAHOO.AJAXmarking.removeNodes(document.getElementById("totalmessage"));
-            YAHOO.AJAXmarking.removeNodes(document.getElementById("count"));
-            tree.div.appendChild(document.createTextNode(amVariables.nothingString));
-        }
-    },
 
     /**
      * The main constructor function for each of the tree objects
@@ -926,7 +914,7 @@ YAHOO.AJAXmarking = {
         if (!config) { // the this keyword gets confused and can't be used for this
             this.tree.subscribe('collapseComplete', function(node) {
             // TODO - make this not use a hardcoded reference
-            YAHOO.AJAXmarking.main.tree.removeChildren(node);
+            YAHOO.ajax_marking_block.main.tree.removeChildren(node);
             });
         } 
 
@@ -967,36 +955,70 @@ YAHOO.AJAXmarking = {
 
 
     /**
-     * funtion to refresh all the nodes once the operations have all been carried out - workshop frames version
+     *funtion to refresh all the nodes once the update operations have all been carried out by remove_node_from_tree()
      */
-    refreshRootFrames : function(tree) {
+
+    refresh_tree_after_changes : function(tree, frames) {
         tree.root.refresh();
+
+        // If there are no nodes left, we need to remove the tree altogether
         if (tree.root.children.length === 0) {
-            YAHOO.AJAXmarking.removeNodes(document.getElementById("totalmessage"));
-            YAHOO.AJAXmarking.removeNodes(document.getElementById("count"));
-            YAHOO.AJAXmarking.removeNodes(tree.div);
+            YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById("totalmessage"));
+            YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById("count"));
+            if(frames) {
+                YAHOO.ajax_marking_block.remove_all_child_nodes(tree.div);
+            }
             tree.div.appendChild(document.createTextNode(amVariables.nothingString));
         }
     },
 
     /**
+     * funtion to refresh all the nodes once the operations have all been carried out - workshop frames version.
+     * Deprecated.
+     */
+    /*
+    refresh_tree_after_changesFrames : function(tree) {
+        tree.root.refresh();
+
+
+        if (tree.root.children.length === 0) {
+            YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById("totalmessage"));
+            YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById("count"));
+            YAHOO.ajax_marking_block.remove_all_child_nodes(tree.div);
+            tree.div.appendChild(document.createTextNode(amVariables.nothingString));
+        }
+    },
+*/
+
+    /**
     * function to update the total marking count by a specified number and display it
     */
-    updateTotal : function() {
+    update_total_count : function() {
 
         var count = 0;
         var countTemp = 0;
-        var children = YAHOO.AJAXmarking.main.root.children;
+        var children = YAHOO.ajax_marking_block.main.root.children;
         
         for (i=0;i<children.length;i++) {
             countTemp = children[i].data.count;
             count = count + parseInt(countTemp, 10);
         }
-        
         if (count > 0) {
+            document.getElementById('totalmessage').style.visibility = 'visible';
             var countDiv = document.getElementById('count');
-            YAHOO.AJAXmarking.removeNodes(countDiv);
+            YAHOO.ajax_marking_block.remove_all_child_nodes(countDiv);
             countDiv.appendChild(document.createTextNode(count));
+        } else {
+
+            // hide the count
+            document.getElementById('totalmessage').style.visibility = 'collapse';
+            YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById('count'));
+
+            //Write the message
+           // label = document.createTextNode(amVariables.nothingString);
+          //  messageDiv = document.createElement('div');
+          //  messageDiv.appendChild(label);
+           // AJAXtree.div.appendChild(messageDiv);
         }
     },
 
@@ -1005,13 +1027,14 @@ YAHOO.AJAXmarking = {
     *
     */
 
-    saveChangesAJAX : function(loc, AJAXtree, thisNodeId, frames) {
+    remove_node_from_tree : function(loc, AJAXtree, thisNodeId, frames) {
        
         var checkNode = "";
         var parentNode = "";
         var parentNode1 = null;
         var parentNode2 = null;
         var parentNode3 = null;
+        var frames = (frames == null) ? false : true;
        
         /// get the node that was just marked
         checkNode = AJAXtree.tree.getNodeByProperty("id", thisNodeId);
@@ -1036,30 +1059,30 @@ YAHOO.AJAXmarking = {
         // remove the node that was just marked
         AJAXtree.tree.removeNode(checkNode, true);
 
-        YAHOO.AJAXmarking.parentUpdate(AJAXtree, parentNode);
+        YAHOO.ajax_marking_block.update_parent_node(AJAXtree, parentNode);
         // TODO - some are null and some are undefined
         if (parentNode1) {
-            YAHOO.AJAXmarking.parentUpdate(AJAXtree, parentNode1);
+            YAHOO.ajax_marking_block.update_parent_node(AJAXtree, parentNode1);
         }
         if (parentNode2) {
-            YAHOO.AJAXmarking.parentUpdate(AJAXtree, parentNode2);
+            YAHOO.ajax_marking_block.update_parent_node(AJAXtree, parentNode2);
         }
         if (parentNode3) {
-            YAHOO.AJAXmarking.parentUpdate(AJAXtree, parentNode3);
+            YAHOO.ajax_marking_block.update_parent_node(AJAXtree, parentNode3);
         }
 
         /// refresh the tree to redraw the nodes with the new labels
-        if (typeof(frames) != 'undefined') {
-            YAHOO.AJAXmarking.refreshRootFrames(AJAXtree);
-        } else {
-            YAHOO.AJAXmarking.refreshRoot(AJAXtree);
-        }
+        //if (typeof(frames) != 'undefined') {
+        //    YAHOO.ajax_marking_block.refresh_tree_after_changesFrames(AJAXtree);
+        //} else {
+            YAHOO.ajax_marking_block.refresh_tree_after_changes(AJAXtree, frames);
+        //}
 
-        YAHOO.AJAXmarking.updateTotal();
-        YAHOO.AJAXmarking.tooltips(AJAXtree);
+        YAHOO.ajax_marking_block.update_total_count();
+        YAHOO.ajax_marking_block.add_tooltips(AJAXtree);
 
         if (loc != -1) { // no need if its an assignment as the pop up is self closing
-            windowLoc = "YAHOO.AJAXmarking.afterLoad('"+loc+"')";
+            windowLoc = "YAHOO.ajax_marking_block.popup_closing_timer('"+loc+"')";
             setTimeout(windowLoc, 500);
         }
     },
@@ -1068,7 +1091,7 @@ YAHOO.AJAXmarking = {
     /**
     * Refresh tree function - for Collapse & refresh link in the main block
     */
-    refreshTree : function(treeObj) {
+    refresh_tree : function(treeObj) {
 
 
         treeObj.loadCounter = 0;
@@ -1078,24 +1101,24 @@ YAHOO.AJAXmarking = {
             treeObj.root.refresh();
         }
 
-        YAHOO.AJAXmarking.removeNodes(document.getElementById('conf_right'));
-        YAHOO.AJAXmarking.removeNodes(document.getElementById('conf_left'));
-        YAHOO.AJAXmarking.removeNodes(treeObj.div);
-        YAHOO.AJAXmarking.ajaxBuild(treeObj);
+        YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById('conf_right'));
+        YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById('conf_left'));
+        YAHOO.ajax_marking_block.remove_all_child_nodes(treeObj.div);
+        YAHOO.ajax_marking_block.build_ajax_tree(treeObj);
     },
 
     /**
      * Makes a list of groups as checkboxes and appends them to the config div next to the config tree.
      * Called when the 'show by groups' check box is selected for a node.
      */
-    makeConfigGroupsList : function(data, tree) { 
+    make_config_groups_list : function(data, tree) {
 
         var groupDiv = document.getElementById('configGroups');
-        YAHOO.AJAXmarking.removeNodes(groupDiv);
+        YAHOO.ajax_marking_block.remove_all_child_nodes(groupDiv);
 
         // closure holding on click function
-        var boxOnClick = function() {
-                YAHOO.AJAXmarking.boxOnClick();
+        var config_checkbox_onclick = function() {
+                YAHOO.ajax_marking_block.config_checkbox_onclick();
         };
 
         var dataLength = data.length;
@@ -1124,7 +1147,7 @@ YAHOO.AJAXmarking = {
             } else {
                 box.checked = false;
             }
-            box.onclick = boxOnClick;
+            box.onclick = config_checkbox_onclick;
           
             var label = document.createTextNode(data[v].name);
             groupDiv.appendChild(label);
@@ -1134,17 +1157,17 @@ YAHOO.AJAXmarking = {
             idCounter++;
         }
         
-        YAHOO.AJAXmarking.config.icon.removeAttribute('class', 'loaderimage');
-        YAHOO.AJAXmarking.config.icon.removeAttribute('className', 'loaderimage');
+        YAHOO.ajax_marking_block.config.icon.removeAttribute('class', 'loaderimage');
+        YAHOO.ajax_marking_block.config.icon.removeAttribute('className', 'loaderimage');
         //re-enable the checkboxes
-        YAHOO.AJAXmarking.enableRadio();
+        YAHOO.ajax_marking_block.enable_config_radio_buttons();
     },
 
 
     /**
      * function to alter a node's label with a new count once the children are removed or reloaded
      */
-    countAlter : function (newNode, newCount) {
+    update_node_count : function (newNode, newCount) {
         //var name = newNode.data.name;
         var newLabel = newNode.data.icon+'(<span class="AMB_count">'+newCount+'</span>) '+newNode.data.name;
         newNode.data.count = newCount;
@@ -1156,11 +1179,11 @@ YAHOO.AJAXmarking = {
      * on click function for the groups check boxes on the config screen. clicking sets or unsets
      * a particular group for display.
      */
-    boxOnClick : function() {
+    config_checkbox_onclick : function() {
      
         var form = document.getElementById('configshowform');
 
-        window.YAHOO.AJAXmarking.disableRadio();
+        window.YAHOO.ajax_marking_block.disable_config_radio_buttons();
 
         // hacky IE6 compatible fix
         for (c=0;c<form.childNodes.length;c++) {
@@ -1197,7 +1220,7 @@ YAHOO.AJAXmarking = {
         var reqUrl = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
         var postData = 'id='+course+'&assessmenttype='+assessmentType+'&assessmentid='+assessment+'&type=config_group_save&userid='+amVariables.userid+'&showhide=2&groups='+groupIds;
         
-        var request = YAHOO.util.Connect.asyncRequest('POST', reqUrl, AJAXmarkingCallback, postData);
+        var request = YAHOO.util.Connect.asyncRequest('POST', reqUrl, ajax_marking_block_callback, postData);
     },
 
     /**
@@ -1216,17 +1239,17 @@ YAHOO.AJAXmarking = {
      * I have not yet found a way to alter this variable using javascript - ideally, the sort would be the same as it is in the list presented in the marking block.
      * until a work around is found, the save and next function is be a bit wonky, sometimes showing next when there is only one submission, so I have hidden it.
      */
-    assignmentOnLoad: function(me, userid) {
+    alter_assignment_popup: function(me, userid) {
         
         var els ='';
         var els2 = '';
         var els3 = '';
-        YAHOO.AJAXmarking.t++;
+        YAHOO.ajax_marking_block.t++;
 
         // when the DOM is ready, add the onclick events and hide the other buttons
-        if (YAHOO.AJAXmarking.windowobj.document) {
-            if (YAHOO.AJAXmarking.windowobj.document.getElementsByName) {
-                els = YAHOO.AJAXmarking.windowobj.document.getElementsByName('submit');
+        if (YAHOO.ajax_marking_block.windowobj.document) {
+            if (YAHOO.ajax_marking_block.windowobj.document.getElementsByName) {
+                els = YAHOO.ajax_marking_block.windowobj.document.getElementsByName('submit');
                 // the above line will not return anything until the pop up is fully loaded
                 if (els.length > 0) { 
 
@@ -1281,16 +1304,16 @@ YAHOO.AJAXmarking = {
                     window.document.getElementById('javaValues').appendChild(div6);
 
                     // now add onclick
-                    els[0]["onclick"] = new Function("return YAHOO.AJAXmarking.saveChangesAJAX(-1, YAHOO.AJAXmarking.main, '"+me+"', false); "); // IE
-                    els2 = YAHOO.AJAXmarking.windowobj.document.getElementsByName('saveandnext');
+                    els[0]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree(-1, YAHOO.ajax_marking_block.main, '"+me+"', false); "); // IE
+                    els2 = YAHOO.ajax_marking_block.windowobj.document.getElementsByName('saveandnext');
 
                     if (els2.length > 0) {
                         els2[0].style.display = "none";
-                        els3 = YAHOO.AJAXmarking.windowobj.document.getElementsByName('next');
+                        els3 = YAHOO.ajax_marking_block.windowobj.document.getElementsByName('next');
                         els3[0].style.display = "none";
                     }
                     // cancel the timer loop for this function
-                    window.clearInterval(YAHOO.AJAXmarking.timerVar);
+                    window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
                 }
             }
@@ -1311,17 +1334,17 @@ YAHOO.AJAXmarking = {
      * else will be met first, followed by the if. The loop will keep running whilst the pop up is open, so this is not very elegant or efficient, but
      * should not cause any problems unless the client is horribly slow. A better implementation will follow sometime soon.
      */
-    workshopOnLoad : function (me, parent, course) {
+    alter_workshop_popup : function (me, parent, course) {
         var els ='';
-        if (typeof YAHOO.AJAXmarking.windowobj.frames[0] != 'undefined') { //check that the frames are loaded - this can vary according to conditions
-            if (YAHOO.AJAXmarking.windowobj.frames[0].location.href != amVariables.wwwroot+'/mod/workshop/assessments.php') {
+        if (typeof YAHOO.ajax_marking_block.windowobj.frames[0] != 'undefined') { //check that the frames are loaded - this can vary according to conditions
+            if (YAHOO.ajax_marking_block.windowobj.frames[0].location.href != amVariables.wwwroot+'/mod/workshop/assessments.php') {
                 // this is the early stage, pop up has loaded and grading is occurring
                 // annoyingly, the workshop module has not named its submit button, so we have to get it using another method as the 11th input
-                els = YAHOO.AJAXmarking.windowobj.frames[0].document.getElementsByTagName('input');
+                els = YAHOO.ajax_marking_block.windowobj.frames[0].document.getElementsByTagName('input');
                 if (els.length == 11) {
-                    els[10]["onclick"] = new Function("return YAHOO.AJAXmarking.saveChangesAJAX('/mod/workshop/assessments.php', YAHOO.AJAXmarking.main, '"+me+"', true);"); // IE
+                    els[10]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/workshop/assessments.php', YAHOO.ajax_marking_block.main, '"+me+"', true);"); // IE
                     // cancel timer loop
-                    window.clearInterval(YAHOO.AJAXmarking.timerVar);
+                    window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
                 }
             }
@@ -1333,22 +1356,22 @@ YAHOO.AJAXmarking = {
      * identify it by getting the last tag in the array of inputs. The function is triggered on an interval
      * of 1/2 a second until it manages to close the pop up after it has gone to the confirmation page
      */
-    forumOnLoad : function (me) {
+    alter_forum_popup : function (me) {
         var els ='';
         var name = navigator.appName;
         
         // first, add the onclick if possible
-        if (typeof YAHOO.AJAXmarking.windowobj.document.getElementsByTagName('input') != 'undefined') {
+        if (typeof YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input') != 'undefined') {
             // window is open with some input. could be loading lots though.
-            els = YAHOO.AJAXmarking.windowobj.document.getElementsByTagName('input');
+            els = YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input');
 
             if (els.length > 0) {
                 var key = els.length -1;
                 if (els[key].value == amVariables.forumSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
                     // IE friendly
-                    els[key]["onclick"] = new Function("return YAHOO.AJAXmarking.saveChangesAJAX('/mod/forum/rate.php', YAHOO.AJAXmarking.main, '"+me+"');");
+                    els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
                     // cancel loop for this function
-                    window.clearInterval(YAHOO.AJAXmarking.timerVar);
+                    window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
                 }
             }
@@ -1358,13 +1381,13 @@ YAHOO.AJAXmarking = {
     /**
      * adds onclick stuff to the quiz popup
      */
-    quizOnLoad : function (me) {
+    alter_quiz_popup : function (me) {
         var els = '';
         var lastButOne = '';
 
-        if (typeof YAHOO.AJAXmarking.windowobj.document.getElementsByTagName('input') != 'undefined') {
+        if (typeof YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input') != 'undefined') {
             // window is open with some input. could be loading lots though.
-            els = YAHOO.AJAXmarking.windowobj.document.getElementsByTagName('input');
+            els = YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input');
 
             if (els.length > 14) { 
                 // there is at least the DOM present for a single attempt, but if the student has made a couple of attempts,
@@ -1374,9 +1397,9 @@ YAHOO.AJAXmarking = {
                 if (els[lastButOne].value == amVariables.quizSaveString) {
                
                 // the onclick carries out the functions that are already specified in lib.php, followed by the function to update the tree
-                els[lastButOne]["onclick"] = new Function("return YAHOO.AJAXmarking.saveChangesAJAX('/mod/quiz/report.php', YAHOO.AJAXmarking.main, '"+me+"'); ");
+                els[lastButOne]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/quiz/report.php', YAHOO.ajax_marking_block.main, '"+me+"'); ");
                 // cancel the loop for this function
-                window.clearInterval(YAHOO.AJAXmarking.timerVar);
+                window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
                 }
             }
@@ -1387,13 +1410,13 @@ YAHOO.AJAXmarking = {
      * adds onclick stuff to the journal pop up elements once they are ready
      * me is the id number of the journal we want
      */
-    journalOnLoad :   function (me) {
+    alter_journal_popup :   function (me) {
 
 
           var journalClick = function () {
 
               // get the form submit input, which is always last but one (length varies)
-              els = YAHOO.AJAXmarking.windowobj.document.getElementsByTagName('input');
+              els = YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input');
               var key = els.length -1;
 /*
               YAHOO.util.Event.on(
@@ -1408,21 +1431,21 @@ YAHOO.AJAXmarking = {
                   els[key],
                   'click',
                   function(){
-                      return YAHOO.AJAXmarking.saveChangesAJAX(
+                      return YAHOO.ajax_marking_block.remove_node_from_tree(
                           '/mod/journal/report.php',
-                          YAHOO.AJAXmarking.main,
+                          YAHOO.ajax_marking_block.main,
                           me
                       );
                   }
               );
           };
-         // YAHOO.util.Event.addListener(YAHOO.AJAXmarking.windowobj, 'load', journalClick);
+         // YAHOO.util.Event.addListener(YAHOO.ajax_marking_block.windowobj, 'load', journalClick);
 /*
           var els ='';
           // first, add the onclick if possible
-          if (typeof YAHOO.AJAXmarking.windowobj.document.getElementsByTagName('input') != 'undefined') { // window is open with some input. could be loading lots though.
+          if (typeof YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input') != 'undefined') { // window is open with some input. could be loading lots though.
 
-              els = YAHOO.AJAXmarking.windowobj.document.getElementsByTagName('input');
+              els = YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input');
 
               if (els.length > 0) {
 
@@ -1431,9 +1454,9 @@ YAHOO.AJAXmarking = {
                   if (els[key].value == amVariables.journalSaveString) { 
                       
                       // does the last input have the 'send in my ratings' string as label, showing that all the rating are loaded?
-                      els[key]["onclick"] = new Function("return YAHOO.AJAXmarking.saveChangesAJAX('/mod/journal/report.php', YAHOO.AJAXmarking.main, '"+me+"');");
+                      els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/journal/report.php', YAHOO.ajax_marking_block.main, '"+me+"');");
                       // cancel loop for this function
-                      window.clearInterval(YAHOO.AJAXmarking.timerVar);
+                      window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
                   }
               }
@@ -1446,19 +1469,19 @@ YAHOO.AJAXmarking = {
      * function that waits till the pop up has a particular location,
      * i.e. the one it gets to when the data has been saved, and then shuts it.
      */
-    afterLoad : function (loc) { 
+    popup_closing_timer : function (loc) {
 
-        if (!YAHOO.AJAXmarking.windowobj.closed) {
+        if (!YAHOO.ajax_marking_block.windowobj.closed) {
 
-            if (YAHOO.AJAXmarking.windowobj.location.href == amVariables.wwwroot+loc) {
-                setTimeout('YAHOO.AJAXmarking.windowobj.close()', 1000);
+            if (YAHOO.ajax_marking_block.windowobj.location.href == amVariables.wwwroot+loc) {
+                setTimeout('YAHOO.ajax_marking_block.windowobj.close()', 1000);
                 return;
             }
 
-        } else if (YAHOO.AJAXmarking.windowobj.closed) {
+        } else if (YAHOO.ajax_marking_block.windowobj.closed) {
             return;
         } else {
-            setTimeout(YAHOO.AJAXmarking.afterLoad(loc), 1000);
+            setTimeout(YAHOO.ajax_marking_block.popup_closing_timer(loc), 1000);
             return;
         }
     },
@@ -1467,7 +1490,7 @@ YAHOO.AJAXmarking = {
      * IE seems not to want to expand the block when the tree becomes wider.
      * This provides a one-time resizing so that it is a bit bigger
      */
-    ie_width : function () {
+    adjust_width_for_ie : function () {
         if (/MSIE (\d+\.\d+);/.test(navigator.userAgent)){
 
         var el = document.getElementById('treediv');
@@ -1481,8 +1504,8 @@ YAHOO.AJAXmarking = {
     /**
      * The panel for the config tree and the pop ups is the same and is created here if it doesn't exist yet
      */
-    makePanel : function () {
-        YAHOO.AJAXmarking.greyOut =
+    initialise_config_panel : function () {
+        YAHOO.ajax_marking_block.greyOut =
             new YAHOO.widget.Panel(
                 "greyOut",
                 {
@@ -1503,38 +1526,38 @@ YAHOO.AJAXmarking = {
      * Builds the greyed out panel for the config overlay
      */
 
-    greyBuild : function() {
+    build_config_overlay : function() {
 
-        if (!YAHOO.AJAXmarking.greyOut) {
+        if (!YAHOO.ajax_marking_block.greyOut) {
 
-            YAHOO.AJAXmarking.makePanel();
+            YAHOO.ajax_marking_block.initialise_config_panel();
 
             var headerText = amVariables.headertext+' '+amVariables.fullname;
-            YAHOO.AJAXmarking.greyOut.setHeader(headerText);
+            YAHOO.ajax_marking_block.greyOut.setHeader(headerText);
 
             var bodyText = "<div id='configIcon' class='AMhidden'></div><div id='configStatus'></div><div id='configTree'></div><div id='configSettings'><div id='configInstructions'>"+amVariables.instructions+"</div><div id='configCheckboxes'><form id='configshowform' name='configshowform'></form></div><div id='configGroups'></div></div>";
 
-            YAHOO.AJAXmarking.greyOut.setBody(bodyText);
+            YAHOO.ajax_marking_block.greyOut.setBody(bodyText);
             document.body.className += ' yui-skin-sam';
 
-            YAHOO.AJAXmarking.greyOut.beforeHideEvent.subscribe(function() {
-                YAHOO.AJAXmarking.refreshTree(YAHOO.AJAXmarking.main);
+            YAHOO.ajax_marking_block.greyOut.beforeHideEvent.subscribe(function() {
+                YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.main);
             });
 
-            YAHOO.AJAXmarking.greyOut.render(document.body);
-            YAHOO.AJAXmarking.greyOut.show();
+            YAHOO.ajax_marking_block.greyOut.render(document.body);
+            YAHOO.ajax_marking_block.greyOut.show();
             // Now that the grey overlay is in place with all the divs ready, we build the config tree
-            YAHOO.AJAXmarking.config = new YAHOO.AJAXmarking.AJAXtree('configTree', 'configIcon', 'configStatus', true);
-            YAHOO.AJAXmarking.ajaxBuild(YAHOO.AJAXmarking.config);
+            YAHOO.ajax_marking_block.config = new YAHOO.ajax_marking_block.AJAXtree('configTree', 'configIcon', 'configStatus', true);
+            YAHOO.ajax_marking_block.build_ajax_tree(YAHOO.ajax_marking_block.config);
 
-            YAHOO.AJAXmarking.config.icon.setAttribute('class', 'loaderimage');
-            YAHOO.AJAXmarking.config.icon.setAttribute('className', 'loaderimage');
+            YAHOO.ajax_marking_block.config.icon.setAttribute('class', 'loaderimage');
+            YAHOO.ajax_marking_block.config.icon.setAttribute('className', 'loaderimage');
 
         } else {
             // It's all there from earlier, so just show it
-            YAHOO.AJAXmarking.greyOut.show();
-            YAHOO.AJAXmarking.clearGroupConfig();
-            YAHOO.AJAXmarking.refreshTree(YAHOO.AJAXmarking.config);
+            YAHOO.ajax_marking_block.greyOut.show();
+            YAHOO.ajax_marking_block.remove_config_groups();
+            YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.config);
         }
     },
 
@@ -1542,7 +1565,7 @@ YAHOO.AJAXmarking = {
      * the onclick for the radio buttons in the config screen.
      * if show by group is clicked, the groups thing pops up. If another one is, the groups thing is hidden.
      */
-    configCheckboxAJAXRequest : function(checkbox) {
+    request_config_checkbox_data : function(checkbox) {
         // if its groups, show the groups by getting them from the course node?
 
         var showHide = '';
@@ -1574,7 +1597,7 @@ YAHOO.AJAXmarking = {
                 postData += '&assessmenttype='+assessmentType;
                 postData += '&assessmentid='+assessmentValue
                 postData += '&showhide='+showHide;
-            var request  = YAHOO.util.Connect.asyncRequest('POST', url, AJAXmarkingCallback, postData);
+            var request  = YAHOO.util.Connect.asyncRequest('POST', url, ajax_marking_block_callback, postData);
         }
 
         //empty the groups area
@@ -1622,7 +1645,7 @@ YAHOO.AJAXmarking = {
                     postData  += '&type=config_groups';
                     postData  += '&userid='+amVariables.userid;
                     postData  += '&showhide='+showHide;
-                var request    = YAHOO.util.Connect.asyncRequest('POST', url, AJAXmarkingCallback, postData);
+                var request    = YAHOO.util.Connect.asyncRequest('POST', url, ajax_marking_block_callback, postData);
                 break;
 
             case 'hide':
@@ -1631,18 +1654,18 @@ YAHOO.AJAXmarking = {
                 break;
 
         } 
-        YAHOO.AJAXmarking.disableRadio();
+        YAHOO.ajax_marking_block.disable_config_radio_buttons();
     },
 
 
     /**
      * Wipes all the group options away when another node or a course node is clicked in the config tree
      */
-    clearGroupConfig : function() {
+    remove_config_groups : function() {
 
-        YAHOO.AJAXmarking.removeNodes(document.getElementById('configshowform'));
-        YAHOO.AJAXmarking.removeNodes(document.getElementById('configInstructions'));
-        YAHOO.AJAXmarking.removeNodes(document.getElementById('configGroups'));
+        YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById('configshowform'));
+        YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById('configInstructions'));
+        YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById('configGroups'));
         return true;
     
     },
@@ -1650,7 +1673,7 @@ YAHOO.AJAXmarking = {
     /**
      * Used by other functions to clear all child nodes from some element
      */
-    removeNodes: function (el) {
+    remove_all_child_nodes: function (el) {
         if (el.hasChildNodes()) {
             while (el.hasChildNodes()) {
                 el.removeChild(el.firstChild);
@@ -1661,22 +1684,22 @@ YAHOO.AJAXmarking = {
     /**
      * This is to generate the footer controls once the tree has loaded
      */
-    makeFooter: function () {
+    make_footer: function () {
         // Create all text nodes
 
         // the two links
         var collapseButton = new YAHOO.widget.Button({
 	                            label:amVariables.refreshString,
 	                            id:"AMBcollapse",
-                                onclick: {fn: function() {YAHOO.AJAXmarking.refreshTree(YAHOO.AJAXmarking.main)} },
+                                onclick: {fn: function() {YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.main)} },
 	                            container:"conf_left" });
 
         var configButton = new YAHOO.widget.Button({
 	                            label:amVariables.configureString,
 	                            id:"AMBconfig",
-                                onclick: {fn: function() {YAHOO.AJAXmarking.greyBuild()} },
+                                onclick: {fn: function() {YAHOO.ajax_marking_block.build_config_overlay()} },
 	                            container:"conf_right" });
-        //collapseButton.on("click", function (){YAHOO.AJAXmarking.refreshTree(YAHOO.AJAXmarking.main)});
+        //collapseButton.on("click", function (){YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.main)});
 
         // Add bits to them like onclick
         // append them to each other and the DOM
@@ -1690,12 +1713,12 @@ YAHOO.AJAXmarking = {
  * Callback object for the AJAX call, which
  * fires the correct function. Doesn't work when part of the main class. Don't know why
  */
-var  AJAXmarkingCallback = {
+var  ajax_marking_block_callback = {
 
     cache    : false,
-    success  : YAHOO.AJAXmarking.AJAXsuccess,
-    failure  : YAHOO.AJAXmarking.AJAXfailure,
-    scope    : YAHOO.AJAXmarking,
+    success  : YAHOO.ajax_marking_block.ajax_success_handler,
+    failure  : YAHOO.ajax_marking_block.ajax_failure_handler,
+    scope    : YAHOO.ajax_marking_block,
     // TODO: find out what this was for as the timeouts seem not to be working
     // argument : 1200,
     timeout  : 10000
@@ -1713,9 +1736,9 @@ if ( document.location.toString().indexOf( 'https://' ) != -1 ) {
 // the context menu needs this for the skin to show up, as do other bits
 document.body.className += ' yui-skin-sam';
 
-YAHOO.AJAXmarking.main = new YAHOO.AJAXmarking.AJAXtree('treediv', 'mainIcon', 'status', false);
+YAHOO.ajax_marking_block.main = new YAHOO.ajax_marking_block.AJAXtree('treediv', 'mainIcon', 'status', false);
 
-YAHOO.AJAXmarking.ajaxBuild(YAHOO.AJAXmarking.main);
+YAHOO.ajax_marking_block.build_ajax_tree(YAHOO.ajax_marking_block.main);
     
 
 	

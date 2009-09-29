@@ -1024,7 +1024,8 @@ class ajax_marking_functions {
         $this->output .= '"name":"'         .$this->clean_name_text($assessment->name, $length).'",';
         
         $this->output .= '"id":"'           .$assessment->id.'",';
-        $this->output .= '"icon":"'         .$this->add_icon($assessment->type).'",';
+        $this->output .= '"icon":"'         .$assessment->icon.'",';
+        // $this->output .= '"icon":"'         .$this->add_icon($assessment->type).'",';
         $this->output .= '"assessmentid":"a'.$assessment->id.'",';
         $this->output .= '"cmid":"'         .$assessment->cmid.'",';
         $this->output .= '"type":"'         .$assessment->type.'",';
@@ -1084,19 +1085,18 @@ class ajax_marking_functions {
         // and use the main pix folder
         if ($THEME->custompix) {
             $result .= 'theme/'.current_theme().'/';
-        }
+        } 
 
-        $result .= 'pix/';
 
         switch ($type) {
 
             case 'course':
-                $result .= "i/course.gif' alt='course icon'";
+                $result .= "pix/i/course.gif' alt='course icon'";
                 break;
 
             // TODO - how to deal with 4 level modules dynamically?
             case 'question':
-                $result .= "i/questions.gif'";
+                $result .= "pix/i/questions.gif'";
                 break;
 
             case 'journal':
@@ -1104,15 +1104,18 @@ class ajax_marking_functions {
                 break;
 
             case 'group':
-                $result .= "i/users.gif'";
+                $result .= "pix/i/users.gif'";
                 break;
 
             case 'user':
-                $result .= "i/user.gif' alt='user icon'";
+                $result .= "pix/i/user.gif' alt='user icon'";
                 break;
 
             default:
                 // any module will have an icon defined.
+                if ($THEME->custompix) {
+                    $result .= 'pix/';
+                }
                 $result .= $this->$type->icon."' alt='".$type." icon'";
         }
         $result .= " />";
@@ -1128,9 +1131,10 @@ class ajax_marking_functions {
         $node = '';
         $node = '<li class="AMB_html"><a href="'.$item->link.'" title="'.$this->clean_name_text($item->description).'" >'.$this->add_icon($item->type).'<strong>('.$item->count.')</strong> '.$item->name.'</a></li>';
         return $node;
-// 
+ 
     }
 
+   
 
 }
 

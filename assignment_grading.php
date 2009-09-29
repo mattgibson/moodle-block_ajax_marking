@@ -59,6 +59,7 @@ class assignment_functions extends module_base {
         $this->capability = 'mod/assignment:grade';
         $this->levels     = 3;
         $this->icon       = 'mod/assignment/icon.gif';
+      
 
     }
 
