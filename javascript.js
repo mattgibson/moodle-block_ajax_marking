@@ -509,7 +509,7 @@ YAHOO.ajax_marking_block = {
             var m = 0;
             var n = 0;
            
-            if (ajax_marking_block.config) {
+            if (tree.config) {
                 return false;
             }
             // 1. all courses loop
@@ -1369,7 +1369,7 @@ YAHOO.ajax_marking_block = {
                 var key = els.length -1;
                 if (els[key].value == amVariables.forumSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
                     // IE friendly
-                    els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
+                    els[key]["onclick"] = new Function("alert('click'); return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
                     // cancel loop for this function
                     window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
@@ -1396,10 +1396,11 @@ YAHOO.ajax_marking_block = {
                
                 if (els[lastButOne].value == amVariables.quizSaveString) {
                
-                // the onclick carries out the functions that are already specified in lib.php, followed by the function to update the tree
-                els[lastButOne]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/quiz/report.php', YAHOO.ajax_marking_block.main, '"+me+"'); ");
-                // cancel the loop for this function
-                window.clearInterval(YAHOO.ajax_marking_block.timerVar);
+                    // the onclick carries out the functions that are already specified in lib.php, followed by the function to update the tree
+                    els[lastButOne]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/quiz/report.php', YAHOO.ajax_marking_block.main, '"+me+"'); ");
+                    // cancel the loop for this function
+                    //alert('quiz stuff added');
+                    window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
                 }
             }
