@@ -195,12 +195,14 @@ class quiz_functions extends module_base {
                     if (strlen($shortsum) < strlen($sum)) {
                         $shortsum .= "...";
                     }
+                    $length = ($config) ? false : 30;
                     $this->mainobject->output .= ',';
 
                     $this->mainobject->output .= '{';
-                    $this->mainobject->output .= '"label":"'.$this->mainobject->add_icon('question').$this->mainobject->clean_name_text($name, 1).' ('.$count.')",';
-                    $this->mainobject->output .= '"name":"'.$this->mainobject->add_icon('question').$this->mainobject->clean_name_text($name, 1).'",';
+                    $this->mainobject->output .= '"label":"'.$this->mainobject->add_icon('question').' (<span class=\"AMB_count\">'.$count.'</span>)'.$this->mainobject->clean_name_text($name, $length).'",';
+                    $this->mainobject->output .= '"name":"'.$this->mainobject->clean_name_text($name, 1).'",';
                     $this->mainobject->output .= '"id":"'.$qid.'",';
+                    $this->mainobject->output .= '"icon":"'.$this->mainobject->add_icon('question').'",';
 
                     $this->mainobject->output .= $this->mainobject->group ? '"group":"'.$this->mainobject->group.'",' : '';
                    // if ($this->mainobject->group) {

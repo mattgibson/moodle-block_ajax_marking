@@ -1087,7 +1087,7 @@ class ajax_marking_functions {
             $result .= 'theme/'.current_theme().'/';
         } 
 
-
+        // TODO - make question into a function held within the quiz file
         switch ($type) {
 
             case 'course':
@@ -1360,7 +1360,7 @@ class module_base {
                     
                 $assessment->count   = $count;
                 $assessment->type    = $this->type;
-                $assessment->icon    = $this->icon;
+                $assessment->icon    = $this->mainobject->add_icon($this->type);
                 $assessment->dynamic = $dynamic;
 
 
