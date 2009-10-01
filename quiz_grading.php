@@ -246,7 +246,7 @@ class quiz_functions extends module_base {
         $question_attempts = get_records_sql("
 
               SELECT
-                qst.id, qst.event, qs.questionid, qa.userid, qa.timemodified
+                qst.id, qst.event, qs.questionid, qa.userid, qst.timestamp
               FROM
                 {$CFG->prefix}question_states qst
               INNER JOIN
@@ -277,14 +277,16 @@ class quiz_functions extends module_base {
                     continue;
                 }
                 // ignore those where the group is not set
-                if ($this->mainobject->group && !$this->mainobject->check_group_membership($this->mainobject->group, $question_attempt->userid)) {
+                $groupcheck = $this->mainobject->group &&
+                              !$this->mainobject->check_group_membership($this->mainobject->group, $question_attempt->userid);
+                if ($groupcheck) {
                      continue;
                 }
 
                 $name = $this->mainobject->get_fullname($question_attempt->userid);
 
                 $now = time();
-                $seconds = ($now - $question_attempt->timemodified);
+                $seconds = ($now - $question_attempt->timestamp);
                 $summary = $this->mainobject->make_time_summary($seconds);
 
                 $this->output .= $this->mainobject->make_submission_node($name, $question_attempt->userid, $this->mainobject->id, $summary, 'quiz_answer', $seconds, $question_attempt->timemodified);
