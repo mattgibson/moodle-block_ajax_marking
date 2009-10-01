@@ -200,7 +200,7 @@ class quiz_functions extends module_base {
 
                     $this->mainobject->output .= '{';
                     $this->mainobject->output .= '"label":"'.$this->mainobject->add_icon('question').' (<span class=\"AMB_count\">'.$count.'</span>)'.$this->mainobject->clean_name_text($name, $length).'",';
-                    $this->mainobject->output .= '"name":"'.$this->mainobject->clean_name_text($name, 1).'",';
+                    $this->mainobject->output .= '"name":"'.$this->mainobject->clean_name_text($name, $length).'",';
                     $this->mainobject->output .= '"id":"'.$qid.'",';
                     $this->mainobject->output .= '"icon":"'.$this->mainobject->add_icon('question').'",';
 
