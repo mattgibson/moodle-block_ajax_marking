@@ -124,12 +124,11 @@ class ajax_marking_response extends ajax_marking_functions {
                     if ($count > 0 || $this->config) { // there are some assessments	, or its a config tree, so we include the course always.
 
                         // now add course to JSON array of objects
-                        $cid  = $course->id;
 
                         $this->output .= ','; // add a comma if there was a preceding course
                         $this->output .= '{';
 
-                        $this->output .= '"id":"'.$cid.'",';
+                        $this->output .= '"id":"'.$courseid.'",';
                         $this->output .= '"type":"course",';
                         
                         $this->output .= '"label":"'.$this->add_icon('course');
@@ -141,9 +140,10 @@ class ajax_marking_response extends ajax_marking_functions {
                         $this->output .= '"title":"'.$this->clean_name_text($course->shortname, -2).'",';
                         $this->output .= '"summary":"'.$this->clean_name_text($course->shortname, -2).'",';
                         $this->output .= '"icon":"'.$this->add_icon('course').'",';
+                        $this->output .= '"uniqueid":"course'.$courseid.'",';
                         $this->output .= '"count":"'.$count.'",';
                         $this->output .= '"dynamic":"true",';
-                        $this->output .= '"cid":"c'.$cid.'"';
+                        $this->output .= '"cid":"c'.$courseid.'"';
                         $this->output .= '}';
 
                     } 

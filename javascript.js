@@ -308,7 +308,7 @@ YAHOO.ajax_marking_block = {
                                 popUpPost = 'mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid;
                                 popUpUrl = '/mod/quiz/report.php';
                                 popUpAddress += '/mod/quiz/report.php?mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'';
-                                timerFunction = 'YAHOO.ajax_marking_block.alter_quiz_popup(\''+nd.data.id+'\')';
+                                timerFunction = 'YAHOO.ajax_marking_block.alter_quiz_popup(\''+nd.data.uniqueid+'\')';
 
                                 break;
 
@@ -326,7 +326,7 @@ YAHOO.ajax_marking_block = {
                                 popUpPost = 'id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+amVariables.wwwroot;
                                 popUpUrl = '/mod/workshop/assess.php';
                                 popUpAddress += '/mod/workshop/assess.php?id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+amVariables.wwwroot+'';
-                                timerFunction = 'YAHOO.ajax_marking_block.alter_workshop_popup(\''+nd.data.id+'\')';
+                                timerFunction = 'YAHOO.ajax_marking_block.alter_workshop_popup(\''+nd.data.uniqueid+'\')';
                                 break;
 
                             case 'discussion':
@@ -335,7 +335,7 @@ YAHOO.ajax_marking_block = {
                                 popUpUrl = '/mod/forum/discuss.php';
                                 
                                 popUpAddress += '/mod/forum/discuss.php?d='+nd.data.aid+'#p'+nd.data.sid;
-                                timerFunction = 'YAHOO.ajax_marking_block.alter_forum_popup(\''+nd.data.id+'\')';
+                                timerFunction = 'YAHOO.ajax_marking_block.alter_forum_popup(\''+nd.data.uniqueid+'\')';
                                 break;
 
                             case 'journal':
@@ -348,31 +348,15 @@ YAHOO.ajax_marking_block = {
                                 // TODO this is for the level 2 ones where there are group nodes that lead to
                                 // a pop-up. Need to make this dynamic - the extension to the url may differ.
                                 ((typeof(nd.data.group)) != 'undefined') ? popUpAddress += '&group='+nd.data.group+'' : popUpAddress += '' ;
-                                timerFunction = function() {YAHOO.ajax_marking_block.alter_journal_popup(nd.data.id);};
+                                timerFunction = function() {YAHOO.ajax_marking_block.alter_journal_popup(nd.data.uniqueid);};
                                 // timerFunction = 'YAHOO.ajax_marking_block.alter_journal_popup(\''+nd.data.id+'\')';
                                 break;
                         }
 
                         if (timerFunction !== '') {
-
-                            // make a panel if it's not there already - can we use the one from greyout?
-                            // if (!YAHOO.ajax_marking_block.greyOut) {
-                            //    YAHOO.ajax_marking_block.initialise_config_panel();
-                            // }
-                            // var request = YAHOO.util.Connect.asyncRequest('POST', popUpUrl, ajax_marking_block_callback, popUpPost);
-                            // Prepare the vaiables above
-
-                            // make a new AJAX call
-                            
-
                             YAHOO.ajax_marking_block.windowobj = window.open(popUpAddress, '_blank', popUpArgs);
                             YAHOO.ajax_marking_block.timerVar  = window.setInterval(timerFunction, 2000);
-                            //YAHOO.util.Event.addListener(YAHOO.ajax_marking_block.windowobj, 'load', timerFunction);
-                            //YAHOO.ajax_marking_block.windowobj.location.href = popUpAddress;
-
                             YAHOO.ajax_marking_block.windowobj.focus();
-                                
-
                             return false;
                         }
                         return true;
@@ -1023,66 +1007,72 @@ YAHOO.ajax_marking_block = {
     },
 
     /**
-    * this function updates the tree to remove the node of the pop up that has just been marked, then it updates the parent nodes and refreshes the tree
+    * this function updates the tree to remove the node of the pop up that has just been marked, then it updates
+    * the parent nodes and refreshes the tree
     *
     */
 
-    remove_node_from_tree : function(loc, AJAXtree, thisNodeId, frames) {
-       
-        var checkNode = "";
+    remove_node_from_tree : function(windowUrl, AJAXtree, nodeUniqueId, frames) {
+
+       // TODO - store depth info in the nodes so this isn't necessary
+        var nodeToRemove = "";
         var parentNode = "";
-        var parentNode1 = null;
-        var parentNode2 = null;
-        var parentNode3 = null;
+        var grandParentNode = null;
+        var greatGrandParentNode = null;
+        var greatGreatGrandParentNode = null;
         var frames = (frames == null) ? false : true;
        
         /// get the node that was just marked
-        checkNode = AJAXtree.tree.getNodeByProperty("id", thisNodeId);
+        //nodeToRemove = AJAXtree.tree.getNodeByProperty("id", nodeUniqueId);
+        nodeToRemove = AJAXtree.tree.getNodeByProperty("uniqueid", nodeUniqueId);
+        // contentElId
 
         // Now, we need to update all of the nodes up the tree hierarchy.
         // There are an uncertain number of levels, as different type have different 
         // sub-nodes, group nodes, etc
-        parentNode  = AJAXtree.tree.getNodeByIndex(checkNode.parent.index);
+        parentNode  = AJAXtree.tree.getNodeByIndex(nodeToRemove.parent.index);
 
         // this will return null for journals with no groups, otherwise it will be the course node
-        parentNode1 = AJAXtree.tree.getNodeByIndex(parentNode.parent.index);
+        grandParentNode = AJAXtree.tree.getNodeByIndex(parentNode.parent.index);
         
-        // parentNode2 will be the course node if there is a quiz or groups
-        if ((parentNode1 != null) && (!parentNode1.parent.isRoot())) { 
-            parentNode2 = AJAXtree.tree.getNodeByIndex(parentNode1.parent.index);
+        // greatGrandParentNode will be the course node if there is a quiz or groups
+        if ((grandParentNode != null) && (!grandParentNode.parent.isRoot())) {
+            greatGrandParentNode = AJAXtree.tree.getNodeByIndex(grandParentNode.parent.index);
+            
+            // this will be the course node if there is both a quiz and groups
+            if ((greatGrandParentNode != null) && (!greatGrandParentNode.parent.isRoot())) {
+                greatGreatGrandParentNode = AJAXtree.tree.getNodeByIndex(greatGrandParentNode.parent.index);
+            }
         } 
+
+        //alert(nodeToRemove.data.label);
         
-        // this will be the course node if there is both a quiz and groups
-        if ((parentNode2 != null) && (!parentNode2.parent.isRoot())) {
-            parentNode3 = AJAXtree.tree.getNodeByIndex(parentNode2.parent.index);
-        } 
         // remove the node that was just marked
-        AJAXtree.tree.removeNode(checkNode, true);
+        AJAXtree.tree.removeNode(nodeToRemove, true);
 
         YAHOO.ajax_marking_block.update_parent_node(AJAXtree, parentNode);
         // TODO - some are null and some are undefined
-        if (parentNode1) {
-            YAHOO.ajax_marking_block.update_parent_node(AJAXtree, parentNode1);
+        if (grandParentNode) {
+            YAHOO.ajax_marking_block.update_parent_node(AJAXtree, grandParentNode);
         }
-        if (parentNode2) {
-            YAHOO.ajax_marking_block.update_parent_node(AJAXtree, parentNode2);
+        if (greatGrandParentNode) {
+            YAHOO.ajax_marking_block.update_parent_node(AJAXtree, greatGrandParentNode);
         }
-        if (parentNode3) {
-            YAHOO.ajax_marking_block.update_parent_node(AJAXtree, parentNode3);
+        if (greatGreatGrandParentNode) {
+            YAHOO.ajax_marking_block.update_parent_node(AJAXtree, greatGreatGrandParentNode);
         }
 
-        /// refresh the tree to redraw the nodes with the new labels
-        //if (typeof(frames) != 'undefined') {
-        //    YAHOO.ajax_marking_block.refresh_tree_after_changesFrames(AJAXtree);
-        //} else {
-            YAHOO.ajax_marking_block.refresh_tree_after_changes(AJAXtree, frames);
-        //}
+        // refresh the tree to redraw the nodes with the new labels
+        YAHOO.ajax_marking_block.refresh_tree_after_changes(AJAXtree, frames);
+    
 
         YAHOO.ajax_marking_block.update_total_count();
-        YAHOO.ajax_marking_block.add_tooltips(AJAXtree);
+        //YAHOO.ajax_marking_block.add_tooltips(AJAXtree);
 
-        if (loc != -1) { // no need if its an assignment as the pop up is self closing
-            windowLoc = "YAHOO.ajax_marking_block.popup_closing_timer('"+loc+"')";
+        // no need if its an assignment as the pop up is self closing
+        if (windowUrl != -1) {
+
+            windowLoc = "YAHOO.ajax_marking_block.popup_closing_timer('"+windowUrl+"')";
             setTimeout(windowLoc, 500);
         }
     },
@@ -1369,7 +1359,7 @@ YAHOO.ajax_marking_block = {
                 var key = els.length -1;
                 if (els[key].value == amVariables.forumSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
                     // IE friendly
-                    els[key]["onclick"] = new Function("alert('click'); return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
+                    els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
                     // cancel loop for this function
                     window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
@@ -1399,7 +1389,7 @@ YAHOO.ajax_marking_block = {
                     // the onclick carries out the functions that are already specified in lib.php, followed by the function to update the tree
                     els[lastButOne]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/quiz/report.php', YAHOO.ajax_marking_block.main, '"+me+"'); ");
                     // cancel the loop for this function
-                    //alert('quiz stuff added');
+                    
                     window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
                 }
@@ -1470,20 +1460,19 @@ YAHOO.ajax_marking_block = {
      * function that waits till the pop up has a particular location,
      * i.e. the one it gets to when the data has been saved, and then shuts it.
      */
-    popup_closing_timer : function (loc) {
+    popup_closing_timer : function (urlToClose) {
 
         if (!YAHOO.ajax_marking_block.windowobj.closed) {
 
-            if (YAHOO.ajax_marking_block.windowobj.location.href == amVariables.wwwroot+loc) {
+            if (YAHOO.ajax_marking_block.windowobj.location.href == amVariables.wwwroot+urlToClose) {
+
                 setTimeout('YAHOO.ajax_marking_block.windowobj.close()', 1000);
                 return;
+           
+            } else {
+                setTimeout(YAHOO.ajax_marking_block.popup_closing_timer(urlToClose), 1000);
+                return;
             }
-
-        } else if (YAHOO.ajax_marking_block.windowobj.closed) {
-            return;
-        } else {
-            setTimeout(YAHOO.ajax_marking_block.popup_closing_timer(loc), 1000);
-            return;
         }
     },
 

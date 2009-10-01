@@ -110,112 +110,113 @@ class quiz_functions extends module_base {
 	function quiz_questions() {
 
 	    $quiz = get_record('quiz', 'id', $this->mainobject->id);
-            $courseid = $quiz->course;
+        $courseid = $quiz->course;
 
-            $this->mainobject->get_course_students($quiz->course);
+        $this->mainobject->get_course_students($quiz->course);
 
-            global $CFG, $USER;
-            // needed for the constants, but a big include - maybe not necessary.
-            // constants have been replaced with their numerical values. Will need changing if they alter.
-            // require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
+        global $CFG, $USER;
+        // needed for the constants, but a big include - maybe not necessary.
+        // constants have been replaced with their numerical values. Will need changing if they alter.
+        // require_once ("{$CFG->dirroot}/mod/quiz/locallib.php");
 
-            //permission to grade?
-            $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', 13, 'instance', $quiz->id) ;
-            $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
-            if (!has_capability('mod/quiz:grade', $modulecontext, $USER->id)) {
+        //permission to grade?
+        $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', 13, 'instance', $quiz->id) ;
+        $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
+        if (!has_capability('mod/quiz:grade', $modulecontext, $USER->id)) {
+            return;
+        }
+
+        $csv_questions = get_record_sql("SELECT questions FROM {$CFG->prefix}quiz WHERE id = {$this->mainobject->id}");
+
+        $sql = "
+              SELECT
+                qst.id as qstid, qst.event, qs.questionid as id, q.name, qa.userid, q.questiontext as description, q.qtype, qa.userid, qa.timemodified
+              FROM
+                {$CFG->prefix}question_states qst
+              INNER JOIN
+                {$CFG->prefix}question_sessions qs
+                 ON
+                    qs.newest = qst.id
+              INNER JOIN {$CFG->prefix}question q
+                 ON
+                    qs.questionid = q.id
+              INNER JOIN
+                {$CFG->prefix}quiz_attempts qa
+                  ON
+                    qs.attemptid = qa.uniqueid
+              WHERE
+                qa.quiz = $quiz->id
+              AND
+                qa.userid
+                  IN ({$this->mainobject->student_ids->$courseid})
+              AND qa.timefinish > 0
+              AND qa.preview = 0
+              AND qs.questionid IN ($csv_questions->questions)
+              AND q.qtype = 'essay'
+              AND qst.event NOT IN (3,6,9)";
+
+        $question_attempts = get_records_sql($sql);
+
+        // not the same as $csv_questions as some of those questions will have no attempts needing attention
+        $questions = $this->mainobject->list_assessment_ids($question_attempts);
+
+        if (!$this->mainobject->group) {
+            $group_check = $this->mainobject->assessment_groups_filter($question_attempts, 'quiz', $this->mainobject->id, $quiz->course);
+            if (!$group_check) {
                 return;
             }
+        }
 
-            $csv_questions = get_record_sql("SELECT questions FROM {$CFG->prefix}quiz WHERE id = {$this->mainobject->id}");
 
-            $sql = "
-                  SELECT
-                    qst.id as qstid, qst.event, qs.questionid as id, q.name, qa.userid, q.questiontext as description, q.qtype, qa.userid, qa.timemodified
-                  FROM
-                    {$CFG->prefix}question_states qst
-                  INNER JOIN
-                    {$CFG->prefix}question_sessions qs
-                     ON
-                        qs.newest = qst.id
-                  INNER JOIN {$CFG->prefix}question q
-                     ON
-                        qs.questionid = q.id
-                  INNER JOIN
-                    {$CFG->prefix}quiz_attempts qa
-                      ON
-                        qs.attemptid = qa.uniqueid
-                  WHERE
-                    qa.quiz = $quiz->id
-                  AND
-                    qa.userid
-                      IN ({$this->mainobject->student_ids->$courseid})
-                  AND qa.timefinish > 0
-                  AND qa.preview = 0
-                  AND qs.questionid IN ($csv_questions->questions)
-                  AND q.qtype = 'essay'
-                  AND qst.event NOT IN (3,6,9)";
+        $this->mainobject->output = '[{"type":"quiz_question"}';      // begin json object.   Why course?? Children treatment?
 
-            $question_attempts = get_records_sql($sql);
+        foreach ($questions as $question) {
 
-            // not the same as $csv_questions as some of those questions will have no attempts needing attention
-            $questions = $this->mainobject->list_assessment_ids($question_attempts);
+            $count = 0;
 
-            if (!$this->mainobject->group) {
-                $group_check = $this->mainobject->assessment_groups_filter($question_attempts, 'quiz', $this->mainobject->id, $quiz->course);
-                if (!$group_check) {
-                    return;
+            foreach ($question_attempts as $question_attempt) {
+                if (!isset($question_attempt->userid)) {continue;}
+                // if we have come from a group node, ignore attempts where the user is not in the right group
+                // also ignore attempts not relevant to this question
+                // if () { //if a group has been specified, ignore any in ohter groups
+                if (($this->mainobject->group && !$this->mainobject->check_group_membership($this->mainobject->group, $question_attempt->userid)) || (!($question_attempt->id == $question->id))) {
+
+                    continue;
                 }
+                $count = $count + 1;
             }
 
-
-            $this->mainobject->output = '[{"type":"quiz_question"}';      // begin json object.   Why course?? Children treatment?
-
-            foreach ($questions as $question) {
-
-                $count = 0;
-
-                foreach ($question_attempts as $question_attempt) {
-                    if (!isset($question_attempt->userid)) {continue;}
-                    // if we have come from a group node, ignore attempts where the user is not in the right group
-                    // also ignore attempts not relevant to this question
-                    // if () { //if a group has been specified, ignore any in ohter groups
-                    if (($this->mainobject->group && !$this->mainobject->check_group_membership($this->mainobject->group, $question_attempt->userid)) || (!($question_attempt->id == $question->id))) {
-
-                        continue;
-                    }
-                    $count = $count + 1;
+            if ($count > 0) {
+                $name = $question->name;
+                $questionid = $question->id;
+                $sum = $question->description;
+                $sumlength = strlen($sum);
+                $shortsum = substr($sum, 0, 100);
+                if (strlen($shortsum) < strlen($sum)) {
+                    $shortsum .= "...";
                 }
+                $length = ($config) ? false : 30;
+                $this->mainobject->output .= ',';
 
-                if ($count > 0) {
-                    $name = $question->name;
-                    $qid = $question->id;
-                    $sum = $question->description;
-                    $sumlength = strlen($sum);
-                    $shortsum = substr($sum, 0, 100);
-                    if (strlen($shortsum) < strlen($sum)) {
-                        $shortsum .= "...";
-                    }
-                    $length = ($config) ? false : 30;
-                    $this->mainobject->output .= ',';
+                $this->mainobject->output .= '{';
+                $this->mainobject->output .= '"label":"'.$this->mainobject->add_icon('question').'(<span class=\"AMB_count\">'.$count.'</span>) '.$this->mainobject->clean_name_text($name, $length).'",';
+                $this->mainobject->output .= '"name":"'.$this->mainobject->clean_name_text($name, $length).'",';
+                $this->mainobject->output .= '"id":"'.$questionid.'",';
+                $this->mainobject->output .= '"icon":"'.$this->mainobject->add_icon('question').'",';
 
-                    $this->mainobject->output .= '{';
-                    $this->mainobject->output .= '"label":"'.$this->mainobject->add_icon('question').' (<span class=\"AMB_count\">'.$count.'</span>)'.$this->mainobject->clean_name_text($name, $length).'",';
-                    $this->mainobject->output .= '"name":"'.$this->mainobject->clean_name_text($name, $length).'",';
-                    $this->mainobject->output .= '"id":"'.$qid.'",';
-                    $this->mainobject->output .= '"icon":"'.$this->mainobject->add_icon('question').'",';
-
-                    $this->mainobject->output .= $this->mainobject->group ? '"group":"'.$this->mainobject->group.'",' : '';
-                   // if ($this->mainobject->group) {
-                   //     $this->mainobject->output .= '"group":"'.$this->mainobject->group.'",';
-                   // }
-                    $this->mainobject->output .= '"assid":"qq'.$qid.'",';
-                    $this->mainobject->output .= '"type":"quiz_question",';
-                    $this->mainobject->output .= '"summary":"'.$this->mainobject->clean_summary_text($shortsum).'",';
-                    $this->mainobject->output .= '"count":"'.$count.'",';
-                    $this->mainobject->output .= '"dynamic":"true"';
-                    $this->mainobject->output .= '}';
-                }
+                $this->mainobject->output .= $this->mainobject->group ? '"group":"'.$this->mainobject->group.'",' : '';
+               // if ($this->mainobject->group) {
+               //     $this->mainobject->output .= '"group":"'.$this->mainobject->group.'",';
+               // }
+                $this->mainobject->output .= '"assid":"qq'.$questionid.'",';
+                $this->mainobject->output .= '"type":"quiz_question",';
+                $this->mainobject->output .= '"summary":"'.$this->mainobject->clean_summary_text($shortsum).'",';
+                $this->mainobject->output .= '"count":"'.$count.'",';
+                $this->mainobject->output .= '"uniqueid":"quiz_question'.$questionid.'",';
+                $this->mainobject->output .= '"dynamic":"true"';
+                $this->mainobject->output .= '}';
             }
+        }
         $this->mainobject->output .= "]"; // end JSON array
 	}
 

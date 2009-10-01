@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009100104;
+        $this->version = 2009100105;
     }
 	
     function specialization() {
@@ -161,7 +161,22 @@ class block_ajax_marking extends block_base {
                        $check ++;
                    }
                     // this line adds the debug versions
-                    $this->content->text .= require_js(array('yui_yahoo', 'yui_event', 'yui_dom', 'yui_logger',  $CFG->wwwroot.'/lib/yui/treeview/treeview-debug.js', 'yui_connection', 'yui_dom-event', 'yui_container', 'yui_utilities', $CFG->wwwroot.'/lib/yui/container/container_core-min.js', $CFG->wwwroot.'/lib/yui/menu/menu-min.js', 'yui_json', 'yui_button'))."";
+                    $scripts = array(
+                        'yui_yahoo',
+                        'yui_event',
+                        'yui_dom',
+                        'yui_logger',
+                        $CFG->wwwroot.'/lib/yui/treeview/treeview-min.js',
+                        'yui_connection',
+                        'yui_dom-event',
+                        'yui_container',
+                        'yui_utilities',
+                        $CFG->wwwroot.'/lib/yui/container/container_core-min.js',
+                        $CFG->wwwroot.'/lib/yui/menu/menu-min.js',
+                        'yui_json',
+                        'yui_button'
+                    );
+                    $this->content->text .= require_js($scripts)."";
 
                 $this->content->text .=    "};
                     </script>

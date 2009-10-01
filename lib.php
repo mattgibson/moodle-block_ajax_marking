@@ -745,14 +745,14 @@ class ajax_marking_functions {
          * Makes the JSON data for output. Called only from the submissions functions.
          *
          * @param string $name The name of the student or the truncated title of the discussion for the link
-         * @param int $sid  Submission id for the link
-         * @param int $aid  Assessment id or coursemodule id for the link
+         * @param int $submissionid  Submission id for the link
+         * @param int $assessmentid  Assessment id or coursemodule id for the link
          * @param string $summary Text for the tooltip
          * @param string $type Type of assessment. false if its a submission
          * @param int $seconds Number of second ago that this was submitted - for the colour coding
          * @param int $timemodified - Time submitted in unix format, for the tooltip(?)
          */
-        function make_submission_node($name, $sid, $aid, $summary, $type, $seconds, $timemodified, $count=1, $dynamic=false) {
+        function make_submission_node($name, $submissionid, $assessmentid, $summary, $type, $seconds, $timemodified, $count=1, $dynamic=false) {
             $this->output .= ',';
           
             $this->output .= '{';
@@ -765,22 +765,23 @@ class ajax_marking_functions {
                 $this->output .= $this->add_icon('user');
                 $this->output .= htmlentities($name, ENT_QUOTES).'",';
                 // this bit gets the user icon anyway as it isn't used at level 2
-                $this->output .= '"name":"'   .htmlentities($name, ENT_QUOTES).'",';
+                $this->output .= '"name":"'    .htmlentities($name, ENT_QUOTES).'",';
                 $this->output .= '"dynamic":"false",';
                 // id of submission for hyperlink
-                $this->output .= '"sid":"'    .$sid.'",'; 
+                $this->output .= '"sid":"'     .$submissionid.'",';
                 // id of assignment for hyperlink
-                $this->output .= '"aid":"'    .$aid.'",'; 
+                $this->output .= '"aid":"'     .$assessmentid.'",';
                 // might need uniqueId to replace it
-                $this->output .= '"id":"'     .$aid.'",'; 
-                $this->output .= '"title":"'  .$this->clean_summary_text($summary).'",';
-                $this->output .= '"type":"'   .$type.'",';
-                $this->output .= '"icon":"'   .$this->add_icon('user').'",';
+                $this->output .= '"id":"'      .$assessmentid.'",';
+                $this->output .= '"title":"'   .$this->clean_summary_text($summary).'",';
+                $this->output .= '"type":"'    .$type.'",';
+                $this->output .= '"icon":"'    .$this->add_icon('user').'",';
                 // 'seconds ago' sent to allow style to change according to how long it has been
-                $this->output .= '"seconds":"'.$seconds.'",'; 
+                $this->output .= '"seconds":"' .$seconds.'",';
                 // send the time of submission for tooltip
-                $this->output .= '"time":"'   .$timemodified.'",'; 
-                $this->output .= '"count":"'  .$count.'"';
+                $this->output .= '"time":"'    .$timemodified.'",';
+                $this->output .= '"uniqueid":"'.$type.'submission'.$submissionid.'",';
+                $this->output .= '"count":"'   .$count.'"';
             $this->output .= '}';
         }
 
@@ -999,7 +1000,7 @@ class ajax_marking_functions {
     /**
      * Makes an assessment node for either the main tree or the config tree
      * @param <type> $name
-     * @param <type> $aid
+     * @param <type> $assessmentid
      * @param <type> $cmid
      * @param <type> $summary
      * @param <string> $type the db name of the module, or the type of node e.g. 'user', 'group'
@@ -1029,6 +1030,7 @@ class ajax_marking_functions {
         $this->output .= '"assessmentid":"a'.$assessment->id.'",';
         $this->output .= '"cmid":"'         .$assessment->cmid.'",';
         $this->output .= '"type":"'         .$assessment->type.'",';
+        $this->output .= '"uniqueid":"'     .$assessment->type.$assessment->id.'",';
         
         $this->output .= '"title":"';
         if ($config) {
