@@ -1463,17 +1463,18 @@ YAHOO.ajax_marking_block = {
     popup_closing_timer : function (urlToClose) {
 
         if (!YAHOO.ajax_marking_block.windowobj.closed) {
-
+            
             if (YAHOO.ajax_marking_block.windowobj.location.href == amVariables.wwwroot+urlToClose) {
 
-                setTimeout('YAHOO.ajax_marking_block.windowobj.close()', 1000);
+                YAHOO.ajax_marking_block.windowobj.close();
                 return;
            
             } else {
+
                 setTimeout(YAHOO.ajax_marking_block.popup_closing_timer(urlToClose), 1000);
                 return;
             }
-        }
+        } 
     },
 
     /**
