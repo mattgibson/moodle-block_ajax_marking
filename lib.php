@@ -514,7 +514,7 @@ class ajax_marking_functions {
                 $this->output .= '"name":"'         .$groupdetails[$group]->name.'",';
                 $this->output .= '"group":"'        .$group.'",'; // id of submission for hyperlink
                 $this->output .= '"id":"'           .$assessmentid.'",'; // id of assignment for hyperlink
-                $this->output .= '"title":"'        .$summary.'",';
+                $this->output .= '"title":"'        .$this->clean_name_text($summary).'",';
                 $this->output .= '"cmid":"'         .$coursemodule->id.'",';
                 $this->output .= '"icon":"'         .$this->add_icon('group').'",';
                 $this->output .= '"type":"'         .$type.'",';
