@@ -125,7 +125,7 @@ class ajax_marking_response extends ajax_marking_functions {
 
                         // now add course to JSON array of objects
 
-                        $this->output .= ','; // add a comma if there was a preceding course
+                        $this->output .= ','; 
                         $this->output .= '{';
 
                         $this->output .= '"id":"'.$courseid.'",';
@@ -148,7 +148,8 @@ class ajax_marking_response extends ajax_marking_functions {
 
                     } 
                 } 
-                $this->output .= "]"; //end JSON array
+                //end JSON array; 
+                $this->output .= "]";
 
                break;
 
@@ -161,12 +162,16 @@ class ajax_marking_response extends ajax_marking_functions {
 
                 $this->output = '[{"type":"config_main"}';
 
-                if ($this->courses) { // might not be any available
+                if ($this->courses) { 
 
                     foreach ($this->courses as $course) {
                         // iterate through each course, checking permisions, counting assignments and
                         // adding the course to the JSON output if anything is there that can be graded
                         $count = 0;
+
+                        if (!$course->visible) {
+                            continue;
+                        }
 
                         foreach ($this->modulesettings as $modname => $module) {
                             $count = $count + $this->$modname->count_course_assessment_nodes($course->id);
@@ -208,11 +213,11 @@ class ajax_marking_response extends ajax_marking_functions {
                             }
 
                             $this->output .= '",';
-                            $this->output .= '"name":"'     .$this->clean_name_text($course->shortname).'",';
+                            $this->output .= '"name":"'     .$this->clean_name_text($course->fullname).'",';
                             // to be used for the title
                             $this->output .= '"icon":"'     .$this->add_icon('course').'",';
-                            $this->output .= '"label":"'    .$this->add_icon('course').$this->clean_name_text($course->shortname).'",';
-                            $this->output .= '"summary":"'  .$this->clean_name_text($course->shortname, -2).'",';
+                            $this->output .= '"label":"'    .$this->add_icon('course').$this->clean_name_text($course->fullname).'",';
+                            //$this->output .= '"summary":"'  .$this->clean_name_text($course->shortname, 30).'",';
                             $this->output .= '"count":"'    .$count.'"';
 
                             $this->output .= '}';

@@ -212,12 +212,19 @@ YAHOO.ajax_marking_block = {
      */
     ajax_failure_handler : function (o) {
         if (o.tId == -1) {
-            div.innerHTML =  amVariables.collapseString;
+            YAHOO.ajax_marking_block.main.div.innerHTML =  amVariables.collapseString;
         }
         if (o.tId === 0) {
-            div.innerHTML = amVariables.connectFail;
+            YAHOO.ajax_marking_block.main.div.innerHTML = amVariables.connectFail;
+            YAHOO.ajax_marking_block.main.icon.removeAttribute('class', 'loaderimage');
+            YAHOO.ajax_marking_block.main.icon.removeAttribute('className', 'loaderimage');
+            if (!document.getElementById('AMBcollapse')) {
+                YAHOO.ajax_marking_block.make_footer();
+            }
         }
     },
+
+
 
     /**
      * Creates the initial nodes for both the main block tree or configuration tree.
@@ -1720,7 +1727,7 @@ var  ajax_marking_block_callback = {
  * The initial stuff to get everything started
  */
 
-// workaround for odd https setups. Probably not needed in most (any?) cases
+// workaround for odd https setups. Probably not needed in most cases
 if ( document.location.toString().indexOf( 'https://' ) != -1 ) {
     amVariables.wwwroot = amVariables.wwwroot.replace('http:', 'https:');
 }
