@@ -314,7 +314,7 @@ YAHOO.ajax_marking_block = {
                             case 'quiz_answer':
                                 popUpPost = 'mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid;
                                 popUpUrl = '/mod/quiz/report.php';
-                                popUpAddress += '/mod/quiz/report.php?mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'';
+                                popUpAddress += '/mod/quiz/report.php?mode=grading&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'';
                                 timerFunction = 'YAHOO.ajax_marking_block.alter_quiz_popup(\''+nd.data.uniqueid+'\')';
 
                                 break;

@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009100401;
+        $this->version = 2009100901;
     }
 	
     function specialization() {
@@ -74,8 +74,20 @@ class block_ajax_marking extends block_base {
             //start building content output
             $this->content = new stdClass;
 
-            // Add a style to hide the HTML list if javascript is enabled in the client and AJAX is to be used
-            if($CFG->enableajax && $USER->ajax) {
+            
+
+            // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if necessary
+            include('html_list.php');
+            $AMB_html_list_object = new AMB_html_list;
+            $this->content->text .= '<div id="AMB_html_list">';
+            $this->content->text .= $AMB_html_list_object->make_html_list();
+            $this->content->text .= '</div>';
+            $this->content->footer = '';
+
+            // Build the AJAX stuff on top of the plain HTML list
+            if($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
+
+                // Add a style to hide the HTML list and prevent flicker
                 $this->content->text .= '
                     <script type="text/javascript" defer="defer">
                         var styleElement = document.createElement("style");
@@ -87,24 +99,9 @@ class block_ajax_marking extends block_base {
                         }
                         document.getElementsByTagName("head")[0].appendChild(styleElement);
                     </script>';
-            }
-
-            // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if necessary
-            include('html_list.php');
-            $AMB_html_list_object = new AMB_html_list;
-            $this->content->text .= '<div id="AMB_html_list">';
-            $this->content->text .= $AMB_html_list_object->make_html_list();
-            $this->content->text .= '</div>';
-            $this->content->footer = '';
-           // if ($CFG->debug > 0) {
-                // temporary debug output
-           //     $this->content->footer .= "html footer";
-           // }
-
-            if($CFG->enableajax && $USER->ajax) {
-                // Seeing as the site and user both want to use AJAX,
-                $AMfullname = fullname($USER);
-                $variables = array(
+                
+                $AMBfullname = fullname($USER);
+                $variables  = array(
 
                     'wwwroot'             => $CFG->wwwroot,
                     'totalMessage'        => get_string('total',              'block_ajax_marking'),
@@ -125,7 +122,7 @@ class block_ajax_marking extends block_base {
                     'connectFail'         => get_string('connect_fail',       'block_ajax_marking'),
                     'nogroups'            => get_string('nogroups',           'block_ajax_marking'),
                     'headertext'          => get_string('headertext',         'block_ajax_marking'),
-                    'fullname'            => $AMfullname,
+                    'fullname'            => $AMBfullname,
                     'confAssessmentShow'  => get_string('confAssessmentShow', 'block_ajax_marking'),
                     'confCourseShow'      => get_string('confCourseShow',     'block_ajax_marking'),
                     'confGroups'          => get_string('confGroups',         'block_ajax_marking'),
