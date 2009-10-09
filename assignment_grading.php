@@ -85,7 +85,7 @@ class assignment_functions extends module_base {
             AND c.visible = 1
             AND a.course IN ({$this->mainobject->course_ids})
             AND s.timemarked < s.timemodified
-            AND NOT (a.resubmit = 0 AND s.timemarked > 0)
+            AND NOT ((a.resubmit = 0 AND s.timemarked > 0) OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
             ORDER BY a.id
          ";
          $this->all_submissions = get_records_sql($sql);
@@ -114,7 +114,7 @@ class assignment_functions extends module_base {
                 AND c.visible = 1
                 AND a.course = $courseid
                 AND s.timemarked < s.timemodified
-                AND NOT (a.resubmit = 0 AND s.timemarked > 0)
+                AND NOT ((a.resubmit = 0 AND s.timemarked > 0) OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
                 AND s.userid IN({$this->mainobject->student_ids->$courseid})
                 ORDER BY a.id
               ";
@@ -156,7 +156,7 @@ class assignment_functions extends module_base {
                 WHERE s.assignment = {$this->mainobject->id}
                     AND s.userid IN ({$this->mainobject->student_ids->$courseid})
                     AND s.timemarked < s.timemodified
-                    AND NOT (a.resubmit = 0 AND s.timemarked > 0)
+                    AND NOT ((a.resubmit = 0 AND s.timemarked > 0) OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
                     AND c.module = {$this->mainobject->modulesettings['assignment']->id}
                 ORDER BY timemodified ASC";
 
