@@ -82,12 +82,17 @@ class AMB_html_list extends ajax_marking_functions {
             $course_output = '';
             $course_count = 0;
             $courseid = $course->id;
+
+            if (!$course->visible) {
+                continue;
+            }
+            
             $this->get_course_students($courseid);
             if ((!isset($this->student_ids->$courseid)) || empty($this->student_ids->$courseid)) {
                 // no students in this course
                 continue;
             }
-            
+
             // see which modules are currently enabled
             $sql = "
                 SELECT name 
