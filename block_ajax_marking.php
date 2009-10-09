@@ -142,9 +142,14 @@ class block_ajax_marking extends block_base {
                     <div id='mainIcon'></div>
                 </div>
                 <div id='status'> </div>
-                <div id='treediv' class='yui-skin-sam'>
-                    <noscript><p>AJAX marking block requires javascript, but you have it turned off.</p></noscript>
-                </div>
+                <div id='treediv' class='yui-skin-sam'>";
+
+                // Don't warn about javascript if the sreenreader option is set - it was deliberate
+                if (!$USER->screenreader) {
+                    $this->content->text .= "<noscript><p>AJAX marking block requires javascript, but you have it turned off.</p></noscript>";
+                }
+
+                $this->content->text .= "</div>
                 <div id='javaValues'>
                 <script type=\"text/javascript\" defer=\"defer\">
                    
