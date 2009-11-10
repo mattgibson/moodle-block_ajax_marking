@@ -11,7 +11,7 @@ There are exceptions for some assessment types as their structure needs extra le
 Course -> Quiz -> Question -> Student.
 
 There is an option to enable 'display by group' for each individual assessment. This will add an extra 
-level: Course -> Assessment -> Group -> Student, with the option to choose which groups to show or hide.
+level: Course -> Assessment -> GROUP -> Student, with the option to choose which groups to show or hide.
 To enable this, click on the 'Configure' link at the bottom of the block to open a settings pop up. 
 The tree in the pop up shows all of the assessment items you have permission to grade and you can 
 set you personal display preferences by clicking on the name of the assesment. Changes are saved instantly 
