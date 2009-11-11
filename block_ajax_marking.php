@@ -9,7 +9,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2009100904;
+        $this->version = 2009111103;
     }
 	
     function specialization() {
@@ -73,8 +73,6 @@ class block_ajax_marking extends block_base {
 
             //start building content output
             $this->content = new stdClass;
-
-            
 
             // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if necessary
             include('html_list.php');

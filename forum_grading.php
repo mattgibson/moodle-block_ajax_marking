@@ -21,6 +21,7 @@ class forum_functions extends module_base {
     function get_all_unmarked() {
         global $CFG, $USER;
 
+
         $sql = "
             SELECT p.id as postid, p.userid, d.id, f.id, f.name, f.course, c.id as cmid
             FROM {$CFG->prefix}forum_posts p
@@ -33,8 +34,8 @@ class forum_functions extends module_base {
             INNER JOIN {$CFG->prefix}course_modules c
                  ON f.id = c.instance
 
-            WHERE p.userid <> $USER->id
-                AND (((r.userid <> $USER->id) AND (r.userid NOT IN ({$this->mainobject->teachers}))) OR r.userid IS NULL)
+            WHERE p.userid <> {$USER->id}
+                AND (((r.userid <> {$USER->id}) AND (r.userid NOT IN ({$this->mainobject->teachers}))) OR r.userid IS NULL)
                 AND c.module = {$this->mainobject->modulesettings['forum']->id}
                 AND c.visible = 1
                 AND f.course IN ({$this->mainobject->course_ids})
@@ -42,6 +43,7 @@ class forum_functions extends module_base {
                 AND f.assessed > 0
             ORDER BY f.id
         ";
+
 
         $this->all_submissions = get_records_sql($sql);
         return true;
@@ -74,7 +76,8 @@ class forum_functions extends module_base {
                     AND f.assessed > 0
                 ORDER BY f.id
                 ";
-        $unmarked = get_records_sql($sql, $this->type);
+                
+        $unmarked = get_records_sql($sql);
         return $unmarked;
     }
 

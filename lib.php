@@ -91,8 +91,9 @@ class ajax_marking_functions {
 
         // instantiate function classes for each of the available modules and store them in the modules object
         foreach ($this->modulesettings as $modname => $module) {
-
-            include("{$module->dir}/{$modname}_grading.php");
+            // echo "{$CFG->dirroot}{$module->dir}/{$modname}_grading.php ";
+            include("{$CFG->dirroot}{$module->dir}/{$modname}_grading.php");
+            //include("{$module->dir}/{$modname}_grading.php");
             $classname = $modname.'_functions';
             $this->$modname = new $classname($this);
         }

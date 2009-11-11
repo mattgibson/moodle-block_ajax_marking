@@ -119,7 +119,7 @@ class assignment_functions extends module_base {
                 ORDER BY a.id
               ";
 
-        $unmarked = get_records_sql($sql, 'assignment');
+        $unmarked = get_records_sql($sql);
         return $unmarked;
     }
 

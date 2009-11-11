@@ -65,7 +65,7 @@ class journal_functions extends module_base {
             AND j.course = {$courseid}
         ";
 
-        $unmarked = get_records_sql($sql, 'journal');
+        $unmarked = get_records_sql($sql);
         return $unmarked;
 
     }

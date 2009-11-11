@@ -59,7 +59,7 @@ class workshop_functions extends module_base {
                     AND a.grade = -1))
             AND c.module = {$this->mainobject->modulesettings['workshop']->id}
             AND c.visible = 1
-            AND w.course = $courseid
+            AND w.course = {$courseid}
             AND s.userid IN ({$this->mainobject->student_ids->$courseid})
             ORDER BY w.id
         ";
