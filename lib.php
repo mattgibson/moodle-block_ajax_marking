@@ -1026,7 +1026,7 @@ class ajax_marking_functions {
         $this->output .= '"name":"'         .$this->clean_name_text($assessment->name, $length).'",';
         
         $this->output .= '"id":"'           .$assessment->id.'",';
-        $this->output .= '"icon":"'         .$assessment->icon.'",';
+        $this->output .= '"icon":"'         .$this->add_icon($assessment->type).'",';
         // $this->output .= '"icon":"'         .$this->add_icon($assessment->type).'",';
         $this->output .= '"assessmentid":"a'.$assessment->id.'",';
         $this->output .= '"cmid":"'         .$assessment->cmid.'",';
