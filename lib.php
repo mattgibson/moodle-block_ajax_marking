@@ -1446,9 +1446,4 @@ class module_base {
 
     }
 
-
 }
-
-
-
-?>

@@ -143,5 +143,3 @@ class journal_functions extends module_base {
     }
 
 }
-
-?>

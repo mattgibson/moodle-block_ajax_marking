@@ -140,9 +140,4 @@ class AMB_html_list extends ajax_marking_functions {
 
     }// end function
 
-    
-
 }
-
-
-?>

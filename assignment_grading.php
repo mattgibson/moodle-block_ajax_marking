@@ -247,5 +247,3 @@ class assignment_functions extends module_base {
     //
 
 }
-
-?>

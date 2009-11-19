@@ -431,6 +431,3 @@ class ajax_marking_response extends ajax_marking_functions {
  //   unset($response);
 //}
 $AMB_AJAX_response = new ajax_marking_response;
-
-
-?>

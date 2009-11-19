@@ -166,5 +166,3 @@ class workshop_functions extends module_base {
     }
 
 }
-
-?>

@@ -221,5 +221,4 @@ class block_ajax_marking extends block_base {
 
     }
 }
-?>
 	 

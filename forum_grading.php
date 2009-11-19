@@ -287,6 +287,4 @@ class forum_functions extends module_base {
     }
 
 
-} // end class
-
-?>
+}

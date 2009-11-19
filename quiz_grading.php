@@ -341,9 +341,4 @@ class quiz_functions extends module_base {
         return $address;
     }
 
-
-
-
 }
-
-?>
