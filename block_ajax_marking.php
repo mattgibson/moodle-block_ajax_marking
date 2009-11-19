@@ -11,17 +11,17 @@ class block_ajax_marking extends block_base {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
         $this->version = 2009111103;
     }
-	
+
     function specialization() {
             $this->title = get_string('marking', 'block_ajax_marking');
     }
-	
+
     function get_content() {
 
         if ($this->content !== NULL) {
             return $this->content;
         }
-		
+
        global $CFG, $USER;
        
 
@@ -202,9 +202,9 @@ class block_ajax_marking extends block_base {
             //no courses - need a message
             $this->content->text .= get_string('config_nothing', 'block_ajax_marking');
         }
-        return $this->content;	
-    }	
-	
+        return $this->content;
+    }
+
     function instance_allow_config() {
         return false;
     }
@@ -221,4 +221,3 @@ class block_ajax_marking extends block_base {
 
     }
 }
-	 

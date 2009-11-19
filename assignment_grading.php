@@ -125,11 +125,11 @@ class assignment_functions extends module_base {
 
 
     /**
-	 * procedure for assignment submissions. We have to deal with several situations -
-	 * just show all the submissions at once (default)
-	 * divert this request to the groups function if the config asks for that
-	 * show the selected group's students
-	 */
+     * procedure for assignment submissions. We have to deal with several situations -
+     * just show all the submissions at once (default)
+     * divert this request to the groups function if the config asks for that
+     * show the selected group's students
+     */
     function submissions() {
         
         global $CFG, $USER;

@@ -121,7 +121,7 @@ class ajax_marking_response extends ajax_marking_functions {
                     // TO DO: need to check in future for who has been assigned to mark them (new groups stuff) in 1.9
                     //$coursecontext = get_context_instance(CONTEXT_COURSE, $course->id);
 
-                    if ($count > 0 || $this->config) { // there are some assessments	, or its a config tree, so we include the course always.
+                    if ($count > 0 || $this->config) { // there are some assessments, or its a config tree, so we include the course always.
 
                         // now add course to JSON array of objects
 
@@ -287,7 +287,7 @@ class ajax_marking_response extends ajax_marking_functions {
                // Called only when you click the option 2 of the config, so the next step is for the javascript
                // functions to build the groups checkboxes.
 
-                $this->output = '[{"type":"config_groups"}'; 	// begin JSON array
+                $this->output = '[{"type":"config_groups"}'; // begin JSON array
 
                 //first set the config to 'display by group' as per the ajax request (this is the option that was clicked)
                 $this->make_config_data();
@@ -341,7 +341,7 @@ class ajax_marking_response extends ajax_marking_functions {
                 */
 
                 // begin JSON array
-                $this->output = '[{"type":"config_check"}'; 	
+                $this->output = '[{"type":"config_check"}'; 
 
                 $assessment_settings = $this->get_groups_settings($this->assessmenttype, $this->assessmentid);
                 $course_settings     = $this->get_groups_settings('course', $this->courseid);
@@ -382,7 +382,7 @@ class ajax_marking_response extends ajax_marking_functions {
                  * that the checkbox can be un-greyed and marked as done
                  */
 
-                $this->output = '[{"type":"config_group_save"},{'; 	// begin JSON array
+                $this->output = '[{"type":"config_group_save"},{'; // begin JSON array
 
                 $this->make_config_data();
                 if($this->groups) {

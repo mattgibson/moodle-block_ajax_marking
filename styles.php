@@ -196,7 +196,7 @@ version: 2.5.2
     border: none; padding: 0;
 }
 .ygtvrow td a {
-	text-decoration:none;
+    text-decoration:none;
 }
 
 
@@ -292,25 +292,25 @@ version: 2.5.2
     margin-left:2px;
     text-decoration: none;
     background-color: white; /* workaround for IE font smoothing bug */
-	cursor:pointer;
+    cursor:pointer;
 }
 
 .ygtvcontent {
-	cursor:default;
+    cursor:default;
 }
 
 .ygtvspacer { height: 22px; width: 12px; }
 
 .ygtvfocus {
-	background-color: #c0e0e0;
-	border: none;
+    background-color: #c0e0e0;
+    border: none;
 }
 .ygtvfocus .ygtvlabel, .ygtvfocus .ygtvlabel:link, .ygtvfocus .ygtvlabel:visited, .ygtvfocus .ygtvlabel:hover {
-	background-color: #c0e0e0;
+    background-color: #c0e0e0;
 }
 
 .ygtvfocus a , .ygtvrow  td a {
-	outline-style:none;
+    outline-style:none;
 }
 
 
@@ -333,41 +333,41 @@ version: 2.5.2
 }
 
 .ygtv-label-editor {
-	background-color:#f2f2f2;
-	border: 1px solid silver;
-	position:absolute;
-	display:none;
-	overflow:hidden;
-	margin:auto;
-	z-index:9000;
+    background-color:#f2f2f2;
+    border: 1px solid silver;
+    position:absolute;
+    display:none;
+    overflow:hidden;
+    margin:auto;
+    z-index:9000;
 }
 
 .ygtv-edit-TextNode  {
-	width: 190px;
+    width: 190px;
 }
 
 .ygtv-edit-TextNode .ygtvcancel, .ygtv-edit-TextNode .ygtvok  {
-	border:none;
+    border:none;
 }
 
 .ygtv-edit-TextNode .ygtv-button-container {
-	float: right;
+    float: right;
 }
 
 .ygtv-edit-TextNode .ygtv-input  input{
-	width: 140px;
+    width: 140px;
 }
 
 .ygtv-edit-DateNode .ygtvcancel {
-	border:none;
+    border:none;
 }
 .ygtv-edit-DateNode .ygtvok  {
-	display:none;
+    display:none;
 }
 
 .ygtv-edit-DateNode   .ygtv-button-container {
-	text-align:right;
-	margin:auto;
+    text-align:right;
+    margin:auto;
 }
 
 /* makes sure the bottom of the icons don't get hidden */
@@ -652,13 +652,13 @@ version: 2.6.0
 
 .yui-skin-sam .yuimenu .bd {
 
-	/*
-		The following application of zoom:1 prevents first tier submenus of a MenuBar from hiding
-		when the mouse is moving from an item in a MenuBar to a submenu in IE 7.
-	*/
+    /*
+        The following application of zoom:1 prevents first tier submenus of a MenuBar from hiding
+        when the mouse is moving from an item in a MenuBar to a submenu in IE 7.
+    */
 
-	*zoom: 1;
-	_zoom: normal;	/* Remove this rule for IE 6. */
+    *zoom: 1;
+    _zoom: normal;  /* Remove this rule for IE 6. */
     border: solid 1px #808080;
     background-color: #fff;
 
@@ -666,7 +666,7 @@ version: 2.6.0
 
 .yui-skin-sam .yuimenu .yuimenu .bd {
 
-	*zoom: normal;
+    *zoom: normal;
 
 }
 

@@ -1687,16 +1687,16 @@ YAHOO.ajax_marking_block = {
 
         // the two links
         var collapseButton = new YAHOO.widget.Button({
-	                            label:amVariables.refreshString,
-	                            id:"AMBcollapse",
+                            label:amVariables.refreshString,
+                            id:"AMBcollapse",
                                 onclick: {fn: function() {YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.main)} },
-	                            container:"conf_left" });
+                            container:"conf_left" });
 
         var configButton = new YAHOO.widget.Button({
-	                            label:amVariables.configureString,
-	                            id:"AMBconfig",
+                            label:amVariables.configureString,
+                            id:"AMBconfig",
                                 onclick: {fn: function() {YAHOO.ajax_marking_block.build_config_overlay()} },
-	                            container:"conf_right" });
+                            container:"conf_right" });
         //collapseButton.on("click", function (){YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.main)});
 
         // Add bits to them like onclick
@@ -1737,7 +1737,3 @@ document.body.className += ' yui-skin-sam';
 YAHOO.ajax_marking_block.main = new YAHOO.ajax_marking_block.AJAXtree('treediv', 'mainIcon', 'status', false);
 
 YAHOO.ajax_marking_block.build_ajax_tree(YAHOO.ajax_marking_block.main);
-    
-
-	
-

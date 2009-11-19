@@ -98,18 +98,18 @@ class quiz_functions extends module_base {
 
    
 
-     /**
-         * Gets all of the question attempts for the current quiz. Uses the group filtering function to display groups first if
-         * that has been specified via config. Seemed like abetter idea than questions then groups as tutors will mostly have a class to mark
-         * rather than a question to mark.
-         *
-         * Uses $this->id as the quiz id
-         * @global <type> $CFG
-         * @return <type>
-         */
-	function quiz_questions() {
+    /**
+     * Gets all of the question attempts for the current quiz. Uses the group filtering function to display groups first if
+     * that has been specified via config. Seemed like abetter idea than questions then groups as tutors will mostly have a class to mark
+     * rather than a question to mark.
+     *
+     * Uses $this->id as the quiz id
+     * @global <type> $CFG
+     * @return <type>
+     */
+    function quiz_questions() {
 
-	    $quiz = get_record('quiz', 'id', $this->mainobject->id);
+        $quiz = get_record('quiz', 'id', $this->mainobject->id);
         $courseid = $quiz->course;
 
         $this->mainobject->get_course_students($quiz->course);
@@ -218,7 +218,7 @@ class quiz_functions extends module_base {
             }
         }
         $this->mainobject->output .= "]"; // end JSON array
-	}
+    }
 
 
         /**
@@ -227,7 +227,7 @@ class quiz_functions extends module_base {
          * @return <type>
          */
 
-	function submissions() {
+    function submissions() {
 
         global $CFG, $USER;
         
