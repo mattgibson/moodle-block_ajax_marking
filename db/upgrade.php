@@ -108,5 +108,3 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
     
     return $result;
 }
-
-?>

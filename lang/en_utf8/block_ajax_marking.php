@@ -32,6 +32,3 @@ $string['confAssessmentHide']   = 'Hide this assessment';
 $string['confCourseHide']       = 'Hide this course';
 $string['confDefault']          = 'Course default';
 $string['confCurrent']          = 'Current settings';
-
-
-?>
