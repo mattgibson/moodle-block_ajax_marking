@@ -5,6 +5,8 @@ YAHOO.namespace('ajax_marking_block');
 
 YAHOO.ajax_marking_block = {
 
+    // globals go here
+
     // the following 2 variables sometimes hold different things e.g. user id or submission
     // this holds the assessment id so it can be accessed by other functions
     aidHolder : '', 
@@ -12,7 +14,8 @@ YAHOO.ajax_marking_block = {
     sidHolder : '',                           
     // this holds the parent node so it can be referenced by other functions                                                    
     nodeHolder : '',           
-    // this holds the callback function of the parent node so it can be called once all the child nodes have been built
+    // this holds the callback function of the parent node so it can be called once all the child
+    // nodes have been built
     compHolder : '',  
     // what does this do?
     checkVar : 6,
@@ -32,7 +35,6 @@ YAHOO.ajax_marking_block = {
     // objects which form the trees - the main display one for the block and if needed, the config one.
     main : '',
     config : '',
-
 
     /**
      * just moved out from ajaxtree, this needs:
@@ -82,20 +84,7 @@ YAHOO.ajax_marking_block = {
         try {
             responseArray = YAHOO.lang.JSON.parse(o.responseText);
         } catch (error) {
-            // if the response is not JSON, we have got back the contents of one of the pop ups
-
-            // add it to the panel
-
-            //YAHOO.ajax_marking_block.greyOut.setBody(o.responseText);
-
-            //YAHOO.ajax_marking_block.greyOut.beforeHideEvent.subscribe(function() {
-
-            //});
-
-            //YAHOO.ajax_marking_block.greyOut.render(document.body);
-            //YAHOO.ajax_marking_block.greyOut.show();
-
-  
+           
         }
         // first object holds data about what kind of nodes we have so we can fire the right function.
         if (responseArray != null) {
@@ -103,8 +92,8 @@ YAHOO.ajax_marking_block = {
             // remove the data object, leaving just the node objects
             responseArray.shift();
 
-           // TODO - these are inconsistent. Some refer to where the request
-           // is triggered and some to what it creates.
+            // TODO - these are inconsistent. Some refer to where the request
+            // is triggered and some to what it creates.
             switch (type) {
 
                 case 'main':
@@ -157,11 +146,6 @@ YAHOO.ajax_marking_block = {
 
                 case 'config_set':
 
-                    // update the tooltip of this item -- experimental: might want to show current status in the tree
-                    //YAHOO.ajax_marking_block.nodeHolder.label = 'new label';
-                    // YAHOO.ajax_marking_block.nodeHolder.parent.refresh();
-                
-
                     //just need to un-disable the radio button
                     
                     if (responseArray[0].value === false) {
@@ -174,16 +158,19 @@ YAHOO.ajax_marking_block = {
                     break;
 
                 case 'config_check':
-                    // called when any data about config comes back after a request (not a data setting request)
+                    // called when any data about config comes back after a request (not a data
+                    // setting request)
 
                     // make the id of the checkbox div
                     var checkId = 'config'+responseArray[0].value;
 
-                    // make the radio button on screen match the value in the database that was just returned.
+                    // make the radio button on screen match the value in the database that was just
+                    // returned.
                     document.getElementById(checkId).checked = true;
                     // if its set to 'display by groups', make the groups bit underneath
                     if (responseArray[0].value == 2) {
-                        // remove the config bit leaving just the groups, which were tacked onto the end of the returned array
+                        // remove the config bit leaving just the groups, which were tacked onto the
+                        // end of the returned array
                         responseArray.shift();
                         //make the groups bit
                         YAHOO.ajax_marking_block.make_config_groups_list(responseArray);
@@ -288,7 +275,8 @@ YAHOO.ajax_marking_block = {
                 total.appendChild(label);
                 YAHOO.ajax_marking_block.update_total_count();
 
-                // this function is the listener for the main tree. Event bubbling means that this will catch all node clicks
+                // this function is the listener for the main tree. Event bubbling means that this
+                // will catch all node clicks
                 AJAXtree.tree.subscribe(
                     "clickEvent",
                     function(oArgs) {
@@ -296,13 +284,15 @@ YAHOO.ajax_marking_block = {
                         // ref saves space
                         var nd = oArgs.node;
 
-                        // putting window.open into the switch statement causes it to fail in IE6. No idea why.
+                        // putting window.open into the switch statement causes it to fail in IE6.
+                        // No idea why.
                         var popUpAddress = amVariables.wwwroot;
                         var popUpArgs = 'menubar=0,location=0,scrollbars,resizable,width=780,height=500';
                         var timerFunction = '';
                         var popUpUrl = '';
 
-                        // not used yet - waiting to get web services going so this can be ana ajax call for a panel widget
+                        // not used yet - waiting to get web services going so this can be ana ajax
+                        // call for a panel widget
                         var popUpPost = '';
                         
                         if (nd.data.dynamic == 'true') {
@@ -312,9 +302,11 @@ YAHOO.ajax_marking_block = {
                         switch (nd.data.type) {
 
                             case 'quiz_answer':
-                                popUpPost = 'mode=grading&action=grade&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid;
+                                popUpPost = 'mode=grading&action=grade&q='+nd.parent.parent.data.id;
+                                popUpPost += '&questionid='+nd.data.aid+'&userid='+nd.data.sid;
                                 popUpUrl = '/mod/quiz/report.php';
-                                popUpAddress += '/mod/quiz/report.php?mode=grading&q='+nd.parent.parent.data.id+'&questionid='+nd.data.aid+'&userid='+nd.data.sid+'';
+                                popUpAddress += '/mod/quiz/report.php?mode=grading&q='+nd.parent.parent.data.id;
+                                popUpAddress += '&questionid='+nd.data.aid+'&userid='+nd.data.sid+'';
                                 timerFunction = 'YAHOO.ajax_marking_block.alter_quiz_popup(\''+nd.data.uniqueid+'\')';
 
                                 break;
@@ -323,7 +315,9 @@ YAHOO.ajax_marking_block = {
                                 popUpArgs = 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';
                                 popUpPost = 'id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0';
                                 popUpUrl = '/mod/assignment/submissions.php';
-                                popUpAddress += '/mod/assignment/submissions.php?id='+nd.data.aid+'&userid='+nd.data.sid+'&mode=single&offset=0';
+                                popUpAddress += '/mod/assignment/submissions.php?id='+nd.data.aid
+                                popUpAddress += '&userid='+nd.data.sid+'&mode=single&offset=0';
+                                // not sure why the one for the assignment needs to be different
                                 timerFunction = function() {YAHOO.ajax_marking_block.alter_assignment_popup(nd.data.id, nd.data.sid);};
                                 // timerFunction = 'YAHOO.ajax_marking_block.alter_assignment_popup(\''+nd.data.id+'\', \''+nd.data.sid+'\')';
                                 break;
@@ -332,7 +326,8 @@ YAHOO.ajax_marking_block = {
 
                                 popUpPost = 'id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+amVariables.wwwroot;
                                 popUpUrl = '/mod/workshop/assess.php';
-                                popUpAddress += '/mod/workshop/assess.php?id='+nd.data.aid+'&sid='+nd.data.sid+'&redirect='+amVariables.wwwroot+'';
+                                popUpAddress += '/mod/workshop/assess.php?id='+nd.data.aid+'&sid=';
+                                popUpAddress += nd.data.sid+'&redirect='+amVariables.wwwroot+'';
                                 timerFunction = 'YAHOO.ajax_marking_block.alter_workshop_popup(\''+nd.data.uniqueid+'\')';
                                 break;
 
@@ -340,7 +335,6 @@ YAHOO.ajax_marking_block = {
 
                                 popUpPost = 'd='+nd.data.aid+'#p'+nd.data.sid;
                                 popUpUrl = '/mod/forum/discuss.php';
-                                
                                 popUpAddress += '/mod/forum/discuss.php?d='+nd.data.aid+'#p'+nd.data.sid;
                                 timerFunction = 'YAHOO.ajax_marking_block.alter_forum_popup(\''+nd.data.uniqueid+'\')';
                                 break;
@@ -354,7 +348,7 @@ YAHOO.ajax_marking_block = {
                                 popUpAddress += '/mod/journal/report.php?id='+nd.data.cmid+'';
                                 // TODO this is for the level 2 ones where there are group nodes that lead to
                                 // a pop-up. Need to make this dynamic - the extension to the url may differ.
-                                ((typeof(nd.data.group)) != 'undefined') ? popUpAddress += '&group='+nd.data.group+'' : popUpAddress += '' ;
+                                popUpAddress += ((typeof(nd.data.group)) != 'undefined') ? '&group='+nd.data.group : '' ;
                                 timerFunction = function() {YAHOO.ajax_marking_block.alter_journal_popup(nd.data.uniqueid);};
                                 // timerFunction = 'YAHOO.ajax_marking_block.alter_journal_popup(\''+nd.data.id+'\')';
                                 break;
@@ -454,12 +448,6 @@ YAHOO.ajax_marking_block = {
 
                         }
 
-
-                        // make the three main checkboxes, appending them to the form as we go along
-                        //makeBox('show',   'config1', amVariables.confAssessmentShow);
-                        //makeBox('groups', 'config2', amVariables.confGroups);
-                        //makeBox('hide',   'config3', amVariables.confAssessmentHide);
-
                         // now, we need to find out what the current group mode is and display that box as checked.
                         var AJAXUrl   = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
                         if (oArgs.node.data.type !== 'config_course') {
@@ -472,27 +460,29 @@ YAHOO.ajax_marking_block = {
                             AJAXdata += '&assessmenttype=course';
                             AJAXdata += '&type=config_check';
                         }
-                        var request   = YAHOO.util.Connect.asyncRequest('POST', AJAXUrl, ajax_marking_block_callback, AJAXdata);
+                        var request = YAHOO.util.Connect.asyncRequest('POST', AJAXUrl, ajax_marking_block_callback, AJAXdata);
 
                         return true;
                     }
                 );
             }
-
         }
     },
 
     /**
-     * Obsolete function to make add_tooltips for the whole tree using YUI container widget. Overkill, so disabled
+     * Obsolete function to make add_tooltips for the whole tree using YUI container widget.
+     * Overkill, so disabled
      */
     add_tooltips : function(tree) {
 
         var name = navigator.appName;
         if (name.search('iPhone') == -1) {
-            // this is disabled for IE because, although useful, in IE6 (assuming others too) the add_tooltips seem to sometimes remain as an invisible div on top
-            // of the tree structure once nodes has expanded, so that some of the child nodes are unclickable. Firefox is ok with it. This is a pain
-            // because a person may not remember the full details of the assignment that was set and a tooltip is better than leaving the front page.
-            // I will re-enable it once I find a fix
+            // this is disabled for IE because, although useful, in IE6 (assuming others too) the
+            // add_tooltips seem to sometimes remain as an invisible div on top of the tree
+            // structure once nodes has expanded, so that some of the child nodes are unclickable.
+            // Firefox is ok with it. This is a pain because a person may not remember the full
+            // details of the assignment that was set and a tooltip is better than leaving the front
+            // page. I will re-enable it once I find a fix
 
             var i = 0;
             var j = 0;
@@ -594,7 +584,8 @@ YAHOO.ajax_marking_block = {
      */
     request_node_data : function(node, onCompleteCallback) {
 
-        /// store details of the node that has been clicked in globals for reference by later callback function
+        // store details of the node that has been clicked in globals for reference by later
+        // callback function
         YAHOO.ajax_marking_block.nodeHolder = node;
         YAHOO.ajax_marking_block.compHolder = onCompleteCallback;
 
@@ -618,7 +609,8 @@ YAHOO.ajax_marking_block = {
 
     /**
      * function to update the parent assessment node when it is refreshed dynamically so that
-     * if more work has been found, or a piece has now been marked, the count for that label will be accurate
+     * if more work has been found, or a piece has now been marked, the count for that label will be
+     * accurate
      */
     update_parent_node : function(AJAXtree, node) {
 
@@ -628,7 +620,10 @@ YAHOO.ajax_marking_block = {
             AJAXtree.tree.removeNode(node, true);
         } else {
 
-            if (node.data.type == 'course' || node.children[0].data.gid != 'undefined' || node.data.type == 'forum' || node.data.type == 'quiz') { // we need to sum child counts
+            // in some cases, we need to sum child counts
+            dataTypes = ['course', 'forum', 'quiz'];
+            if (dataTypes.indexOf(node.data.type) > -1 || node.children[0].data.gid != 'undefined') {
+            //if (node.data.type == 'course' || node.children[0].data.gid != 'undefined' || node.data.type == 'forum' || node.data.type == 'quiz') {
 
                 var tempCount = 0;
                 var tempStr = '';
@@ -657,30 +652,30 @@ YAHOO.ajax_marking_block = {
      * add_tooltips for the courses are a bit pointless, so its just the assignments and submissions
      *
      *
-     * n.b. the width of the add_tooltips is fixed because not specifying it makes them go narrow in IE6. making them 100% works fine in IE6 but makes FF
-     * stretch them across the whole page. 200px is a guess as to a good width for a 1024x768 screen based on the width of the block. Change it in both places below
-     * if you don't like it
+     * n.b. the width of the add_tooltips is fixed because not specifying it makes them go narrow in
+     * IE6. making them 100% works fine in IE6 but makes FF stretch them across the whole page.
+     * 200px is a guess as to a good width for a 1024x768 screen based on the width of the block.
+     * Change it in both places below if you don't like it
      *
-     * IE problem - the add_tooltips appear to interfere with the submission nodes using ie, so that they are not always clickable, but only when the user
-     * clicks the node text rather than the expand (+) icon. Its not related to the timings as using setTimeout to delay the generation of the add_tooltips
-     * makes no difference
+     * IE problem - the add_tooltips appear to interfere with the submission nodes using ie, so that
+     * they are not always clickable, but only when the user clicks the node text rather than the
+     * expand (+) icon. Its not related to the timings as using setTimeout to delay the generation
+     * of the add_tooltips makes no difference
      */
     make_tooltip : function(node) {
 
         tempLabelEl = node.getLabelEl();
         tempText = node.data.summary;
-        tempTooltip = new YAHOO.widget.Tooltip('tempTooltip', { context:tempLabelEl, text:tempText, showdelay:0, hidedelay:0, width:150, iframe:false, zIndex:1110} );
-
+        tempTooltip = new YAHOO.widget.Tooltip('tempTooltip', { context:tempLabelEl, text:tempText, 
+                                               showdelay:0, hidedelay:0, width:150, iframe:false,
+                                               zIndex:1110} );
     },
 
     /**
      * function to build the assessment nodes once the AJAX request has returned a data object
      */
     build_assessment_nodes : function(nodesArray, AJAXtree) {
-        // uncomment for verbatim on screen output of the AJAX response for assessment and submission nodes
-        // this.div.innerHTML += o.responseText;
-        // alternatively, use the firebug extension for mozilla firefox - less messy.
-
+       
         var tmpNode2 = '';
 
         // First the courses array
@@ -718,34 +713,6 @@ YAHOO.ajax_marking_block = {
             // use the object to create a new node
             tmpNode2 = new YAHOO.widget.TextNode(nodesArray[m], YAHOO.ajax_marking_block.nodeHolder , false);
 
-            //AJAXtree.textNodeMap[tmpNode2.labelElId] = tmpNode2;
-
-            // style the node acording to its type
-
-            // tmpNode2.labelStyle = 'icon-'+nodesArray[m].type;
-            /*
-            switch (nodesArray[m].type) {
-
-                case 'assignment':
-                    tmpNode2.labelStyle = 'icon-assignment';
-                    break;
-                case 'workshop':
-                    tmpNode2.labelStyle = 'icon-workshop';
-                    break;
-                case 'forum':
-                    tmpNode2.labelStyle = 'icon-forum';
-                    break;
-                case 'quiz_question':
-                    tmpNode2.labelStyle = 'icon-quiz_question';
-                    break;
-                case 'quiz':
-                    tmpNode2.labelStyle = 'icon-quiz';
-                    break;
-                case 'journal':
-                    tmpNode2.labelStyle = 'icon-journal';
-                    break;
-            }
-            */
             // set the node to load data dynamically, unless it is marked as not dynamic e.g. journal
             if ((!AJAXtree.config) && (nodesArray[m].dynamic == 'true')) {
                tmpNode2.setDynamicLoad(YAHOO.ajax_marking_block.request_node_data);
@@ -780,8 +747,9 @@ YAHOO.ajax_marking_block = {
             // set up a unique id so the node can be removed when needed
             uniqueId = nodesArray[k].type + nodesArray[k].aid + 'sid' + nodesArray[k].sid + '';
 
-            // set up time-submitted thing for tooltip. This is set to make the time match the browser's local timezone,
-            // but I can't find a way to use the user's specified timezone from \$USER. Not sure if this really matters.
+            // set up time-submitted thing for tooltip. This is set to make the time match the
+            // browser's local timezone, but I can't find a way to use the user's specified timezone
+            // from $USER. Not sure if this really matters.
 
             var secs = parseInt(nodesArray[k].seconds, 10);
             // javascript likes to work in miliseconds, whereas moodle uses unix format (whole seconds)
@@ -793,8 +761,6 @@ YAHOO.ajax_marking_block = {
 
             // altered - does this work?
             tmpNode3 = new YAHOO.widget.TextNode(nodesArray[k], YAHOO.ajax_marking_block.nodeHolder , false);
-
-            //AJAXtree.textNodeMap[tmpNode3.labelElId] = tmpNode3;
 
             // apply a style according to how long since it was submitted
 
@@ -946,7 +912,8 @@ YAHOO.ajax_marking_block = {
 
 
     /**
-     *funtion to refresh all the nodes once the update operations have all been carried out by remove_node_from_tree()
+     * funtion to refresh all the nodes once the update operations have all been carried out by
+     * remove_node_from_tree()
      */
 
     refresh_tree_after_changes : function(tree, frames) {
@@ -962,24 +929,6 @@ YAHOO.ajax_marking_block = {
             tree.div.appendChild(document.createTextNode(amVariables.nothingString));
         }
     },
-
-    /**
-     * funtion to refresh all the nodes once the operations have all been carried out - workshop frames version.
-     * Deprecated.
-     */
-    /*
-    refresh_tree_after_changesFrames : function(tree) {
-        tree.root.refresh();
-
-
-        if (tree.root.children.length === 0) {
-            YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById("totalmessage"));
-            YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById("count"));
-            YAHOO.ajax_marking_block.remove_all_child_nodes(tree.div);
-            tree.div.appendChild(document.createTextNode(amVariables.nothingString));
-        }
-    },
-*/
 
     /**
     * function to update the total marking count by a specified number and display it
@@ -1014,8 +963,8 @@ YAHOO.ajax_marking_block = {
     },
 
     /**
-    * this function updates the tree to remove the node of the pop up that has just been marked, then it updates
-    * the parent nodes and refreshes the tree
+    * this function updates the tree to remove the node of the pop up that has just been marked,
+    * then it updates the parent nodes and refreshes the tree
     *
     */
 
@@ -1051,9 +1000,7 @@ YAHOO.ajax_marking_block = {
                 greatGreatGrandParentNode = AJAXtree.tree.getNodeByIndex(greatGrandParentNode.parent.index);
             }
         } 
-
-        //alert(nodeToRemove.data.label);
-        
+       
         // remove the node that was just marked
         AJAXtree.tree.removeNode(nodeToRemove, true);
 
@@ -1105,21 +1052,22 @@ YAHOO.ajax_marking_block = {
     },
 
     /**
-     * Makes a list of groups as checkboxes and appends them to the config div next to the config tree.
-     * Called when the 'show by groups' check box is selected for a node.
+     * Makes a list of groups as checkboxes and appends them to the config div next to the config
+     * tree. Called when the 'show by groups' check box is selected for a node.
      */
     make_config_groups_list : function(data, tree) {
 
         var groupDiv = document.getElementById('configGroups');
         YAHOO.ajax_marking_block.remove_all_child_nodes(groupDiv);
 
-        // closure holding on click function
+        // Closure holding onclick function.
         var config_checkbox_onclick = function() {
                 YAHOO.ajax_marking_block.config_checkbox_onclick();
         };
 
         var dataLength = data.length;
-        //continue the numbering of the ids from 4 (main checkboxes are 1-3). This allows us to disable/enable them
+        // Continue the numbering of the ids from 4 (main checkboxes are 1-3). This allows us to
+        // disable/enable them
         var idCounter = 4;  
         if (dataLength === 0) {
             var emptyLabel = document.createTextNode(amVariables.nogroups);
@@ -1210,12 +1158,14 @@ YAHOO.ajax_marking_block = {
         }
         // there are no checked boxes
         if (groupIds === '') { 
-            //don't leave the db field empty as it will cause confusion between no groups chosen and first time we set this.
+            // Don't leave the db field empty as it will cause confusion between no groups chosen
+            // and first time we set this.
             groupIds = 'none'; 
         }
 
         var reqUrl = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
-        var postData = 'id='+course+'&assessmenttype='+assessmentType+'&assessmentid='+assessment+'&type=config_group_save&userid='+amVariables.userid+'&showhide=2&groups='+groupIds;
+        var postData = 'id='+course+'&assessmenttype='+assessmentType+'&assessmentid='+assessment;
+        postData += '&type=config_group_save&userid='+amVariables.userid+'&showhide=2&groups='+groupIds;
         
         var request = YAHOO.util.Connect.asyncRequest('POST', reqUrl, ajax_marking_block_callback, postData);
     },
@@ -1230,11 +1180,14 @@ YAHOO.ajax_marking_block = {
      * up had been generated from the submissions grading screen. To avoid the errors,
      *
      *
-     * NOTE: the offset system for saveandnext depends on the sort state having been stored in the $SESSION variable when the grading screen was accessed
-     * (which may not have happened, as we are not coming from the submissions.php grading screen or may have been a while ago).
-     * The sort reflects the last sort mode the user asked for when ordering the list of pop-ups, e.g. by clicking on the firstname column header.
-     * I have not yet found a way to alter this variable using javascript - ideally, the sort would be the same as it is in the list presented in the marking block.
-     * until a work around is found, the save and next function is be a bit wonky, sometimes showing next when there is only one submission, so I have hidden it.
+     * NOTE: the offset system for saveandnext depends on the sort state having been stored in the
+     * $SESSION variable when the grading screen was accessed (which may not have happened, as we
+     * are not coming from the submissions.php grading screen or may have been a while ago). The
+     * sort reflects the last sort mode the user asked for when ordering the list of pop-ups, e.g.
+     * by clicking on the firstname column header. I have not yet found a way to alter this variable
+     * using javascript - ideally, the sort would be the same as it is in the list presented in the
+     * marking block. Until a work around is found, the save and next function is be a bit wonky,
+     * sometimes showing next when there is only one submission, so I have hidden it.
      */
     alter_assignment_popup: function(me, userid) {
         
@@ -1250,12 +1203,14 @@ YAHOO.ajax_marking_block = {
                 // the above line will not return anything until the pop up is fully loaded
                 if (els.length > 0) { 
 
-                    // To keep the assignment javascript happy, we need to make some divs for it to copy the
-                    // grading data to, just as it would if it was called from the main submission grading screen.
-                    // Line 710-728 of /mod/assignment/lib.php can't be dealt with easily, so there will
-                    // be an error if outcomes are in use, but hopefully, that won't be so frequent.
-                    // TODO see if there is a way to grab the outcome ids from the pop up and make divs using them that
-                    // will match the ones that the javascript is looking for
+                    // To keep the assignment javascript happy, we need to make some divs for it to
+                    // copy the grading data to, just as it would if it was called from the main
+                    // submission grading screen. Line 710-728 of /mod/assignment/lib.php can't be
+                    // dealt with easily, so there will be an error if outcomes are in use, but
+                    // hopefully, that won't be so frequent.
+                    
+                    // TODO see if there is a way to grab the outcome ids from the pop up and make
+                    // divs using them that will match the ones that the javascript is looking for
                     var div = document.createElement('div');
                     div.setAttribute('id', 'com'+userid);
                     div.style.display = 'none';
@@ -1301,7 +1256,11 @@ YAHOO.ajax_marking_block = {
                     window.document.getElementById('javaValues').appendChild(div6);
 
                     // now add onclick
-                    els[0]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree(-1, YAHOO.ajax_marking_block.main, '"+me+"', false); "); // IE
+                    // TODO - has this change worked?
+                    var functionText = 'return YAHOO.ajax_marking_block.remove_node_from_tree(-1, ';
+                    functionText += "YAHOO.ajax_marking_block.main, '"+me+"', false); ";
+                    els[0]["onclick"] = new Function(functionText);
+                    //els[0]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree(-1, YAHOO.ajax_marking_block.main, '"+me+"', false); "); // IE
                     els2 = YAHOO.ajax_marking_block.windowobj.document.getElementsByName('saveandnext');
 
                     if (els2.length > 0) {
@@ -1324,22 +1283,33 @@ YAHOO.ajax_marking_block = {
      * the pop -up goes to a redirect to display the grade, so we have to wait until
      * then before closing it so that the grade is processed properly.
      * 
-     * 
-     * 
-     * note: this looks odd because there are 2 things that needs doing, one after the pop up loads (add onclicks)and one after it goes to its redirect
-     * (close window).it is easier to check for a fixed url (i.e. the redirect page) than to mess around with regex stuff to detect a dynamic url, so the
-     * else will be met first, followed by the if. The loop will keep running whilst the pop up is open, so this is not very elegant or efficient, but
-     * should not cause any problems unless the client is horribly slow. A better implementation will follow sometime soon.
+     * note: this looks odd because there are 2 things that needs doing, one after the pop up loads
+     * (add onclicks)and one after it goes to its redirect (close window).it is easier to check for
+     * a fixed url (i.e. the redirect page) than to mess around with regex stuff to detect a dynamic
+     * url, so the else will be met first, followed by the if. The loop will keep running whilst the
+     * pop up is open, so this is not very elegant or efficient, but should not cause any problems
+     * unless the client is horribly slow. A better implementation will follow sometime soon.
      */
     alter_workshop_popup : function (me, parent, course) {
         var els ='';
-        if (typeof YAHOO.ajax_marking_block.windowobj.frames[0] != 'undefined') { //check that the frames are loaded - this can vary according to conditions
-            if (YAHOO.ajax_marking_block.windowobj.frames[0].location.href != amVariables.wwwroot+'/mod/workshop/assessments.php') {
+        // check that the frames are loaded - this can vary according to conditions
+        if (typeof YAHOO.ajax_marking_block.windowobj.frames[0] != 'undefined') {
+            // TODO - did this cahnge work?
+            var currentUrl = YAHOO.ajax_marking_block.windowobj.frames[0].location.href;
+            var targetUrl = amVariables.wwwroot+'/mod/workshop/assessments.php';
+            if (currentUrl != targetURL) {
+            // if (YAHOO.ajax_marking_block.windowobj.frames[0].location.href != amVariables.wwwroot+'/mod/workshop/assessments.php') {
                 // this is the early stage, pop up has loaded and grading is occurring
-                // annoyingly, the workshop module has not named its submit button, so we have to get it using another method as the 11th input
+                // annoyingly, the workshop module has not named its submit button, so we have to
+                // get it using another method as the 11th input
                 els = YAHOO.ajax_marking_block.windowobj.frames[0].document.getElementsByTagName('input');
                 if (els.length == 11) {
-                    els[10]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/workshop/assessments.php', YAHOO.ajax_marking_block.main, '"+me+"', true);"); // IE
+                    // TODO - did this change work?
+                    var functionText = "return YAHOO.ajax_marking_block.remove_node_from_tree(";
+                    functionText += "'/mod/workshop/assessments.php', YAHOO.ajax_marking_block.main,";
+                    functionText += " '"+me+"', true);";
+                    els[10]["onclick"] = new Function(functionText);
+                    // els[10]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/workshop/assessments.php', YAHOO.ajax_marking_block.main, '"+me+"', true);"); // IE
                     // cancel timer loop
                     window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
@@ -1349,24 +1319,34 @@ YAHOO.ajax_marking_block = {
     },
 
     /**
-     * function to add onclick stuff to the forum ratings button. This button also has no name or id so we
-     * identify it by getting the last tag in the array of inputs. The function is triggered on an interval
-     * of 1/2 a second until it manages to close the pop up after it has gone to the confirmation page
+     * function to add onclick stuff to the forum ratings button. This button also has no name or id
+     * so we identify it by getting the last tag in the array of inputs. The function is triggered
+     * on an interval of 1/2 a second until it manages to close the pop up after it has gone to the
+     * confirmation page
      */
     alter_forum_popup : function (me) {
         var els ='';
         var name = navigator.appName;
         
         // first, add the onclick if possible
-        if (typeof YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input') != 'undefined') {
-            // window is open with some input. could be loading lots though.
+        // TODO - did this change work?
+        var inputType = typeof YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input');
+        if (inputType != 'undefined') {
+        // if (typeof YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input') != 'undefined') {
+            // The window is open with some input. could be loading lots though.
             els = YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input');
 
             if (els.length > 0) {
                 var key = els.length -1;
-                if (els[key].value == amVariables.forumSaveString) { // does the last input have the 'send in my ratings string as label, showing that all the rating are loaded?
+                // Does the last input have the 'send in my ratings string as label, showing that
+                // all the rating are loaded?
+                if (els[key].value == amVariables.forumSaveString) { 
                     // IE friendly
-                    els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
+                    //TODO - did this change work?
+                    var functionText = "return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', ";
+                    functionText += "YAHOO.ajax_marking_block.main, '"+me+"');";
+                    els[key]["onclick"] = new Function(functionText);
+                    //els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
                     // cancel loop for this function
                     window.clearInterval(YAHOO.ajax_marking_block.timerVar);
 
@@ -1387,14 +1367,19 @@ YAHOO.ajax_marking_block = {
             els = YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input');
 
             if (els.length > 14) { 
-                // there is at least the DOM present for a single attempt, but if the student has made a couple of attempts,
-                // there will be a larger window.
+                // there is at least the DOM present for a single attempt, but if the student has
+                // made a couple of attempts, there will be a larger window.
                 lastButOne = els.length - 1;
                
                 if (els[lastButOne].value == amVariables.quizSaveString) {
                
-                    // the onclick carries out the functions that are already specified in lib.php, followed by the function to update the tree
-                    els[lastButOne]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/quiz/report.php', YAHOO.ajax_marking_block.main, '"+me+"'); ");
+                    // the onclick carries out the functions that are already specified in lib.php,
+                    // followed by the function to update the tree
+                    // TODO - did this change work?
+                    var functionText = "return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/quiz/report.php',";
+                    functionText += " YAHOO.ajax_marking_block.main, '"+me+"'); "
+                    els[lastButOne]["onclick"] = new Function(functionText);
+                    //els[lastButOne]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/quiz/report.php', YAHOO.ajax_marking_block.main, '"+me+"'); ");
                     // cancel the loop for this function
                     
                     window.clearInterval(YAHOO.ajax_marking_block.timerVar);
@@ -1409,34 +1394,26 @@ YAHOO.ajax_marking_block = {
      * me is the id number of the journal we want
      */
     alter_journal_popup :   function (me) {
+        // TODO - does this even work?
 
+        var journalClick = function () {
 
-          var journalClick = function () {
+            // get the form submit input, which is always last but one (length varies)
+            els = YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input');
+            var key = els.length -1;
 
-              // get the form submit input, which is always last but one (length varies)
-              els = YAHOO.ajax_marking_block.windowobj.document.getElementsByTagName('input');
-              var key = els.length -1;
-/*
-              YAHOO.util.Event.on(
-                  els[key],
-                  'mouseover',
-                  function(){
-                      alert('mouseover');
-                  }
-              );
-*/
-              YAHOO.util.Event.on(
-                  els[key],
-                  'click',
-                  function(){
-                      return YAHOO.ajax_marking_block.remove_node_from_tree(
-                          '/mod/journal/report.php',
-                          YAHOO.ajax_marking_block.main,
-                          me
-                      );
-                  }
-              );
-          };
+            YAHOO.util.Event.on(
+                els[key],
+                'click',
+                function(){
+                    return YAHOO.ajax_marking_block.remove_node_from_tree(
+                        '/mod/journal/report.php',
+                        YAHOO.ajax_marking_block.main,
+                        me
+                    );
+                }
+            );
+        };
          // YAHOO.util.Event.addListener(YAHOO.ajax_marking_block.windowobj, 'load', journalClick);
 /*
           var els ='';
@@ -1451,7 +1428,8 @@ YAHOO.ajax_marking_block = {
 
                   if (els[key].value == amVariables.journalSaveString) { 
                       
-                      // does the last input have the 'send in my ratings' string as label, showing that all the rating are loaded?
+                      // does the last input have the 'send in my ratings' string as label, showing
+                      // that all the rating are loaded?
                       els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/journal/report.php', YAHOO.ajax_marking_block.main, '"+me+"');");
                       // cancel loop for this function
                       window.clearInterval(YAHOO.ajax_marking_block.timerVar);
@@ -1500,11 +1478,11 @@ YAHOO.ajax_marking_block = {
     },
 
     /**
-     * The panel for the config tree and the pop ups is the same and is created here if it doesn't exist yet
+     * The panel for the config tree and the pop ups is the same and is created here if it doesn't
+     * exist yet
      */
     initialise_config_panel : function () {
-        YAHOO.ajax_marking_block.greyOut =
-            new YAHOO.widget.Panel(
+        YAHOO.ajax_marking_block.greyOut = new YAHOO.widget.Panel(
                 "greyOut",
                 {
                     width:"470px",
@@ -1533,7 +1511,11 @@ YAHOO.ajax_marking_block = {
             var headerText = amVariables.headertext+' '+amVariables.fullname;
             YAHOO.ajax_marking_block.greyOut.setHeader(headerText);
 
-            var bodyText = "<div id='configIcon' class='AMhidden'></div><div id='configStatus'></div><div id='configTree'></div><div id='configSettings'><div id='configInstructions'>"+amVariables.instructions+"</div><div id='configCheckboxes'><form id='configshowform' name='configshowform'></form></div><div id='configGroups'></div></div>";
+            var bodyText = "<div id='configIcon' class='AMhidden'></div><div id='configStatus'>";
+                bodyText += "</div><div id='configTree'></div><div id='configSettings'>";
+                bodyText += "<div id='configInstructions'>"+amVariables.instructions+"</div>";
+                bodyText += "<div id='configCheckboxes'><form id='configshowform' name='configshowform'>";
+                bodyText += "</form></div><div id='configGroups'></div></div>";
 
             YAHOO.ajax_marking_block.greyOut.setBody(bodyText);
             document.body.className += ' yui-skin-sam';
@@ -1561,7 +1543,8 @@ YAHOO.ajax_marking_block = {
 
     /**
      * the onclick for the radio buttons in the config screen.
-     * if show by group is clicked, the groups thing pops up. If another one is, the groups thing is hidden.
+     * if show by group is clicked, the groups thing pops up. If another one is, the groups thing
+     * is hidden.
      */
     request_config_checkbox_data : function(checkbox) {
         // if its groups, show the groups by getting them from the course node?
@@ -1574,7 +1557,8 @@ YAHOO.ajax_marking_block = {
 
             var len = form.childNodes.length;
 
-            // silly hack to fix the way IE6 will not retrieve data from an input added using appendChild using form.assessment.value
+            // silly hack to fix the way IE6 will not retrieve data from an input added using
+            // appendChild using form.assessment.value
             for(b=0; b<len; b++) {
 
                 switch (form.childNodes[b].name) {
@@ -1616,8 +1600,8 @@ YAHOO.ajax_marking_block = {
                 configSet(1);
                 break;
 
-            case 'groups': //need to set the type of this assessment to 'show groups' and get the groups stuff.
-
+            case 'groups': 
+                //need to set the type of this assessment to 'show groups' and get the groups stuff.
                 showHide = 2;
                 //get the form div to be able to read the values
                 var form = document.getElementById('configshowform');
@@ -1657,7 +1641,8 @@ YAHOO.ajax_marking_block = {
 
 
     /**
-     * Wipes all the group options away when another node or a course node is clicked in the config tree
+     * Wipes all the group options away when another node or a course node is clicked in the config
+     * tree
      */
     remove_config_groups : function() {
 
@@ -1687,18 +1672,17 @@ YAHOO.ajax_marking_block = {
 
         // the two links
         var collapseButton = new YAHOO.widget.Button({
-                            label:amVariables.refreshString,
-                            id:"AMBcollapse",
-                                onclick: {fn: function() {YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.main)} },
-                            container:"conf_left" });
+                label:amVariables.refreshString,
+                id:"AMBcollapse",
+                onclick: {fn: function() {YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.main)} },
+                container:"conf_left" });
 
         var configButton = new YAHOO.widget.Button({
-                            label:amVariables.configureString,
-                            id:"AMBconfig",
-                                onclick: {fn: function() {YAHOO.ajax_marking_block.build_config_overlay()} },
-                            container:"conf_right" });
-        //collapseButton.on("click", function (){YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.main)});
-
+                label:amVariables.configureString,
+                id:"AMBconfig",
+                onclick: {fn: function() {YAHOO.ajax_marking_block.build_config_overlay()} },
+                container:"conf_right" });
+        
         // Add bits to them like onclick
         // append them to each other and the DOM
     }

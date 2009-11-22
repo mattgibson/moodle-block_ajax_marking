@@ -27,47 +27,42 @@ class journal_functions extends module_base {
 
         global $CFG;
 
-        $sql = "
-            SELECT je.id as entryid, je.userid, j.name, j.course, j.id, c.id as cmid
-            FROM {$CFG->prefix}journal_entries je
+        $sql = "SELECT je.id as entryid, je.userid, j.name, j.course, j.id, c.id as cmid
+                  FROM {$CFG->prefix}journal_entries je
             INNER JOIN {$CFG->prefix}journal j
-                ON je.journal = j.id
+                    ON je.journal = j.id
             INNER JOIN {$CFG->prefix}course_modules c
-                ON j.id = c.instance
-            WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
-            AND j.course IN ({$this->mainobject->course_ids})
-            AND c.visible = 1
-            AND j.assessed <> 0
-            AND je.modified > je.timemarked
-           ";
+                    ON j.id = c.instance
+                 WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
+                   AND j.course IN ({$this->mainobject->course_ids})
+                   AND c.visible = 1
+                   AND j.assessed <> 0
+                   AND je.modified > je.timemarked";
 
         $this->all_submissions = get_records_sql($sql);
         return true;
-       // return $this->submissions;
     }
 
     function get_all_course_unmarked($courseid) {
 
         global $CFG;
 
-        $sql = "
-            SELECT je.id as entryid, je.userid, j.intro as description, j.course, j.name, j.timemodified, j.id, c.id as cmid
-            FROM {$CFG->prefix}journal_entries je
+        $sql = "SELECT je.id as entryid, je.userid, j.intro as description, j.course, j.name,
+                       j.timemodified, j.id, c.id as cmid
+                  FROM {$CFG->prefix}journal_entries je
             INNER JOIN {$CFG->prefix}journal j
-               ON je.journal = j.id
+                    ON je.journal = j.id
             INNER JOIN {$CFG->prefix}course_modules c
-               ON j.id = c.instance
-            WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
-            AND c.visible = 1
-            AND j.assessed <> 0
-            AND je.modified > je.timemarked
-            AND je.userid IN({$this->mainobject->student_ids->$courseid})
-            AND j.course = {$courseid}
-        ";
+                    ON j.id = c.instance
+                 WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
+                   AND c.visible = 1
+                   AND j.assessed <> 0
+                   AND je.modified > je.timemarked
+                   AND je.userid IN({$this->mainobject->student_ids->$courseid})
+                   AND j.course = {$courseid}";
 
         $unmarked = get_records_sql($sql);
         return $unmarked;
-
     }
 
     /**
@@ -77,16 +72,14 @@ class journal_functions extends module_base {
 
         global $CFG;
 
-        $sql = "
-            SELECT j.id, j.intro as summary, j.name, j.course, c.id as cmid
-            FROM  {$CFG->prefix}journal j
+        $sql = "SELECT j.id, j.intro as summary, j.name, j.course, c.id as cmid
+                  FROM {$CFG->prefix}journal j
             INNER JOIN {$CFG->prefix}course_modules c
-                     ON j.id = c.instance
-            WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
-            AND c.visible = 1
-            AND j.assessed <> 0
-            AND j.course IN ({$this->mainobject->course_ids})
-        ";
+                    ON j.id = c.instance
+                 WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
+                   AND c.visible = 1
+                   AND j.assessed <> 0
+                   AND j.course IN ({$this->mainobject->course_ids})";
 
         $journals = get_records_sql($sql);
         $this->assessments = $journals;
@@ -111,20 +104,19 @@ class journal_functions extends module_base {
         $this->mainobject->get_course_students($courseid);
 
 
-        $sql = "
-            SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified, j.id, c.id as cmid
-            FROM {$CFG->prefix}journal_entries je
+        $sql = "SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified,
+                       j.id, c.id as cmid
+                  FROM {$CFG->prefix}journal_entries je
             INNER JOIN {$CFG->prefix}journal j
-               ON je.journal = j.id
+                    ON je.journal = j.id
             INNER JOIN {$CFG->prefix}course_modules c
-               ON j.id = c.instance
-            WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
-            AND c.visible = 1
-            AND j.assessed <> 0
-            AND je.modified > je.timemarked
-            AND je.userid IN({$this->mainobject->student_ids->$courseid})
-            AND j.id = {$this->mainobject->id}
-        ";
+                    ON j.id = c.instance
+                 WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
+                   AND c.visible = 1
+                   AND j.assessed <> 0
+                   AND je.modified > je.timemarked
+                   AND je.userid IN({$this->mainobject->student_ids->$courseid})
+                   AND j.id = {$this->mainobject->id}";
 
         $submissions = get_records_sql($sql, 'journal');
 

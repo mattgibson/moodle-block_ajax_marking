@@ -29,28 +29,29 @@ require_login(0, false);
 /**
  * Wrapper for the module_base class which adds the parts that deal with the assignment module.
  *
- * It adds these functions to the module_base class, so that the assignment_functions object can then provide the required data through
- * a standard interface (although there is scope for the interface to be extended or scaled back for modules
- * that need more or less than 3 levels of nodes e.g. the quiz module has extra functions because it
- * has an extra level for quiz questions within each quiz and the journal module has only two levels because
- * it doesn't show students work individually, only aggregated). All module specific files are included at the
- * start of each request and a module object is instatiated ready to be used. For efficiency, only installed
- * modules which have grading code available are included & instatiated, so there is a list kept in the block's
- * config data saying which modules have available module_grading.php files based on a search conducted each time
- * the block is upgraded by the {@link AMB_update_modules()} function.
+ * It adds these functions to the module_base class, so that the assignment_functions object can
+ * then provide the required data through a standard interface (although there is scope for the
+ * interface to be extended or scaled back for modules that need more or less than 3 levels of nodes
+ * e.g. the quiz module has extra functions because it has an extra level for quiz questions within
+ * each quiz and the journal module has only two levels because it doesn't show students work
+ * individually, only aggregated). All module specific files are included at the start of each
+ * request and a module object is instatiated ready to be used. For efficiency, only installed
+ * modules which have grading code available are included & instatiated, so there is a list kept in
+ * the block's config data saying which modules have available module_grading.php files based on a
+ * search conducted each time the block is upgraded by the {@link AMB_update_modules()} function.
  *
  * @copyright 2008 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class assignment_functions extends module_base {
 
-    /**
-     * Constuctor. Needs to be duplicated in all modules, so best put in parent. PHP4 issue though.
-     *
-     * The aim is to pass in the main ajax_marking_functions object by reference, so that its properties
-     * are accessible
-     *
-     */
+   /**
+    * Constuctor. Needs to be duplicated in all modules, so best put in parent. PHP4 issue though.
+    *
+    * The aim is to pass in the main ajax_marking_functions object by reference, so that its
+    * properties are accessible
+    *
+    */
     function assignment_functions(&$reference) {
 
         $this->mainobject = $reference;
@@ -73,21 +74,19 @@ class assignment_functions extends module_base {
     function get_all_unmarked() {
 
         global $CFG;
-        $sql = "
-            SELECT s.id as subid, s.userid, a.course, a.name, a.description, a.id, c.id as cmid
-            FROM
-                {$CFG->prefix}assignment a
+        $sql = "SELECT s.id as subid, s.userid, a.course, a.name, a.description, a.id, c.id as cmid
+                  FROM {$CFG->prefix}assignment a
             INNER JOIN {$CFG->prefix}course_modules c
-                 ON a.id = c.instance
-            LEFT JOIN {$CFG->prefix}assignment_submissions s
-                 ON s.assignment = a.id
-            WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
-            AND c.visible = 1
-            AND a.course IN ({$this->mainobject->course_ids})
-            AND s.timemarked < s.timemodified
-            AND NOT ((a.resubmit = 0 AND s.timemarked > 0) OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
-            ORDER BY a.id
-         ";
+                    ON a.id = c.instance
+             LEFT JOIN {$CFG->prefix}assignment_submissions s
+                    ON s.assignment = a.id
+                 WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
+                   AND c.visible = 1
+                   AND a.course IN ({$this->mainobject->course_ids})
+                   AND s.timemarked < s.timemodified
+               AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
+                    OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
+              ORDER BY a.id";
          $this->all_submissions = get_records_sql($sql);
          return true;
     }
@@ -104,20 +103,21 @@ class assignment_functions extends module_base {
         global $CFG;
         $unmarked = '';
         
-             $sql = "SELECT s.id as subid, s.userid, a.id, a.name, a.course, a.description, c.id as cmid  FROM
-                    {$CFG->prefix}assignment a
-                INNER JOIN {$CFG->prefix}course_modules c
-                     ON a.id = c.instance
-                LEFT JOIN {$CFG->prefix}assignment_submissions s
-                     ON s.assignment = a.id
-                WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
-                AND c.visible = 1
-                AND a.course = $courseid
-                AND s.timemarked < s.timemodified
-                AND NOT ((a.resubmit = 0 AND s.timemarked > 0) OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
-                AND s.userid IN({$this->mainobject->student_ids->$courseid})
-                ORDER BY a.id
-              ";
+        $sql = "SELECT s.id as subid, s.userid, a.id, a.name,
+                       a.course, a.description, c.id as cmid
+                  FROM {$CFG->prefix}assignment a
+            INNER JOIN {$CFG->prefix}course_modules c
+                    ON a.id = c.instance
+             LEFT JOIN {$CFG->prefix}assignment_submissions s
+                    ON s.assignment = a.id
+                 WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
+                   AND c.visible = 1
+                   AND a.course = $courseid
+                   AND s.timemarked < s.timemodified
+               AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
+                        OR (a.assignmenttype = 'upload'  AND s.data2 != 'submitted'))
+                   AND s.userid IN({$this->mainobject->student_ids->$courseid})
+              ORDER BY a.id";
 
         $unmarked = get_records_sql($sql);
         return $unmarked;
@@ -148,26 +148,28 @@ class assignment_functions extends module_base {
         $this->mainobject->get_course_students($courseid);
 
         $sql = "SELECT s.id as subid, s.userid, s.timemodified, c.id as cmid
-                FROM {$CFG->prefix}assignment_submissions s
-                INNER JOIN {$CFG->prefix}course_modules c
-                     ON s.assignment = c.instance
-                INNER JOIN {$CFG->prefix}assignment a
-                     ON s.assignment = a.id
-                WHERE s.assignment = {$this->mainobject->id}
-                    AND s.userid IN ({$this->mainobject->student_ids->$courseid})
-                    AND s.timemarked < s.timemodified
-                    AND NOT ((a.resubmit = 0 AND s.timemarked > 0) OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
-                    AND c.module = {$this->mainobject->modulesettings['assignment']->id}
-                ORDER BY timemodified ASC";
+                  FROM {$CFG->prefix}assignment_submissions s
+            INNER JOIN {$CFG->prefix}course_modules c
+                    ON s.assignment = c.instance
+            INNER JOIN {$CFG->prefix}assignment a
+                    ON s.assignment = a.id
+                 WHERE s.assignment = {$this->mainobject->id}
+                   AND s.userid IN ({$this->mainobject->student_ids->$courseid})
+                   AND s.timemarked < s.timemodified
+               AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
+                        OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
+                   AND c.module = {$this->mainobject->modulesettings['assignment']->id}
+              ORDER BY timemodified ASC";
 
         $submissions = get_records_sql($sql);
 
         if ($submissions) {
 
-            // If we are not making the submissions for a specific group, run the group filtering function to
-            // see if the config settings say display by groups and display them if they are (returning false). If there are no
-            // groups, the function will return true and we carry on, but if the config settings say 'don't display'
-            // then it will return false and we skip this assignment
+            // If we are not making the submissions for a specific group, run the group filtering
+            // function to see if the config settings say display by groups and display them if they
+            // are (returning false). If there are no groups, the function will return true and we
+            // carry on, but if the config settings say 'don't display' then it will return false
+            // and we skip this assignment
             if(!$this->mainobject->group) {
                $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $this->mainobject->id, $assignment->course);
                if (!$group_filter) {
@@ -214,17 +216,14 @@ class assignment_functions extends module_base {
 
         global $CFG;
    
-        $sql = "
-            SELECT  a.id, a.name, a.description as summary, a.course, c.id as cmid
-            FROM
-                {$CFG->prefix}assignment a
+        $sql = "SELECT  a.id, a.name, a.description as summary, a.course, c.id as cmid
+                  FROM {$CFG->prefix}assignment a
             INNER JOIN {$CFG->prefix}course_modules c
-                 ON a.id = c.instance
-            WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
-            AND c.visible = 1
-            AND a.course IN ({$this->mainobject->course_ids})
-            ORDER BY a.id
-         ";
+                    ON a.id = c.instance
+                 WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
+                   AND c.visible = 1
+                   AND a.course IN ({$this->mainobject->course_ids})
+              ORDER BY a.id";
 
          $assignments = get_records_sql($sql);
          $this->assessments = $assignments;
@@ -243,7 +242,5 @@ class assignment_functions extends module_base {
     // nodes for all assignments in a course + counts and provide link data
 
     // student nodes for a single assignment
-
-    //
 
 }

@@ -20,8 +20,9 @@
 /**
  * This is the file that is called by all the browser's ajax requests.
  *
- * It first includes the main lib.php fie that contains the base class which has all of the functions
- * in it, then instantiates a new ajax_marking_response object which will process the request.
+ * It first includes the main lib.php fie that contains the base class
+ * which has all of the functions in it, then instantiates a new ajax_marking_response
+ * object which will process the request.
  *
  * @package   block-ajax_marking
  * @copyright 2008 Matt Gibson                                       
@@ -33,13 +34,14 @@ require_login(1, false);
 include("lib.php");
 
 /**
- * Wrapper for the main functions library class which adds the parts that deal with the AJAX request process.
+ * Wrapper for the main functions library class which adds the parts that deal with the AJAX
+ * request process.
  *
- * The block is used in two ways. Firstly when the PHP version is made, necessitating a HTML list of courses +
- * assessment names, and secondly when an AJAX request is made, which requires a JSON response with just one
- * set of nodes e.g. courses OR assessments OR student. The logic is that shared functions go in the base
- * class and this is extended by either the ajax_marking_response class as here, or the HTML_list class
- * in the html_list.php file.
+ * The block is used in two ways. Firstly when the PHP version is made, necessitating a HTML list
+ * of courses + assessment names, and secondly when an AJAX request is made, which requires a JSON
+ * response with just one set of nodes e.g. courses OR assessments OR student. The logic is that
+ * shared functions go in the base class and this is extended by either the ajax_marking_response
+ * class as here, or the HTML_list class in the html_list.php file.
  *
  * @copyright 2008 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -47,39 +49,46 @@ include("lib.php");
 
 class ajax_marking_response extends ajax_marking_functions {
 
-   /**
-     * This function takes the POST data, makes variables out of it, then chooses the correct function to
-     * deal with the request, before printing the output.
-     * @global <type> $CFG
-     */
+  /**
+    * This function takes the POST data, makes variables out of it, then chooses the correct
+    * function to deal with the request, before printing the output.
+    * @global <type> $CFG
+    */
 
     function ajax_marking_response() {
-    // constructor retrieves GET data and works out what type of AJAX call has been made before running the correct function
-    // TODO: should check capability with $USER here to improve security. currently, this is only checked when making course nodes.
+    // constructor retrieves GET data and works out what type of AJAX call has been made before
+    // running the correct function
+    // TODO: should check capability with $USER here to improve security. currently, this is only
+    // checked when making course nodes.
 
         global $CFG, $USER;
 
-        // TODO - not necessary to load all things for all types. submissions level doesn't need the data for all the other types
+        // TODO - not necessary to load all things for all types. submissions level doesn't need
+        // the data for all the other types
         $this->get_variables();
         $this->initial_setup();
 
-        // The type here refers to what was clicked, or sets up the tree in the case of 'main' and 'config_main'
+        // The type here refers to what was clicked, or sets up the tree in the case of 'main' and
+        // 'config_main'
         switch ($this->type) {
         
         
-            //  generate the list of courses when the tree is first prepared. Currently either makes a config tree or a main tree
+            // generate the list of courses when the tree is first prepared. Currently either makes
+            // a config tree or a main tree
             case "main":
                 
                 $course_ids = NULL;
 
-                // admins will have a problem as they will see all the courses on the entire site. However, they may want this (CONTRIB-1017)
-                // TODO - this has big issues around language. role names will not be the same in diffferent translations.
+                // admins will have a problem as they will see all the courses on the entire site.
+                // However, they may want this (CONTRIB-1017)
+                // TODO - this has big issues around language. role names will not be the same in
+                // diffferent translations.
 
-                // begin JSON array
+                // begin JSON object
                 $this->output = '[{"type":"main"}';
 
-                // iterate through each course, checking permisions, counting relevant assignment submissions and
-                // adding the course to the JSON output if any appear
+                // iterate through each course, checking permisions, counting relevant assignment
+                // submissions and adding the course to the JSON output if any appear
                 foreach ($this->courses as $course) {
                     
                     $courseid = '';
@@ -92,38 +101,36 @@ class ajax_marking_response extends ajax_marking_functions {
                         continue;
                     }
 
-                    $courseid = $course->id;
                     // we must make sure we only get work from enrolled students
+                    $courseid = $course->id;
                     $this->get_course_students($courseid);
-
                     // If there are no students, there's no point counting
                     if (!isset($this->student_ids->$courseid)) {
                         continue;
                     }
 
                     // see which modules are currently enabled
-                    $sql = "
-                        SELECT name 
-                        FROM {$CFG->prefix}modules
-                        WHERE visible = 1
-                    ";
+                    $sql = "SELECT name 
+                              FROM {$CFG->prefix}modules
+                             WHERE visible = 1";
+
                     $enabledmods =  get_records_sql($sql);
                     $enabledmods = array_keys($enabledmods);
           
                     // loop through each module, getting a count for this course id from each one.
                     foreach ($this->modulesettings as $modname => $module) {
-                        //echo $modname;
                         if(in_array($modname, $enabledmods)) {
                             $count += $this->$modname->count_course_submissions($courseid);
                         }
                     }
 
-                    // TO DO: need to check in future for who has been assigned to mark them (new groups stuff) in 1.9
-                    //$coursecontext = get_context_instance(CONTEXT_COURSE, $course->id);
+                    // TO DO: need to check in future for who has been assigned to mark them (new
+                    // groups stuff) in 1.9
 
-                    if ($count > 0 || $this->config) { // there are some assessments, or its a config tree, so we include the course always.
+                    if ($count > 0 || $this->config) {
 
-                        // now add course to JSON array of objects
+                        // there are some assessments, or its a config tree, so we include the
+                        // course always.
 
                         $this->output .= ','; 
                         $this->output .= '{';
@@ -135,7 +142,8 @@ class ajax_marking_response extends ajax_marking_functions {
                         $this->output .= ($this->config) ? '' : "(<span class='AMB_count'>".$count.'</span>) ';
                         $this->output .= $this->clean_name_text($course->shortname, 0).'",';
                         
-                        // name is there to allow labels to be reconstructed with a new count after marked nodes are removed
+                        // name is there to allow labels to be reconstructed with a new count after
+                        // marked nodes are removed
                         $this->output .= '"name":"'.$this->clean_name_text($course->shortname, 0).'",';
                         $this->output .= '"title":"'.$this->clean_name_text($course->shortname, -2).'",';
                         $this->output .= '"summary":"'.$this->clean_name_text($course->shortname, -2).'",';
@@ -148,15 +156,16 @@ class ajax_marking_response extends ajax_marking_functions {
 
                     } 
                 } 
-                //end JSON array; 
+                //end JSON object
                 $this->output .= "]";
 
-               break;
+                break;
 
             case "config_main":
 
-                // Makes the course list for the configuration tree. No need to count anything, just make the nodes
-                // Might be possible to collapse it into the main one with some IF statements.
+                // Makes the course list for the configuration tree. No need to count anything, just
+                // make the nodes. Might be possible to collapse it into the main one with some IF
+                // statements.
 
                 $this->config = true;
 
@@ -174,7 +183,7 @@ class ajax_marking_response extends ajax_marking_functions {
                         }
 
                         foreach ($this->modulesettings as $modname => $module) {
-                            $count = $count + $this->$modname->count_course_assessment_nodes($course->id);
+                            $count += $this->$modname->count_course_assessment_nodes($course->id);
                         }
 
                         if ($count > 0) {
@@ -204,21 +213,18 @@ class ajax_marking_response extends ajax_marking_functions {
                                     case 3:
                                         $this->output .= get_string('confCourseHide', 'block_ajax_marking');
 
-                                    //default:
-                                        //no settings
-                                        //$this->output .= get_string('confCourseShow', 'block_ajax_marking');
                                 }
                             } else {
                                 $this->output .= get_string('confCourseShow', 'block_ajax_marking');
                             }
 
                             $this->output .= '",';
-                            $this->output .= '"name":"'     .$this->clean_name_text($course->fullname).'",';
+                            $this->output .= '"name":"'  .$this->clean_name_text($course->fullname).'",';
                             // to be used for the title
-                            $this->output .= '"icon":"'     .$this->add_icon('course').'",';
-                            $this->output .= '"label":"'    .$this->add_icon('course').$this->clean_name_text($course->fullname).'",';
-                            //$this->output .= '"summary":"'  .$this->clean_name_text($course->shortname, 30).'",';
-                            $this->output .= '"count":"'    .$count.'"';
+                            $this->output .= '"icon":"'  .$this->add_icon('course').'",';
+                            $this->output .= '"label":"' .$this->add_icon('course');
+                            $this->output .= $this->clean_name_text($course->fullname).'",';
+                            $this->output .= '"count":"' .$count.'"';
 
                             $this->output .= '}';
 
@@ -284,16 +290,19 @@ class ajax_marking_response extends ajax_marking_functions {
             case "config_groups":
 
                // writes to the db that we are to use config groups, then returns all the groups.
-               // Called only when you click the option 2 of the config, so the next step is for the javascript
-               // functions to build the groups checkboxes.
+               // Called only when you click the option 2 of the config, so the next step is for the
+               // javascript functions to build the groups checkboxes.
 
                 $this->output = '[{"type":"config_groups"}'; // begin JSON array
 
-                //first set the config to 'display by group' as per the ajax request (this is the option that was clicked)
+                // first set the config to 'display by group' as per the ajax request (this is the
+                // option that was clicked)
                 $this->make_config_data();
                 if ($this->config_write()) {
                     // next, we will now return all of the groups in a course as an array,
-                    $this->make_config_groups_radio_buttons($this->id, $this->assessmenttype, $this->assessmentid);
+                    $this->make_config_groups_radio_buttons($this->id, 
+                                                            $this->assessmenttype,
+                                                            $this->assessmentid);
                 } else {
                     $this->output .= ',{"result":"false"}';
                 }
@@ -313,13 +322,19 @@ class ajax_marking_response extends ajax_marking_functions {
 
                 // if the settings have been put back to default, destroy the existing record
                 if ($this->showhide == AMB_CONF_DEFAULT) {
-                    if (delete_records('block_ajax_marking', 'assessmenttype', $this->assessmenttype, 'assessmentid', $this->assessmentid, 'userid', $USER->id)) {
+                    $deleterecord = delete_records('block_ajax_marking',
+                                                   'assessmenttype',
+                                                   $this->assessmenttype,
+                                                   'assessmentid',
+                                                   $this->assessmentid,
+                                                   'userid',
+                                                   $USER->id);
+                    if ($deleterecord) {
                         $this->output .= ',{"result":"true"}]';
                     } else {
                         $this->output .= ',{"result":"false"}]';
                     }
                 } else {
-
                     $this->make_config_data();
                     if($this->config_write()) {
                         $this->output .= ',{"result":"true"}]';
@@ -351,7 +366,9 @@ class ajax_marking_response extends ajax_marking_functions {
                     if ($assessment_settings) {
                         $this->output .= ',{"value":"'.$assessment_settings->showhide.'"}';
                         if ($assessment_settings->showhide == 2) {
-                            $this->make_config_groups_radio_buttons($this->courseid, $this->assessmenttype, $this->assessmentid);
+                            $this->make_config_groups_radio_buttons($this->courseid, 
+                                                                    $this->assessmenttype,
+                                                                    $this->assessmentid);
                        
                         }
                     }  else {
@@ -378,8 +395,9 @@ class ajax_marking_response extends ajax_marking_functions {
             case "config_group_save":
 
                 /**
-                 * sets the display of a single group from the config screen when its checkbox is clicked. Then, it sends back a confirmation so
-                 * that the checkbox can be un-greyed and marked as done
+                 * sets the display of a single group from the config screen when its checkbox is
+                 * clicked. Then, it sends back a confirmation so that the checkbox can be un-greyed
+                 * and marked as done
                  */
 
                 $this->output = '[{"type":"config_group_save"},{'; // begin JSON array
@@ -406,11 +424,11 @@ class ajax_marking_response extends ajax_marking_functions {
                 // the above options are for core requests. The default one deals
                 // with assessment nodes being expanded, which may have one, two or more sub-levels
                 // and which are added by the module classes themselves by sending the return_function
-                // strings as part of the ajax response for the assessments in each course. These are then
-                // forwarded as the type variable here, e.g. type = "forum_submissions" leads to
+                // strings as part of the ajax response for the assessments in each course. These are
+                // then forwarded as the type variable here, e.g. type = "forum_submissions" leads to
                 // $this->forum->submissions()
 
-                //TODO - check whcih types are sent and whether they are set up right for this.
+                // TODO - check whcih types are sent and whether they are set up right for this.
                 // Maybe use a returnType variable
                 $bits = explode('_', $this->type);
                 if ($bits[1]) {
