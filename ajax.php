@@ -46,7 +46,6 @@ include("lib.php");
  * @copyright 2008 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 class ajax_marking_response extends ajax_marking_functions {
 
   /**
@@ -54,7 +53,6 @@ class ajax_marking_response extends ajax_marking_functions {
     * function to deal with the request, before printing the output.
     * @global <type> $CFG
     */
-
     function ajax_marking_response() {
     // constructor retrieves GET data and works out what type of AJAX call has been made before
     // running the correct function
@@ -444,8 +442,4 @@ class ajax_marking_response extends ajax_marking_functions {
 }
 
 
-// initialise the object, beginning the response process
-//if (isset($response)) {
- //   unset($response);
-//}
 $AMB_AJAX_response = new ajax_marking_response;

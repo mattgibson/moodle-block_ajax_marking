@@ -78,7 +78,7 @@ class assignment_functions extends module_base {
                   FROM {$CFG->prefix}assignment a
             INNER JOIN {$CFG->prefix}course_modules c
                     ON a.id = c.instance
-             LEFT JOIN {$CFG->prefix}assignment_submissions s
+            INNER JOIN {$CFG->prefix}assignment_submissions s
                     ON s.assignment = a.id
                  WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
                    AND c.visible = 1
@@ -108,7 +108,7 @@ class assignment_functions extends module_base {
                   FROM {$CFG->prefix}assignment a
             INNER JOIN {$CFG->prefix}course_modules c
                     ON a.id = c.instance
-             LEFT JOIN {$CFG->prefix}assignment_submissions s
+            INNER JOIN {$CFG->prefix}assignment_submissions s
                     ON s.assignment = a.id
                  WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
                    AND c.visible = 1

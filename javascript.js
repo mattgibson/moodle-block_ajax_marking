@@ -1,6 +1,5 @@
 // JavaScript for the AJAX marking block
 
-
 YAHOO.namespace('ajax_marking_block');
 
 YAHOO.ajax_marking_block = {
@@ -605,8 +604,6 @@ YAHOO.ajax_marking_block = {
         var request = YAHOO.util.Connect.asyncRequest('POST', sUrl, ajax_marking_block_callback, postData);
     },
 
-
-
     /**
      * function to update the parent assessment node when it is refreshed dynamically so that
      * if more work has been found, or a piece has now been marked, the count for that label will be
@@ -643,7 +640,6 @@ YAHOO.ajax_marking_block = {
 
         }
     },
-
 
     /**
      * function to create add_tooltips. When root.refresh() is called it somehow wipes
@@ -877,39 +873,7 @@ YAHOO.ajax_marking_block = {
 
         this.root = this.tree.getRoot();
 
-
-        //this.contextMenu = new YAHOO.widget.ContextMenu("maincontextmenu", {
-        //    trigger: treeDiv,
-        //    lazyload: true,
-        //    itemdata: [
-                // Each of these is one line of the context menu when the tree is right clicked.
-                // { text: this.currentTextNode.label  },
-         //       { text: "Current group mode:", onclick: { } }
-         //   ]
-        //});
-/*
-        this.contextMenu.subscribe(
-            "triggerContextMenu",  
-            
-            function (p_oEvent) {
-            
-                var oTarget = this.contextEventTarget;
-
-                if (oTarget) {
-
-                    this.currentTextNode = this.textNodeMap[oTarget.id];
-
-                } else {
-                    alert('no');
-                    // Cancel the display of the ContextMenu instance.
-                    this.cancel();
-                }
-
-            }
-        );
-        */
     }, 
-
 
     /**
      * funtion to refresh all the nodes once the update operations have all been carried out by
@@ -954,11 +918,6 @@ YAHOO.ajax_marking_block = {
             document.getElementById('totalmessage').style.visibility = 'collapse';
             YAHOO.ajax_marking_block.remove_all_child_nodes(document.getElementById('count'));
 
-            //Write the message
-           // label = document.createTextNode(amVariables.nothingString);
-          //  messageDiv = document.createElement('div');
-          //  messageDiv.appendChild(label);
-           // AJAXtree.div.appendChild(messageDiv);
         }
     },
 
@@ -967,7 +926,6 @@ YAHOO.ajax_marking_block = {
     * then it updates the parent nodes and refreshes the tree
     *
     */
-
     remove_node_from_tree : function(windowUrl, AJAXtree, nodeUniqueId, frames) {
 
        // TODO - store depth info in the nodes so this isn't necessary
@@ -1108,7 +1066,6 @@ YAHOO.ajax_marking_block = {
         YAHOO.ajax_marking_block.enable_config_radio_buttons();
     },
 
-
     /**
      * function to alter a node's label with a new count once the children are removed or reloaded
      */
@@ -1118,7 +1075,6 @@ YAHOO.ajax_marking_block = {
         newNode.data.count = newCount;
         newNode.label = newLabel;
     },
-
 
     /**
      * on click function for the groups check boxes on the config screen. clicking sets or unsets
@@ -1275,7 +1231,6 @@ YAHOO.ajax_marking_block = {
             }
         }
     },
-
 
     /**
      * workshop pop up stuff
@@ -1440,7 +1395,6 @@ YAHOO.ajax_marking_block = {
               */
       },
 
-
     /**
      * function that waits till the pop up has a particular location,
      * i.e. the one it gets to when the data has been saved, and then shuts it.
@@ -1501,7 +1455,6 @@ YAHOO.ajax_marking_block = {
     /**
      * Builds the greyed out panel for the config overlay
      */
-
     build_config_overlay : function() {
 
         if (!YAHOO.ajax_marking_block.greyOut) {
@@ -1634,11 +1587,9 @@ YAHOO.ajax_marking_block = {
 
                 configSet(3);
                 break;
-
         } 
         YAHOO.ajax_marking_block.disable_config_radio_buttons();
     },
-
 
     /**
      * Wipes all the group options away when another node or a course node is clicked in the config
@@ -1708,7 +1659,7 @@ var  ajax_marking_block_callback = {
 };
 
 /**
- * The initial stuff to get everything started
+ * The initialising stuff to get everything started
  */
 
 // workaround for odd https setups. Probably not needed in most cases

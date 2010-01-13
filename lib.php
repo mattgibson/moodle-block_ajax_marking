@@ -1,6 +1,5 @@
 <?php
 
-
 /**
  * All of the main functions for the AJAX marking block are contained within this class. Its is
  * instantiated as an object each time a request is made, then automatically runs and outputs based
@@ -83,7 +82,6 @@ class ajax_marking_functions {
             }
         }
  
- 
         // only the main nodes need groups.
         $get_my_groups_types = array(
                 'html',
@@ -122,7 +120,6 @@ class ajax_marking_functions {
         $this->groupconfig = get_records_sql($sql);
     }
 
-
     /**
      * Formats the summary text so that it works in the tooltips without odd characters
      *
@@ -149,7 +146,6 @@ class ajax_marking_functions {
      * @param <type> $stripbr
      * @return <type>
      */
-
     function clean_name_text($text,  $length=false, $stripbr=true) {
 
         $text = strip_tags($text, '');
@@ -266,7 +262,6 @@ class ajax_marking_functions {
      * function to make the summary for submission nodes, showing how long ago it was
      * submitted
      */
-
     function make_time_summary($seconds, $discussion=false) {
         $weeksstr = get_string('weeks', 'block_ajax_marking');
         $weekstr = get_string('week', 'block_ajax_marking');
@@ -299,16 +294,11 @@ class ajax_marking_functions {
         return $name;
     }
 
-
-
-
-
     /**
      * This is to build the data ready to be written to the db, using the parameters submitted so far.
      * Others might be added to this object later byt he functions that call it, to match different
      * scenarios
      */
-
     function make_config_data() {
         global $USER;
         $this->data                 = new stdClass;
@@ -359,9 +349,6 @@ class ajax_marking_functions {
         echo $check;
     }
 
-
-
-
    /**
     * finds the groups info for a given course for the config tree. It then needs to check if those
     * groups are to be displayed for this assessment and user. can probably be merged with the
@@ -375,7 +362,6 @@ class ajax_marking_functions {
     * @param string $type type of assessment e.g. forum, workshop
     * @param int $assessmentid
     */
-
     function make_config_groups_radio_buttons($courseid, $assessmenttype, $assessmentid=NULL) {
         $groups           = '';
         $current_settings = '';
@@ -456,7 +442,6 @@ class ajax_marking_functions {
      *               display all, if no config settings exist
      *
      */
-
     function assessment_groups_filter($submissions, $type, $assessmentid, $courseid) {
         //unset($config_settings);
         global $CFG;
@@ -763,7 +748,6 @@ class ajax_marking_functions {
         return false;
     }
 
-
     /**
      * Fetches the fullname for a given userid. All student details are retrieved in a single SQL
      * query at the start and the stored object is checked with this function. Included is a check
@@ -872,7 +856,6 @@ class ajax_marking_functions {
             return $ids;
     }
 
-   
     /**
      * For SQL statements, a comma separated list of course ids is needed. It is vital that only
      * courses where the user is a teacher are used and also that the front page is excluded.
@@ -943,7 +926,6 @@ class ajax_marking_functions {
      * @type string the type of assessment e.g. 'assignment, 'workshop'
      * @cmid int the coursemodule id of the assessment being checked.
      */
-    
     function assessment_grading_permission($type, $assessment) {
 
         global $USER;
@@ -973,7 +955,9 @@ class ajax_marking_functions {
 
         // cut it at 200 characters
         $shortsum = substr($assessment->description, 0, 200);
-        if (strlen($shortsum) < strlen($assessment->description)) {$shortsum .= "...";}
+        if (strlen($shortsum) < strlen($assessment->description)) {
+            $shortsum .= "...";
+        }
         $length = ($config) ? false : 30;
 
         $this->output .= ','; 
@@ -1033,7 +1017,6 @@ class ajax_marking_functions {
 
         $this->output .= '}';
     }
-
 
     /**
      * It turned out to be impossible to add icons reliably
@@ -1123,7 +1106,6 @@ class module_base {
      */
     function count_course_submissions($course) {
 
-
         $type = $this->type;
         // html_list.php will be doing this many times, so we reuse the data.
         if (!isset($this->all_submissions)) {
@@ -1188,11 +1170,8 @@ class module_base {
             if(!$this->mainobject->check_submission_display_settings($this->type, $submission) ) {
                 continue;
             }
-
             $count++;
-           
         }
-        
         return $count;
     }
 
@@ -1336,7 +1315,6 @@ class module_base {
                 $html_array = array('count' =>$html_count, 'data' => $html_output);
                 return $html_array;
             }
-            
         } 
     } 
 
@@ -1367,7 +1345,6 @@ class module_base {
                 }
             }
         }
-
         return $count;
     }
 
