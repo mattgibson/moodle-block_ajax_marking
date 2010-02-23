@@ -21,26 +21,26 @@ YAHOO.ajax_marking_block.forum_final.pop_up_arguments = function (node) {
  * confirmation page
  */
 YAHOO.ajax_marking_block.forum_final.alter_popup = function (me) {
-    var els ='';
+    var input_elements ='';
 
     // first, add the onclick if possible
     // TODO - did this change work?
-    var inputType = typeof YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
-    if (inputType != 'undefined') {
+    var input_type = typeof YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
+    if (input_type != 'undefined') {
     // if (typeof YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input') != 'undefined') {
         // The window is open with some input. could be loading lots though.
-        els = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
+        input_elements = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
 
-        if (els.length > 0) {
-            var key = els.length -1;
+        if (input_elements.length > 0) {
+            var key = input_elements.length -1;
             // Does the last input have the 'send in my ratings string as label, showing that
             // all the rating are loaded?
-            if (els[key].value == amVariables.forumSaveString) {
+            if (input_elements[key].value == amVariables.forumSaveString) {
                 // IE friendly
-                //TODO - did this change work?
+                // TODO - did this change work?
                 var functionText = "return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree('/mod/forum/rate.php', ";
-                    functionText += "'"+me+"');";
-                els[key]["onclick"] = new Function(functionText);
+                    functionText += "'"+me+"', false);";
+                input_elements[key]["onclick"] = new Function(functionText);
                 //els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
                 // cancel loop for this function
                 window.clearInterval(YAHOO.ajax_marking_block.timerVar);

@@ -23,22 +23,23 @@ YAHOO.ajax_marking_block.journal.pop_up_opening_url = function (node) {
 YAHOO.ajax_marking_block.journal.alter_popup = function (me) {
 
     // get the form submit input, which is always last but one (length varies)
-    var els = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
+    var input_elements = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
 
     // TODO - might catch the pop up half loaded. Not ideal.
-    if (typeof(els) != 'undefined' && els.length > 0) {
-        var key = els.length -1;
+    if (typeof(input_elements) != 'undefined' && input_elements.length > 0) {
+        var key = input_elements.length -1;
 
        // alert(els.length -1);
 
         YAHOO.util.Event.on(
-            els[key],
+            input_elements[key],
             'click',
             function(){
                 alert('ok');
                 return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree(
                     '/mod/journal/report.php',
-                    me
+                    me,
+                    false
                 );
             }
         );

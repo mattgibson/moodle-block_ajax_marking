@@ -38,7 +38,7 @@ YAHOO.ajax_marking_block.quiz_final.alter_popup = function (me) {
                 // followed by the function to update the tree
                 // TODO - did this change work?
                 var functionText = "return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree('/mod/quiz/report.php', '";
-                    functionText += me+"'); "
+                    functionText += me+"', false); "
                 els[lastButOne]["onclick"] = new Function(functionText);
                 //els[lastButOne]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/quiz/report.php', YAHOO.ajax_marking_block.main, '"+me+"'); ");
                 // cancel the loop for this function
