@@ -104,7 +104,8 @@ class quiz_functions extends module_base {
         global $CFG, $USER;
 
         //permission to grade?
-        $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', 13, 'instance', $quiz->id) ;
+        //$module = get_record('modules','name',$this->type);
+        $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', $this->mainobject->modulesettings['quiz']->id, 'instance', $quiz->id) ;
         $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
         if (!has_capability('mod/quiz:grade', $modulecontext, $USER->id)) {
             return;
@@ -215,7 +216,7 @@ class quiz_functions extends module_base {
         $courseid = $quiz->course;
 
         //permission to grade?
-        $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', 13, 'instance', $quiz->id) ;
+        $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', $this->mainobject->modulesettings['quiz']->id, 'instance', $quiz->id) ;
         $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
         if (!has_capability('mod/quiz:grade', $modulecontext, $USER->id)) {
             return;

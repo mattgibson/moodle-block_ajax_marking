@@ -150,7 +150,7 @@ class assignment_functions extends module_base {
         $courseid = $assignment->course;
 
         //permission to grade?
-        $coursemodule = get_record('course_modules', 'module', '1', 'instance', $assignment->id) ;
+        $coursemodule = get_record('course_modules', 'module', $this->mainobject->modulesettings['assignment']->id, 'instance', $assignment->id) ;
         $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
         if (!has_capability($this->capability, $modulecontext, $USER->id)) {
             return;
