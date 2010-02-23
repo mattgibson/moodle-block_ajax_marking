@@ -13,6 +13,10 @@ class quiz_functions extends module_base {
         $this->level2_return_function = 'quiz_questions';
         $this->level3_return_function = 'quiz_submissions';
         $this->icon = 'mod/quiz/icon.gif';
+        $this->functions  = array(
+            'quiz' => 'quiz_questions',
+            'quiz_question' => 'submissions'
+        );
     }
 
 
@@ -171,7 +175,7 @@ class quiz_functions extends module_base {
                 if (strlen($shortsum) < strlen($sum)) {
                     $shortsum .= "...";
                 }
-                $length = ($config) ? false : 30;
+                $length = 30;
                 $this->mainobject->output .= ',';
 
                 $this->mainobject->output .= '{';
@@ -257,8 +261,8 @@ class quiz_functions extends module_base {
 
                 $this->output .= $this->mainobject->make_submission_node($name, $question_attempt->userid,
                                                                          $this->mainobject->id,
-                                                                         $summary, 'quiz_answer', $seconds,
-                                                                         $question_attempt->timemodified);
+                                                                         $summary, 'quiz_final', $seconds,
+                                                                         $question_attempt->timestamp);
 
             }
             $this->mainobject->output .= "]"; 

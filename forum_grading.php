@@ -10,6 +10,9 @@ class forum_functions extends module_base {
         $this->capability = 'mod/forum:viewhiddentimedposts';
         $this->levels = 3;
         $this->icon = 'mod/forum/icon.gif';
+        $this->functions  = array(
+            'forum' => 'submissions'
+        );
     }
 
 
@@ -167,7 +170,7 @@ class forum_functions extends module_base {
             if (count($posts) > 0) {
                 foreach ($discussions as $discussion) {
 
-                    $firstpost = '';
+                    $firstpost = null;
 
                     // If we are under a group node, we want to ignore submissions from other groups
                     $groupnode     = $this->mainobject->group;
@@ -188,6 +191,7 @@ class forum_functions extends module_base {
                     // grade the first one, which is the only one returned.
                     if ($forum->type == 'eachuser') {
                          $count = 1;
+                         $firstpost = $post;
                     } else {
                         // Any other type of graded forum, we can grade any posts that are not yet
                         // graded. This means counting them first.
@@ -256,7 +260,7 @@ class forum_functions extends module_base {
                         $summary = $discuss.": ".$shortsum."<br />".$timesum;
 
                         $node = $this->mainobject->make_submission_node($name, $firstpost->id, $discussion->id,
-                                                                        $summary, 'discussion', $seconds, $time,
+                                                                        $summary, 'forum_final', $seconds, $time,
                                                                         $count);
                         $this->mainobject->output .= $node;
                     }

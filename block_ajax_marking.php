@@ -10,7 +10,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2010011301;
+        $this->version = 2010022301;
     }
 
     function specialization() {
@@ -108,18 +108,13 @@ class block_ajax_marking extends block_base {
                         'wwwroot'             => $CFG->wwwroot,
                         'totalMessage'        => get_string('total',              'block_ajax_marking'),
                         'userid'              => $USER->id,
-                        'assignmentString'    => get_string('modulename',         'assignment'),
-                        'workshopString'      => get_string('modulename',         'workshop'),
-                        'forumString'         => get_string('modulename',         'forum'),
                         'instructions'        => get_string('instructions',       'block_ajax_marking'),
                         'configNothingString' => get_string('config_nothing',     'block_ajax_marking'),
                         'nothingString'       => get_string('nothing',            'block_ajax_marking'),
                         'refreshString'       => get_string('refresh',            'block_ajax_marking'),
                         'configureString'     => get_string('configure',          'block_ajax_marking'),
                         'forumSaveString'     => get_string('sendinratings',      'forum'),
-                        'quizString'          => get_string('modulename',         'quiz'),
                         'quizSaveString'      => get_string('savechanges'),
-                        'journalString'       => get_string('modulename',         'journal'),
                         'journalSaveString'   => get_string('saveallfeedback',    'journal'),
                         'connectFail'         => get_string('connect_fail',       'block_ajax_marking'),
                         'nogroups'            => get_string('nogroups',           'block_ajax_marking'),
@@ -132,7 +127,6 @@ class block_ajax_marking extends block_base {
                         'confCourseHide'      => get_string('confCourseHide',     'block_ajax_marking'),
                         'confDefault'         => get_string('confDefault',        'block_ajax_marking'));
 
-                
                 // for integrating the block_marking stuff, this stuff (divs) should all be created
                 // by javascript.
                 $this->content->text .= "
@@ -152,7 +146,7 @@ class block_ajax_marking extends block_base {
 
                 // Add a script that makes all of the PHP variables available to javascript
                 $this->content->text .= '</div><div id="javaValues"><script type="text/javascript"';
-                $this->content->text .= 'defer="defer">/* <![CDATA[ */ var amVariables = {';
+                $this->content->text .= '>/* <![CDATA[ */ var amVariables = {';
                    
                 // loop through the PHP $variables above, making them into the right format
                 $check = 0;
@@ -169,9 +163,7 @@ class block_ajax_marking extends block_base {
                         /* ]]> */</script>
                     </div>';
 
-                // Add the script that will initialise the main AJAX tree widget
-                $this->content->text .= '<script type="text/javascript" defer="defer" '
-                    .'src="'.$CFG->wwwroot.'/blocks/ajax_marking/javascript.js"></script>';
+                
 
                 // Add all of the javascript libraries that the above script depends on
                 $scripts = array(
@@ -179,7 +171,7 @@ class block_ajax_marking extends block_base {
                         'yui_event',
                         'yui_dom',
                         'yui_logger',
-                        $CFG->wwwroot.'/lib/yui/treeview/treeview-min.js',
+                        $CFG->wwwroot.'/lib/yui/treeview/treeview-debug.js',
                         'yui_connection',
                         'yui_dom-event',
                         'yui_container',
@@ -187,8 +179,33 @@ class block_ajax_marking extends block_base {
                         $CFG->wwwroot.'/lib/yui/container/container_core-min.js',
                         $CFG->wwwroot.'/lib/yui/menu/menu-min.js',
                         'yui_json',
-                        'yui_button');
+                        'yui_button',
+                        $CFG->wwwroot.'/blocks/ajax_marking/javascript.js'
+                    );
+
+                // also need to add any js from individual modules
+                foreach ($AMB_html_list_object->modulesettings as $modname => $module) {
+                    // echo "{$CFG->dirroot}{$module->dir}/{$modname}_grading.php ";
+
+                    $file_in_mod_directory  = file_exists("{$CFG->dirroot}{$module->dir}/{$modname}_grading.js");
+                    $file_in_block_directory = file_exists("{$CFG->dirroot}/blocks/ajax_marking/{$modname}_grading.js");
+                                         //   echo "{$CFG->dirroot}blocks/ajax_marking/{$modname}_grading.js";
+
+                    if ($file_in_mod_directory) {
+                        $scripts[] = "{$CFG->wwwroot}{$module->dir}/{$modname}_grading.js";
+                    } elseif ($file_in_block_directory) {
+                        $scripts[] = "{$CFG->dirroot}/blocks/ajax_marking/{$modname}_grading.js";
+                    }
+
+                }
+
+
                 $this->content->text .= require_js($scripts)."";
+                // Add the script that will initialise the main AJAX tree widget
+                //$this->content->text .= '<script type="text/javascript" defer="defer" '
+                 //   .'src="'.$CFG->wwwroot.'/blocks/ajax_marking/javascript.js"></script>';
+                
+                $this->content->text .= '<script type="text/javascript" defer="defer" >YAHOO.ajax_marking_block.initialise();</script>';
 
                 // Add footer, which will have button added dynamically (not needed if javascript is
                 // enabled)

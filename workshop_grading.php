@@ -11,6 +11,9 @@ class workshop_functions extends module_base {
         $this->capability = 'mod/workshop:manage';
         $this->levels = 3;
         $this->icon = 'mod/workshop/icon.gif';
+        $this->functions  = array(
+            'workshop' => 'submissions'
+        );
     }
 
 
@@ -114,7 +117,7 @@ class workshop_functions extends module_base {
                 }
                 // if we are displaying for a single group node, ignore those students in other groups
                 $groupnode    = $this->mainobject->group;
-                $inrightgroup = $this->check_group_membership($this->mainobject->group, $submission->userid);
+                $inrightgroup = $this->mainobject->check_group_membership($this->mainobject->group, $submission->userid);
                 if ($groupnode && !$inrightgroup) {
                     continue;
                 }
@@ -128,7 +131,7 @@ class workshop_functions extends module_base {
                 $seconds = ($now - $submission->timecreated);
                 $summary = $this->mainobject->make_time_summary($seconds);
                 $this->mainobject->output .= $this->mainobject->make_submission_node($name, $sid, $this->mainobject->id, 
-                                                                                     $summary, 'workshop_answer', $seconds,
+                                                                                     $summary, 'workshop_final', $seconds,
                                                                                      $submission->timecreated);
 
             }

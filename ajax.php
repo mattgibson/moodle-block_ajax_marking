@@ -67,9 +67,9 @@ class ajax_marking_response extends ajax_marking_functions {
         $this->initial_setup();
 
         // The type here refers to what was clicked, or sets up the tree in the case of 'main' and
-        // 'config_main'
+        // 'config_main_tree'. Type is also returned, where it refers to the node(s) that will be created,
+        // which then gets sent back to this function when that node is clicked.
         switch ($this->type) {
-        
         
             // generate the list of courses when the tree is first prepared. Currently either makes
             // a config tree or a main tree
@@ -159,7 +159,7 @@ class ajax_marking_response extends ajax_marking_functions {
 
                 break;
 
-            case "config_main":
+            case "config_main_tree":
 
                 // Makes the course list for the configuration tree. No need to count anything, just
                 // make the nodes. Might be possible to collapse it into the main one with some IF
@@ -167,7 +167,7 @@ class ajax_marking_response extends ajax_marking_functions {
 
                 $this->config = true;
 
-                $this->output = '[{"type":"config_main"}';
+                $this->output = '[{"type":"config_main_tree"}';
 
                 if ($this->courses) { 
 
@@ -261,29 +261,6 @@ class ajax_marking_response extends ajax_marking_functions {
                 $this->output .= "]";
                 break;
 
-            case "assignment":
-                $this->assignment->submissions();
-                break;
-
-            case "workshop":
-                $this->workshop->submissions();
-                break;
-
-            case "forum":
-                $this->forum->submissions();
-                break;
-
-            case "quiz_question":
-                $this->quiz->submissions();
-                break;
-
-            case "quiz":
-                $this->quiz->quiz_questions();
-                break;
-
-             case "journal":
-                $this->journal->submissions();
-                break;
 
             case "config_groups":
 
@@ -419,24 +396,21 @@ class ajax_marking_response extends ajax_marking_functions {
 
             default:
 
-                // the above options are for core requests. The default one deals
-                // with assessment nodes being expanded, which may have one, two or more sub-levels
-                // and which are added by the module classes themselves by sending the return_function
-                // strings as part of the ajax response for the assessments in each course. These are
-                // then forwarded as the type variable here, e.g. type = "forum_submissions" leads to
-                // $this->forum->submissions()
-
-                // TODO - check whcih types are sent and whether they are set up right for this.
-                // Maybe use a returnType variable
-                $bits = explode('_', $this->type);
-                if ($bits[1]) {
-                    $this->$bits[0]->$bits[1]();
-                } else {
-                    $this->$bits[0]();
+                // assume it's specific to one of the added modules. Run through each until
+                // one of them has that function and it returns true.
+                foreach ($this->modulesettings as $modname => $module) {
+                    if($this->$modname->return_function($this->type))  {
+                        break;
+                    }
                 }
 
-        }
 
+
+
+                break;
+
+        }
+        // return the output to the client
         print_r($this->output);
     }
 }

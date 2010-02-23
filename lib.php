@@ -65,7 +65,7 @@ class ajax_marking_functions {
                 'quiz_diagnostic',
                 'main',
                 'config_course',
-                'config_main',
+                'config_main_tree',
                 'course',
                 'assignment',
                 'workshop',
@@ -429,6 +429,9 @@ class ajax_marking_functions {
     }
 
     /**
+     * Sometimes, it will be necessary to display group nodes if the user has specified this
+     * and if there are groups set up for that course.
+     *
      * This is the function that is called from the assessment_submissions functions to
      * take care of checking config settings and filtering the submissions if necessary. It behaves
      * differently depending on the users preferences, and is called from both the clicked
@@ -443,7 +446,7 @@ class ajax_marking_functions {
      *
      */
     function assessment_groups_filter($submissions, $type, $assessmentid, $courseid) {
-        //unset($config_settings);
+
         global $CFG;
 
         //need to get the groups for this assignment from the config object
@@ -503,13 +506,14 @@ class ajax_marking_functions {
         foreach($groupsarray as $group) {
 
             $count = 0;
+            if ($submissions) {
+                foreach($submissions as $submission) {
 
-            foreach($submissions as $submission) {
-
-                // check against the group members to see if 1. this is the right group and 2. the
-                // id is a member
-                if ($this->check_group_membership($group, $submission->userid))  {
-                    $count++;
+                    // check against the group members to see if 1. this is the right group and 2. the
+                    // id is a member
+                    if ($this->check_group_membership($group, $submission->userid))  {
+                        $count++;
+                    }
                 }
             }
 
@@ -1007,14 +1011,13 @@ class ajax_marking_functions {
             // end tooltip bit
             $this->output .= '"';
         } else {
-            $this->output .= $this->clean_summary_text($shortsum).'"';
+            $this->output .= get_string('modulename', $assessment->type).': '.$this->clean_summary_text($shortsum).'"';
         }
 
         if ($assessment->count) {
             $this->output .= ',"count":"'   .$assessment->count.'"';
         }
         
-
         $this->output .= '}';
     }
 
@@ -1272,7 +1275,7 @@ class module_base {
                 }
 
               // if there are only two levels, there will only need to be dynamic load if there are groups to display
-              if($this->levels == 2) {
+              if($this->levels() == 2) {
 
                     $assessment_settings = $this->mainobject->get_groups_settings($this->type, $assessment->id);
                     $course_settings = $this->mainobject->get_groups_settings('course', $courseid);
@@ -1374,5 +1377,34 @@ class module_base {
             }
         }
     }
+
+    /**
+     * This is to allow the ajax call to be sent to the correct function. When the
+     * type of one of the pluggable modules is sent back via the ajax call, the ajax_marking_response constructor
+     * will refer to this function in each of the module objects in turn from the default in the switch statement
+     * 
+     * 
+     */
+    function return_function($type) {
+
+        if (array_key_exists($type, $this->functions)) {
+            $function = $this->functions[$type];
+            $this->$function();
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+    /**
+     * @return <type> Getter function for the levels stored as part of the
+     * pluggable modules object
+     */
+    function levels () {
+
+        //$levels = count($this->functions) + 2;
+        return $this->levels;
+    }
+
 
 }

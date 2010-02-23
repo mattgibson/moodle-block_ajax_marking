@@ -15,6 +15,9 @@ class journal_functions extends module_base {
         // function to trigger for the third level nodes (might be different if there are four
         //$this->level2_return_function = 'journal_submissions';
         $this->icon = 'mod/journal/icon.gif';
+        $this->functions  = array(
+            'journal' => 'submissions'
+        );
        
     }
 
@@ -90,6 +93,7 @@ class journal_functions extends module_base {
      * nodes to show.
      */
     function submissions() {
+
         global $USER, $CFG;
         // need to get course id in order to retrieve students
         $journal = get_record('journal', 'id', $this->mainobject->id);
@@ -103,7 +107,6 @@ class journal_functions extends module_base {
 
         $this->mainobject->get_course_students($courseid);
 
-
         $sql = "SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified,
                        j.id, c.id as cmid
                   FROM {$CFG->prefix}journal_entries je
@@ -116,12 +119,14 @@ class journal_functions extends module_base {
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
                    AND je.userid IN({$this->mainobject->student_ids->$courseid})
-                   AND j.id = {$this->mainobject->id}";
+                   AND j.id = {$journal->id}";
 
-        $submissions = get_records_sql($sql, 'journal');
+        $submissions = get_records_sql($sql);
+
+        // TODO: does this work with 'journal' rather than 'journal_final'?
 
         // This function does not need any checks for group status as it will only be called if groups are set.
-        $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $journal->id, $journal->course);
+        $group_filter = $this->mainobject->assessment_groups_filter($submissions, 'journal', $journal->id, $journal->course);
            
         // group nodes have now been printed by the groups function
         return;

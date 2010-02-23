@@ -54,15 +54,26 @@ class assignment_functions extends module_base {
     */
     function assignment_functions(&$reference) {
 
+        // make the main library object available
         $this->mainobject = $reference;
-        // must be the same as th DB modulename
+        // must be the same as the DB modulename
         $this->type       = 'assignment';
         $this->capability = 'mod/assignment:grade';
-        $this->levels     = 3;
         $this->icon       = 'mod/assignment/icon.gif';
-      
+        // this array is used to match the types which are returned from the nodes
+        // being clicked in the ajax tree to the functions which return the next
+        // level of the tree. The initial course->assessment node one is built in,
+        // so you just need to add the second and possibly third level connections.
+        // Groups nodes asre also added aoutomatically. If your module just has two
+        // levels, leave the array empty.
+        $this->functions  = array(
+            'assignment' => 'submissions'
+        );
+        $this->levels = 3;
 
     }
+
+
 
     // procedures to fetch data and store it in the object
 
@@ -157,7 +168,7 @@ class assignment_functions extends module_base {
                    AND s.userid IN ({$this->mainobject->student_ids->$courseid})
                    AND s.timemarked < s.timemodified
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
-                        OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
+                       OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
                    AND c.module = {$this->mainobject->modulesettings['assignment']->id}
               ORDER BY timemodified ASC";
 
@@ -165,16 +176,27 @@ class assignment_functions extends module_base {
 
         if ($submissions) {
 
+            $data = array();
+
             // If we are not making the submissions for a specific group, run the group filtering
             // function to see if the config settings say display by groups and display them if they
             // are (returning false). If there are no groups, the function will return true and we
             // carry on, but if the config settings say 'don't display' then it will return false
             // and we skip this assignment
             if(!$this->mainobject->group) {
-               $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $this->mainobject->id, $assignment->course);
-               if (!$group_filter) {
-                   return;
-               }
+
+                //TODO - data array as input for function
+
+                //$data['submissions'] = $submissions;
+                //$data['type']        = $this->type;
+                //$data['id']          = $this->mainobject->id;
+                //$data['course']      = $assignment->course;
+
+                //$group_filter = $this->mainobject->assessment_groups_filter($data);
+                $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $this->mainobject->id, $assignment->course);
+                if (!$group_filter) {
+                    return;
+                }
             }
 
             // begin json object
@@ -198,7 +220,7 @@ class assignment_functions extends module_base {
                 $seconds = ($now - $submission->timemodified);
                 $summary = $this->mainobject->make_time_summary($seconds);
                 
-                $this->mainobject->make_submission_node($name, $submission->userid, $submission->cmid, $summary, 'assignment_answer', $seconds, $submission->timemodified);
+                $this->mainobject->make_submission_node($name, $submission->userid, $submission->cmid, $summary, 'assignment_final', $seconds, $submission->timemodified);
          
             }
             $this->mainobject->output .= "]"; // end JSON array
