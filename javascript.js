@@ -3,9 +3,9 @@
 YAHOO.namespace('ajax_marking_block');
 
 /**
- *Make a base class that can be used for the main and config trees. This extends the
- *YUI treeview class ready to add some new functions to it which are common to both the
- *main and config trees.
+ * Make a base class that can be used for the main and config trees. This extends the
+ * YUI treeview class ready to add some new functions to it which are common to both the
+ * main and config trees.
  */
 YAHOO.ajax_marking_block.tree_base = function(tree_div) {
 

@@ -6,12 +6,10 @@ class quiz_functions extends module_base {
 
     function quiz_functions(&$reference) {
         $this->mainobject = $reference;
-        // must be the same as th DB modulename
+        // must be the same as the DB modulename
         $this->type = 'quiz';
         $this->capability = 'mod/quiz:grade';
         $this->levels = 4;
-        $this->level2_return_function = 'quiz_questions';
-        $this->level3_return_function = 'quiz_submissions';
         $this->icon = 'mod/quiz/icon.gif';
         $this->functions  = array(
             'quiz' => 'quiz_questions',
@@ -27,8 +25,8 @@ class quiz_functions extends module_base {
      function get_all_unmarked() {
         global $CFG;
 
-        $sql = "SELECT qst.id as qstid, qsess.questionid, qz.id, qz.name, qz.course,
-                       qa.userid, c.id as cmid
+        $sql = "SELECT qst.id as qstid, qa.userid, qsess.questionid, qz.id,
+                       qz.name, qz.course, c.id as cmid
                   FROM {$CFG->prefix}quiz qz
             INNER JOIN {$CFG->prefix}course_modules c
                     ON qz.id = c.instance
@@ -47,48 +45,48 @@ class quiz_functions extends module_base {
                    AND q.qtype = 'essay'
                    AND qz.course IN ({$this->mainobject->course_ids})
                    AND qst.event NOT IN (3,6,9)
-              ORDER BY q.id";
+              ORDER BY qa.timemodified";
 
             $this->all_submissions = get_records_sql($sql);
             return true;
     }
 
-
     function get_all_course_unmarked($courseid) {
 
         global $CFG;
 
-         $sql = "SELECT qsess.id as qsessid, qzatt.userid, qz.id, qz.course,
-                        qz.intro as description, qz.name,  c.id as cmid
-                   FROM {$CFG->prefix}quiz qz
-             INNER JOIN {$CFG->prefix}course_modules c
-                     ON qz.id = c.instance
-             INNER JOIN {$CFG->prefix}quiz_attempts qzatt
-                     ON qz.id = qzatt.quiz
-             INNER JOIN {$CFG->prefix}question_sessions qsess
-                     ON qsess.attemptid = qzatt.uniqueid
-             INNER JOIN {$CFG->prefix}question_states qst
-                     ON qsess.newest = qst.id
-             INNER JOIN {$CFG->prefix}question q
-                     ON qsess.questionid = q.id
-                  WHERE qzatt.userid IN ({$this->mainobject->student_ids->$courseid})
-                    AND qzatt.timefinish > 0
-                    AND qzatt.preview = 0
-                    AND c.module = {$this->mainobject->modulesettings['quiz']->id}
-                    AND c.visible = 1
-                    AND qz.course = {$courseid}
-                    AND q.qtype = 'essay'
-                    AND qst.event NOT IN (3,6,9)
-                  ORDER BY q.id";
+        $sql = "SELECT qsess.id as qsessid, qzatt.userid, qz.id, qz.course,
+                       qz.intro as description, qz.name,  c.id as cmid
+                  FROM {$CFG->prefix}quiz qz
+            INNER JOIN {$CFG->prefix}course_modules c
+                    ON qz.id = c.instance
+            INNER JOIN {$CFG->prefix}quiz_attempts qzatt
+                    ON qz.id = qzatt.quiz
+            INNER JOIN {$CFG->prefix}question_sessions qsess
+                    ON qsess.attemptid = qzatt.uniqueid
+            INNER JOIN {$CFG->prefix}question_states qst
+                    ON qsess.newest = qst.id
+            INNER JOIN {$CFG->prefix}question q
+                    ON qsess.questionid = q.id
+                 WHERE qzatt.userid IN ({$this->mainobject->student_ids->$courseid})
+                   AND qzatt.timefinish > 0
+                   AND qzatt.preview = 0
+                   AND c.module = {$this->mainobject->modulesettings['quiz']->id}
+                   AND c.visible = 1
+                   AND qz.course = {$courseid}
+                   AND q.qtype = 'essay'
+                   AND qst.event NOT IN (3,6,9)
+                 ORDER BY qzatt.timemodified";
 
             $submissions = get_records_sql($sql);
             return $submissions;
     }
 
     /**
-     * Gets all of the question attempts for the current quiz. Uses the group filtering function to display groups first if
-     * that has been specified via config. Seemed like abetter idea than questions then groups as tutors will mostly have a class to mark
-     * rather than a question to mark.
+     * Gets all of the question attempts for the current quiz. Uses the group
+     * filtering function to display groups first if that has been specified via
+     * config. Seemed like a better idea than questions then groups as tutors
+     * will mostly have a class to mark rather than a question to mark.
      *
      * Uses $this->id as the quiz id
      * @global <type> $CFG
@@ -116,8 +114,8 @@ class quiz_functions extends module_base {
                      WHERE id = {$this->mainobject->id}";
         $csv_questions = get_record_sql($csv_sql);
 
-        $sql = "SELECT qst.id as qstid, qst.event, qs.questionid as id, q.name, qa.userid,
-                       q.questiontext as description, q.qtype, qa.userid, qa.timemodified
+        $sql = "SELECT qst.id as qstid, qa.userid, qst.event, qs.questionid as id, q.name,
+                       q.questiontext as description, q.qtype, qa.timemodified
                   FROM {$CFG->prefix}question_states qst
             INNER JOIN {$CFG->prefix}question_sessions qs
                     ON qs.newest = qst.id
@@ -132,7 +130,8 @@ class quiz_functions extends module_base {
                    AND qa.preview = 0
                    AND qs.questionid IN ($csv_questions->questions)
                    AND q.qtype = 'essay'
-                   AND qst.event NOT IN (3,6,9)";
+                   AND qst.event NOT IN (3,6,9)
+              ORDER BY qa.timemodified";
 
         $question_attempts = get_records_sql($sql);
 
@@ -224,7 +223,7 @@ class quiz_functions extends module_base {
 
         $this->mainobject->get_course_students($quiz->course);
 
-        $sql = "SELECT qst.id, qst.event, qs.questionid, qa.userid, qst.timestamp
+        $sql = "SELECT qst.id, qa.userid, qst.event, qs.questionid,  qst.timestamp
                   FROM {$CFG->prefix}question_states qst
             INNER JOIN {$CFG->prefix}question_sessions qs
                     ON qs.newest = qst.id
@@ -235,7 +234,8 @@ class quiz_functions extends module_base {
                    AND qa.timefinish > 0
                    AND qa.preview = 0
                    AND qs.questionid = {$this->mainobject->id}
-                   AND qst.event NOT IN (3,6,9)";
+                   AND qst.event NOT IN (3,6,9)
+              ORDER BY qa.timemodified";
 
         $question_attempts = get_records_sql($sql);
 
