@@ -783,15 +783,15 @@ class ajax_marking_functions {
      * Makes the JSON data for output. Called only from the submissions functions.
      *
      * @param string $name - The name for the link
-     * @param int $submissionid - Submission id for the link
-     * @param int $assessmentid - Assessment id or coursemodule id for the link
+     * @param int $submission_id - Submission id for the link
+     * @param int $assessment_id - Assessment id or coursemodule id for the link
      * @param string $summary - Text for the tooltip
      * @param string $type - Type of assessment. false if its a submission
      * @param int $seconds - Number of second ago that this was submitted - for the colour coding
-     * @param int $timemodified - Time submitted in unix format, for the tooltip(?)
+     * @param int $time_modified - Time submitted in unix format, for the tooltip(?)
      */
-    function make_submission_node($name, $submissionid, $assessmentid, $summary,
-                                  $type, $seconds, $timemodified, $count=1, $dynamic=false) {
+    function make_submission_node($name, $submission_id, $assessment_id, $summary,
+                                  $type, $seconds, $time_modified, $count=1, $dynamic=false) {
         $this->output .= ',';
 
         $this->output .= '{';
@@ -808,19 +808,19 @@ class ajax_marking_functions {
             $this->output .= '"name":"'    .htmlentities($name, ENT_QUOTES).'",';
             $this->output .= '"dynamic":"false",';
             // id of submission for hyperlink
-            $this->output .= '"sid":"'     .$submissionid.'",';
+            $this->output .= '"sid":"'     .$submission_id.'",';
             // id of assignment for hyperlink
-            $this->output .= '"aid":"'     .$assessmentid.'",';
+            $this->output .= '"aid":"'     .$assessment_id.'",';
             // might need uniqueId to replace it
-            $this->output .= '"id":"'      .$assessmentid.'",';
+            $this->output .= '"id":"'      .$assessment_id.'",';
             $this->output .= '"title":"'   .$this->clean_summary_text($summary).'",';
             $this->output .= '"type":"'    .$type.'",';
             $this->output .= '"icon":"'    .$this->add_icon('user').'",';
             // 'seconds ago' sent to allow style to change according to how long it has been
             $this->output .= '"seconds":"' .$seconds.'",';
             // send the time of submission for tooltip
-            $this->output .= '"time":"'    .$timemodified.'",';
-            $this->output .= '"uniqueid":"'.$type.'submission'.$submissionid.'",';
+            $this->output .= '"time":"'    .$time_modified.'",';
+            $this->output .= '"uniqueid":"'.$type.'submission'.$submission_id.'",';
             $this->output .= '"count":"'   .$count.'"';
         $this->output .= '}';
     }

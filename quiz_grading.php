@@ -24,7 +24,7 @@ class quiz_functions extends module_base {
       */
      function get_all_unmarked() {
         global $CFG;
-
+        // 
         $sql = "SELECT qst.id as qstid, qa.userid, qsess.questionid, qz.id,
                        qz.name, qz.course, c.id as cmid
                   FROM {$CFG->prefix}quiz qz
@@ -54,29 +54,29 @@ class quiz_functions extends module_base {
     function get_all_course_unmarked($courseid) {
 
         global $CFG;
-
-        $sql = "SELECT qsess.id as qsessid, qzatt.userid, qz.id, qz.course,
-                       qz.intro as description, qz.name,  c.id as cmid
+        // 
+        $sql = "SELECT qsess.id as qsessid, qa.userid, qz.id, qz.course,
+                       qz.intro as description, qz.name, c.id as cmid
                   FROM {$CFG->prefix}quiz qz
             INNER JOIN {$CFG->prefix}course_modules c
                     ON qz.id = c.instance
-            INNER JOIN {$CFG->prefix}quiz_attempts qzatt
-                    ON qz.id = qzatt.quiz
+            INNER JOIN {$CFG->prefix}quiz_attempts qa
+                    ON qz.id = qa.quiz
             INNER JOIN {$CFG->prefix}question_sessions qsess
-                    ON qsess.attemptid = qzatt.uniqueid
+                    ON qsess.attemptid = qa.uniqueid
             INNER JOIN {$CFG->prefix}question_states qst
                     ON qsess.newest = qst.id
             INNER JOIN {$CFG->prefix}question q
                     ON qsess.questionid = q.id
-                 WHERE qzatt.userid IN ({$this->mainobject->student_ids->$courseid})
-                   AND qzatt.timefinish > 0
-                   AND qzatt.preview = 0
+                 WHERE qa.userid IN ({$this->mainobject->student_ids->$courseid})
+                   AND qa.timefinish > 0
+                   AND qa.preview = 0
                    AND c.module = {$this->mainobject->modulesettings['quiz']->id}
                    AND c.visible = 1
                    AND qz.course = {$courseid}
                    AND q.qtype = 'essay'
                    AND qst.event NOT IN (3,6,9)
-                 ORDER BY qzatt.timemodified";
+                 ORDER BY qa.timemodified";
 
             $submissions = get_records_sql($sql);
             return $submissions;
@@ -105,7 +105,7 @@ class quiz_functions extends module_base {
         //$module = get_record('modules','name',$this->type);
         $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', $this->mainobject->modulesettings['quiz']->id, 'instance', $quiz->id) ;
         $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
-        if (!has_capability('mod/quiz:grade', $modulecontext, $USER->id)) {
+        if (!has_capability($this->capability, $modulecontext, $USER->id)) {
             return;
         }
 
@@ -113,7 +113,7 @@ class quiz_functions extends module_base {
                       FROM {$CFG->prefix}quiz
                      WHERE id = {$this->mainobject->id}";
         $csv_questions = get_record_sql($csv_sql);
-
+        
         $sql = "SELECT qst.id as qstid, qa.userid, qst.event, qs.questionid as id, q.name,
                        q.questiontext as description, q.qtype, qa.timemodified
                   FROM {$CFG->prefix}question_states qst
@@ -217,13 +217,14 @@ class quiz_functions extends module_base {
         //permission to grade?
         $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', $this->mainobject->modulesettings['quiz']->id, 'instance', $quiz->id) ;
         $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
-        if (!has_capability('mod/quiz:grade', $modulecontext, $USER->id)) {
+        if (!has_capability($this->capability, $modulecontext, $USER->id)) {
             return;
         }
 
         $this->mainobject->get_course_students($quiz->course);
+        // 
 
-        $sql = "SELECT qst.id, qa.userid, qst.event, qs.questionid,  qst.timestamp
+        $sql = "SELECT qst.id, COUNT(DISTINCT qst.id) as count, qa.userid, qst.event, qs.questionid, qst.timestamp
                   FROM {$CFG->prefix}question_states qst
             INNER JOIN {$CFG->prefix}question_sessions qs
                     ON qs.newest = qst.id
@@ -235,6 +236,7 @@ class quiz_functions extends module_base {
                    AND qa.preview = 0
                    AND qs.questionid = {$this->mainobject->id}
                    AND qst.event NOT IN (3,6,9)
+              GROUP BY qa.userid, qs.questionid
               ORDER BY qa.timemodified";
 
         $question_attempts = get_records_sql($sql);
@@ -255,15 +257,24 @@ class quiz_functions extends module_base {
                 }
 
                 $name = $this->mainobject->get_fullname($question_attempt->userid);
+                // Sometimes, a person will have more than 1 attempt for the question.
+                // No need to list them twice, so we add a count after their name.
+                if ($question_attempt->count > 1) {
+                    $name .=' ('.$question_attempt->count.')';
+                }
 
                 $now = time();
                 $seconds = ($now - $question_attempt->timestamp);
                 $summary = $this->mainobject->make_time_summary($seconds);
 
-                $this->output .= $this->mainobject->make_submission_node($name, $question_attempt->userid,
+                $this->output .= $this->mainobject->make_submission_node($name,
+                                                                         $question_attempt->userid,
                                                                          $this->mainobject->id,
-                                                                         $summary, 'quiz_final', $seconds,
-                                                                         $question_attempt->timestamp);
+                                                                         $summary, 
+                                                                         'quiz_final',
+                                                                         $seconds,
+                                                                         $question_attempt->timestamp,
+                                                                         $question_attempt->count);
 
             }
             $this->mainobject->output .= "]"; 

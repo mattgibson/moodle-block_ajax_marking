@@ -259,9 +259,15 @@ class forum_functions extends module_base {
                         }
                         $summary = $discuss.": ".$shortsum."<br />".$timesum;
 
-                        $node = $this->mainobject->make_submission_node($name, $firstpost->id, $discussion->id,
-                                                                        $summary, 'forum_final', $seconds, $time,
-                                                                        $count);
+                        $node = $this->mainobject->make_submission_node(
+                                $name,
+                                $firstpost->id,
+                                $discussion->id,
+                                $summary,
+                                'forum_final',
+                                $seconds,
+                                $time,
+                                $count);
                         $this->mainobject->output .= $node;
                     }
                 }
