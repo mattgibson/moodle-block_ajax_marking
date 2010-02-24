@@ -389,11 +389,6 @@ class ajax_marking_response extends ajax_marking_functions {
 
                 break;
 
-            case 'quiz_diagnostic':
-                $this->get_course_students($courseid);
-                $this->quizzes();
-                break;
-
             default:
 
                 // assume it's specific to one of the added modules. Run through each until
@@ -403,9 +398,6 @@ class ajax_marking_response extends ajax_marking_functions {
                         break;
                     }
                 }
-
-
-
 
                 break;
 

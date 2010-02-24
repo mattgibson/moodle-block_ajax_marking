@@ -1293,15 +1293,12 @@ class module_base {
                     } elseif ($course_settings && ($course_settings->showhide == AMB_CONF_GROUPS)) {
                         $dynamic = true;
                     }  
-                    
                 } 
-                  
                     
                 $assessment->count   = $count;
                 $assessment->type    = $this->type;
                 $assessment->icon    = $this->mainobject->add_icon($this->type);
                 $assessment->dynamic = $dynamic;
-
 
                 if ($html) {
                     // make a node for returning as part of an array
@@ -1312,7 +1309,6 @@ class module_base {
                     // add this node to the JSON output object
                     $this->mainobject->make_assessment_node($assessment);
                 }
-
             }
             if ($html) {
                 // text string of <li> nodes

@@ -67,12 +67,10 @@ YAHOO.ajax_marking_block.tree_base.prototype.request_node_data = function(clicke
         postData += '&group='+clicked_node.data.group;
     }
 
-    // Allow modules to add extra arguments to the AJAX request of necessary
+    // Allow modules to add extra arguments to the AJAX request if necessary
     var type_array = clicked_node.data.type.split('_');
     var type_object = eval('YAHOO.ajax_marking_block.'+type_array[0]);
     if ((typeof (type_object) != 'undefined') && (typeof (type_object.extra_ajax_request_arguments) != 'undefined')) {
-    //if (node.data.type == 'quiz_question') {
-        //add quiz id if this is a question node
         postData += type_object.extra_ajax_request_arguments(clicked_node);
     }
  
@@ -627,15 +625,6 @@ YAHOO.ajax_marking_block.ajax_success_handler = function (o) {
                 YAMB.adjust_width_for_ie();
                 break;
 
-            // this replaces the ones above and below
-            case 'assessments':
-                YAHOO.ajax_marking_block.main_instance.build_assessment_nodes(responseArray);
-                break;
-
-            case 'quiz_question':
-                YAHOO.ajax_marking_block.main_instance.build_assessment_nodes(responseArray);
-                break;
-
             case 'groups':
 
                 YAHOO.ajax_marking_block.main_instance.build_group_nodes(responseArray);
@@ -708,6 +697,13 @@ YAHOO.ajax_marking_block.ajax_success_handler = function (o) {
                 }
 
                 break;
+
+            default:
+                
+                // aplies to extra node levels from modules
+                YAHOO.ajax_marking_block.main_instance.build_assessment_nodes(responseArray);
+                break;
+
         }
     }
 };
