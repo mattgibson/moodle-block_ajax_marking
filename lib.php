@@ -57,52 +57,10 @@ class ajax_marking_functions {
         define('AMB_CONF_SHOW',    1);
         define('AMB_CONF_GROUPS',  2);
         define('AMB_CONF_HIDE',    3);
-        
-        // call expensive queries only when needed
-        // ones that dont need this are all the submissions ones and some of the config save ones
-        $get_my_courses_types = array(
-                'html',
-                'quiz_diagnostic',
-                'main',
-                'config_course',
-                'config_main_tree',
-                'course',
-                'assignment',
-                'workshop',
-                'forum',
-                'quiz_question',
-                'quiz',
-                'journal');
-        if (in_array($this->type, $get_my_courses_types)) {
-            $this->courses = get_my_courses($USER->id, 'fullname', 'id') or die('get my courses error');
-
-            if ($this->courses) {
-                $this->make_course_ids_list();
-                $this->get_teachers();
-            }
-        }
- 
-        // only the main nodes need groups.
-        $get_my_groups_types = array(
-                'html',
-                'main',
-                'course',
-                'assignment',
-                'workshop',
-                'forum',
-                'quiz_question',
-                'quiz',
-                'journal');
-        if (in_array($this->type, $get_my_groups_types)) {
-            $this->group_members = $this->get_my_groups();
-        }
 
         // Now, build an array of the names of modules with grading code available
         // This assumes that a modulename_grading.php file has been created and is in the main
         // block directory
-
-        // TODO - move this to upgrade.php and store the modules array in the block config table.
-
         $this->modulesettings = unserialize(get_config('block_ajax_marking', 'modules'));
 
         // instantiate function classes for each of the available modules and store them in the
@@ -114,6 +72,51 @@ class ajax_marking_functions {
             $classname = $modname.'_functions';
             $this->$modname = new $classname($this);
         }
+        
+        // call expensive queries only when needed. The
+        // ajax calls that dont need this are all the submissions ones and some
+        // of the config save ones
+        $standard_get_my_courses_types = array(
+                'html',
+                'main',
+                'config_course',
+                'config_main_tree',
+                'course');
+        $standard_course_type = in_array($this->type, $standard_get_my_courses_types);
+        $module_type = in_array($this->type, array_keys($this->modulesettings));
+
+        // in the case of modules with more than 3 node levels e.g. quiz, the intermediate
+        // level(s) will need this query too. The type will in this case be stored in the
+        // module_grading.php file as one of the keys of the $this->functions array
+        $level_check = false;
+        foreach ($this->modulesettings as $modname => $module) {
+            if (in_array($this->type, array_keys($this->$modname->functions))) {
+                $level_check = true;
+            }
+        }
+
+        if ($standard_course_type || $module_type || $level_check) {
+            $this->courses = get_my_courses($USER->id, 'fullname', 'id') or die('get my courses error');
+
+            if ($this->courses) {
+                $this->make_course_ids_list();
+                $this->get_teachers();
+            }
+        }
+ 
+        // only the main nodes need groups.
+        $standard_get_my_groups_types = array(
+                'html',
+                'main',
+                'course');
+        $standard_groups_type = in_array($this->type, $standard_get_my_groups_types);
+
+        if ($standard_groups_type || $module_type || $level_check) {
+            $this->group_members = $this->get_my_groups();
+        }
+
+        
+
 
         // get all configuration options set by this user
         $sql = "SELECT * FROM {$CFG->prefix}block_ajax_marking WHERE userid = $USER->id";
@@ -605,14 +608,12 @@ class ajax_marking_functions {
         if (!$this->courses) {return false;}
 
         $sql = "SELECT gm.*
-                FROM {$CFG->prefix}groups_members gm
-                INNER JOIN {$CFG->prefix}groups g
+                  FROM {$CFG->prefix}groups_members gm
+            INNER JOIN {$CFG->prefix}groups g
                     ON gm.groupid = g.id
-                WHERE g.courseid IN ($this->course_ids)
-        ";
+                 WHERE g.courseid IN ($this->course_ids)";
 
         $group_members = get_records_sql($sql);
-
         return $group_members;
     }
 

@@ -1,4 +1,3 @@
-
 YAHOO.ajax_marking_block.quiz_final = {};
 
 YAHOO.ajax_marking_block.quiz_final.pop_up_post_data = function (node) {
@@ -13,8 +12,6 @@ YAHOO.ajax_marking_block.quiz_final.pop_up_opening_url = function (node) {
 YAHOO.ajax_marking_block.quiz_final.pop_up_arguments = function (node) {
     return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';
 }
-
-
 
 /**
  * adds onclick stuff to the quiz popup
