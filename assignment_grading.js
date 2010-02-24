@@ -1,18 +1,21 @@
 
 // Add functions to provide the data needed for the pop up 
-YAHOO.ajax_marking_block.assignment_final = {};
-YAHOO.ajax_marking_block.assignment_final.pop_up_arguments  = function(node) {
+YAHOO.ajax_marking_block.assignment = {};
+YAHOO.ajax_marking_block.assignment.pop_up_arguments  = function(node) {
     return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';
 };
 //YAHOO.ajax_marking_block.assignment_final.pop_up_post_data  = function (node) {
 //    return 'id='+node.data.aid+'&userid='+node.data.sid+'&mode=single&offset=0';
 //};
-YAHOO.ajax_marking_block.assignment_final.pop_up_closing_url = function (node) {
+YAHOO.ajax_marking_block.assignment.pop_up_closing_url = function (node) {
     return '/mod/assignment/submissions.php';
 };
-YAHOO.ajax_marking_block.assignment_final.pop_up_opening_url = function (node) {
+YAHOO.ajax_marking_block.assignment.pop_up_opening_url = function (node) {
     return '/mod/assignment/submissions.php?id='+node.data.aid+'&userid='+node.data.sid+'&mode=single&offset=0';
 };
+YAHOO.ajax_marking_block.assignment.extra_ajax_request_arguments = function (node) {
+    return true;
+}
 
 /**
  * this function is called every 100 milliseconds once the assignment pop up is called
@@ -33,7 +36,7 @@ YAHOO.ajax_marking_block.assignment_final.pop_up_opening_url = function (node) {
  * marking block. Until a work around is found, the save and next function is be a bit wonky,
  * sometimes showing next when there is only one submission, so I have hidden it.
  */
-YAHOO.ajax_marking_block.assignment_final.alter_popup = function(node_id, user_id) {
+YAHOO.ajax_marking_block.assignment.alter_popup = function(node_id, user_id) {
 
     var els  ='';
     var els2 = '';

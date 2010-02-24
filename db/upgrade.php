@@ -57,7 +57,6 @@ function AMB_update_modules() {
 
                     echo "Registered $modname module <br />";
                 }
-
             }
         }
     }

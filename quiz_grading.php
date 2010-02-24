@@ -211,7 +211,7 @@ class quiz_functions extends module_base {
 
         global $CFG, $USER;
         
-        $quiz = get_record('quiz', 'id', $this->mainobject->quizid);
+        $quiz = get_record('quiz', 'id', $this->mainobject->secondary_id);
         $courseid = $quiz->course;
 
         //permission to grade?
@@ -230,7 +230,7 @@ class quiz_functions extends module_base {
                     ON qs.newest = qst.id
             INNER JOIN {$CFG->prefix}quiz_attempts qa
                     ON qs.attemptid = qa.uniqueid
-                 WHERE qa.quiz = {$this->mainobject->quizid}
+                 WHERE qa.quiz = {$this->mainobject->secondary_id}
                    AND qa.userid IN ({$this->mainobject->student_ids->$courseid})
                    AND qa.timefinish > 0
                    AND qa.preview = 0

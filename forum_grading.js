@@ -1,15 +1,15 @@
-YAHOO.ajax_marking_block.forum_final = {};
+YAHOO.ajax_marking_block.forum = {};
 
-YAHOO.ajax_marking_block.forum_final.pop_up_post_data = function (node) {
+YAHOO.ajax_marking_block.forum.pop_up_post_data = function (node) {
     return 'd='+node.data.aid+'#p'+node.data.sid;
 }
-YAHOO.ajax_marking_block.forum_final.pop_up_closing_url = function (node) {
+YAHOO.ajax_marking_block.forum.pop_up_closing_url = function (node) {
     return '/mod/forum/discuss.php';
 }
-YAHOO.ajax_marking_block.forum_final.pop_up_opening_url = function (node) {
+YAHOO.ajax_marking_block.forum.pop_up_opening_url = function (node) {
     return '/mod/forum/discuss.php?d='+node.data.aid+'#p'+node.data.sid;
 }
-YAHOO.ajax_marking_block.forum_final.pop_up_arguments = function (node) {
+YAHOO.ajax_marking_block.forum.pop_up_arguments = function (node) {
     return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';  
 }
 
@@ -20,7 +20,7 @@ YAHOO.ajax_marking_block.forum_final.pop_up_arguments = function (node) {
  * on an interval of 1/2 a second until it manages to close the pop up after it has gone to the
  * confirmation page
  */
-YAHOO.ajax_marking_block.forum_final.alter_popup = function (me) {
+YAHOO.ajax_marking_block.forum.alter_popup = function (node_unique_id) {
     var input_elements ='';
 
     // first, add the onclick if possible
@@ -39,7 +39,7 @@ YAHOO.ajax_marking_block.forum_final.alter_popup = function (me) {
                 // IE friendly
                 // TODO - did this change work?
                 var functionText = "return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree('/mod/forum/rate.php', ";
-                    functionText += "'"+me+"', false);";
+                    functionText += "'"+node_unique_id+"', false);";
                 input_elements[key]["onclick"] = new Function(functionText);
                 //els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
                 // cancel loop for this function

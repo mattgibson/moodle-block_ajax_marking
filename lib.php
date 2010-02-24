@@ -26,7 +26,7 @@ class ajax_marking_functions {
         // refers to the part being built
         $this->type              = required_param('type',                   PARAM_TEXT); 
         $this->id                = optional_param('id',               NULL, PARAM_INT);
-        $this->quizid            = optional_param('quizid',           NULL, PARAM_INT);
+        $this->secondary_id      = optional_param('secondary_id',           NULL, PARAM_INT);
         $this->groups            = optional_param('groups',           NULL, PARAM_TEXT);
         $this->assessmenttype    = optional_param('assessmenttype',   NULL, PARAM_TEXT);
         $this->assessmentid      = optional_param('assessmentid',     NULL, PARAM_INT);

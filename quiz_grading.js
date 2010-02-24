@@ -1,22 +1,27 @@
-YAHOO.ajax_marking_block.quiz_final = {};
+YAHOO.ajax_marking_block.quiz = {};
 
-YAHOO.ajax_marking_block.quiz_final.pop_up_post_data = function (node) {
+YAHOO.ajax_marking_block.quiz.pop_up_post_data = function (node) {
     return 'mode=grading&action=grade&q='+node.parent.parent.data.id+'&questionid='+node.data.aid+'&userid='+node.data.sid;
 }
-YAHOO.ajax_marking_block.quiz_final.pop_up_closing_url = function (node) {
+YAHOO.ajax_marking_block.quiz.pop_up_closing_url = function (node) {
     return '/mod/quiz/report.php';
 }
-YAHOO.ajax_marking_block.quiz_final.pop_up_opening_url = function (node) {
+YAHOO.ajax_marking_block.quiz.pop_up_opening_url = function (node) {
     return '/mod/quiz/report.php?mode=grading&q='+node.parent.parent.data.id+'&questionid='+node.data.aid+'&userid='+node.data.sid;
 }
-YAHOO.ajax_marking_block.quiz_final.pop_up_arguments = function (node) {
+YAHOO.ajax_marking_block.quiz.pop_up_arguments = function (node) {
     return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';
+}
+YAHOO.ajax_marking_block.quiz.extra_ajax_request_arguments = function (node) {
+    if (node.data.type = 'quiz_question') {
+        return '&secondary_id='+node.parent.data.id;
+    }
 }
 
 /**
  * adds onclick stuff to the quiz popup
  */
-YAHOO.ajax_marking_block.quiz_final.alter_popup = function (me) {
+YAHOO.ajax_marking_block.quiz.alter_popup = function (node_unique_id) {
     var els = '';
     var lastButOne = '';
 
@@ -35,7 +40,7 @@ YAHOO.ajax_marking_block.quiz_final.alter_popup = function (me) {
                 // followed by the function to update the tree
                 // TODO - did this change work?
                 var functionText = "return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree('/mod/quiz/report.php', '";
-                    functionText += me+"', false); "
+                    functionText += node_unique_id+"', false); "
                 els[lastButOne]["onclick"] = new Function(functionText);
                 //els[lastButOne]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/quiz/report.php', YAHOO.ajax_marking_block.main, '"+me+"'); ");
                 // cancel the loop for this function

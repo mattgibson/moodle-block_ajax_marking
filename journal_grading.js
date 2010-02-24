@@ -20,7 +20,7 @@ YAHOO.ajax_marking_block.journal.pop_up_opening_url = function (node) {
  * adds onclick stuff to the journal pop up elements once they are ready.
  * me is the id number of the journal we want
  */
-YAHOO.ajax_marking_block.journal.alter_popup = function (me) {
+YAHOO.ajax_marking_block.journal.alter_popup = function (node_unique_id) {
 
     // get the form submit input, which is always last but one (length varies)
     var input_elements = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
@@ -38,7 +38,7 @@ YAHOO.ajax_marking_block.journal.alter_popup = function (me) {
                 alert('ok');
                 return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree(
                     '/mod/journal/report.php',
-                    me,
+                    node_unique_id,
                     false
                 );
             }

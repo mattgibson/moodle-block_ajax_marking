@@ -49,26 +49,31 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_assessment_nodes = function(n
 /**
  * This function is called when a node is clicked (expanded) and makes the ajax request
  */
-YAHOO.ajax_marking_block.tree_base.prototype.request_node_data = function(node, onCompleteCallback) {
+YAHOO.ajax_marking_block.tree_base.prototype.request_node_data = function(clicked_node, onCompleteCallback) {
 
     // store details of the node that has been clicked in globals for reference by later
     // callback function
 
-    YAHOO.ajax_marking_block.node_holder = node;
+    YAHOO.ajax_marking_block.node_holder = clicked_node;
 
     YAHOO.ajax_marking_block.on_complete_function_holder = onCompleteCallback;
-    var request_url    = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
+    var request_url = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
 
     // request data using AJAX
-    var postData = 'id='+node.data.id+'&type='+node.data.type+'&userid='+amVariables.userid;
+    var postData = 'id='+clicked_node.data.id+'&type='+clicked_node.data.type+'&userid='+amVariables.userid;
 
-    if (typeof node.data.group  != 'undefined') {
+    if (typeof clicked_node.data.group  != 'undefined') {
         //add group id if its there
-        postData += '&group='+node.data.group;
+        postData += '&group='+clicked_node.data.group;
     }
-    if (node.data.type == 'quiz_question') {
+
+    // Allow modules to add extra arguments to the AJAX request of necessary
+    var type_array = clicked_node.data.type.split('_');
+    var type_object = eval('YAHOO.ajax_marking_block.'+type_array[0]);
+    if ((typeof (type_object) != 'undefined') && (typeof (type_object.extra_ajax_request_arguments) != 'undefined')) {
+    //if (node.data.type == 'quiz_question') {
         //add quiz id if this is a question node
-        postData += '&quizid='+node.parent.data.id;
+        postData += type_object.extra_ajax_request_arguments(clicked_node);
     }
  
     var request = YAHOO.util.Connect.asyncRequest('POST', request_url, ajax_marking_block_callback, postData);
@@ -225,9 +230,14 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
                     // call for a panel widget
                     //var pop_up_post_data = '';
                             
-                    // Load the correct javascript object from the files that have been included
+                    // Load the correct javascript object from the files that have been included.
+                    // The type should always start with the name of the module, so
+                    // we extract that first and then use it to access the object of that
+                    // name that was created when the page was built by the inclusion
+                    // of all the module_grading.js files.
                     // Yes, I know eval is evil, but how can this be done more elegantly?
-                    var module_javascript = eval('YAHOO.ajax_marking_block.'+node.data.type);
+                    var type_array = node.data.type.split('_');
+                    var module_javascript = eval('YAHOO.ajax_marking_block.'+type_array[0]);
 
                     // Open a pop up with the url and arguments as specified in the module specific object
                     YAHOO.ajax_marking_block.pop_up_holder = window.open(amVariables.wwwroot+module_javascript.pop_up_opening_url(node), '_blank', module_javascript.pop_up_arguments(node));
