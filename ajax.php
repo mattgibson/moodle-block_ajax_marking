@@ -112,11 +112,12 @@ class ajax_marking_response extends ajax_marking_functions {
                               FROM {$CFG->prefix}modules
                              WHERE visible = 1";
 
-                    $enabledmods =  get_records_sql($sql);
+                    $enabledmods = get_records_sql($sql);
                     $enabledmods = array_keys($enabledmods);
           
                     // loop through each module, getting a count for this course id from each one.
                     foreach ($this->modulesettings as $modname => $module) {
+                        // Do not use modules which have been disabled by the admin
                         if(in_array($modname, $enabledmods)) {
                             $count += $this->$modname->count_course_submissions($courseid);
                         }

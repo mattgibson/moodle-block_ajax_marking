@@ -1,21 +1,21 @@
 
 // Add functions to provide the data needed for the pop up 
 YAHOO.ajax_marking_block.assignment = {};
-YAHOO.ajax_marking_block.assignment.pop_up_arguments  = function(node) {
+YAHOO.ajax_marking_block.assignment.pop_up_arguments  = function(clicked_node) {
     return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';
 };
 //YAHOO.ajax_marking_block.assignment_final.pop_up_post_data  = function (node) {
 //    return 'id='+node.data.aid+'&userid='+node.data.sid+'&mode=single&offset=0';
 //};
-YAHOO.ajax_marking_block.assignment.pop_up_closing_url = function (node) {
+YAHOO.ajax_marking_block.assignment.pop_up_closing_url = function (clicked_node) {
     return '/mod/assignment/submissions.php';
 };
-YAHOO.ajax_marking_block.assignment.pop_up_opening_url = function (node) {
-    return '/mod/assignment/submissions.php?id='+node.data.aid+'&userid='+node.data.sid+'&mode=single&offset=0';
+YAHOO.ajax_marking_block.assignment.pop_up_opening_url = function (clicked_node) {
+    return '/mod/assignment/submissions.php?id='+clicked_node.data.aid+'&userid='+clicked_node.data.sid+'&mode=single&offset=0';
 };
-YAHOO.ajax_marking_block.assignment.extra_ajax_request_arguments = function (node) {
+YAHOO.ajax_marking_block.assignment.extra_ajax_request_arguments = function (clicked_node) {
     return true;
-}
+};
 
 /**
  * this function is called every 100 milliseconds once the assignment pop up is called
@@ -48,7 +48,6 @@ YAHOO.ajax_marking_block.assignment.alter_popup = function(node_id, user_id) {
             els = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName('submit');
             // the above line will not return anything until the pop up is fully loaded
             if (els.length > 0) {
-
                 // To keep the assignment javascript happy, we need to make some divs for it to
                 // copy the grading data to, just as it would if it was called from the main
                 // submission grading screen. Line 710-728 of /mod/assignment/lib.php can't be

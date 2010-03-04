@@ -244,7 +244,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
                     // in order to make the pop up update the main tree and close itself once
                     // the work has been graded
                     timer_function = function() {
-                        module_javascript.alter_popup(node.data.id, node.data.sid);
+                        module_javascript.alter_popup(node.data.uniqueid, node.data.sid);
                     };
 
                     // keep trying to run the function every 2 seconds till it executes (the pop up
@@ -533,8 +533,8 @@ YAHOO.ajax_marking_block.tree_base.prototype.remove_node_from_tree = function(wi
     /// get the node that was just marked and its parent node
     //nodeToRemove = AJAXtree.tree.getNodeByProperty("id", nodeUniqueId);
     var node_to_remove = this.getNodeByProperty("uniqueid", node_unique_id);
-    var parent_node = node_to_remove.parent;
 
+    var parent_node = node_to_remove.parent;
     // remove the node that was just marked
     this.removeNode(node_to_remove, true);
 
