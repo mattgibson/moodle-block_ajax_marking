@@ -11,6 +11,9 @@ class workshop_functions extends module_base {
         $this->capability = 'mod/workshop:manage';
         $this->levels = 3;
         $this->icon = 'mod/workshop/icon.gif';
+        $this->functions  = array(
+            'workshop' => 'submissions'
+        );
     }
 
 
@@ -19,83 +22,94 @@ class workshop_functions extends module_base {
      * Called by courses()
      */
     function get_all_unmarked() {
-        global $CFG, $USER;
-        $sql = "
-             SELECT s.id as subid, s.userid, w.id, w.name, w.course, w.description, c.id as cmid
-             FROM ({$CFG->prefix}workshop w
-             INNER JOIN {$CFG->prefix}course_modules c
-                 ON w.id = c.instance)
-             LEFT JOIN {$CFG->prefix}workshop_submissions s
-                 ON s.workshopid = w.id
-             LEFT JOIN {$CFG->prefix}workshop_assessments a
-             ON (s.id = a.submissionid)
-             WHERE (a.userid != {$USER->id}
-              OR (a.userid = {$USER->id}
-                    AND a.grade = -1))
-             AND c.module = {$this->mainobject->modulesettings['workshop']->id}
-             AND w.course IN ({$this->mainobject->course_ids})
-             AND c.visible = 1
-             ORDER BY w.id
-        ";
 
-        $this->all_submissions = get_records_sql($sql);
+        global $CFG, $USER, $DB;
+
+        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
+
+        $sql = "SELECT s.id as subid, s.userid, w.id, w.name, w.course, w.description, c.id as cmid
+                  FROM ({workshop} w
+            INNER JOIN {course_modules} c
+                    ON w.id = c.instance)
+             LEFT JOIN {workshop_submissions} s
+                    ON s.workshopid = w.id
+             LEFT JOIN {workshop_assessments} a
+                    ON (s.id = a.submissionid)
+                 WHERE (a.userid != :userid
+                    OR (a.userid = :userid
+                   AND a.grade = -1))
+                   AND c.module = :moduleid
+                   AND w.course $usql
+                   AND c.visible = 1
+              ORDER BY w.id";
+        $params['userid'] = $USER->id;
+        $params['moduleid'] = $this->mainobject->modulesettings['workshop']->id;
+        $this->all_submissions = $DB->get_records_sql($sql, $params);
         return true;
     }
 
     function get_all_course_unmarked($courseid) {
 
-        global $CFG, $USER;
-        $sql = "SELECT s.id as submissionid, s.userid, w.id, w.name, w.course, w.description, c.id as cmid
-            FROM
-               ( {$CFG->prefix}workshop w
-            INNER JOIN {$CFG->prefix}course_modules c
-                 ON w.id = c.instance)
-            LEFT JOIN {$CFG->prefix}workshop_submissions s
-                 ON s.workshopid = w.id
-            LEFT JOIN {$CFG->prefix}workshop_assessments a
-            ON (s.id = a.submissionid)
-            WHERE (a.userid != {$USER->id}
-              OR (a.userid = {$USER->id}
-                    AND a.grade = -1))
-            AND c.module = {$this->mainobject->modulesettings['workshop']->id}
-            AND c.visible = 1
-            AND w.course = {$courseid}
-            AND s.userid IN ({$this->mainobject->student_ids->$courseid})
-            ORDER BY w.id
-        ";
+        global $CFG, $USER, $DB;
 
-        $unmarked = get_records_sql($sql);
+        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
+
+        $sql = "SELECT s.id as submissionid, s.userid, w.id, w.name, w.course,
+                       w.description, c.id as cmid
+                  FROM ({workshop} w
+            INNER JOIN {course_modules} c
+                    ON w.id = c.instance)
+             LEFT JOIN {workshop_submissions} s
+                    ON s.workshopid = w.id
+             LEFT JOIN {workshop_assessments} a
+                    ON (s.id = a.submissionid)
+                 WHERE (a.userid != :userid
+                    OR (a.userid = :userid
+                   AND a.grade = -1))
+                   AND c.module = :moduleid
+                   AND c.visible = 1
+                   AND w.course = :courseid
+                   AND s.userid $usql
+              ORDER BY w.id";
+        $params['userid'] = $USER->id;
+        $params['moduleid'] = $this->mainobject->modulesettings['workshop']->id;
+        $params['courseid'] = $courseid;
+        $unmarked = $DB->get_records_sql($sql, $params);
         return $unmarked;
     }
-    
+
     function submissions() {
 
-        global $CFG, $USER;
+        global $CFG, $USER, $DB;
 
-        $workshop = get_record('workshop', 'id', $this->mainobject->id);
+        $workshop = $DB->get_record('workshop', array('id' => $this->mainobject->id));
         $courseid = $workshop->course;
-       
-        $this->mainobject->get_course_students($workshop->course);
-        
-        $now = time();
-        // fetch workshop submissions for this workshop where there is no corresponding record of a teacher assessment
-        $sql = "
-            SELECT s.id, s.userid, s.title, s.timecreated, s.workshopid
-            FROM {$CFG->prefix}workshop_submissions s
-            LEFT JOIN {$CFG->prefix}workshop_assessments a
-            ON (s.id = a.submissionid)
-            INNER JOIN {$CFG->prefix}workshop w
-            ON s.workshopid = w.id
-            WHERE (a.userid != {$USER->id}
-            OR (a.userid = {$USER->id}
-            AND a.grade = -1))
-            AND s.workshopid = {$this->mainobject->id}
-            AND s.userid IN ({$this->mainobject->student_ids->$courseid})
-            AND w.assessmentstart < {$now}
-            ORDER BY s.timecreated ASC
-        ";
 
-        $submissions = get_records_sql($sql);
+        $this->mainobject->get_course_students($workshop->course);
+
+        // fetch workshop submissions for this workshop where there is no corresponding record of
+        // a teacher assessment
+        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
+
+        $sql = "SELECT s.id, s.userid, s.title, s.timecreated, s.workshopid
+                  FROM {workshop_submissions} s
+             LEFT JOIN {workshop_assessments} a
+                    ON (s.id = a.submissionid)
+            INNER JOIN {workshop} w
+                    ON s.workshopid = w.id
+                 WHERE (a.userid != :userid
+                    OR (a.userid = :userid
+                   AND a.grade = -1))
+                   AND s.workshopid = :workshopid
+                   AND s.userid $usql
+                   AND w.assessmentstart < :now
+              ORDER BY s.timecreated ASC";
+
+        $params['userid'] = $USER->id;
+        $params['workshopid'] = $this->mainobject->id;
+        $params['now'] = time();
+
+        $submissions = $DB->get_records_sql($sql, params);
 
         if ($submissions) {
 
@@ -106,7 +120,7 @@ class workshop_functions extends module_base {
                     return;
                 }
             }
-            // otherwise, submissionids have come back as its display all.
+            // otherwise, submissionids have come back, so it must be set to display all.
 
             // begin json object
             $this->mainobject->output = '[{"type":"submissions"}';
@@ -116,7 +130,10 @@ class workshop_functions extends module_base {
                 if (!isset($submission->userid)) {
                     continue;
                 }
-                if ($this->mainobject->group && !$this->check_group_membership($this->mainobject->group, $submission->userid)) {
+                // if we are displaying for a single group node, ignore those students in other groups
+                $groupnode    = $this->mainobject->group;
+                $inrightgroup = $this->mainobject->check_group_membership($this->mainobject->group, $submission->userid);
+                if ($groupnode && !$inrightgroup) {
                     continue;
                 }
 
@@ -125,13 +142,14 @@ class workshop_functions extends module_base {
                 $sid = $submission->id;
 
                 // sort out the time stuff
-                $now = time();
                 $seconds = ($now - $submission->timecreated);
                 $summary = $this->mainobject->make_time_summary($seconds);
-                $this->mainobject->output .= $this->mainobject->make_submission_node($name, $sid, $this->mainobject->id, $summary, 'workshop_answer', $seconds, $submission->timecreated);
+                $this->mainobject->output .= $this->mainobject->make_submission_node($name, $sid, $this->mainobject->id,
+                                                                                     $summary, 'workshop_final', $seconds,
+                                                                                     $submission->timecreated);
 
             }
-            $this->mainobject->output .= "]"; // end JSON array
+            $this->mainobject->output .= "]";
         }
     }
 
@@ -140,22 +158,21 @@ class workshop_functions extends module_base {
      */
     function get_all_gradable_items() {
 
-        global $CFG;
+        global $CFG, $DB;
 
-        $sql = "
-            SELECT w.id, w.course, w.name, w.description as summary, c.id as cmid
-            FROM {$CFG->prefix}workshop w
-            INNER JOIN {$CFG->prefix}course_modules c
-            ON w.id = c.instance
-            WHERE c.module = {$this->mainobject->modulesettings['workshop']->id}
-            AND c.visible = 1
-            AND w.course IN ({$this->mainobject->course_ids})
-            ORDER BY w.id
-        ";
+        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
 
-        $workshops = get_records_sql($sql);
+        $sql = "SELECT w.id, w.course, w.name, w.description as summary, c.id as cmid
+                  FROM {workshop} w
+            INNER JOIN {course_modules} c
+                    ON w.id = c.instance
+                 WHERE c.module = :moduleid
+                   AND c.visible = 1
+                   AND w.course $usql
+              ORDER BY w.id";
+        $params['moduleid'] = $this->mainobject->modulesettings['workshop']->id;
+        $workshops = $DB->get_records_sql($sql, $params);
         $this->assessments = $workshops;
-
     }
 
     function make_html_link($item) {
@@ -166,5 +183,3 @@ class workshop_functions extends module_base {
     }
 
 }
-
-?>
