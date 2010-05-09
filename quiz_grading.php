@@ -140,7 +140,7 @@ class quiz_functions extends module_base {
         $questions = $this->mainobject->list_assessment_ids($question_attempts);
 
         if (!$this->mainobject->group) {
-            $group_check = $this->mainobject->assessment_groups_filter($question_attempts, 'quiz', $this->mainobject->id, $quiz->course);
+            $group_check = $this->mainobject->try_to_make_group_nodes($question_attempts, 'quiz', $this->mainobject->id, $quiz->course);
             if (!$group_check) {
                 return;
             }

@@ -192,8 +192,8 @@ class assignment_functions extends module_base {
                 //$data['id']          = $this->mainobject->id;
                 //$data['course']      = $assignment->course;
 
-                //$group_filter = $this->mainobject->assessment_groups_filter($data);
-                $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $this->mainobject->id, $assignment->course);
+                //$group_filter = $this->mainobject->try_to_make_group_nodes($data);
+                $group_filter = $this->mainobject->try_to_make_group_nodes($submissions, $this->type, $this->mainobject->id, $assignment->course);
                 if (!$group_filter) {
                     return;
                 }

@@ -126,7 +126,7 @@ class journal_functions extends module_base {
         // TODO: does this work with 'journal' rather than 'journal_final'?
 
         // This function does not need any checks for group status as it will only be called if groups are set.
-        $group_filter = $this->mainobject->assessment_groups_filter($submissions, 'journal', $journal->id, $journal->course);
+        $group_filter = $this->mainobject->try_to_make_group_nodes($submissions, 'journal', $journal->id, $journal->course);
            
         // group nodes have now been printed by the groups function
         return;

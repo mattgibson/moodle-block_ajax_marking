@@ -13,8 +13,10 @@ YAHOO.ajax_marking_block.quiz.pop_up_arguments = function (node) {
     return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';
 }
 YAHOO.ajax_marking_block.quiz.extra_ajax_request_arguments = function (node) {
-    if (node.data.type = 'quiz_question') {
+    if (node.data.type == 'quiz_question') {
         return '&secondary_id='+node.parent.data.id;
+    } else {
+        return true;
     }
 }
 

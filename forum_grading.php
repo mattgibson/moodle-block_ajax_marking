@@ -156,7 +156,7 @@ class forum_functions extends module_base {
             // Check to see if group nodes need to be made instead of submissions
 
             if(!$this->mainobject->group) {
-                $group_filter = $this->mainobject->assessment_groups_filter($posts, $this->type,
+                $group_filter = $this->mainobject->try_to_make_group_nodes($posts, $this->type,
                                                                             $forum->id, $forum->course);
                 if (!$group_filter) {
                     return;

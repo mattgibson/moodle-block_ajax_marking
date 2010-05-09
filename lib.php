@@ -448,7 +448,7 @@ class ajax_marking_functions {
      *               display all, if no config settings exist
      *
      */
-    function assessment_groups_filter($submissions, $type, $assessmentid, $courseid) {
+    function try_to_make_group_nodes($submissions, $type, $assessmentid, $courseid) {
 
         global $CFG;
 

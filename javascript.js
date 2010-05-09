@@ -742,12 +742,6 @@ YAHOO.ajax_marking_block.add_tooltips = function(tree) {
         // details of the assignment that was set and a tooltip is better than leaving the front
         // page. I will re-enable it once I find a fix
 
-        var i = 0;
-        var j = 0;
-        var k = 0;
-        var m = 0;
-        var n = 0;
-
         if (tree.config) {
             return false;
         }
@@ -1370,7 +1364,7 @@ YAHOO.ajax_marking_block.request_config_checkbox_data = function(checkbox) {
             //need to set the type of this assessment to 'show groups' and get the groups stuff.
             showHide = 2;
             //get the form div to be able to read the values
-            var form = document.getElementById('configshowform');
+            form = document.getElementById('configshowform');
 
             // silly IE6 bug fix
             for (var c=0;c<form.childNodes.length;c++) {
