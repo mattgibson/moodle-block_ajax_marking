@@ -20,7 +20,7 @@
  * This is the file that contains all the code specific to the assignment module.
  *
  * @package   block-ajax_marking
- * @copyright 2008 Matt Gibson
+ * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

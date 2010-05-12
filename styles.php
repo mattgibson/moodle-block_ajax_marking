@@ -1,4 +1,26 @@
 <?php
+
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * @package   block-ajax_marking
+ * @copyright 2008-2010 Matt Gibson
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
     // either use the theme icons, or if there are none, the standard ones.
     //global $USER;
     //echo "user obj: <br />";
@@ -74,14 +96,14 @@ No longer needed.
   background-image: url(<?php icon_check('pix/i/users.gif') ?>);
 }
 */
-/* the following 8 styles give different coloured borders to 
-   submissions depending on when they were submitted. The 
+/* the following 8 styles give different coloured borders to
+   submissions depending on when they were submitted. The
    colours may not be the best for your theme so change them
    below if needs be. The timings are in javascript.js at around line
    340. If you have colour blind users, you may need to take contrast into account
    and maybe vary the line style - dotted, dashed, solid.
 */
-   
+
 .icon-user-one, .icon-user-two, .icon-user-three, .icon-user-four, .icon-user-five, .icon-user-six,
 .icon-user-seven, .icon-user-eight {
   padding-left: 0px;
@@ -101,7 +123,7 @@ No longer needed.
   margin: 0;
 }
 .icon-user-one {
-  background-color: #ccffcc; 
+  background-color: #ccffcc;
 }
 .icon-user-two  {
   background-color: #ccffcc;
@@ -156,7 +178,7 @@ No longer needed.
   font-weight: bold;
 }
 #treediv {
-  clear: both; 
+  clear: both;
   margin-bottom: 5px;
   padding-bottom: 0px;
   float: left;
@@ -394,7 +416,7 @@ version: 2.5.2
   background-color: transparent;
 }
 
-      
+
 /* Debug styles */
 
 .bd {
@@ -409,13 +431,13 @@ version: 2.5.2
   float:left;
   width: 45%;
   margin-left: 3px;
-} 
+}
 #conf_right {
   float:right;
   width: 45%;
   margin-right: 3px;
   text-align: right;
-} 
+}
 #conf-wrapper {
   float: left;
   clear: both;
