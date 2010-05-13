@@ -16,14 +16,24 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   block-ajax_marking
+ * Class file for forum_functions
+ *
+ * @package   blocks-ajax_marking
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_login(0, false);
-
+/**
+ * Provides functionality for grading of forum discussions
+ */
 class forum_functions extends module_base {
+
+    /**
+     * Constructor
+     *
+     * @param object $mainobject parent object passed in by reference
+     */
     function forum_functions(&$mainobject) {
         $this->mainobject = $mainobject;
         // must be the same as th DB modulename
@@ -37,16 +47,18 @@ class forum_functions extends module_base {
     }
 
 
-     /**
+    /**
      * Gets all unmarked forum posts, but defines unmarked as not marked by the current account. If
      * another teacher has marked it, that is a problem.
+     *
      * @return <type> gets all unmarked forum discussions for all courses
      */
     function get_all_unmarked() {
         global $CFG, $USER, $DB;
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED, param0000);
-        list($usql2, $params2) = $DB->get_in_or_equal($this->mainobject->teachers, SQL_PARAMS_NAMED, param900000, false);
+        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED, 'param0000');
+        list($usql2, $params2) = $DB->get_in_or_equal($this->mainobject->teachers, SQL_PARAMS_NAMED,
+                                                      'param900000', false);
         $sql = "SELECT p.id as postid, p.userid, d.id, f.id, f.name, f.course, c.id as cmid
                   FROM {forum_posts} p
              LEFT JOIN {forum_ratings} r
@@ -73,13 +85,22 @@ class forum_functions extends module_base {
         return true;
     }
 
+    /**
+     * Gets all unmarked forum posts in a particular course
+     *
+     * @param int $courseid the id of the course we wnat to get forum posts for
+     *
+     * @return array database results array
+     */
     function get_all_course_unmarked($courseid) {
 
         global $CFG, $USER, $DB;
         $unmarked = '';
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED, param0000);
-        list($usql2, $params2) = $DB->get_in_or_equal($this->mainobject->teachers, SQL_PARAMS_NAMED, param900000, false);
+        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid,
+                                                    SQL_PARAMS_NAMED, 'param0000');
+        list($usql2, $params2) = $DB->get_in_or_equal($this->mainobject->teachers,
+                                                      SQL_PARAMS_NAMED, 'param900000', false);
 
         $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.course, f.type, f.id, f.name,
                        f.intro as description, c.id as cmid
@@ -111,7 +132,10 @@ class forum_functions extends module_base {
     }
 
     /**
-     * function to make nodes for forum submissions
+     * function to make nodes for forum submissions. It works on the existing object data
+     * and outputs via echo to make the AJAX response
+     *
+     * @return void
      */
     function submissions() {
 
@@ -123,20 +147,23 @@ class forum_functions extends module_base {
         $this->mainobject->get_course_students($courseid);
 
         $discussions = $DB->get_records('forum_discussions', array('forum' => $this->mainobject->id));
+
         if (!$discussions) {
             return;
         }
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED, param0000);
-        list($usql2, $params2) = $DB->get_in_or_equal($this->mainobject->teachers, SQL_PARAMS_NAMED, param900000, false);
+        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid,
+                                                    SQL_PARAMS_NAMED, 'param0000');
+        list($usql2, $params2) = $DB->get_in_or_equal($this->mainobject->teachers,
+                                                      SQL_PARAMS_NAMED, 'param900000', false);
 
         // get ready to fetch all the unrated posts
-        $sql = "SELECT p.id, p.userid, p.created, p.message, d.id as discussionid
-                  FROM {forum_discussions} d ";
+        $sql = 'SELECT p.id, p.userid, p.created, p.message, d.id as discussionid
+                  FROM {forum_discussions} d ';
 
         if ($forum->type == 'eachuser') {
             // add a bit to link to forum so we can check the type is correct
-            $sql .= "INNER JOIN {forum} f ON d.forum = f.id "  ;
+            $sql .= 'INNER JOIN {forum} f ON d.forum = f.id ';
         }
 
         $sql .= "INNER JOIN {forum_posts} p
@@ -162,6 +189,7 @@ class forum_functions extends module_base {
         $posts = $DB->get_records_sql($sql, $params);
 
         if ($posts) {
+
             foreach ($posts as $key=>$post) {
 
                 // sort for obvious exclusions
@@ -172,7 +200,7 @@ class forum_functions extends module_base {
                 // Maybe this forum doesn't rate posts earlier than X time, so we check.
                 if ($forum->assesstimestart != 0) {
 
-                    if (!($post->created > $forum->assesstimestart))  {
+                    if (!($post->created > $forum->assesstimestart)) {
                         unset($posts[$key]);
                         continue;
                     }
@@ -189,9 +217,10 @@ class forum_functions extends module_base {
 
             // Check to see if group nodes need to be made instead of submissions
 
-            if(!$this->mainobject->group) {
+            if (!$this->mainobject->group) {
                 $group_filter = $this->mainobject->assessment_groups_filter($posts, $this->type,
                                                                             $forum->id, $forum->course);
+
                 if (!$group_filter) {
                     return;
                 }
@@ -202,6 +231,7 @@ class forum_functions extends module_base {
 
             // we may have excluded all of them now, so check again
             if (count($posts) > 0) {
+
                 foreach ($discussions as $discussion) {
 
                     $firstpost = null;
@@ -209,6 +239,7 @@ class forum_functions extends module_base {
                     // If we are under a group node, we want to ignore submissions from other groups
                     $groupnode     = $this->mainobject->group;
                     $memberofgroup = $this->mainobject->check_group_membership($groupnode, $discussion->userid);
+
                     if ($groupnode && !$memberofgroup) {
                         continue;
                     }
@@ -244,6 +275,7 @@ class forum_functions extends module_base {
                                 // link needs the id of the earliest post, so store time if this is
                                 // the first post; check and modify for subsequent ones
                                 if ($firstpost) {
+
                                     if ($post->created > $firstpost) {
                                         $firstpost = $post;
                                     }
@@ -253,6 +285,7 @@ class forum_functions extends module_base {
                                 // store the time created for the tooltip if its the oldest post yet
                                 // for this discussion
                                 if ($firsttime) {
+
                                     if ($post->created < $time) {
                                         $time = $post->created;
                                     }
@@ -284,14 +317,16 @@ class forum_functions extends module_base {
                         $sum = strip_tags($firstpost->message);
 
                         $shortsum = substr($sum, 0, 100);
+
                         if (strlen($shortsum) < strlen($sum)) {
-                            $shortsum .= "...";
+                            $shortsum .= '...';
                         }
                         $timesum = $this->mainobject->make_time_summary($seconds, true);
+
                         if (!isset($discuss)) {
                             $discuss = get_string('discussion', 'block_ajax_marking');
                         }
-                        $summary = $discuss.": ".$shortsum."<br />".$timesum;
+                        $summary = $discuss.': '.$shortsum.'<br />'.$timesum;
 
                         $node = $this->mainobject->make_submission_node($name,
                                                                         $firstpost->id,
@@ -305,14 +340,16 @@ class forum_functions extends module_base {
                     }
                 }
             }
-            $this->mainobject->output .= "]";
+            $this->mainobject->output .= ']';
         }
     }
 
     /**
-     * gets all of the forums for all courses, ready for the config tree.
-     * @global <type> $CFG
-     * @return <type>
+     * gets all of the forums for all courses, ready for the config tree. Stores them as an object property
+     *
+     * @global object $CFG
+     *
+     * @return void
      */
     function get_all_gradable_items() {
 
@@ -336,7 +373,9 @@ class forum_functions extends module_base {
 
     /**
      * Returns a HTML link allowing a student's work to be marked
-     * @param $item a row of the database tabe representing one discussion post
+     *
+     * @param object $item a row of the database tabe representing one discussion post
+     *
      * @return string
      */
     function make_html_link($item) {

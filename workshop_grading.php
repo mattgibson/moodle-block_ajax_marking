@@ -16,15 +16,29 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   block-ajax_marking
+ * Class file for the workshop marking class
+ *
+ * @package   blocks-ajax_marking
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_login(0, false);
 
+/**
+ * Provides marking funcionality for the workshop module
+ *
+ * @copyright 2008-2010 Matt Gibson
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class workshop_functions extends module_base {
 
+    /**
+     * Constructor
+     *
+     * @param object $mainobject the parent object passed in by reference
+     * @return void
+     */
     function workshop_functions(&$mainobject) {
         $this->mainobject = $mainobject;
         // must be the same as th DB modulename
@@ -37,10 +51,11 @@ class workshop_functions extends module_base {
         );
     }
 
-
     /**
      * Function to return all unmarked workshop submissions for all courses.
      * Called by courses()
+     *
+     * @return bool true
      */
     function get_all_unmarked() {
 
@@ -69,6 +84,12 @@ class workshop_functions extends module_base {
         return true;
     }
 
+    /**
+     * Gets all the unmarked stuff for a course
+     *
+     * @param int $courseid the id number of the course
+     * @return array of results objects
+     */
     function get_all_course_unmarked($courseid) {
 
         global $CFG, $USER, $DB;
@@ -99,6 +120,11 @@ class workshop_functions extends module_base {
         return $unmarked;
     }
 
+    /**
+     * Outputs the submission nodes
+     *
+     * @return void
+     */
     function submissions() {
 
         global $CFG, $USER, $DB;
@@ -130,13 +156,17 @@ class workshop_functions extends module_base {
         $params['workshopid'] = $this->mainobject->id;
         $params['now'] = time();
 
-        $submissions = $DB->get_records_sql($sql, params);
+        $submissions = $DB->get_records_sql($sql, $params);
 
         if ($submissions) {
 
             // if this is set to display by group, we divert the data to the groups() function
-            if(!$this->mainobject->group) {
-                $group_filter = $this->mainobject->assessment_groups_filter($submissions, "workshop", $workshop->id, $workshop->course);
+            if (!$this->mainobject->group) {
+                $group_filter = $this->mainobject->assessment_groups_filter($submissions,
+                                                                            'workshop',
+                                                                            $workshop->id,
+                                                                            $workshop->course);
+
                 if (!$group_filter) {
                     return;
                 }
@@ -153,7 +183,9 @@ class workshop_functions extends module_base {
                 }
                 // if we are displaying for a single group node, ignore those students in other groups
                 $groupnode    = $this->mainobject->group;
-                $inrightgroup = $this->mainobject->check_group_membership($this->mainobject->group, $submission->userid);
+                $inrightgroup = $this->mainobject->check_group_membership($this->mainobject->group,
+                                                                          $submission->userid);
+
                 if ($groupnode && !$inrightgroup) {
                     continue;
                 }
@@ -165,17 +197,23 @@ class workshop_functions extends module_base {
                 // sort out the time stuff
                 $seconds = ($now - $submission->timecreated);
                 $summary = $this->mainobject->make_time_summary($seconds);
-                $this->mainobject->output .= $this->mainobject->make_submission_node($name, $sid, $this->mainobject->id,
-                                                                                     $summary, 'workshop_final', $seconds,
+                $this->mainobject->output .= $this->mainobject->make_submission_node($name,
+                                                                                     $sid,
+                                                                                     $this->mainobject->id,
+                                                                                     $summary,
+                                                                                     'workshop_final',
+                                                                                     $seconds,
                                                                                      $submission->timecreated);
 
             }
-            $this->mainobject->output .= "]";
+            $this->mainobject->output .= ']';
         }
     }
 
     /**
      * gets all workshops for the config tree
+     *
+     * @return void
      */
     function get_all_gradable_items() {
 
@@ -196,6 +234,12 @@ class workshop_functions extends module_base {
         $this->assessments = $workshops;
     }
 
+    /**
+     * Makes the HTML link for the popup
+     *
+     * @param object $item that has the workshop's courseid as cmid property
+     * @return string
+     */
     function make_html_link($item) {
 
         global $CFG;

@@ -19,7 +19,7 @@
 /**
  * This is the file that contains all the code specific to the assignment module.
  *
- * @package   block-ajax_marking
+ * @package   blocks-ajax_marking
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -38,20 +38,22 @@ require_login(0, false);
  * request and a module object is instatiated ready to be used. For efficiency, only installed
  * modules which have grading code available are included & instatiated, so there is a list kept in
  * the block's config data saying which modules have available module_grading.php files based on a
- * search conducted each time the block is upgraded by the {@link AMB_update_modules()} function.
+ * search conducted each time the block is upgraded by the {@link amb_update_modules()} function.
  *
  * @copyright 2008 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 class assignment_functions extends module_base {
 
-   /**
-    * Constuctor. Needs to be duplicated in all modules, so best put in parent. PHP4 issue though.
-    *
-    * The aim is to pass in the main ajax_marking_functions object by reference, so that its
-    * properties are accessible
-    *
-    */
+    /**
+     * Constuctor. Needs to be duplicated in all modules, so best put in parent. PHP4 issue though.
+     *
+     * The aim is to pass in the main ajax_marking_functions object by reference, so that its
+     * properties are accessible
+     *
+     * @param object $reference the parent object to be referred to
+     * @return void
+     */
     function assignment_functions(&$reference) {
 
         // make the main library object available
@@ -140,6 +142,8 @@ class assignment_functions extends module_base {
      * just show all the submissions at once (default)
      * divert this request to the groups function if the config asks for that
      * show the selected group's students
+     *
+     * @return void
      */
     function submissions() {
 
@@ -150,8 +154,10 @@ class assignment_functions extends module_base {
         $courseid = $assignment->course;
 
         //permission to grade?
-        $coursemodule = $DB->get_record('course_modules', array('module' => $this->mainobject->modulesettings['assignment']->id, 'instance' => $assignment->id));
+        $params = array('module' => $this->mainobject->modulesettings['assignment']->id, 'instance' => $assignment->id);
+        $coursemodule = $DB->get_record('course_modules', $params);
         $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
+
         if (!has_capability($this->capability, $modulecontext, $USER->id)) {
             return;
         }
@@ -184,7 +190,7 @@ class assignment_functions extends module_base {
             // are (returning false). If there are no groups, the function will return true and we
             // carry on, but if the config settings say 'don't display' then it will return false
             // and we skip this assignment
-            if(!$this->mainobject->group) {
+            if (!$this->mainobject->group) {
 
                 //TODO - data array as input for function
 
@@ -194,7 +200,11 @@ class assignment_functions extends module_base {
                 //$data['course']      = $assignment->course;
 
                 //$group_filter = $this->mainobject->assessment_groups_filter($data);
-                $group_filter = $this->mainobject->assessment_groups_filter($submissions, $this->type, $this->mainobject->id, $assignment->course);
+                $group_filter = $this->mainobject->assessment_groups_filter($submissions,
+                                                                            $this->type,
+                                                                            $this->mainobject->id,
+                                                                            $assignment->course);
+
                 if (!$group_filter) {
                     return;
                 }
@@ -204,13 +214,17 @@ class assignment_functions extends module_base {
             $this->mainobject->output = '[{"type":"submissions"}';
 
             foreach ($submissions as $submission) {
-            // add submission to JSON array of objects
+                // add submission to JSON array of objects
                 if (!isset($submission->userid)) {
                     continue;
                 }
 
                 // if we are displaying for just one group, skip this submission if it doesn't match
-                if ($this->mainobject->group && !$this->mainobject->check_group_membership($this->mainobject->group, $submission->userid)) {
+                $groupisset = $this->mainobject->group;
+                $memberofgroup = $this->mainobject->check_group_membership($this->mainobject->group,
+                                                                           $submission->userid);
+
+                if ($groupisset && !$memberofgroup) {
                     continue;
                 }
 
@@ -221,10 +235,16 @@ class assignment_functions extends module_base {
                 $seconds = ($now - $submission->timemodified);
                 $summary = $this->mainobject->make_time_summary($seconds);
 
-                $this->mainobject->make_submission_node($name, $submission->userid, $submission->cmid, $summary, 'assignment_final', $seconds, $submission->timemodified);
+                $this->mainobject->make_submission_node($name,
+                                                        $submission->userid,
+                                                        $submission->cmid,
+                                                        $summary,
+                                                        'assignment_final',
+                                                        $seconds,
+                                                        $submission->timemodified);
 
             }
-            $this->mainobject->output .= "]"; // end JSON array
+            $this->mainobject->output .= ']'; // end JSON array
 
         }
     }
@@ -232,7 +252,8 @@ class assignment_functions extends module_base {
      /**
      * gets all assignments that could potentially have
      * graded work, even if there is none there now. Used by the config tree.
-     * @return <type>
+     *
+     * @return void
      */
     function get_all_gradable_items() {
 
@@ -256,7 +277,7 @@ class assignment_functions extends module_base {
     /**
      * Makes a link for the pop up window so the work can be marked
      *
-     * @param $item a submission object
+     * @param object $item a submission object
      * @return string
      */
     function make_html_link($item) {

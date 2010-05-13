@@ -16,15 +16,29 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   block-ajax_marking
+ * Class file for the quiz grading class
+ *
+ * @package   blocks-ajax_marking
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_login(0, false);
 
+/**
+ * Provides all marking functionality for the quiz module
+ *
+ * @copyright 2008-2010 Matt Gibson
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class quiz_functions extends module_base {
 
+    /**
+     * Constructor
+     *
+     * @param object $reference the parent object passed in by reference so that it's data can be used
+     * @return void
+     */
     function quiz_functions(&$reference) {
         $this->mainobject = $reference;
         // must be the same as the DB modulename
@@ -38,11 +52,12 @@ class quiz_functions extends module_base {
         );
     }
 
-     /**
-      * gets all unmarked quiz question from all courses. used for the courses count
-      *
-      */
-     function get_all_unmarked() {
+    /**
+     * gets all unmarked quiz question from all courses. used for the courses count
+     *
+     * @return bool true
+     */
+    function get_all_unmarked() {
 
         global $CFG, $DB;
 
@@ -74,6 +89,12 @@ class quiz_functions extends module_base {
         return true;
     }
 
+    /**
+     * Gets all the unmarked quiz submissions for a course
+     *
+     * @param int $courseid the id number of the course
+     * @return array results objects
+     */
     function get_all_course_unmarked($courseid) {
 
         global $CFG, $DB;
@@ -113,10 +134,9 @@ class quiz_functions extends module_base {
      * filtering function to display groups first if that has been specified via
      * config. Seemed like a better idea than questions then groups as tutors
      * will mostly have a class to mark rather than a question to mark.
-     *
      * Uses $this->id as the quiz id
-     * @global <type> $CFG
-     * @return <type>
+     *
+     * @return void
      */
     function quiz_questions() {
 
@@ -175,7 +195,11 @@ class quiz_functions extends module_base {
         $questions = $this->mainobject->list_assessment_ids($question_attempts);
 
         if (!$this->mainobject->group) {
-            $group_check = $this->mainobject->assessment_groups_filter($question_attempts, 'quiz', $this->mainobject->id, $quiz->course);
+            $group_check = $this->mainobject->assessment_groups_filter($question_attempts,
+                                                                       'quiz',
+                                                                       $this->mainobject->id,
+                                                                       $quiz->course);
+
             if (!$group_check) {
                 return;
             }
@@ -189,12 +213,17 @@ class quiz_functions extends module_base {
             $count = 0;
 
             foreach ($question_attempts as $question_attempt) {
-                if (!isset($question_attempt->userid)) {continue;}
+
+                if (!isset($question_attempt->userid)) {
+                    continue;
+                }
                 // if we have come from a group node, ignore attempts where the user is not in the
                 // right group. Also ignore attempts not relevant to this question
                 $groupnode     = $this->mainobject->group;
-                $inrightgroup  = $this->mainobject->check_group_membership($this->mainobject->group, $question_attempt->userid);
+                $inrightgroup  = $this->mainobject->check_group_membership($this->mainobject->group,
+                                                                           $question_attempt->userid);
                 $rightquestion = ($question_attempt->id == $question->id);
+
                 if (($groupnode && !$inrightgroup) || ! $rightquestion) {
                     continue;
                 }
@@ -207,8 +236,9 @@ class quiz_functions extends module_base {
                 $sum = $question->description;
                 $sumlength = strlen($sum);
                 $shortsum = substr($sum, 0, 100);
+
                 if (strlen($shortsum) < strlen($sum)) {
-                    $shortsum .= "...";
+                    $shortsum .= '...';
                 }
                 $length = 30;
                 $this->mainobject->output .= ',';
@@ -233,13 +263,13 @@ class quiz_functions extends module_base {
             }
         }
         // end JSON array
-        $this->mainobject->output .= "]";
+        $this->mainobject->output .= ']';
     }
 
     /**
      * Makes the nodes with the student names for each question. works either with or without a group having been set.
-     * @global <type> $CFG
-     * @return <type>
+     *
+     * @return void
      */
     function submissions() {
 
@@ -282,17 +312,20 @@ class quiz_functions extends module_base {
         $params['questionid'] = $this->mainobject->id;
         $question_attempts = $DB->get_records_sql($sql, $params);
 
-        if($question_attempts) {
+        if ($question_attempts) {
 
             $this->mainobject->output = '[{"type":"submissions"}';
 
             foreach ($question_attempts as $question_attempt) {
+
                 if (!isset($question_attempt->userid)) {
                     continue;
                 }
                 // If this is a group node, ignore those where the student is not in the right group
                 $groupnode = $this->mainobject->group &&
-                $inrightgroup = $this->mainobject->check_group_membership($this->mainobject->group, $question_attempt->userid);
+                $inrightgroup = $this->mainobject->check_group_membership($this->mainobject->group,
+                                                                          $question_attempt->userid);
+
                 if ($groupnode && !$inrightgroup) {
                      continue;
                 }
@@ -318,16 +351,16 @@ class quiz_functions extends module_base {
                                                                          $question_attempt->count);
 
             }
-            $this->mainobject->output .= "]";
+            $this->mainobject->output .= ']';
         }
     }
 
-     /**
+    /**
      * gets all the quizzes for the config screen. still need the check in there for essay questions.
-     * @global <type> $CFG
-     * @return <type>
+     *
+     * @return void
      */
-     function get_all_gradable_items() {
+    function get_all_gradable_items() {
 
         global $CFG, $DB;
 
@@ -356,6 +389,7 @@ class quiz_functions extends module_base {
      * Makes a HTML link for the pop up to allow grading of a question
      *
      * @param object $item containing the quiz id as ->id
+     * @return string
      */
     function make_html_link($item) {
 

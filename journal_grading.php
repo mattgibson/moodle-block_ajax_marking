@@ -16,6 +16,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Class file for the journal grading class
+ *
  * @package   block-ajax_marking
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -23,8 +25,20 @@
 
 require_login(0, false);
 
+/**
+ * Provides marking functions for the journal module
+ *
+ * @copyright 2008-2010 Matt Gibson
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
 class journal_functions extends module_base {
 
+    /**
+     * Constructor
+     *
+     * @param object $reference the parent object, passed in so it's functions can be referenced
+     * @return void
+     */
     function journal_functions(&$reference) {
         $this->mainobject = $reference;
         // must be the same as the DB modulename
@@ -39,12 +53,13 @@ class journal_functions extends module_base {
         $this->functions  = array(
             'journal' => 'submissions'
         );
-
     }
 
      /**
       * gets all unmarked journal submissions from all courses ready for counting
       * called from get_main_level_data
+      *
+      * @return bool true
       */
     function get_all_unmarked() {
 
@@ -66,6 +81,12 @@ class journal_functions extends module_base {
         return true;
     }
 
+    /**
+     * Gets all the unmarked journals for a course
+     *
+     * @param int $courseid the id of the course
+     * @return array results objects
+     */
     function get_all_course_unmarked($courseid) {
 
         global $CFG, $DB;
@@ -93,6 +114,8 @@ class journal_functions extends module_base {
 
     /**
      * gets all journals for all courses ready for the config tree
+     *
+     * @return void
      */
     function get_all_gradable_items() {
 
@@ -117,6 +140,8 @@ class journal_functions extends module_base {
     /**
      * this will never actually lead to submissions, but will only be called if there are group
      * nodes to show.
+     *
+     * @return void
      */
     function submissions() {
 
@@ -155,14 +180,17 @@ class journal_functions extends module_base {
         // TODO: does this work with 'journal' rather than 'journal_final'?
 
         // This function does not need any checks for group status as it will only be called if groups are set.
-        $group_filter = $this->mainobject->assessment_groups_filter($submissions, 'journal', $journal->id, $journal->course);
+        $group_filter = $this->mainobject->assessment_groups_filter($submissions,
+                                                                    'journal',
+                                                                    $journal->id,
+                                                                    $journal->course);
 
         // group nodes have now been printed by the groups function
         return;
     }
 
     /**
-     * MAkes a HTML link for the popup
+     * Makes a HTML link for the popup
      *
      * @param object $item a journal object with cmid property
      * @return string

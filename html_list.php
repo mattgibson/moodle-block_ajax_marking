@@ -22,21 +22,19 @@
  * in it, then instantiates a new html_list object which will process the request and output the HTML
  * that the block needs.
  *
- * @package   block-ajax_marking
+ * @package   blocks-ajax_marking
  * @copyright 2008 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_login(0, false);
-include($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 
 /**
  * This class alows the building of the <ul> list of clickable links for non-javascript enabled
  * browsers
- */
-
-/**
- * Wrapper for the main functions library class which adds the parts that deal with the HTML list
+ *
+ * It's a wrapper for the main functions library class which adds the parts that deal with the HTML list
  * generation.
  *
  * The block is used in two ways. Firstly when the PHP version is made, necessitating a HTML list of
@@ -48,7 +46,6 @@ include($CFG->dirroot.'/blocks/ajax_marking/lib.php');
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 class AMB_html_list extends ajax_marking_functions {
 
     /**
@@ -60,6 +57,8 @@ class AMB_html_list extends ajax_marking_functions {
      * assessment item as a link to the grading page.
      *
      * The ul list can be recycled to make an accessible config tree in time.
+     *
+     * @return void
      */
     function make_html_list() {
 
@@ -84,25 +83,26 @@ class AMB_html_list extends ajax_marking_functions {
             }
 
             $this->get_course_students($courseid);
+
             if ((!isset($this->students->ids->$courseid)) || empty($this->students->ids->$courseid)) {
                 // no students in this course
                 continue;
             }
 
             // see which modules are currently enabled
-            $sql = "
-                SELECT name
-                FROM {modules}
-                WHERE visible = 1
-            ";
+            $sql = 'SELECT name
+                      FROM {modules}
+                     WHERE visible = 1';
             $enabledmods =  $DB->get_records_sql($sql);
             $enabledmods = array_keys($enabledmods);
 
             // loop through each module, getting a count for this course id from each one.
             foreach ($this->modulesettings as $modname => $module) {
-                if(in_array($modname, $enabledmods)) {
+
+                if (in_array($modname, $enabledmods)) {
 
                     $mod_output = $this->$modname->course_assessment_nodes($course->id, true);
+
                     if ($mod_output['count'] > 0) {
                         $course_count  += $mod_output['count'];
                         $course_output .= $mod_output['data'];
@@ -113,16 +113,16 @@ class AMB_html_list extends ajax_marking_functions {
 
             if ($course_count > 0) {
 
-                $this->html_list .= '<ul class="AMB_html">';
-                $this->html_list .=     '<li class="AMB_html_course">';
-                $this->html_list .=         $this->add_icon('course');
-                $this->html_list .=         '<strong>('.$course_count.')</strong> ';
-                $this->html_list .=         $course->shortname;
-                $this->html_list .=     '</li>';
-                $this->html_list .=     '<ul class="AMB_html_items">';
-                $this->html_list .=         $course_output;
-                $this->html_list .=     '</ul>';
-                $this->html_list .= '</ul>';
+                $this->html_list .= '<ul class="AMB_html">'
+                                        .'<li class="AMB_html_course">'
+                                            .$this->add_icon('course')
+                                            .'<strong>('.$course_count.')</strong> '
+                                            .$course->shortname
+                                        .'</li>'
+                                        .'<ul class="AMB_html_items">'
+                                            .$course_output
+                                        .'</ul>'
+                                    .'</ul>';
             }
 
         }

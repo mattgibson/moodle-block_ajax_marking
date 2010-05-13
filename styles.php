@@ -16,38 +16,41 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   block-ajax_marking
+ * Provides all CSS styles for the block
+ *
+ * @package   blocks-ajax_marking
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-    // either use the theme icons, or if there are none, the standard ones.
-    //global $USER;
-    //echo "user obj: <br />";
-    //print_r($USER);
-    //echo "<br />";
+/**
+ * Echos the corrrect path to the icon
+ *
+ * @param string $icon_name the end of the path including the icon filename
+ * @param string $type either mod or not
+ * @return void
+ */
+function icon_check($icon_name, $type) {
+    global $CFG, $USER, $THEME;
 
-    function icon_check($icon_name, $type) {
-        global $CFG, $USER, $THEME;
-        if ($type=='mod') {
-            $icon_name_mod = '/theme/'.current_theme().'/pix/'.$icon_name;
-        } else {
-            $icon_name_mod = '/theme/'.current_theme().'/'.$icon_name;
-        }
-
-
-        if ($icon_name == 'pix/i/course.gif') {
-            //echo $CFG->dirroot.$icon_name_mod;
-           // echo ' '.$USER->id.' ';
-            print_r($USER);
-        }
-
-        if (file_exists($CFG->dirroot.$icon_name_mod)) {
-            echo $CFG->wwwroot.$icon_name_mod;
-        } else {
-            echo  '/'.$icon_name;
-        }
+    if ($type=='mod') {
+        $icon_name_mod = '/theme/'.current_theme().'/pix/'.$icon_name;
+    } else {
+        $icon_name_mod = '/theme/'.current_theme().'/'.$icon_name;
     }
+
+    if ($icon_name == 'pix/i/course.gif') {
+        //echo $CFG->dirroot.$icon_name_mod;
+        // echo ' '.$USER->id.' ';
+        print_r($USER);
+    }
+
+    if (file_exists($CFG->dirroot.$icon_name_mod)) {
+        echo $CFG->wwwroot.$icon_name_mod;
+    } else {
+        echo  '/'.$icon_name;
+    }
+}
 ?>
 .icon-course, .icon-assignment, .icon-workshop, .icon-forum, .icon-quiz, .icon-quiz_question,
 .icon-journal, .icon-group {
@@ -227,7 +230,7 @@ version: 2.5.2
 /* first or middle sibling, no children */
 .ygtvtn {
     width:18px; height:22px;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -5600px no-repeat;
 }
 
@@ -235,7 +238,7 @@ version: 2.5.2
 .ygtvtm {
     width:18px; height:22px;
     cursor:pointer ;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -4000px no-repeat;
 }
 
@@ -243,7 +246,7 @@ version: 2.5.2
 .ygtvtmh,.ygtvtmhh {
     width:18px; height:22px;
     cursor:pointer ;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -4800px no-repeat;
 }
 
@@ -251,7 +254,7 @@ version: 2.5.2
 .ygtvtp {
     width:18px; height:22px;
     cursor:pointer ;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -6400px no-repeat;
 }
 
@@ -259,14 +262,14 @@ version: 2.5.2
 .ygtvtph ,.ygtvtphh {
     width:18px; height:22px;
     cursor:pointer ;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -7200px no-repeat;
 }
 
 /* last sibling, no children */
 .ygtvln {
     width:18px; height:22px;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -1600px no-repeat;
 }
 
@@ -274,7 +277,7 @@ version: 2.5.2
 .ygtvlm {
     width:18px; height:22px;
     cursor:pointer ;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 0px no-repeat;
 }
 
@@ -282,7 +285,7 @@ version: 2.5.2
 .ygtvlmh,.ygtvlmhh {
     width:18px; height:22px;
     cursor:pointer ;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -800px no-repeat;
 }
 
@@ -290,21 +293,21 @@ version: 2.5.2
 .ygtvlp {
     width:18px; height:22px;
     cursor:pointer ;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -2400px no-repeat;
 }
 
 /* Last sibling, expandable, hover */
 .ygtvlph,.ygtvlphh {
     width:18px; height:22px; cursor:pointer ;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -3200px no-repeat;
 }
 
 /* Loading icon */
 .ygtvloading {
     width:18px; height:22px;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-loading.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-loading.gif)
     0 0 no-repeat;
 }
 
@@ -312,7 +315,7 @@ version: 2.5.2
  * of the node */
 .ygtvdepthcell {
     width:18px; height:22px;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -8000px no-repeat;
 }
 
@@ -353,23 +356,23 @@ version: 2.5.2
 
 .ygtvok {
     width:18px; height:22px;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -8800px no-repeat;
 }
 
 .ygtvok:hover {
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -8844px no-repeat;
 }
 
 .ygtvcancel {
     width:18px; height:22px;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -8822px no-repeat;
 }
 
 .ygtvcancel:hover  {
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/treeview/assets/skins/sam/" ?>treeview-sprite.gif)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/treeview/assets/skins/sam/' ?>treeview-sprite.gif)
     0 -8866px no-repeat;
 }
 
@@ -575,17 +578,20 @@ bottom:-3px;visibility:visible;}.hide-scrollbars *{overflow:hidden;}.hide-scroll
 .yui-menu-shadow,.yuimenubar.hide-scrollbars .yui-menu-shadow{overflow:hidden;}.yuimenu.show-scrollbars
 .yui-menu-shadow,.yuimenubar.show-scrollbars .yui-menu-shadow{overflow:auto;}.yui-skin-sam .yuimenubar{font-size:93%;
 line-height:2;*line-height:1.9;border:solid 1px #808080;
-background:url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png) repeat-x 0 0;}
+background:url(<?php echo $CFG->wwwroot.'/lib/yui/menu' ?>/assets/skins/sam/sprite.png) repeat-x 0 0;}
 .yui-skin-sam .yuimenubarnav .yuimenubaritem{border-right:solid 1px #ccc;}.yui-skin-sam
 .yuimenubaritemlabel{padding:0 10px;color:#000;text-decoration:none;cursor:default;border-style:solid;
 border-color:#808080;border-width:1px 0;*position:relative;margin:-1px 0;}.yui-skin-sam .yuimenubarnav
 .yuimenubaritemlabel{padding-right:20px;*display:inline-block;}.yui-skin-sam .yuimenubarnav
-.yuimenubaritemlabel-hassubmenu{background:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menubaritem_submenuindicator.png)
-right center no-repeat;}.yui-skin-sam .yuimenubaritem-selected{background:url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png)
+.yuimenubaritemlabel-hassubmenu{background:url(<?php echo $CFG->wwwroot.
+'/lib/yui/menu/assets/skins/sam/' ?>menubaritem_submenuindicator.png)
+right center no-repeat;}.yui-skin-sam .yuimenubaritem-selected{background:url(<?php echo $CFG->wwwroot.
+'/lib/yui/menu' ?>/assets/skins/sam/sprite.png)
 repeat-x 0 -1700px;}.yui-skin-sam .yuimenubaritemlabel-selected{border-color:#7D98B8;}.yui-skin-sam
 .yuimenubarnav .yuimenubaritemlabel-selected{border-left-width:1px;margin-left:-1px;*left:-1px;}.yui-skin-sam
 .yuimenubaritemlabel-disabled{cursor:default;color:#A6A6A6;}.yui-skin-sam .yuimenubarnav
-.yuimenubaritemlabel-hassubmenu-disabled{background-image:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menubaritem_submenuindicator_disabled.png);}
+.yuimenubaritemlabel-hassubmenu-disabled{background-image:url(<?php echo $CFG->wwwroot.
+'/lib/yui/menu/assets/skins/sam/' ?>menubaritem_submenuindicator_disabled.png);}
 .yui-skin-sam .yuimenu{font-size:93%;line-height:1.5;*line-height:1.45;}.yui-skin-sam .yuimenubar
 .yuimenu,.yui-skin-sam .yuimenu .yuimenu{font-size:100%;}.yui-skin-sam .yuimenu .bd{*zoom:1;_zoom:normal;
 border:solid 1px #808080;background-color:#fff;}.yui-skin-sam .yuimenu .yuimenu .bd{*zoom:normal;}
@@ -595,24 +601,26 @@ border-style:solid;border-color:#ccc;border-width:1px 0 0 0;color:#a4a4a4;paddin
 .yui-skin-sam .yuimenu ul.hastitle,.yui-skin-sam .yuimenu h6.first-of-type{border-width:0;}.yui-skin-sam
 .yuimenu .yui-menu-body-scrolled{border-color:#ccc #808080;overflow:hidden;}.yui-skin-sam .yuimenu
 .topscrollbar,.yui-skin-sam .yuimenu .bottomscrollbar{height:16px;border:solid 1px #808080;
-background:#fff url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png)
+background:#fff url(<?php echo $CFG->wwwroot.'/lib/yui/menu' ?>/assets/skins/sam/sprite.png)
 no-repeat 0 0;}.yui-skin-sam .yuimenu .topscrollbar{border-bottom-width:0;background-position:center -950px;}
 .yui-skin-sam .yuimenu .topscrollbar_disabled{background-position:center -975px;}.yui-skin-sam .yuimenu
 .bottomscrollbar{border-top-width:0;background-position:center -850px;}.yui-skin-sam .yuimenu
 .bottomscrollbar_disabled{background-position:center -875px;}.yui-skin-sam .yuimenuitem{_border-bottom:solid 1px #fff;}
 .yui-skin-sam .yuimenuitemlabel{padding:0 20px;color:#000;text-decoration:none;cursor:default;}.yui-skin-sam
 .yuimenuitemlabel .helptext{margin-top:-1.5em;*margin-top:-1.45em;}.yui-skin-sam
-.yuimenuitem-hassubmenu{background-image:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_submenuindicator.png);
+.yuimenuitem-hassubmenu{background-image:url(<?php echo $CFG->wwwroot
+.'/lib/yui/menu/assets/skins/sam/' ?>menuitem_submenuindicator.png);
 background-position:right center;background-repeat:no-repeat;}.yui-skin-sam
-.yuimenuitem-checked{background-image:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_checkbox.png);
+.yuimenuitem-checked{background-image:url(<?php echo $CFG->wwwroot
+.'/lib/yui/menu/assets/skins/sam/' ?>menuitem_checkbox.png);
 background-position:left center;background-repeat:no-repeat;}.yui-skin-sam
 .yui-menu-shadow-visible{background-color:#000;opacity:.12;*filter:alpha(opacity=12);}.yui-skin-sam
 .yuimenuitem-selected{background-color:#B3D4FF;}.yui-skin-sam .yuimenuitemlabel-disabled{cursor:default;
 color:#A6A6A6;}.yui-skin-sam .yuimenuitem-hassubmenu-disabled{
-background-image:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_submenuindicator_disabled.png);}
-.yui-skin-sam .yuimenuitem-checked-disabled{background-image:url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_checkbox_disabled.png);}
-
-
+background-image:url(<?php echo $CFG->wwwroot
+.'/lib/yui/menu/assets/skins/sam/' ?>menuitem_submenuindicator_disabled.png);}
+.yui-skin-sam .yuimenuitem-checked-disabled{background-image:url(<?php echo $CFG->wwwroot
+.'/lib/yui/menu/assets/skins/sam/' ?>menuitem_checkbox_disabled.png);}
 
 
 /* menu SAM skin menu-skin.css file included so image paths can be fixed. */
@@ -631,7 +639,7 @@ version: 2.6.0
     line-height: 2;  /* ~24px */
     *line-height: 1.9; /* For IE */
     border: solid 1px #808080;
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png) repeat-x 0 0;
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/menu' ?>/assets/skins/sam/sprite.png) repeat-x 0 0;
 
 }
 
@@ -674,12 +682,10 @@ version: 2.6.0
 
 .yui-skin-sam .yuimenubarnav .yuimenubaritemlabel-hassubmenu {
 
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menubaritem_submenuindicator.png)
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/menu/assets/skins/sam/' ?>menubaritem_submenuindicator.png)
     right center no-repeat;
 
 }
-
-
 
 /* MenuBarItem states */
 
@@ -687,7 +693,7 @@ version: 2.6.0
 
 .yui-skin-sam .yuimenubaritem-selected {
 
-    background: url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png) repeat-x 0 -1700px;
+    background: url(<?php echo $CFG->wwwroot.'/lib/yui/menu' ?>/assets/skins/sam/sprite.png) repeat-x 0 -1700px;
 
 }
 
@@ -717,7 +723,8 @@ version: 2.6.0
 
 .yui-skin-sam .yuimenubarnav .yuimenubaritemlabel-hassubmenu-disabled {
 
-    background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menubaritem_submenuindicator_disabled.png);
+    background-image: url(<?php echo $CFG->wwwroot
+    .'/lib/yui/menu/assets/skins/sam/' ?>menubaritem_submenuindicator_disabled.png);
 
 }
 
@@ -811,7 +818,7 @@ version: 2.6.0
 
     height: 16px;
     border: solid 1px #808080;
-    background: #fff url(<?php echo $CFG->wwwroot."/lib/yui/menu" ?>/assets/skins/sam/sprite.png)
+    background: #fff url(<?php echo $CFG->wwwroot.'/lib/yui/menu' ?>/assets/skins/sam/sprite.png)
     no-repeat 0 0;
 
 }
@@ -876,7 +883,7 @@ version: 2.6.0
 
 .yui-skin-sam .yuimenuitem-hassubmenu {
 
-    background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_submenuindicator.png);
+    background-image: url(<?php echo $CFG->wwwroot.'/lib/yui/menu/assets/skins/sam/' ?>menuitem_submenuindicator.png);
     background-position: right center;
     background-repeat: no-repeat;
 
@@ -884,7 +891,7 @@ version: 2.6.0
 
 .yui-skin-sam .yuimenuitem-checked {
 
-    background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_checkbox.png);
+    background-image: url(<?php echo $CFG->wwwroot.'/lib/yui/menu/assets/skins/sam/' ?>menuitem_checkbox.png);
     background-position: left center;
     background-repeat: no-repeat;
 
@@ -935,13 +942,15 @@ version: 2.6.0
 
 .yui-skin-sam .yuimenuitem-hassubmenu-disabled {
 
-    background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_submenuindicator_disabled.png);
+    background-image: url(<?php echo $CFG->wwwroot
+    .'/lib/yui/menu/assets/skins/sam/' ?>menuitem_submenuindicator_disabled.png);
 
 }
 
 .yui-skin-sam .yuimenuitem-checked-disabled {
 
-    background-image: url(<?php echo $CFG->wwwroot."/lib/yui/menu/assets/skins/sam/" ?>menuitem_checkbox_disabled.png);
+    background-image: url(<?php echo $CFG->wwwroot
+    .'/lib/yui/menu/assets/skins/sam/' ?>menuitem_checkbox_disabled.png);
 
 }
 
@@ -972,9 +981,12 @@ span.AMB_count {
 }
 
 <?php //include($CFG->dirroot.'/lib/yui/fonts/fonts-min.css'); ?>
-/* The following rule didn't work when it was just appended after an otherwise normal include of the button.css file. No idea why.
-   Probably best to strip out the unecessary bits later */
-.yui-skin-sam .yui-button{border-width:1px 0;border-style:solid;border-color:#808080;background:url(<?php echo $CFG->wwwroot.'/lib/yui/assets/skins/sam/'; ?>sprite.png) repeat-x 0 0;margin:auto .25em;}
+/*
+The following rule didn't work when it was just appended after an otherwise normal include of the
+button.css file. No idea why. Probably best to strip out the unecessary bits later
+*/
+.yui-skin-sam .yui-button{border-width:1px 0;border-style:solid;border-color:#808080;
+background:url(<?php echo $CFG->wwwroot.'/lib/yui/assets/skins/sam/'; ?>sprite.png) repeat-x 0 0;margin:auto .25em;}
 
 .yui-button{display:-moz-inline-box;display:inline-block;vertical-align:text-bottom;}.yui-button
 .first-child{display:block;*display:inline-block;}.yui-button button,.yui-button a{display:block;
@@ -1012,5 +1024,3 @@ background-position:right center;background-repeat:no-repeat;}.yui-skin-sam
 .yui-skin-sam .yui-button-disabled a{color:#A6A6A6;cursor:default;}.yui-skin-sam
 .yui-menu-button-disabled button{background-image:url(menu-button-arrow-disabled.png);}
 .yui-skin-sam .yui-split-button-disabled button{background-image:url(split-button-arrow-disabled.png);}
-
-

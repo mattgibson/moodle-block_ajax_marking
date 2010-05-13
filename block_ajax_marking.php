@@ -16,7 +16,9 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   block-ajax_marking
+ * Main block file
+ *
+ * @package   blocks-ajax_marking
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -25,39 +27,55 @@
  * This class builds a marking block on the front page which loads assignments and submissions
  * dynamically into a tree structure using AJAX. All marking occurs in pop-up windows and each node
  * removes itself from the tree after its pop up is graded.
+ *
+ * @copyright 2008-2010 Matt Gibson
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-
 class block_ajax_marking extends block_base {
 
+    /**
+     * Standard init function, sets block title and version number
+     *
+     * @return void
+     */
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
         $this->version = 2010050601;
     }
 
+    /**
+     * Standard specialization function
+     *
+     * @return void
+     */
     function specialization() {
             $this->title = get_string('marking', 'block_ajax_marking');
     }
 
+    /**
+     * Standard get content function returns $this->content containing the block HTML etc
+     *
+     * @return object
+     */
     function get_content() {
 
-        if ($this->content !== NULL) {
+        if ($this->content !== null) {
             return $this->content;
         }
 
-       global $CFG, $USER, $DB;
+        global $CFG, $USER, $DB;
 
+        // admins will have a problem as they will see all the courses on the entire site
+        // retrieve the teacher role id (3)
+        $teacher_role     =  $DB->get_field('role', 'id', array('shortname' => 'editingteacher'));
+        // retrieve the non-editing teacher role id (4)
+        $ne_teacher_role  =  $DB->get_field('role', 'id', array('shortname' => 'teacher'));
 
-       // admins will have a problem as they will see all the courses on the entire site
-       // retrieve the teacher role id (3)
-       $teacher_role     =  $DB->get_field('role','id', array('shortname' => 'editingteacher'));
-       // retrieve the non-editing teacher role id (4)
-       $ne_teacher_role  =  $DB->get_field('role','id', array('shortname' => 'teacher'));
+        // check to see if any roles allow grading of assessments
+        $coursecheck = 0;
+        $courses = get_my_courses($USER->id, 'fullname', 'id, visible');
 
-       // check to see if any roles allow grading of assessments
-       $coursecheck = 0;
-       $courses = get_my_courses($USER->id, 'fullname', 'id, visible');
-
-       foreach ($courses as $course) {
+        foreach ($courses as $course) {
 
             // exclude the front page
             if ($course->id == 1) {
@@ -67,33 +85,40 @@ class block_ajax_marking extends block_base {
             // role check bit borrowed from block_narking, thanks to Mark J Tyers [ZANNET]
             $context = get_context_instance(CONTEXT_COURSE, $course->id);
 
-                // check for editing teachers
-                $teachers = get_role_users($teacher_role, $context, true);
-                $correct_role = false;
-                if ($teachers) {
-                    foreach($teachers as $teacher) {
-                        if ($teacher->id == $USER->id) {
-                                $correct_role = true;
-                        }
-                    }
-                }
-                // check for non-editing teachers
-                $teachers_ne = get_role_users($ne_teacher_role, $context, true);
-                if ($teachers_ne) {
-                    foreach($teachers_ne as $teacher) {
-                        if ($teacher->id == $USER->id) {
-                            $correct_role = true;
-                        }
-                    }
-                }
-                // skip this course if no teacher or teacher_non_editing role
-                if (!$correct_role) {
-                    continue;
-                }
+            // check for editing teachers
+            $teachers = get_role_users($teacher_role, $context, true);
+            $correct_role = false;
 
-                $coursecheck++;
+            if ($teachers) {
+
+                foreach ($teachers as $teacher) {
+
+                    if ($teacher->id == $USER->id) {
+                            $correct_role = true;
+                    }
+                }
+            }
+            // check for non-editing teachers
+            $teachers_ne = get_role_users($ne_teacher_role, $context, true);
+
+            if ($teachers_ne) {
+
+                foreach ($teachers_ne as $teacher) {
+
+                    if ($teacher->id == $USER->id) {
+                        $correct_role = true;
+                    }
+                }
+            }
+            // skip this course if no teacher or teacher_non_editing role
+            if (!$correct_role) {
+                continue;
+            }
+
+            $coursecheck++;
 
         }
+
         if ($coursecheck>0) {
             // Grading permissions exist in at least one course, so display the block
 
@@ -103,14 +128,14 @@ class block_ajax_marking extends block_base {
             // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if
             // necessary
             include('html_list.php');
-            $AMB_html_list_object = new AMB_html_list;
+            $amb_html_list_object = new AMB_html_list;
             $this->content->text .= '<div id="AMB_html_list">';
-            $this->content->text .= $AMB_html_list_object->make_html_list();
+            $this->content->text .= $amb_html_list_object->make_html_list();
             $this->content->text .= '</div>';
             $this->content->footer = '';
 
             // Build the AJAX stuff on top of the plain HTML list
-            if($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
+            if ($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
 
                 // Add a style to hide the HTML list and prevent flicker
                 $s  = '<script type="text/javascript" defer="defer">';
@@ -161,8 +186,8 @@ class block_ajax_marking extends block_base {
 
                 // Don't warn about javascript if the sreenreader option is set - it was deliberate
                 if (!$USER->screenreader) {
-                    $this->content->text .= "<noscript><p>AJAX marking block requires javascript, ";
-                    $this->content->text .= "but you have it turned off.</p></noscript>";
+                    $this->content->text .= '<noscript><p>AJAX marking block requires javascript, ';
+                    $this->content->text .= 'but you have it turned off.</p></noscript>';
                 }
 
                 // Add a script that makes all of the PHP variables available to javascript
@@ -171,10 +196,12 @@ class block_ajax_marking extends block_base {
 
                 // loop through the PHP $variables above, making them into the right format
                 $check = 0;
+
                 foreach ($variables as $variable => $value) {
+
                     if ($check > 0) {
                         // no initial comma, but one before all the others
-                        $this->content->text .= ", ";
+                        $this->content->text .= ', ';
                     }
                     $this->content->text .= $variable.": '".$value."'";
                     $check ++;
@@ -205,7 +232,7 @@ class block_ajax_marking extends block_base {
                     );
 
                 // also need to add any js from individual modules
-                foreach ($AMB_html_list_object->modulesettings as $modname => $module) {
+                foreach ($amb_html_list_object->modulesettings as $modname => $module) {
                     // echo "{$CFG->dirroot}{$module->dir}/{$modname}_grading.php ";
 
                     $file_in_mod_directory  = file_exists("{$CFG->dirroot}{$module->dir}/{$modname}_grading.js");
@@ -214,19 +241,21 @@ class block_ajax_marking extends block_base {
 
                     if ($file_in_mod_directory) {
                         $scripts[] = "{$CFG->wwwroot}{$module->dir}/{$modname}_grading.js";
-                    } elseif ($file_in_block_directory) {
+
+                    } else if ($file_in_block_directory) {
                         $scripts[] = "{$CFG->dirroot}/blocks/ajax_marking/{$modname}_grading.js";
                     }
 
                 }
 
 
-                $this->content->text .= require_js($scripts)."";
+                $this->content->text .= require_js($scripts);
                 // Add the script that will initialise the main AJAX tree widget
                 //$this->content->text .= '<script type="text/javascript" defer="defer" '
-                 //   .'src="'.$CFG->wwwroot.'/blocks/ajax_marking/javascript.js"></script>';
+                //   .'src="'.$CFG->wwwroot.'/blocks/ajax_marking/javascript.js"></script>';
 
-                $this->content->text .= '<script type="text/javascript" defer="defer" >YAHOO.ajax_marking_block.initialise();</script>';
+                $this->content->text .= '<script type="text/javascript" defer="defer" >'
+                                       .'YAHOO.ajax_marking_block.initialise();</script>';
 
                 // Add footer, which will have button added dynamically (not needed if javascript is
                 // enabled)
@@ -246,19 +275,27 @@ class block_ajax_marking extends block_base {
         return $this->content;
     }
 
+    /**
+     * Standard function - does the block allow configuration for specific instances of itself
+     * rather than sitewide?
+     *
+     * @return bool false
+     */
     function instance_allow_config() {
         return false;
     }
 
     /**
      * Runs the check for plugins after the first install.
+     *
+     * @return void
      */
     function after_install() {
 
         global $CFG;
 
-        require_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
-        AMB_update_modules();
+        include_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
+        amb_update_modules();
 
     }
 }
