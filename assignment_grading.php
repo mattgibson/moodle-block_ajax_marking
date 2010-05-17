@@ -85,7 +85,7 @@ class assignment_functions extends module_base {
 
         global $CFG, $DB;
         list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
-        $sql = "SELECT s.id as subid, s.userid, a.course, a.name, a.description, a.id, c.id as cmid
+        $sql = "SELECT s.id as subid, s.userid, a.course, a.name, a.intro as description, a.id, c.id as cmid
                   FROM {assignment} a
             INNER JOIN {course_modules} c
                     ON a.id = c.instance
@@ -118,7 +118,7 @@ class assignment_functions extends module_base {
         list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
 
         $sql = "SELECT s.id as subid, s.userid, a.id, a.name,
-                       a.course, a.description, c.id as cmid
+                       a.course, a.intro as description, c.id as cmid
                   FROM {assignment} a
             INNER JOIN {course_modules} c
                     ON a.id = c.instance
@@ -260,7 +260,7 @@ class assignment_functions extends module_base {
         global $CFG, $DB;
         list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
 
-        $sql = "SELECT a.id, a.name, a.description as summary, a.course, c.id as cmid
+        $sql = "SELECT a.id, a.name, a.intro as summary, a.course, c.id as cmid
                   FROM {assignment} a
             INNER JOIN {course_modules} c
                     ON a.id = c.instance

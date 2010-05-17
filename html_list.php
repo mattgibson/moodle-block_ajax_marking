@@ -77,6 +77,7 @@ class AMB_html_list extends ajax_marking_functions {
             $course_output = '';
             $course_count = 0;
             $courseid = $course->id;
+            $first = true;
 
             if (!$course->visible) {
                 continue;
@@ -113,19 +114,28 @@ class AMB_html_list extends ajax_marking_functions {
 
             if ($course_count > 0) {
 
+//                if ($first) {
+//                    $this->html_list .= '<li>';
+//                    $first = false;
+//                }
+
                 $this->html_list .= '<ul class="AMB_html">'
                                         .'<li class="AMB_html_course">'
                                             .$this->add_icon('course')
                                             .'<strong>('.$course_count.')</strong> '
                                             .$course->shortname
                                         .'</li>'
-                                        .'<ul class="AMB_html_items">'
+                                        .'<li><ul class="AMB_html_items">'
                                             .$course_output
-                                        .'</ul>'
+                                        .'</ul></li>'
                                     .'</ul>';
             }
 
         }
+
+//        if (!$first) {
+//            $this->html_list .= '</li>';
+//        }
 
         if ($this->html_list) {
             return $this->html_list;

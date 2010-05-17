@@ -29,8 +29,9 @@
  */
 
 require_once('../../config.php');
-require_login(1, false);
+require_login(0, false);
 require_once('lib.php');
+require_once('output.class.php');
 
 /**
  * Wrapper for the main functions library class which adds the parts that deal with the AJAX
@@ -57,6 +58,7 @@ class ajax_marking_response extends ajax_marking_functions {
     public $showhide;
     public $group;
     public $courseid;
+    private $outputobject;
 
     /**
      * This function takes the POST data, makes variables out of it, then chooses the correct
@@ -85,6 +87,8 @@ class ajax_marking_response extends ajax_marking_functions {
 
 
         $this->initial_setup();
+
+        $this->outputobject = new block_ajax_marking_output();
 
         // The type here refers to what was clicked, or sets up the tree in the case of 'main' and
         // 'config_main_tree'. Type is also returned, where it refers to the node(s) that will be created,
@@ -120,6 +124,7 @@ class ajax_marking_response extends ajax_marking_functions {
                     // we must make sure we only get work from enrolled students
                     $courseid = $course->id;
                     $this->get_course_students($courseid);
+
                     // If there are no students, there's no point counting
                     if (!isset($this->students->ids->$courseid)) {
                         continue;
@@ -131,6 +136,7 @@ class ajax_marking_response extends ajax_marking_functions {
                              WHERE visible = 1';
 
                     $enabledmods = $DB->get_records_sql($sql);
+
                     $enabledmods = array_keys($enabledmods);
 
                     // loop through each module, getting a count for this course id from each one.

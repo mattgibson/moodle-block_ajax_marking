@@ -61,8 +61,8 @@ class forum_functions extends module_base {
                                                       'param900000', false);
         $sql = "SELECT p.id as postid, p.userid, d.id, f.id, f.name, f.course, c.id as cmid
                   FROM {forum_posts} p
-             LEFT JOIN {forum_ratings} r
-                    ON p.id = r.post
+             LEFT JOIN {rating} r
+                    ON p.id = r.itemid
             INNER JOIN {forum_discussions} d
                     ON p.discussion = d.id
             INNER JOIN {forum} f
@@ -71,7 +71,7 @@ class forum_functions extends module_base {
                     ON f.id = c.instance
                  WHERE p.userid <> :userid
                    AND f.course $usql
-                   AND (((r.userid <> :userid) AND (r.userid $usql2))
+                   AND (((r.userid <> :userid2) AND (r.userid $usql2))
                     OR r.userid IS NULL)
                    AND c.module = :moduleid
                    AND c.visible = 1
@@ -80,6 +80,8 @@ class forum_functions extends module_base {
               ORDER BY f.id";
         $params = array_merge($params, $params2);
         $params['userid'] = $USER->id;
+
+        $params['userid2'] = $USER->id;
         $params['moduleid'] = $this->mainobject->modulesettings['forum']->id;
         $this->all_submissions = $DB->get_records_sql($sql, $params);
         return true;
@@ -111,11 +113,11 @@ class forum_functions extends module_base {
                     ON d.forum = f.id
             INNER JOIN {forum_posts} p
                     ON p.discussion = d.id
-             LEFT JOIN {forum_ratings} r
-                    ON p.id = r.post
+             LEFT JOIN {rating} r
+                    ON p.id = r.itemid
                  WHERE p.userid <> :userid
                    AND p.userid $usql
-                   AND (((r.userid <> :userid) AND (r.userid $usql2))
+                   AND (((r.userid <> :userid2) AND (r.userid $usql2))
                        OR r.userid IS NULL)
                    AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
                    AND c.module = :moduleid
@@ -125,8 +127,10 @@ class forum_functions extends module_base {
               ORDER BY f.id";
         $params = array_merge($params, $params2);
         $params['userid'] = $USER->id;
+        $params['userid2'] = $USER->id;
         $params['moduleid'] = $this->mainobject->modulesettings['forum']->id;
         $params['courseid'] = $courseid;
+
         $unmarked = $DB->get_records_sql($sql, $params);
         return $unmarked;
     }
@@ -168,11 +172,11 @@ class forum_functions extends module_base {
 
         $sql .= "INNER JOIN {forum_posts} p
                          ON p.discussion = d.id
-                  LEFT JOIN {forum_ratings} r
-                         ON  p.id = r.post
+                  LEFT JOIN {rating} r
+                         ON  p.id = r.itemid
                       WHERE d.forum = :forumid
                         AND p.userid <> :userid
-                        AND p.userid )$usql
+                        AND p.userid $usql
                         AND (((r.userid <> :userid)
                         AND (r.userid $usql2))
                          OR r.userid IS NULL) ";

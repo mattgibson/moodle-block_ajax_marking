@@ -22,6 +22,8 @@
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+    // include the upgrade file so we have access to amb_update_modules() in case of no settings
+    include_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
 
 /**
  * All of the main functions for the AJAX marking block are contained within this class. Its is
@@ -52,6 +54,7 @@ class ajax_marking_functions {
     public $teachers = '';
 
 
+
     /**
      * Setup of inital variables, run every time.
      *
@@ -80,6 +83,10 @@ class ajax_marking_functions {
         // block directory
         $this->modulesettings = unserialize(get_config('block_ajax_marking', 'modules'));
 
+        if (empty($this->modulesettings)) {
+            amb_update_modules();
+            $this->modulesettings = unserialize(get_config('block_ajax_marking', 'modules'));
+        }
         // instantiate function classes for each of the available modules and store them
         foreach ($this->modulesettings as $modname => $module) {
             // echo "{$CFG->dirroot}{$module->dir}/{$modname}_grading.php ";
@@ -93,7 +100,7 @@ class ajax_marking_functions {
 
         // Not used yet
         $this->students = new stdClass;
-        $this->students->details = new stdClass;
+        $this->students->details = array();
         $this->students->ids = new stdClass;
 
         // call expensive queries only when needed. The
@@ -202,8 +209,10 @@ class ajax_marking_functions {
      */
     function get_course_students($courseid) {
 
+        global $DB;
+
         if (!isset($this->students->ids->$courseid)) {
-            $course_context = $this->courses[$courseid]->context;
+            $course_context = get_context_instance(CONTEXT_COURSE, $courseid);
 
             // get the roles that are specified as graded in site config settings
             $student_roles = $DB->get_field('config', 'value', array('name' => 'gradebookroles'));
@@ -216,11 +225,13 @@ class ajax_marking_functions {
             if (count($coursestudents) > 0) {
 
                 // save the list so it can be reused
-                $this->students->ids->$courseid   = $array_keys($coursestudents);
+                $this->students->ids->$courseid   = array_keys($coursestudents);
                 // keep all student details so they can be used for making nodes.
-
-                $this->students->details = array_merge($this->students->details, $coursestudents);
-
+                if (!empty($this->students->details)) {
+                    $this->students->details = array_merge($this->students->details, $coursestudents);
+                } else {
+                    $this->students->details = $coursestudents;
+                }
             }
         }
     }
@@ -247,7 +258,8 @@ class ajax_marking_functions {
             // $teachers[$coure->id] = array();
 
             // get teachers in this course with this role
-            $course_teachers = get_role_users($teacher_roles, $course->context);
+            $context = get_context_instance(CONTEXT_COURSE, $course->id);
+            $course_teachers = get_role_users($teacher_roles, $context);
 
             if ($course_teachers) {
 
@@ -263,7 +275,7 @@ class ajax_marking_functions {
 
         if (count($teachers, 1) > 0) { // some teachers were returned
 
-             $this->teachers = $teacher_array;
+             $this->teachers = $teachers;
         } else {
              $this->teachers = false;
         }
@@ -956,7 +968,7 @@ class ajax_marking_functions {
      */
     function make_courseids_list() {
 
-        global $USER;
+        global $USER, $DB;
 
         if ($this->courses) {
 
@@ -980,7 +992,8 @@ class ajax_marking_functions {
                 $teachers_ne = 0;
 
                 // check for editing teachers
-                $teachers = get_role_users($teacher_role, $course->context, true);
+                $context = get_context_instance(CONTEXT_COURSE, $course->id);
+                $teachers = get_role_users($teacher_role, $context, true);
 
                 if ($teachers) {
 
@@ -1130,46 +1143,43 @@ class ajax_marking_functions {
      */
     function add_icon($type) {
 
-        global $CFG, $THEME;
+        global $CFG, $OUTPUT;
 
-        $result = "<img class='amb-icon' src='".$CFG->wwwroot.'/';
+        $result = "<img class='amb-icon' src='";
 
         // If custompix is not enabled, assume that the theme does not have any icons worth using
         // and use the main pix folder
-        if ($THEME->custompix) {
-            $result .= 'theme/'.current_theme().'/';
-        }
+//        if ($THEME->custompix) {
+//            $result .= 'theme/'.current_theme().'/';
+//        }
 
         // TODO - make question into a function held within the quiz file
         switch ($type) {
 
             case 'course':
-                $result .= "pix/i/course.gif' alt='course icon'";
+                $result .= $OUTPUT->pix_url('i/course')."' alt='course icon'";
                 break;
 
             // TODO - how to deal with 4 level modules dynamically?
             case 'question':
-                $result .= "pix/i/questions.gif'";
+                $result .= $OUTPUT->pix_url('i/questions')."'";
                 break;
 
             case 'journal':
-                $result .= "mod/journal/icon.gif'";
+                $result .= $OUTPUT->pix_url('icon', 'journal')."'";
                 break;
 
             case 'group':
-                $result .= "pix/i/users.gif'";
+                $result .= $OUTPUT->pix_url('i/users')."'";
                 break;
 
             case 'user':
-                $result .= "pix/i/user.gif' alt='user icon'";
+                $result .= $OUTPUT->pix_url('i/user')."' alt='user icon'";
                 break;
 
             default:
-                // any module will have an icon defined.
-                if ($THEME->custompix) {
-                    $result .= 'pix/';
-                }
-                $result .= $this->$type->icon."' alt='".$type." icon'";
+
+                $result .= $OUTPUT->pix_url('icon', $type)."' alt='".$type." icon'";
         }
         $result .= ' />';
         return $result;
@@ -1264,7 +1274,7 @@ class module_base {
                 continue;
             } else {
                 // is the submission from a current user of this course
-                if (!in_array($submission->userid, $this->mainobject->student_array->$course)) {
+                if (!in_array($submission->userid, $this->mainobject->students->ids->$course)) {
                     continue;
                 }
             }

@@ -21,6 +21,11 @@
 
 YAHOO.namespace('ajax_marking_block');
 
+// used to deterine whether to log everything to console
+const debugdeveloper = 38911;
+const debugall       = 6143;
+
+
 /**
  * Make a base class that can be used for the main and config trees. This extends the
  * YUI treeview class ready to add some new functions to it which are common to both the
@@ -29,14 +34,15 @@ YAHOO.namespace('ajax_marking_block');
 YAHOO.ajax_marking_block.tree_base = function(tree_div) {
 
     YAHOO.ajax_marking_block.tree_base.superclass.constructor.call(this, tree_div);
-
 };
 
-// make the class into a subclass of the YUI treeview widget
+// make the base class into a subclass of the YUI treeview widget
 YAHOO.lang.extend(YAHOO.ajax_marking_block.tree_base, YAHOO.widget.TreeView);
 
 /**
  * function to build the assessment nodes once the AJAX request has returned a data object
+ * 
+ * @param array nodes_array the nodes to be rendered
  */
 YAHOO.ajax_marking_block.tree_base.prototype.build_assessment_nodes = function(nodes_array) {
 
@@ -76,10 +82,10 @@ YAHOO.ajax_marking_block.tree_base.prototype.request_node_data = function(clicke
     YAHOO.ajax_marking_block.node_holder = clicked_node;
 
     YAHOO.ajax_marking_block.on_complete_function_holder = onCompleteCallback;
-    var request_url = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
+    var request_url = YAHOO.ajax_marking_block.variables.wwwroot+'/blocks/ajax_marking/ajax.php';
 
     // request data using AJAX
-    var postData = 'id='+clicked_node.data.id+'&type='+clicked_node.data.type+'&userid='+amVariables.userid;
+    var postData = 'id='+clicked_node.data.id+'&type='+clicked_node.data.type+'&userid='+YAHOO.ajax_marking_block.variables.userid;
 
     if (typeof clicked_node.data.group  != 'undefined') {
         //add group id if its there
@@ -161,9 +167,9 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
     if (nodes_length === 0) {
 
         if (this.config) {
-            label = document.createTextNode(amVariables.configNothingString);
+            label = document.createTextNode(YAHOO.ajax_marking_block.variables.configNothingString);
         } else {
-            label = document.createTextNode(amVariables.nothingString);
+            label = document.createTextNode(YAHOO.ajax_marking_block.variables.nothingString);
         }
         message_div = document.createElement('div');
         message_div.appendChild(label);
@@ -206,7 +212,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
         if (!this.config) {
 
             // Alter total count above tree
-            label = document.createTextNode(amVariables.totalMessage);
+            label = document.createTextNode(YAHOO.ajax_marking_block.variables.totalMessage);
             var total = document.getElementById('totalmessage');
             YAHOO.ajax_marking_block.remove_all_child_nodes(total);
             total.appendChild(label);
@@ -238,7 +244,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
 
                     // putting window.open into the switch statement causes it to fail in IE6.
                     // No idea why.
-                    // var pop_up_opening_url = amVariables.wwwroot;
+                    // var pop_up_opening_url = YAHOO.ajax_marking_block.variables.wwwroot;
                     // var pop_up_arguments = 'menubar=0,location=0,scrollbars,resizable,width=780,height=500';
                     var timer_function = '';
                     // var pop_up_closing_url = '';
@@ -257,7 +263,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
                     var module_javascript = eval('YAHOO.ajax_marking_block.'+type_array[0]);
 
                     // Open a pop up with the url and arguments as specified in the module specific object
-                    YAHOO.ajax_marking_block.pop_up_holder = window.open(amVariables.wwwroot+module_javascript.pop_up_opening_url(node), '_blank', module_javascript.pop_up_arguments(node));
+                    YAHOO.ajax_marking_block.pop_up_holder = window.open(YAHOO.ajax_marking_block.variables.wwwroot+module_javascript.pop_up_opening_url(node), '_blank', module_javascript.pop_up_arguments(node));
 
                     // This function will add the module specifi javascript to the pop up. It is necessary
                     // in order to make the pop up update the main tree and close itself once
@@ -346,21 +352,21 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
 
                     // For non courses, add a default checkbox that will remove the record
                     if (click_arguments.node.data.type != 'config_course') {
-                        makeBox('default', 'config0', amVariables.confDefault);
+                        makeBox('default', 'config0', YAHOO.ajax_marking_block.variables.confDefault);
                         // make the three main checkboxes, appending them to the form as we go along
-                        makeBox('show',    'config1', amVariables.confAssessmentShow);
-                        makeBox('groups',  'config2', amVariables.confGroups);
-                        makeBox('hide',    'config3', amVariables.confAssessmentHide);
+                        makeBox('show',    'config1', YAHOO.ajax_marking_block.variables.confAssessmentShow);
+                        makeBox('groups',  'config2', YAHOO.ajax_marking_block.variables.confGroups);
+                        makeBox('hide',    'config3', YAHOO.ajax_marking_block.variables.confAssessmentHide);
 
                     } else {
-                        makeBox('show',    'config1', amVariables.confCourseShow);
-                        makeBox('groups',  'config2', amVariables.confGroups);
-                        makeBox('hide',    'config3', amVariables.confCourseHide);
+                        makeBox('show',    'config1', YAHOO.ajax_marking_block.variables.confCourseShow);
+                        makeBox('groups',  'config2', YAHOO.ajax_marking_block.variables.confGroups);
+                        makeBox('hide',    'config3', YAHOO.ajax_marking_block.variables.confCourseHide);
 
                     }
 
                     // now, we need to find out what the current group mode is and display that box as checked.
-                    var AJAXUrl   = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
+                    var AJAXUrl   = YAHOO.ajax_marking_block.variables.wwwroot+'/blocks/ajax_marking/ajax.php';
                     if (click_arguments.node.data.type !== 'config_course') {
                         AJAXdata += 'courseid='       +click_arguments.node.parent.data.id;
                         AJAXdata += '&assessmenttype='+click_arguments.node.data.type;
@@ -500,7 +506,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_submission_nodes = function(n
  */
 YAHOO.ajax_marking_block.tree_base.prototype.build_ajax_tree = function() {
 
-    var sUrl = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
+    var sUrl = YAHOO.ajax_marking_block.variables.wwwroot+'/blocks/ajax_marking/ajax.php';
     var postData = '';
 
    // if (this.loadCounter === 0) {
@@ -677,7 +683,7 @@ YAHOO.ajax_marking_block.ajax_success_handler = function (o) {
                 //just need to un-disable the radio button
 
                 if (responseArray[0].value === false) {
-                    label = document.createTextNode(amVariables.configNothingString);
+                    label = document.createTextNode(YAHOO.ajax_marking_block.variables.configNothingString);
                     YAMB.remove_all_child_nodes(YAMB.config_instance.status);
                     YAMB.config_instance.status.appendChild(label);
                 } else {
@@ -733,10 +739,10 @@ YAHOO.ajax_marking_block.ajax_success_handler = function (o) {
  */
 YAHOO.ajax_marking_block.ajax_failure_handler = function (o) {
     if (o.tId == -1) {
-        YAHOO.ajax_marking_block.main_instance.div.innerHTML =  amVariables.collapseString;
+        YAHOO.ajax_marking_block.main_instance.div.innerHTML =  YAHOO.ajax_marking_block.variables.collapseString;
     }
     if (o.tId === 0) {
-        YAHOO.ajax_marking_block.main_instance.div.innerHTML = amVariables.connectFail;
+        YAHOO.ajax_marking_block.main_instance.div.innerHTML = YAHOO.ajax_marking_block.variables.connectFail;
         YAHOO.ajax_marking_block.main_instance.icon.removeAttribute('class', 'loaderimage');
         YAHOO.ajax_marking_block.main_instance.icon.removeAttribute('className', 'loaderimage');
         if (!document.getElementById('AMBcollapse')) {
@@ -745,66 +751,6 @@ YAHOO.ajax_marking_block.ajax_failure_handler = function (o) {
     }
 };
 
-
-/**
- * Obsolete function to make add_tooltips for the whole tree using YUI container widget.
- * Overkill, so disabled
- */
-YAHOO.ajax_marking_block.add_tooltips = function(tree) {
-
-    var name = navigator.appName;
-    if (name.search('iPhone') == -1) {
-        // this is disabled for IE because, although useful, in IE6 (assuming others too) the
-        // add_tooltips seem to sometimes remain as an invisible div on top of the tree
-        // structure once nodes has expanded, so that some of the child nodes are unclickable.
-        // Firefox is ok with it. This is a pain because a person may not remember the full
-        // details of the assignment that was set and a tooltip is better than leaving the front
-        // page. I will re-enable it once I find a fix
-
-        var i = 0;
-        var j = 0;
-        var k = 0;
-        var m = 0;
-        var n = 0;
-
-        if (tree.config) {
-            return false;
-        }
-        // 1. all courses loop
-        var numberOfCourses = tree.root.children.length;
-        for (var i=0;i<numberOfCourses;i++) {
-            node = tree.root.children[i];
-            YAHOO.ajax_marking_block.make_tooltip(node);
-            var numberOfAssessments = tree.root.children[i].children.length;
-            for (var j=0;j<numberOfAssessments;j++) {
-                // assessment level
-                node = tree.root.children[i].children[j];
-                YAHOO.ajax_marking_block.make_tooltip(node);
-                var numberOfThirdLevelNodes = tree.root.children[i].children[j].children.length;
-                for (var k=0;k<numberOfThirdLevelNodes;k++) {
-                    // users level (or groups)
-                    node = tree.root.children[i].children[j].children[k];
-                    check = node.data.time;
-                    if (typeof(check) !== null) {
-                        YAHOO.ajax_marking_block.make_tooltip(node);
-                    }
-                    var numberOfFourthLevelNodes = node.children.length;
-                    for (var m=0;m<numberOfFourthLevelNodes;m++) {
-                        node = tree.root.children[i].children[j].children[k].children[m];
-                        YAHOO.ajax_marking_block.make_tooltip(node);
-                        var numberOfFifthLevelNodes = node.children.length;
-                        for (var n=0;n<numberOfFifthLevelNodes;n++) {
-                            node = tree.root.children[i].children[j].children[k].children[m].children[n];
-                            YAHOO.ajax_marking_block.make_tooltip(node);
-                        }
-                    }
-                }
-            }
-        }
-        return true;
-    }
-    return false;
-};
 
 /**
  * This function enables the config popup radio buttons again after the AJAX request has
@@ -884,38 +830,7 @@ YAHOO.ajax_marking_block.make_tooltip = function(node) {
                                            zIndex:1110} );
 };
 
-//
-///**
-// * The main constructor function for each of the tree objects
-// */
-//YAHOO.ajax_marking_block.AJAXtree = function(treeDiv, icon, statusDiv, config) {
-//
-//    this.loadCounter = 0;
-//
-//    // YAHOO.widget.TreeView.preload();
-//    this.tree    = new YAHOO.widget.TreeView(treeDiv);
-//
-//    // holds a map of textnodes for the context menu
-//    // http://developer.yahoo.com/yui/examples/menu/treeviewcontextmenu.html
-//    //this.textNodeMap = {};
-//
-//    this.treeDiv = treeDiv;
-//    this.icon    = document.getElementById(icon);
-//    this.div     = document.getElementById(statusDiv);
-//    this.config  = config;
-//
-//    /// set the removal of all child nodes each time a node is collapsed (forces refresh)
-//    // not needed for config tree
-//    if (!config) { // the this keyword gets confused and can't be used for this
-//        this.tree.subscribe('collapseComplete', function(node) {
-//        // TODO - make this not use a hardcoded reference
-//        YAHOO.ajax_marking_block.main.tree.removeChildren(node);
-//        });
-//    }
-//
-//    this.root = this.tree.getRoot();
-//
-//};
+
 
 /**
  * funtion to refresh all the nodes once the update operations have all been carried out by
@@ -932,7 +847,7 @@ YAHOO.ajax_marking_block.refresh_tree_after_changes = function(tree_object, fram
         if(frames) {
             YAHOO.ajax_marking_block.remove_all_child_nodes(tree_object.div);
         }
-        tree_object.div.appendChild(document.createTextNode(amVariables.nothingString));
+        tree_object.div.appendChild(document.createTextNode(YAHOO.ajax_marking_block.variables.nothingString));
     }
 };
 
@@ -972,7 +887,7 @@ YAHOO.ajax_marking_block.make_config_groups_list = function(data, tree) {
     // disable/enable them
     var idCounter = 4;
     if (dataLength === 0) {
-        var emptyLabel = document.createTextNode(amVariables.nogroups);
+        var emptyLabel = document.createTextNode(YAHOO.ajax_marking_block.variables.nogroups);
         groupDiv.appendChild(emptyLabel);
     }
     for (var v=0; v<dataLength; v++) {
@@ -1053,169 +968,13 @@ YAHOO.ajax_marking_block.config_checkbox_onclick = function() {
         groupIds = 'none';
     }
 
-    var reqUrl = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
+    var reqUrl = YAHOO.ajax_marking_block.variables.wwwroot+'/blocks/ajax_marking/ajax.php';
     var postData = 'id='+course+'&assessmenttype='+assessmentType+'&assessmentid='+assessment;
-    postData += '&type=config_group_save&userid='+amVariables.userid+'&showhide=2&groups='+groupIds;
+    postData += '&type=config_group_save&userid='+YAHOO.ajax_marking_block.variables.userid+'&showhide=2&groups='+groupIds;
 
     var request = YAHOO.util.Connect.asyncRequest('POST', reqUrl, ajax_marking_block_callback, postData);
 };
-//
-///**
-// * this function is called every 100 milliseconds once the assignment pop up is called
-// * and tries to add the onclick handlers until it is successful. There are a few extra
-// * checks in the following functions that appear to be redundant but which are
-// * necessary to avoid errors. The part of /mod/assignment/lib.php at line 509 tries to
-// * update the main window with $this->update_main_listing($submission). This fails because
-// * there is no main window with the submissions table as there would have been if the pop
-// * up had been generated from the submissions grading screen. To avoid the errors,
-// *
-// *
-// * NOTE: the offset system for saveandnext depends on the sort state having been stored in the
-// * $SESSION variable when the grading screen was accessed (which may not have happened, as we
-// * are not coming from the submissions.php grading screen or may have been a while ago). The
-// * sort reflects the last sort mode the user asked for when ordering the list of pop-ups, e.g.
-// * by clicking on the firstname column header. I have not yet found a way to alter this variable
-// * using javascript - ideally, the sort would be the same as it is in the list presented in the
-// * marking block. Until a work around is found, the save and next function is be a bit wonky,
-// * sometimes showing next when there is only one submission, so I have hidden it.
-// */
-//YAHOO.ajax_marking_block.alter_assignment_popup = function(me, userid) {
-//
-//    var els  ='';
-//    var els2 = '';
-//    var els3 = '';
-//    YAHOO.ajax_marking_block.t++;
-//
-//    // when the DOM is ready, add the onclick events and hide the other buttons
-//    if (YAHOO.ajax_marking_block.pop_up_holder.document) {
-//        if (YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName) {
-//            els = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName('submit');
-//            // the above line will not return anything until the pop up is fully loaded
-//            if (els.length > 0) {
-//
-//                // To keep the assignment javascript happy, we need to make some divs for it to
-//                // copy the grading data to, just as it would if it was called from the main
-//                // submission grading screen. Line 710-728 of /mod/assignment/lib.php can't be
-//                // dealt with easily, so there will be an error if outcomes are in use, but
-//                // hopefully, that won't be so frequent.
-//
-//                // TODO see if there is a way to grab the outcome ids from the pop up and make
-//                // divs using them that will match the ones that the javascript is looking for
-//                var div = document.createElement('div');
-//                div.setAttribute('id', 'com'+userid);
-//                div.style.display = 'none';
-//
-//                var textArea = document.createElement('textarea');
-//                textArea.setAttribute('id', 'submissioncomment'+userid);
-//                textArea.style.display = 'none';
-//                textArea.setAttribute('rows', "2");
-//                textArea.setAttribute('cols', "20");
-//                div.appendChild(textArea);
-//                window.document.getElementById('javaValues').appendChild(div);
-//
-//                var div2 = document.createElement('div');
-//                div2.setAttribute('id', 'g'+userid);
-//                div2.style.display = 'none';
-//                window.document.getElementById('javaValues').appendChild(div2);
-//
-//                var textArea2 = document.createElement('textarea');
-//                textArea2.setAttribute('id', 'menumenu'+userid);
-//                textArea2.style.display = 'none';
-//                textArea2.setAttribute('rows', "2");
-//                textArea2.setAttribute('cols', "20");
-//                window.document.getElementById('g'+userid).appendChild(textArea2);
-//
-//                var div3 = document.createElement('div');
-//                div3.setAttribute('id', 'ts'+userid);
-//                div3.style.display = 'none';
-//                window.document.getElementById('javaValues').appendChild(div3);
-//
-//                var div4 = document.createElement('div');
-//                div4.setAttribute('id', 'tt'+userid);
-//                div4.style.display = 'none';
-//                window.document.getElementById('javaValues').appendChild(div4);
-//
-//                var div5 = document.createElement('div');
-//                div5.setAttribute('id', 'up'+userid);
-//                div5.style.display = 'none';
-//                window.document.getElementById('javaValues').appendChild(div5);
-//
-//                var div6 = document.createElement('div');
-//                div6.setAttribute('id', 'finalgrade_'+userid);
-//                div6.style.display = 'none';
-//                window.document.getElementById('javaValues').appendChild(div6);
-//
-//                // now add onclick
-//                // TODO - has this change worked?
-//                var functionText = 'return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree(-1, ';
-//                    functionText += me+"', false); ";
-//                els[0]["onclick"] = new Function(functionText);
-//                //els[0]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree(-1, YAHOO.ajax_marking_block.main, '"+me+"', false); "); // IE
-//                els2 = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName('saveandnext');
-//
-//                if (els2.length > 0) {
-//                    els2[0].style.display = "none";
-//                    els3 = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName('next');
-//                    els3[0].style.display = "none";
-//                }
-//                // cancel the timer loop for this function
-//                window.clearInterval(YAHOO.ajax_marking_block.timerVar);
-//
-//            }
-//        }
-//    }
-//};
 
-/**
- * adds onclick stuff to the journal pop up elements once they are ready.
- * me is the id number of the journal we want
- 
-YAHOO.ajax_marking_block.alter_journal_popup = function (me) {
-    // TODO - does this even work?
-
-    var journalClick = function () {
-
-        // get the form submit input, which is always last but one (length varies)
-        els = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
-        var key = els.length -1;
-
-        YAHOO.util.Event.on(
-            els[key],
-            'click',
-            function(){
-                return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree(
-                    '/mod/journal/report.php',
-                    me
-                );
-            }
-        );
-    };
-     // YAHOO.util.Event.addListener(YAHOO.ajax_marking_block.pop_up_holder, 'load', journalClick);
-/*
-      var els ='';
-      // first, add the onclick if possible
-      if (typeof YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input') != 'undefined') { // window is open with some input. could be loading lots though.
-
-          els = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
-
-          if (els.length > 0) {
-
-              //var key = els.length -1;
-
-              if (els[key].value == amVariables.journalSaveString) {
-
-                  // does the last input have the 'send in my ratings' string as label, showing
-                  // that all the rating are loaded?
-                  els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/journal/report.php', YAHOO.ajax_marking_block.main, '"+me+"');");
-                  // cancel loop for this function
-                  window.clearInterval(YAHOO.ajax_marking_block.timerVar);
-
-              }
-          }
-      }
-          
-  };
-*/
 
 
 /**
@@ -1226,7 +985,7 @@ YAHOO.ajax_marking_block.popup_closing_timer = function (urlToClose) {
 
     if (!YAHOO.ajax_marking_block.pop_up_holder.closed) {
 
-        if (YAHOO.ajax_marking_block.pop_up_holder.location.href == amVariables.wwwroot+urlToClose) {
+        if (YAHOO.ajax_marking_block.pop_up_holder.location.href == YAHOO.ajax_marking_block.variables.wwwroot+urlToClose) {
 
             YAHOO.ajax_marking_block.pop_up_holder.close();
             delete  YAHOO.ajax_marking_block.pop_up_holder;
@@ -1288,12 +1047,12 @@ YAHOO.ajax_marking_block.build_config_overlay = function() {
 
         YAMB.initialise_config_panel();
 
-        var headerText = amVariables.headertext+' '+amVariables.fullname;
+        var headerText = YAHOO.ajax_marking_block.variables.headertext+' '+YAHOO.ajax_marking_block.variables.fullname;
         YAMB.greyOut.setHeader(headerText);
 
         var bodyText = "<div id='configIcon' class='AMhidden'></div><div id='configStatus'>";
             bodyText += "</div><div id='configTree'></div><div id='configSettings'>";
-            bodyText += "<div id='configInstructions'>"+amVariables.instructions+"</div>";
+            bodyText += "<div id='configInstructions'>"+YAHOO.ajax_marking_block.variables.instructions+"</div>";
             bodyText += "<div id='configCheckboxes'><form id='configshowform' name='configshowform'>";
             bodyText += "</form></div><div id='configGroups'></div></div>";
 
@@ -1357,10 +1116,10 @@ YAHOO.ajax_marking_block.request_config_checkbox_data = function(checkbox) {
             }
         }
         // make the AJAX request
-        var url       = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
+        var url       = YAHOO.ajax_marking_block.variables.wwwroot+'/blocks/ajax_marking/ajax.php';
         var postData  = 'id='+assessmentValue;
             postData += '&type=config_set';
-            postData += '&userid='+amVariables.userid;
+            postData += '&userid='+YAHOO.ajax_marking_block.variables.userid;
             postData += '&assessmenttype='+assessmentType;
             postData += '&assessmentid='+assessmentValue
             postData += '&showhide='+showHide;
@@ -1405,12 +1164,12 @@ YAHOO.ajax_marking_block.request_config_checkbox_data = function(checkbox) {
                         break;
                 }
             }
-            var url        = amVariables.wwwroot+'/blocks/ajax_marking/ajax.php';
+            var url        = YAHOO.ajax_marking_block.variables.wwwroot+'/blocks/ajax_marking/ajax.php';
             var postData   = 'id='+course;
                 postData  += '&assessmenttype='+assessmentType;
                 postData  += '&assessmentid='+assessment;
                 postData  += '&type=config_groups';
-                postData  += '&userid='+amVariables.userid;
+                postData  += '&userid='+YAHOO.ajax_marking_block.variables.userid;
                 postData  += '&showhide='+showHide;
             var request    = YAHOO.util.Connect.asyncRequest('POST', url, ajax_marking_block_callback, postData);
             break;
@@ -1455,13 +1214,13 @@ YAHOO.ajax_marking_block.make_footer = function () {
 
     // the two links
     var collapseButton = new YAHOO.widget.Button({
-            label:amVariables.refreshString,
+            label:YAHOO.ajax_marking_block.variables.refreshString,
             id:"AMBcollapse",
             onclick: {fn: function() {YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.main_instance)} },
             container:"conf_left" });
 
     var configButton = new YAHOO.widget.Button({
-            label:amVariables.configureString,
+            label:YAHOO.ajax_marking_block.variables.configureString,
             id:"AMBconfig",
             onclick: {fn: function() {YAHOO.ajax_marking_block.build_config_overlay()} },
             container:"conf_right" });
@@ -1485,8 +1244,8 @@ YAHOO.ajax_marking_block.tree_factory = function (type) {
             treeObject                  = new YAHOO.ajax_marking_block.tree_base('treediv');
             treeObject.icon             = document.getElementById('mainIcon');
             treeObject.div              = document.getElementById('status');
-            treeObject.course_post_data = 'id='+amVariables.userid+'&type=main&userid=';
-            treeObject.course_post_data += amVariables.userid;
+            treeObject.course_post_data = 'id='+YAHOO.ajax_marking_block.variables.userid+'&type=main&userid=';
+            treeObject.course_post_data += YAHOO.ajax_marking_block.variables.userid;
             treeObject.config           = false;
 
 
@@ -1502,8 +1261,8 @@ YAHOO.ajax_marking_block.tree_factory = function (type) {
             treeObject                  = new YAHOO.ajax_marking_block.tree_base('configTree');
             treeObject.icon             = document.getElementById('configIcon');
             treeObject.div              = document.getElementById('configStatus');
-            treeObject.course_post_data = 'id='+amVariables.userid+'&type=config_main_tree&userid=';
-            treeObject.course_post_data += amVariables.userid;
+            treeObject.course_post_data = 'id='+YAHOO.ajax_marking_block.variables.userid+'&type=config_main_tree&userid=';
+            treeObject.course_post_data += YAHOO.ajax_marking_block.variables.userid;
             treeObject.config           = true;
             break;
 
@@ -1536,11 +1295,11 @@ var  ajax_marking_block_callback = {
 YAHOO.ajax_marking_block.initialise = function() {
     // workaround for odd https setups. Probably not needed in most cases
     if ( document.location.toString().indexOf( 'https://' ) != -1 ) {
-        amVariables.wwwroot = amVariables.wwwroot.replace('http:', 'https:');
+        YAHOO.ajax_marking_block.variables.wwwroot = YAHOO.ajax_marking_block.variables.wwwroot.replace('http:', 'https:');
     }
     // the context menu needs this for the skin to show up, as do other bits
     document.body.className += ' yui-skin-sam';
-
+    
     YAHOO.ajax_marking_block.main_instance = YAHOO.ajax_marking_block.tree_factory('main');
 
     YAHOO.ajax_marking_block.main_instance.build_ajax_tree();

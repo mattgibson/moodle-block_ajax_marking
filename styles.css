@@ -1,0 +1,267 @@
+/*
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+*/
+/**
+ * Provides all CSS styles for the block
+ *
+ * @package   blocks-ajax_marking
+ * @copyright 2008-2010 Matt Gibson
+ * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+.icon-course, .icon-assignment, .icon-workshop, .icon-forum, .icon-quiz, .icon-quiz_question,
+.icon-journal, .icon-group {
+  padding-left: 0px;
+  padding-bottom: 0px;
+  background-repeat: no-repeat;
+  cursor:pointer;
+  background-color: transparent;
+
+  /* white-space: nowrap; */
+  margin-left: 0px;
+  display: block;
+  float: left;
+}
+.amb-icon {
+  width: 20px;
+  padding-right: 3px;
+  margin-bottom: -5px;
+}
+.icon-course {
+  padding-left: 0px;
+
+}
+
+/* the following 8 styles give different coloured borders to
+   submissions depending on when they were submitted. The
+   colours may not be the best for your theme so change them
+   below if needs be. The timings are in javascript.js at around line
+   340. If you have colour blind users, you may need to take contrast into account
+   and maybe vary the line style - dotted, dashed, solid.
+*/
+
+.icon-user-one, .icon-user-two, .icon-user-three, .icon-user-four, .icon-user-five, .icon-user-six,
+.icon-user-seven, .icon-user-eight {
+  padding-left: 0px;
+  padding-right: 2px;
+  cursor:pointer;
+ /*
+  background-repeat: no-repeat;
+  white-space: nowrap;
+
+  background-color: transparent;
+  */
+  border-style: none;
+  border-width: 2px;
+  overflow: hidden;
+  width: 150px;
+  height: 40px;
+  margin: 0;
+}
+.icon-user-one {
+  background-color: #ccffcc;
+}
+.icon-user-two  {
+  background-color: #ccffcc;
+}
+.icon-user-three  {
+  background-color: #EEE5AA;
+}
+.icon-user-four  {
+  background-color: #EEE5AA;
+}
+.icon-user-five  {
+  background-color: #EECAB3;
+}
+.icon-user-six  {
+  background-color: #EECAB3;
+}
+.icon-user-seven  {
+  background-color: #ffb0bb;
+}
+.icon-user-eight  {
+  background-color: #ffb0bb;
+}
+#loader {
+  position: relative;
+  top: 3px;
+  right: 0px;
+  float: left;
+  z-index: 100;
+  margin: 0px;
+  padding: 0px;
+}
+#hidden-icons {
+  display: none;
+}
+
+#totalmessage, #count {
+  float: left;
+  padding-bottom: 2px;
+  margin-left: 3px;
+}
+.loaderimage {
+  background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
+  width: 15px;
+  height: 15px;
+  display: block;
+}
+#count {
+  font-weight: bold;
+}
+#treediv {
+  clear: both;
+  margin-bottom: 5px;
+  padding-bottom: 0px;
+  float: left;
+  font:10pt tahoma;
+  min-width: 150px;
+}
+#mainIcon {
+  float: left;
+  margin-left: 8px;
+}
+
+
+
+/*
+ styles for the config screen pop up
+ */
+
+#conf_left {
+  float:left;
+  width: 45%;
+  margin-left: 3px;
+}
+#conf_right {
+  float:right;
+  width: 45%;
+  margin-right: 3px;
+  text-align: right;
+}
+#conf-wrapper {
+  float: left;
+  clear: both;
+  background-color: transparent;
+}
+#close {
+  float:right;
+  margin: 0px;
+  padding: 0px;
+}
+#confname {
+  float: left;
+  font-weight: bold;
+  width: 50%;
+  padding-left: 4px;
+  line-height: 15px;
+}
+#dialog {
+  display:none;
+  z-index: 500;
+  background-color: transparent;
+  padding:0px;
+  font:10pt tahoma;
+  border:1px solid gray;
+  width:420px;
+  position:absolute;
+}
+.dialogheader {
+  line-height: 0;
+  height: 25px;
+  border-width: 0;
+  border-bottom-width: 1px;
+  border-style: solid;
+  border-color: #000;
+  width: 100%;
+  margin: 0px;
+}
+#configTree {
+  float: left;
+  width: 220px;
+  height: 480px;
+  max-width: 200px;
+  padding-top: 4px;
+  overflow-y: scroll;
+  font:10pt tahoma;
+  background-color: transparent;
+}
+#configSettings {
+  float:left;
+  width:190px;
+  padding-left: 10px;
+  font:10pt tahoma;
+}
+#configGroups {
+  float:right;
+  width:190px;
+  background-color: transparent;
+}
+#configIcon {
+  position: relative;
+  line-height: 0pt;
+  width: 35px;
+}
+.AMhidden {
+  display: none;
+}
+div.block_ajax_marking div.footer {
+  border-style: none;
+  padding-bottom: 0px;
+  height: 30px;
+}
+#configInstructions {
+  font:10pt tahoma;
+  float: left;
+  width: 100%;
+}
+
+
+
+
+
+/* Stuff to make the lists display right with AJAX turned off */
+
+
+ul.AMB_html {
+  padding-left: 5px;
+  list-style-type: none;
+  margin: 0;
+  margin-left: 10px;
+
+}
+li.AMB_html, li.AMB_html_course {
+  text-indent: -24px;
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+li.AMB_html_course {
+  background-color: #ddd;
+}
+ul.AMB_html_items {
+  padding-left: 15px;
+  margin-top: 5px;
+
+  list-style-type: none;
+}
+span.AMB_count {
+  font-weight: bold;
+}
+span.ygtvlabel {
+  background-color: transparent;
+}
+
+

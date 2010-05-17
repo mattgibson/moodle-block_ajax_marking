@@ -63,7 +63,7 @@ class workshop_functions extends module_base {
 
         list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
 
-        $sql = "SELECT s.id as subid, s.userid, w.id, w.name, w.course, w.description, c.id as cmid
+        $sql = "SELECT s.id as subid, s.authorid as userid, w.id, w.name, w.course, w.intro as description, c.id as cmid
                   FROM ({workshop} w
             INNER JOIN {course_modules} c
                     ON w.id = c.instance)
@@ -71,14 +71,15 @@ class workshop_functions extends module_base {
                     ON s.workshopid = w.id
              LEFT JOIN {workshop_assessments} a
                     ON (s.id = a.submissionid)
-                 WHERE (a.userid != :userid
-                    OR (a.userid = :userid
+                 WHERE (a.reviewerid != :userid
+                    OR (a.reviewerid = :userid2
                    AND a.grade = -1))
                    AND c.module = :moduleid
                    AND w.course $usql
                    AND c.visible = 1
               ORDER BY w.id";
         $params['userid'] = $USER->id;
+        $params['userid2'] = $USER->id;
         $params['moduleid'] = $this->mainobject->modulesettings['workshop']->id;
         $this->all_submissions = $DB->get_records_sql($sql, $params);
         return true;
@@ -96,8 +97,8 @@ class workshop_functions extends module_base {
 
         list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
 
-        $sql = "SELECT s.id as submissionid, s.userid, w.id, w.name, w.course,
-                       w.description, c.id as cmid
+        $sql = "SELECT s.id as submissionid, s.authorid as userid, w.id, w.name, w.course,
+                       w.intro as description, c.id as cmid
                   FROM ({workshop} w
             INNER JOIN {course_modules} c
                     ON w.id = c.instance)
@@ -105,15 +106,16 @@ class workshop_functions extends module_base {
                     ON s.workshopid = w.id
              LEFT JOIN {workshop_assessments} a
                     ON (s.id = a.submissionid)
-                 WHERE (a.userid != :userid
-                    OR (a.userid = :userid
+                 WHERE (a.reviewerid != :userid
+                    OR (a.reviewerid = :userid2
                    AND a.grade = -1))
                    AND c.module = :moduleid
                    AND c.visible = 1
                    AND w.course = :courseid
-                   AND s.userid $usql
+                   AND s.authorid $usql
               ORDER BY w.id";
         $params['userid'] = $USER->id;
+        $params['userid2'] = $USER->id;
         $params['moduleid'] = $this->mainobject->modulesettings['workshop']->id;
         $params['courseid'] = $courseid;
         $unmarked = $DB->get_records_sql($sql, $params);
@@ -138,21 +140,22 @@ class workshop_functions extends module_base {
         // a teacher assessment
         list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
 
-        $sql = "SELECT s.id, s.userid, s.title, s.timecreated, s.workshopid
+        $sql = "SELECT s.id, s.authorid as userid, s.title, s.timecreated, s.workshopid
                   FROM {workshop_submissions} s
              LEFT JOIN {workshop_assessments} a
                     ON (s.id = a.submissionid)
             INNER JOIN {workshop} w
                     ON s.workshopid = w.id
-                 WHERE (a.userid != :userid
-                    OR (a.userid = :userid
+                 WHERE (a.reviewerid != :userid
+                    OR (a.reviewerid = :userid2
                    AND a.grade = -1))
                    AND s.workshopid = :workshopid
-                   AND s.userid $usql
+                   AND s.authorid $usql
                    AND w.assessmentstart < :now
               ORDER BY s.timecreated ASC";
 
         $params['userid'] = $USER->id;
+        $params['userid2'] = $USER->id;
         $params['workshopid'] = $this->mainobject->id;
         $params['now'] = time();
 
@@ -221,7 +224,7 @@ class workshop_functions extends module_base {
 
         list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
 
-        $sql = "SELECT w.id, w.course, w.name, w.description as summary, c.id as cmid
+        $sql = "SELECT w.id, w.course, w.name, w.intro as summary, c.id as cmid
                   FROM {workshop} w
             INNER JOIN {course_modules} c
                     ON w.id = c.instance

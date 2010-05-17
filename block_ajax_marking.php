@@ -63,7 +63,7 @@ class block_ajax_marking extends block_base {
             return $this->content;
         }
 
-        global $CFG, $USER, $DB;
+        global $CFG, $USER, $DB, $PAGE;
 
         // admins will have a problem as they will see all the courses on the entire site
         // retrieve the teacher role id (3)
@@ -74,6 +74,7 @@ class block_ajax_marking extends block_base {
         // check to see if any roles allow grading of assessments
         $coursecheck = 0;
         $courses = get_my_courses($USER->id, 'fullname', 'id, visible');
+        $isteacherinanycourse = false;
 
         foreach ($courses as $course) {
 
@@ -95,6 +96,7 @@ class block_ajax_marking extends block_base {
 
                     if ($teacher->id == $USER->id) {
                             $correct_role = true;
+                            $isteacherinanycourse = true;
                     }
                 }
             }
@@ -107,6 +109,7 @@ class block_ajax_marking extends block_base {
 
                     if ($teacher->id == $USER->id) {
                         $correct_role = true;
+                        $isteacherinanycourse = true;
                     }
                 }
             }
@@ -119,7 +122,7 @@ class block_ajax_marking extends block_base {
 
         }
 
-        if ($coursecheck>0) {
+        if ($coursecheck > 0) {
             // Grading permissions exist in at least one course, so display the block
 
             //start building content output
@@ -159,9 +162,6 @@ class block_ajax_marking extends block_base {
                         'nothingString'       => get_string('nothing',            'block_ajax_marking'),
                         'refreshString'       => get_string('refresh',            'block_ajax_marking'),
                         'configureString'     => get_string('configure',          'block_ajax_marking'),
-                        'forumSaveString'     => get_string('sendinratings',      'forum'),
-                        'quizSaveString'      => get_string('savechanges'),
-                        'journalSaveString'   => get_string('saveallfeedback',    'journal'),
                         'connectFail'         => get_string('connect_fail',       'block_ajax_marking'),
                         'nogroups'            => get_string('nogroups',           'block_ajax_marking'),
                         'headertext'          => get_string('headertext',         'block_ajax_marking'),
@@ -171,7 +171,32 @@ class block_ajax_marking extends block_base {
                         'confGroups'          => get_string('confGroups',         'block_ajax_marking'),
                         'confAssessmentHide'  => get_string('confAssessmentHide', 'block_ajax_marking'),
                         'confCourseHide'      => get_string('confCourseHide',     'block_ajax_marking'),
-                        'confDefault'         => get_string('confDefault',        'block_ajax_marking'));
+                        'confDefault'         => get_string('confDefault',        'block_ajax_marking'),
+                        'debuglevel'          => $CFG->debug
+                );
+
+                $jsvariables  = "YAHOO.ajax_marking_block.variables = [];
+                        var YAV = YAHOO.ajax_marking_block.variables;
+                        YAV['wwwroot']             = '".$CFG->wwwroot."';
+                        YAV['totalMessage']        = '".get_string('total',              'block_ajax_marking')."';
+                        YAV['userid']              = '".$USER->id."';
+                        YAV['instructions']        = '".get_string('instructions',       'block_ajax_marking')."';
+                        YAV['configNothingString'] = '".get_string('config_nothing',     'block_ajax_marking')."';
+                        YAV['nothingString']       = '".get_string('nothing',            'block_ajax_marking')."';
+                        YAV['refreshString']       = '".get_string('refresh',            'block_ajax_marking')."';
+                        YAV['configureString']     = '".get_string('configure',          'block_ajax_marking')."';
+                        YAV['connectFail']         = '".get_string('connect_fail',       'block_ajax_marking')."';
+                        YAV['nogroups']            = '".get_string('nogroups',           'block_ajax_marking')."';
+                        YAV['headertext']          = '".get_string('headertext',         'block_ajax_marking')."';
+                        YAV['fullname']            = '".fullname($USER)."';
+                        YAV['confAssessmentShow']  = '".get_string('confAssessmentShow', 'block_ajax_marking')."';
+                        YAV['confCourseShow']      = '".get_string('confCourseShow',     'block_ajax_marking')."';
+                        YAV['confGroups']          = '".get_string('confGroups',         'block_ajax_marking')."';
+                        YAV['confAssessmentHide']  = '".get_string('confAssessmentHide', 'block_ajax_marking')."';
+                        YAV['confCourseHide']      = '".get_string('confCourseHide',     'block_ajax_marking')."';
+                        YAV['confDefault']         = '".get_string('confDefault',        'block_ajax_marking')."';
+                        YAV['debuglevel']          = '".$CFG->debug."';
+                ";
 
                 // for integrating the block_marking stuff, this stuff (divs) should all be created
                 // by javascript.
@@ -182,7 +207,7 @@ class block_ajax_marking extends block_base {
                         <div id='mainIcon'></div>
                     </div>
                     <div id='status'> </div>
-                    <div id='treediv' class='yui-skin-sam'>";
+                    <div id='treediv' class='yui-skin-sam'></div>";
 
                 // Don't warn about javascript if the sreenreader option is set - it was deliberate
                 if (!$USER->screenreader) {
@@ -190,75 +215,47 @@ class block_ajax_marking extends block_base {
                     $this->content->text .= 'but you have it turned off.</p></noscript>';
                 }
 
-                // Add a script that makes all of the PHP variables available to javascript
-                $this->content->text .= '</div><div id="javaValues"><script type="text/javascript"';
-                $this->content->text .= '>/* <![CDATA[ */ var amVariables = {';
-
-                // loop through the PHP $variables above, making them into the right format
-                $check = 0;
-
-                foreach ($variables as $variable => $value) {
-
-                    if ($check > 0) {
-                        // no initial comma, but one before all the others
-                        $this->content->text .= ', ';
-                    }
-                    $this->content->text .= $variable.": '".$value."'";
-                    $check ++;
-                }
-
-                $this->content->text .=    '};
-                        /* ]]> */</script>
-                    </div>';
-
-
-
                 // Add all of the javascript libraries that the above script depends on
-                $scripts = array(
-                        'yui_yahoo',
-                        'yui_event',
-                        'yui_dom',
-                        'yui_logger',
-                        $CFG->wwwroot.'/lib/yui/treeview/treeview-debug.js',
-                        'yui_connection',
-                        'yui_dom-event',
-                        'yui_container',
-                        'yui_utilities',
-                        $CFG->wwwroot.'/lib/yui/container/container_core-min.js',
-                        $CFG->wwwroot.'/lib/yui/menu/menu-min.js',
-                        'yui_json',
-                        'yui_button',
-                        $CFG->wwwroot.'/blocks/ajax_marking/javascript.js'
-                    );
+//                $scripts = array(
+//                        'yahoo',
+//                        'event',
+//                        'dom',
+//
+//                        'dom-event',
+//                        'container',
+//                        'utilities',
+//                        'menu.js',
+//                        'json',
+//                        'button',
+//                    );
 
                 // also need to add any js from individual modules
                 foreach ($amb_html_list_object->modulesettings as $modname => $module) {
-                    // echo "{$CFG->dirroot}{$module->dir}/{$modname}_grading.php ";
 
                     $file_in_mod_directory  = file_exists("{$CFG->dirroot}{$module->dir}/{$modname}_grading.js");
                     $file_in_block_directory = file_exists("{$CFG->dirroot}/blocks/ajax_marking/{$modname}_grading.js");
-                                         //   echo "{$CFG->dirroot}blocks/ajax_marking/{$modname}_grading.js";
 
                     if ($file_in_mod_directory) {
-                        $scripts[] = "{$CFG->wwwroot}{$module->dir}/{$modname}_grading.js";
+                        $PAGE->requires->js('/'.$module->dir.'/'.$modname.'_grading.js');
 
                     } else if ($file_in_block_directory) {
-                        $scripts[] = "{$CFG->dirroot}/blocks/ajax_marking/{$modname}_grading.js";
+                        $PAGE->requires->js("/blocks/ajax_marking/{$modname}_grading.js");
                     }
-
                 }
 
+                $PAGE->requires->yui2_lib('treeview');
+                $PAGE->requires->yui2_lib('button');
+                $PAGE->requires->yui2_lib('connection');
+                $PAGE->requires->yui2_lib('json');
 
-                $this->content->text .= require_js($scripts);
-                // Add the script that will initialise the main AJAX tree widget
-                //$this->content->text .= '<script type="text/javascript" defer="defer" '
-                //   .'src="'.$CFG->wwwroot.'/blocks/ajax_marking/javascript.js"></script>';
+                if ($CFG->debug == 38911) {
+                    $PAGE->requires->yui2_lib('logger');
+                }
 
-                $this->content->text .= '<script type="text/javascript" defer="defer" >'
-                                       .'YAHOO.ajax_marking_block.initialise();</script>';
+                $PAGE->requires->js('/blocks/ajax_marking/javascript.js');
+                $PAGE->requires->js_init_code($jsvariables);
+                $PAGE->requires->js_init_call('YAHOO.ajax_marking_block.initialise', null, true);
 
-                // Add footer, which will have button added dynamically (not needed if javascript is
-                // enabled)
                 $this->content->footer .= '<div id="conf_left"></div><div id="conf_right"></div>';
 
             }
@@ -266,7 +263,7 @@ class block_ajax_marking extends block_base {
         } else {
             // no grading permissions in any courses - don't display the block. Exception for
             // when the block is just installed and editing is on. Might look broken otherwise.
-            if (isediting()) {
+            if ($PAGE->user_is_editing()) {
                 $this->content->text .= get_string('config_nothing', 'block_ajax_marking');
                 $this->content->footer = '';
             }
@@ -291,6 +288,8 @@ class block_ajax_marking extends block_base {
      * @return void
      */
     function after_install() {
+
+        echo 'after install';
 
         global $CFG;
 
