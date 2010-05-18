@@ -884,9 +884,9 @@ class ajax_marking_functions {
             $this->output .= '"name":"'    .htmlentities($name, ENT_QUOTES).'",';
             $this->output .= '"dynamic":"false",';
             // id of submission for hyperlink
-            $this->output .= '"sid":"'     .$submission_id.'",';
+            $this->output .= '"submissionid":"'     .$submission_id.'",';
             // id of assignment for hyperlink
-            $this->output .= '"aid":"'     .$assessment_id.'",';
+            $this->output .= '"assessmentid":"'     .$assessment_id.'",';
             // might need uniqueId to replace it
             $this->output .= '"id":"'      .$assessment_id.'",';
             $this->output .= '"title":"'   .$this->clean_summary_text($summary).'",';

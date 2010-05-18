@@ -24,6 +24,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+
 /**
  * Check here for new modules to add to the database. This happens every time the block is upgraded.
  * If you have added your own extension, increment the version number in block_ajax_marking.php

@@ -155,7 +155,7 @@ class block_ajax_marking extends block_base {
 
                 $variables  = array(
                         'wwwroot'             => $CFG->wwwroot,
-                        'totalMessage'        => get_string('total',              'block_ajax_marking'),
+                        'totalmessage'        => get_string('total',              'block_ajax_marking'),
                         'userid'              => $USER->id,
                         'instructions'        => get_string('instructions',       'block_ajax_marking'),
                         'configNothingString' => get_string('config_nothing',     'block_ajax_marking'),
@@ -178,7 +178,7 @@ class block_ajax_marking extends block_base {
                 $jsvariables  = "YAHOO.ajax_marking_block.variables = [];
                         var YAV = YAHOO.ajax_marking_block.variables;
                         YAV['wwwroot']             = '".$CFG->wwwroot."';
-                        YAV['totalMessage']        = '".get_string('total',              'block_ajax_marking')."';
+                        YAV['totalmessage']        = '".get_string('total',              'block_ajax_marking')."';
                         YAV['userid']              = '".$USER->id."';
                         YAV['instructions']        = '".get_string('instructions',       'block_ajax_marking')."';
                         YAV['configNothingString'] = '".get_string('config_nothing',     'block_ajax_marking')."';

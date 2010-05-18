@@ -27,13 +27,13 @@ const debugall       = 6143;
 
 
 /**
- * Make a base class that can be used for the main and config trees. This extends the
+ * Base class that can be used for the main and config trees. This extends the
  * YUI treeview class ready to add some new functions to it which are common to both the
  * main and config trees.
  */
-YAHOO.ajax_marking_block.tree_base = function(tree_div) {
+YAHOO.ajax_marking_block.tree_base = function(treediv) {
 
-    YAHOO.ajax_marking_block.tree_base.superclass.constructor.call(this, tree_div);
+    YAHOO.ajax_marking_block.tree_base.superclass.constructor.call(this, treediv);
 };
 
 // make the base class into a subclass of the YUI treeview widget
@@ -44,20 +44,21 @@ YAHOO.lang.extend(YAHOO.ajax_marking_block.tree_base, YAHOO.widget.TreeView);
  * 
  * @param array nodes_array the nodes to be rendered
  */
-YAHOO.ajax_marking_block.tree_base.prototype.build_assessment_nodes = function(nodes_array) {
+YAHOO.ajax_marking_block.tree_base.prototype.build_assessment_nodes = function(nodesarray) {
 
-    var temp_node = '';
+    var tempnode = '';
     
     // cycle through the array and make the nodes
-    var  nodes_length = nodes_array.length;
-    for (var m=0;m<nodes_length;m++) {
+    var  nodeslength = nodesarray.length;
+    
+    for (var m=0; m<nodeslength; m++) {
 
         // use the object to create a new node
-        temp_node = new YAHOO.widget.TextNode(nodes_array[m], YAHOO.ajax_marking_block.node_holder , false);
+        tempnode = new YAHOO.widget.TextNode(nodes_array[m], YAHOO.ajax_marking_block.node_holder , false);
 
         // set the node to load data dynamically, unless it is marked as not dynamic e.g. journal
-        if ((!this.config) && (nodes_array[m].dynamic == 'true')) {
-           temp_node.setDynamicLoad(this.request_node_data);
+        if ((!this.config) && (nodesarray[m].dynamic == 'true')) {
+           tempnode.setDynamicLoad(this.request_node_data);
         }
     }
 
@@ -73,33 +74,36 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_assessment_nodes = function(n
 
 /**
  * This function is called when a node is clicked (expanded) and makes the ajax request
+ * 
+ * @param object clicked_node
+ * @param string onCompleteCallback
  */
-YAHOO.ajax_marking_block.tree_base.prototype.request_node_data = function(clicked_node, onCompleteCallback) {
+YAHOO.ajax_marking_block.tree_base.prototype.request_node_data = function(clickednode, callbackfunction) {
 
-    // store details of the node that has been clicked in globals for reference by later
+    // store details of the node that has been clicked for reference by later
     // callback function
+    YAHOO.ajax_marking_block.node_holder = clickednode;
 
-    YAHOO.ajax_marking_block.node_holder = clicked_node;
-
-    YAHOO.ajax_marking_block.on_complete_function_holder = onCompleteCallback;
-    var request_url = YAHOO.ajax_marking_block.variables.wwwroot+'/blocks/ajax_marking/ajax.php';
+    YAHOO.ajax_marking_block.on_complete_function_holder = callbackfunction;
+    var requesturl = YAHOO.ajax_marking_block.variables.wwwroot+'/blocks/ajax_marking/ajax.php';
 
     // request data using AJAX
-    var postData = 'id='+clicked_node.data.id+'&type='+clicked_node.data.type+'&userid='+YAHOO.ajax_marking_block.variables.userid;
+    var postdata = 'id='+clickednode.data.id+'&type='+clickednode.data.type+'&userid='+YAHOO.ajax_marking_block.variables.userid;
 
-    if (typeof clicked_node.data.group  != 'undefined') {
+    if (typeof clickednode.data.group  != 'undefined') {
         //add group id if its there
-        postData += '&group='+clicked_node.data.group;
+        postdata += '&group='+clickednode.data.group;
     }
 
     // Allow modules to add extra arguments to the AJAX request if necessary
-    var type_array = clicked_node.data.type.split('_');
-    var type_object = eval('YAHOO.ajax_marking_block.'+type_array[0]);
-    if ((typeof (type_object) != 'undefined') && (typeof (type_object.extra_ajax_request_arguments) != 'undefined')) {
-        postData += type_object.extra_ajax_request_arguments(clicked_node);
+    var typearray = clickednode.data.type.split('_');
+    var type_object = eval('YAHOO.ajax_marking_block.'+typearray[0]);
+    
+    if ((typeof(type_object) != 'undefined') && (typeof(type_object.extra_ajax_request_arguments) != 'undefined')) {
+        postdata += type_object.extra_ajax_request_arguments(clickednode);
     }
  
-    var request = YAHOO.util.Connect.asyncRequest('POST', request_url, ajax_marking_block_callback, postData);
+    var request = YAHOO.util.Connect.asyncRequest('POST', requesturl, ajax_marking_block_callback, postdata);
 };
 
 /**
@@ -131,7 +135,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.update_parent_node = function(paren
         var running_total = 0;
         var child_count   = '';
 
-        for (var i=0;i<node_children_length;i++) {
+        for (var i=0; i<node_children_length; i++) {
             child_count    = parent_node_to_update.children[i].data.count;
             running_total += parseInt(child_count, 10);
         }
@@ -146,25 +150,30 @@ YAHOO.ajax_marking_block.tree_base.prototype.update_parent_node = function(paren
 
 /**
  * function to alter a node's label with a new count once the children are removed or reloaded
+ * 
+ * @param object newnode the node of the tree whose count we wish to change
+ * @param int newcount the new number of items to display
+ * @return void
  */
-YAHOO.ajax_marking_block.tree_base.prototype.update_node_count = function (newNode, newCount) {
+YAHOO.ajax_marking_block.tree_base.prototype.update_node_count = function(newnode, newcount) {
 
-    var newLabel       = newNode.data.icon+'(<span class="AMB_count">'+newCount+'</span>) '+newNode.data.name;
-    newNode.data.count = newCount;
-    newNode.label      = newLabel;
+    var newlabel       = newnode.data.icon+'(<span class="AMB_count">'+newcount+'</span>) '+newnode.data.name;
+    newnode.data.count = newcount;
+    newnode.label      = newlabel;
 };
 
 /**
  * Creates the initial nodes for both the main block tree or configuration tree.
  */
-YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes_array) {
+YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodesarray) {
 
     var label = '';
 
-    // make the array of nodes
-    var nodes_length = nodes_array.length;
+    // make the array of nodes length so that loops are slightly faster
+    var nodeslength = nodesarray.length;
+    
     // if the array is empty, say that there is nothing to mark
-    if (nodes_length === 0) {
+    if (nodeslength === 0) {
 
         if (this.config) {
             label = document.createTextNode(YAHOO.ajax_marking_block.variables.configNothingString);
@@ -172,10 +181,11 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
             label = document.createTextNode(YAHOO.ajax_marking_block.variables.nothingString);
         }
         message_div = document.createElement('div');
-        message_div.appendChild(label);
-        this.div.appendChild(message_div);
+        messagediv.appendChild(label);
+        this.div.appendChild(messagediv);
         this.icon.removeAttribute('class', 'loaderimage');
         this.icon.removeAttribute('className', 'loaderimage');
+        
         if (!document.getElementById('AMBcollapse')) {
             YAHOO.ajax_marking_block.make_footer();
         }
@@ -184,20 +194,19 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
         // there is a tree to be drawn
 
         // cycle through the array and make the nodes
-        for (var n=0;n<nodes_length;n++) {
-            if (!this.config) { //only show the marking totals if its not a config tree
-                label = '('+nodes_array[n].count+') '+nodes_array[n].name;
+        for (var n=0; n<nodeslength; n++) {
+        	
+        	//only show the marking totals if its not a config tree
+            if (!this.config) { 
+                label = '('+nodesarray[n].count+') '+nodesarray[n].name;
             } else {
-                label = nodes_array[n].name;
+                label = nodesarray[n].name;
             }
 
-            var temp_node = new YAHOO.widget.TextNode(nodes_array[n], this.root, false);
+            var tempnode = new YAHOO.widget.TextNode(nodesarray[n], this.root, false);
 
-            // save reference in the map for the context menu
-            // AJAXtree.textNodeMap[tmpNode1.labelElId] = tmpNode1;
-
-            temp_node.labelStyle = 'icon-course';
-            temp_node.setDynamicLoad(this.request_node_data);
+            tempnode.labelStyle = 'icon-course';
+            tempnode.setDynamicLoad(this.request_node_data);
         }
 
         // now make the tree, add the total at the top and remove the loading icon
@@ -212,7 +221,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
         if (!this.config) {
 
             // Alter total count above tree
-            label = document.createTextNode(YAHOO.ajax_marking_block.variables.totalMessage);
+            label = document.createTextNode(YAHOO.ajax_marking_block.variables.totalmessage);
             var total = document.getElementById('totalmessage');
             YAHOO.ajax_marking_block.remove_all_child_nodes(total);
             total.appendChild(label);
@@ -226,50 +235,39 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
 
                     // ref saves space
                     var node = oArgs.node;
+                    
                     // we only need to do anything if the clicked node is one of
                     // the final ones with no children to fetch.
-
                     if (node.data.dynamic == 'true') {
                         return true;
                     }
 
-                    // if there is already a pop up, just focus on it (not working yet)
-                    /*
-                    if (typeof(YAHOO.ajax_marking_block.pop_up_holder) != 'undefined') {
-                         YAHOO.ajax_marking_block.pop_up_holder.focus();
-                         return true;
-                    }
-                    */
-
-
                     // putting window.open into the switch statement causes it to fail in IE6.
                     // No idea why.
-                    // var pop_up_opening_url = YAHOO.ajax_marking_block.variables.wwwroot;
-                    // var pop_up_arguments = 'menubar=0,location=0,scrollbars,resizable,width=780,height=500';
                     var timer_function = '';
-                    // var pop_up_closing_url = '';
-
-                    // not used yet - waiting to get web services going so this can be an ajax
-                    // call for a panel widget
-                    //var pop_up_post_data = '';
                             
                     // Load the correct javascript object from the files that have been included.
-                    // The type should always start with the name of the module, so
+                    // The type attached to the node data should always start with the name of the module, so
                     // we extract that first and then use it to access the object of that
                     // name that was created when the page was built by the inclusion
                     // of all the module_grading.js files.
-                    // Yes, I know eval is evil, but how can this be done more elegantly?
-                    var type_array = node.data.type.split('_');
-                    var module_javascript = eval('YAHOO.ajax_marking_block.'+type_array[0]);
+                    var typearray = node.data.type.split('_');
+                    var type = typearray[0]
+                    
+                    // TODO does this work?
+                    // it used to make a string then eval it
+                    var module_javascript = YAHOO.ajax_marking_block[type];
 
                     // Open a pop up with the url and arguments as specified in the module specific object
-                    YAHOO.ajax_marking_block.pop_up_holder = window.open(YAHOO.ajax_marking_block.variables.wwwroot+module_javascript.pop_up_opening_url(node), '_blank', module_javascript.pop_up_arguments(node));
+                    var popupurl = YAHOO.ajax_marking_block.variables.wwwroot+module_javascript.pop_up_opening_url(node);
+                    var popupagrs = module_javascript.pop_up_arguments(node);
+                    YAHOO.ajax_marking_block.pop_up_holder = window.open(popupurl, '_blank', popupargs);
 
                     // This function will add the module specifi javascript to the pop up. It is necessary
                     // in order to make the pop up update the main tree and close itself once
                     // the work has been graded
                     timer_function = function() {
-                        module_javascript.alter_popup(node.data.uniqueid, node.data.sid);
+                        module_javascript.alter_popup(node.data.uniqueid, node.data.submissionid);
                     };
 
                     // keep trying to run the function every 2 seconds till it executes (the pop up
@@ -430,7 +428,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_submission_nodes = function(n
     for (var k=0;k<nodesArray.length;k++) {
 
         // set up a unique id so the node can be removed when needed
-        uniqueId = nodesArray[k].type + nodesArray[k].aid + 'sid' + nodesArray[k].sid + '';
+        uniqueId = nodesArray[k].type + nodesArray[k].assessmentid + 'submissionid' + nodesArray[k].submissionid + '';
 
         // set up time-submitted thing for tooltip. This is set to make the time match the
         // browser's local timezone, but I can't find a way to use the user's specified timezone
@@ -581,7 +579,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.remove_node_from_tree = function(wi
 
 // the following 2 variables sometimes hold different things e.g. user id or submission
 // this holds the assessment id so it can be accessed by other functions
-//YAHOO.ajax_marking_block.aidHolder = '';
+//YAHOO.ajax_marking_block.assessmentidHolder = '';
 // this holds the submission id so it can be accessed by other functions.
 //YAHOO.ajax_marking_block.sidHolder = '';
 // this holds the parent node so it can be referenced by other functions                                                    

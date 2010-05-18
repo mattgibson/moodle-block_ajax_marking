@@ -185,23 +185,23 @@ class workshop_functions extends module_base {
                     continue;
                 }
                 // if we are displaying for a single group node, ignore those students in other groups
-                $groupnode    = $this->mainobject->group;
+                $thisisagroupnode    = $this->mainobject->group;
                 $inrightgroup = $this->mainobject->check_group_membership($this->mainobject->group,
                                                                           $submission->userid);
 
-                if ($groupnode && !$inrightgroup) {
+                if ($thisisagroupnode && !$inrightgroup) {
                     continue;
                 }
 
                 $name = $this->mainobject->get_fullname($submission->userid);
 
-                $sid = $submission->id;
-
                 // sort out the time stuff
                 $seconds = ($now - $submission->timecreated);
                 $summary = $this->mainobject->make_time_summary($seconds);
+
+                // make the node
                 $this->mainobject->output .= $this->mainobject->make_submission_node($name,
-                                                                                     $sid,
+                                                                                     $submission->id,
                                                                                      $this->mainobject->id,
                                                                                      $summary,
                                                                                      'workshop_final',
