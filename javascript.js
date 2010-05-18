@@ -475,13 +475,19 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_submission_nodes = function(n
 
     }
 
+    // TODO make this recursive
+    
     // update all the counts on the various nodes
     this.update_parent_node(YAHOO.ajax_marking_block.node_holder);
     //might be a course, might be a group if its a quiz by groups
     this.update_parent_node(YAHOO.ajax_marking_block.node_holder.parent);
+    
     if (!YAHOO.ajax_marking_block.node_holder.parent.parent.isRoot()) {
+    	
         this.update_parent_node(YAHOO.ajax_marking_block.node_holder.parent.parent);
+        
         if (!YAHOO.ajax_marking_block.node_holder.parent.parent.parent.isRoot()) {
+        	
             this.update_parent_node(YAHOO.ajax_marking_block.node_holder.parent.parent.parent);
         }
     }
