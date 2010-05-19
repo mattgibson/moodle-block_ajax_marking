@@ -55,7 +55,7 @@ YAHOO.ajax_marking_block.workshop = (function() {
                         // TODO - did this change work?
                         var functiontext = "return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree("
                                          + "'/mod/workshop/assessments.php', '"
-                                         + clickednode.data.uniqueid+"', true);";
+                                         + clickednode.data.uniqueid+"');";
                         els[10]['onclick'] = new Function(functiontext);
                         // els[10]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/workshop/assessments.php', YAHOO.ajax_marking_block.main, '"+me+"', true);"); // IE
                         

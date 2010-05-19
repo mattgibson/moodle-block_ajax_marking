@@ -14,7 +14,7 @@ YAHOO.ajax_marking_block.forum = (function() {
         },
         
         pop_up_arguments : function () {
-            return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';  
+            return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630'; 
         },
         
         /**
@@ -46,7 +46,7 @@ YAHOO.ajax_marking_block.forum = (function() {
                         // IE friendly
                         // TODO - did this change work?
                         var functionText = "return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree('/mod/forum/rate.php', "
-                                           +"'"+clickednode.data.uniqueid+"', false);";
+                                           +"'"+clickednode.data.uniqueid+"');";
                         inputelements[key]["onclick"] = new Function(functionText);
                         //els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
                         // cancel loop for this function

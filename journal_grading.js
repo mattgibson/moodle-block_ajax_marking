@@ -41,8 +41,7 @@ YAHOO.ajax_marking_block.journal = (function(clickednode) {
                     function(){
                         return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree(
                             '/mod/journal/report.php',
-                            clickednode.data.uniqueid,
-                            false
+                            clickednode.data.uniqueid
                         );
                     }
                 );

@@ -118,7 +118,7 @@ YAHOO.ajax_marking_block.assignment = (function() {
         
                         // now add onclick
                         var functionText  = "return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree(-1, '";
-                            functionText += clickednode.data.uniqueid+"', false); ";
+                            functionText += clickednode.data.uniqueid+"'); ";
         
                         submitelements[0]["onclick"] = new Function(functionText);
                         //submitelements[0]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree(-1, YAHOO.ajax_marking_block.main, '"+me+"', false); "); // IE
