@@ -88,14 +88,14 @@ class ajax_marking_functions {
             $this->modulesettings = unserialize(get_config('block_ajax_marking', 'modules'));
         }
         // instantiate function classes for each of the available modules and store them
-        foreach ($this->modulesettings as $modname => $module) {
-            // echo "{$CFG->dirroot}{$module->dir}/{$modname}_grading.php ";
-            include("{$CFG->dirroot}{$module->dir}/{$modname}_grading.php");
-            //include("{$module->dir}/{$modname}_grading.php");
-            $classname = $modname.'_functions';
+        foreach ($this->modulesettings as $modulename => $module) {
+            // echo "{$CFG->dirroot}{$module->dir}/{$modulename}_grading.php ";
+            include("{$CFG->dirroot}{$module->dir}/{$modulename}_grading.php");
+            //include("{$module->dir}/{$modulename}_grading.php");
+            $classname = $modulename.'_functions';
             //pass this object in so that a reference to it can be stored, allowing library functions
             // to be called
-            $this->$modname = new $classname($this);
+            $this->$modulename = new $classname($this);
         }
 
         // Not used yet
@@ -121,9 +121,9 @@ class ajax_marking_functions {
         // module_grading.php file as one of the keys of the $this->functions array
         $level_check = false;
 
-        foreach ($this->modulesettings as $modname => $module) {
+        foreach ($this->modulesettings as $modulename => $module) {
 
-            if (in_array($this->type, array_keys($this->$modname->functions))) {
+            if (in_array($this->type, array_keys($this->$modulename->functions))) {
                 $level_check = true;
             }
         }
@@ -250,7 +250,7 @@ class ajax_marking_functions {
         $teachers = array();
 
         // TODO get the roles that are specified as being able to grade forums
-        $teacher_roles = array(3, 4);
+        $teacherroles = array(3, 4);
 
         foreach ($this->courses as $course) {
 
@@ -259,7 +259,7 @@ class ajax_marking_functions {
 
             // get teachers in this course with this role
             $context = get_context_instance(CONTEXT_COURSE, $course->id);
-            $course_teachers = get_role_users($teacher_roles, $context);
+            $course_teachers = get_role_users($teacherroles, $context);
 
             if ($course_teachers) {
 
@@ -975,7 +975,7 @@ class ajax_marking_functions {
             $this->courseids = array();
 
             // retrieve the teacher role id (3)
-            $teacher_role = $DB->get_field('role', 'id', array('shortname' => 'editingteacher'));
+            $teacherrole = $DB->get_field('role', 'id', array('shortname' => 'editingteacher'));
 
             foreach ($this->courses as $key=>$course) {
 
@@ -989,11 +989,11 @@ class ajax_marking_functions {
 
                 // role check bit borrowed from block_marking, thanks to Mark J Tyers [ZANNET]
                 $teachers = 0;
-                $teachers_ne = 0;
+                $noneditingteachers = 0;
 
                 // check for editing teachers
                 $context = get_context_instance(CONTEXT_COURSE, $course->id);
-                $teachers = get_role_users($teacher_role, $context, true);
+                $teachers = get_role_users($teacherrole, $context, true);
 
                 if ($teachers) {
 
@@ -1007,13 +1007,13 @@ class ajax_marking_functions {
 
                 if (!$allowed_role) {
                     // check the non-editing teacher role id (4) only if the last bit failed
-                    $ne_teacher_role = $DB->get_field('role', 'id', array('shortname' => 'teacher'));
+                    $noneditingteacherrole = $DB->get_field('role', 'id', array('shortname' => 'teacher'));
                     // check for non-editing teachers
-                    $teachers_ne = get_role_users($ne_teacher_role, $course->context, true);
+                    $noneditingteachers = get_role_users($noneditingteacherrole, $course->context, true);
 
-                    if ($teachers_ne) {
+                    if ($noneditingteachers) {
 
-                        foreach ($teachers_ne as $key2=>$val2) {
+                        foreach ($noneditingteachers as $key2=>$val2) {
 
                             if ($val2->id == $USER->id) {
                                 $allowed_role = true;
@@ -1098,26 +1098,26 @@ class ajax_marking_functions {
             // make a tooltip showing current settings
             $course_settings = $this->get_groups_settings('course', $assessment->course);
 
-            $this->output .= get_string('confCurrent', 'block_ajax_marking').': ';
+            $this->output .= get_string('currentsettings', 'block_ajax_marking').': ';
 
             if (isset($course_settings->showhide)) {
 
                 switch ($course_settings->showhide) {
 
                     case 1:
-                        $this->output .= get_string('confCourseShow', 'block_ajax_marking');
+                        $this->output .= get_string('showthiscourse', 'block_ajax_marking');
                         break;
 
                     case 2:
-                        $this->output .= get_string('confGroups', 'block_ajax_marking');
+                        $this->output .= get_string('showwithgroups', 'block_ajax_marking');
                         break;
 
                     case 3:
-                        $this->output .= get_string('confCourseHide', 'block_ajax_marking');
+                        $this->output .= get_string('hidethiscourse', 'block_ajax_marking');
                 }
 
             } else {
-                $this->output .= get_string('confCourseShow', 'block_ajax_marking');
+                $this->output .= get_string('showthiscourse', 'block_ajax_marking');
             }
 
             // end tooltip bit
@@ -1473,10 +1473,10 @@ class module_base {
      * creates assessment nodes of a particular type and course for the config tree
      *
      * @param int $course the id number of the course
-     * @param string $modname e.g. forum
+     * @param string $modulename e.g. forum
      * @return void
      */
-    function config_assessment_nodes($course, $modname) {
+    function config_assessment_nodes($course, $modulename) {
 
         $this->get_all_gradable_items();
 
@@ -1486,7 +1486,7 @@ class module_base {
 
                 $context = get_context_instance(CONTEXT_MODULE, $assessment->cmid);
 
-                if (!$this->mainobject->assessment_grading_permission($modname, $assessment)) {
+                if (!$this->mainobject->assessment_grading_permission($modulename, $assessment)) {
                     continue;
                 }
 

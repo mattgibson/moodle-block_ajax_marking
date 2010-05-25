@@ -140,10 +140,10 @@ class ajax_marking_response extends ajax_marking_functions {
                     $enabledmods = array_keys($enabledmods);
 
                     // loop through each module, getting a count for this course id from each one.
-                    foreach ($this->modulesettings as $modname => $module) {
+                    foreach ($this->modulesettings as $modulename => $module) {
                         // Do not use modules which have been disabled by the admin
-                        if (in_array($modname, $enabledmods)) {
-                            $count += $this->$modname->count_course_submissions($courseid);
+                        if (in_array($modulename, $enabledmods)) {
+                            $count += $this->$modulename->count_course_submissions($courseid);
                         }
                     }
 
@@ -205,8 +205,8 @@ class ajax_marking_response extends ajax_marking_functions {
                             continue;
                         }
 
-                        foreach ($this->modulesettings as $modname => $module) {
-                            $count += $this->$modname->count_course_assessment_nodes($course->id);
+                        foreach ($this->modulesettings as $modulename => $module) {
+                            $count += $this->$modulename->count_course_assessment_nodes($course->id);
                         }
 
                         if ($count > 0) {
@@ -219,7 +219,7 @@ class ajax_marking_response extends ajax_marking_functions {
                             $this->output .= '"id":"'       .$course->id.'",';
                             $this->output .= '"type":"config_course",';
                             $this->output .= '"title":"';
-                            $this->output .= get_string('confCurrent', 'block_ajax_marking').': ';
+                            $this->output .= get_string('currentsettings', 'block_ajax_marking').': ';
 
                             // add the current settings to the tooltip
                             if (isset($course_settings->showhide)) {
@@ -227,19 +227,19 @@ class ajax_marking_response extends ajax_marking_functions {
                                 switch ($course_settings->showhide) {
 
                                     case 1:
-                                        $this->output .= get_string('confCourseShow', 'block_ajax_marking');
+                                        $this->output .= get_string('showthiscourse', 'block_ajax_marking');
                                         break;
 
                                     case 2:
-                                        $this->output .= get_string('confGroups', 'block_ajax_marking');
+                                        $this->output .= get_string('showwithgroups', 'block_ajax_marking');
                                         break;
 
                                     case 3:
-                                        $this->output .= get_string('confCourseHide', 'block_ajax_marking');
+                                        $this->output .= get_string('hidethiscourse', 'block_ajax_marking');
 
                                 }
                             } else {
-                                $this->output .= get_string('confCourseShow', 'block_ajax_marking');
+                                $this->output .= get_string('showthiscourse', 'block_ajax_marking');
                             }
 
                             $this->output .= '",';
@@ -267,8 +267,8 @@ class ajax_marking_response extends ajax_marking_functions {
 
                 $this->output = '[{"type":"course"}';
 
-                foreach ($this->modulesettings as $modname => $module) {
-                    $this->$modname->course_assessment_nodes($courseid);
+                foreach ($this->modulesettings as $modulename => $module) {
+                    $this->$modulename->course_assessment_nodes($courseid);
                 }
 
                 $this->output .= ']';
@@ -280,8 +280,8 @@ class ajax_marking_response extends ajax_marking_functions {
                 $this->config = true;
                 $this->output = '[{"type":"config_course"}';
 
-                foreach ($this->modulesettings as $modname => $module) {
-                    $this->$modname->config_assessment_nodes($this->id, $modname);
+                foreach ($this->modulesettings as $modulename => $module) {
+                    $this->$modulename->config_assessment_nodes($this->id, $modulename);
                 }
 
                 $this->output .= ']';
@@ -427,9 +427,9 @@ class ajax_marking_response extends ajax_marking_functions {
 
                 // assume it's specific to one of the added modules. Run through each until
                 // one of them has that function and it returns true.
-                foreach ($this->modulesettings as $modname => $module) {
+                foreach ($this->modulesettings as $modulename => $module) {
 
-                    if ($this->$modname->return_function($this->type)) {
+                    if ($this->$modulename->return_function($this->type)) {
                         break;
                     }
                 }

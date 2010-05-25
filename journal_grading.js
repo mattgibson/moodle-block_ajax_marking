@@ -28,7 +28,7 @@ YAHOO.ajax_marking_block.journal = (function(clickednode) {
         alter_popup : function () {
         
             // get the form submit input, which is always last but one (length varies)
-            var input_elements = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
+            var input_elements = YAHOO.ajax_marking_block.popupholder.document.getElementsByTagName('input');
         
             // TODO - might catch the pop up half loaded. Not ideal.
             if (typeof(input_elements) != 'undefined' && input_elements.length > 0) {
@@ -39,14 +39,14 @@ YAHOO.ajax_marking_block.journal = (function(clickednode) {
                     input_elements[key],
                     'click',
                     function(){
-                        return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree(
+                        return YAHOO.ajax_marking_block.markingtree.remove_node_from_tree(
                             '/mod/journal/report.php',
                             clickednode.data.uniqueid
                         );
                     }
                 );
                 // cancel the timer loop for this function
-                window.clearInterval(YAHOO.ajax_marking_block.timerVar);
+                window.clearInterval(YAHOO.ajax_marking_block.popuptimer);
             }
         }
     };

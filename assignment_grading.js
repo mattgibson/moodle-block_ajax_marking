@@ -52,16 +52,24 @@ YAHOO.ajax_marking_block.assignment = (function() {
             var submitelements  ='';
             var saveelements = '';
             var nextelements = '';
+            
+            this.counter = 0;
         
             // when the DOM is ready, add the onclick events and hide the other buttons
-            if (YAHOO.ajax_marking_block.pop_up_holder.document) {
+            if (YAHOO.ajax_marking_block.popupholder.document) {
+                
+                alert(typeof(YAHOO.ajax_marking_block.popupholder.document));
             	
-                if (YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName) {
+                //if (YAHOO.ajax_marking_block.popupholder.document.getElementsByName) {
                 	
-                    submitelements = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName('submit');
+                    //submitelements = YAHOO.ajax_marking_block.popupholder.document.getElementsByName('submit');
                     
                     // the above line will not return anything until the pop up is fully loaded
-                    if (submitelements.length > 0) {
+                   // if (submitelements.length > 0) {
+                
+                
+                
+                
                         // To keep the assignment javascript happy, we need to make some divs for it to
                         // copy the grading data to, just as it would if it was called from the main
                         // submission grading screen. Line 710-728 of /mod/assignment/lib.php can't be
@@ -71,72 +79,93 @@ YAHOO.ajax_marking_block.assignment = (function() {
                         // TODO see if there is a way to grab the outcome ids from the pop up and make
                         // divs using them that will match the ones that the javascript is looking for
                     	
-                    	// TODO is this even needed in 2.0?
-                        var div = document.createElement('div');
-                        div.setAttribute('id', 'com'+clickednode.data.submissionid);
-                        div.style.display = 'none';
-        
-                        var textArea = document.createElement('textarea');
-                        textArea.setAttribute('id', 'submissioncomment'+clickednode.data.submissionid);
-                        textArea.style.display = 'none';
-                        textArea.setAttribute('rows', "2");
-                        textArea.setAttribute('cols', "20");
-                        div.appendChild(textArea);
-                        window.document.getElementById('javaValues').appendChild(div);
-        
-                        var div2 = document.createElement('div');
-                        div2.setAttribute('id', 'g'+clickednode.data.submissionid);
-                        div2.style.display = 'none';
-                        window.document.getElementById('javaValues').appendChild(div2);
-        
-                        var textArea2 = document.createElement('textarea');
-                        textArea2.setAttribute('id', 'menumenu'+clickednode.data.submissionid);
-                        textArea2.style.display = 'none';
-                        textArea2.setAttribute('rows', "2");
-                        textArea2.setAttribute('cols', "20");
-                        window.document.getElementById('g'+clickednode.data.submissionid).appendChild(textArea2);
-        
-                        var div3 = document.createElement('div');
-                        div3.setAttribute('id', 'ts'+clickednode.data.submissionid);
-                        div3.style.display = 'none';
-                        window.document.getElementById('javaValues').appendChild(div3);
-        
-                        var div4 = document.createElement('div');
-                        div4.setAttribute('id', 'tt'+clickednode.data.submissionid);
-                        div4.style.display = 'none';
-                        window.document.getElementById('javaValues').appendChild(div4);
-        
-                        var div5 = document.createElement('div');
-                        div5.setAttribute('id', 'up'+clickednode.data.submissionid);
-                        div5.style.display = 'none';
-                        window.document.getElementById('javaValues').appendChild(div5);
-        
-                        var div6 = document.createElement('div');
-                        div6.setAttribute('id', 'finalgrade_'+clickednode.data.submissionid);
-                        div6.style.display = 'none';
-                        window.document.getElementById('javaValues').appendChild(div6);
-        
+//                    	// TODO is this even needed in 2.0?
+//                        var div = document.createElement('div');
+//                        div.setAttribute('id', 'com'+clickednode.data.submissionid);
+//                        div.style.display = 'none';
+//        
+//                        var textArea = document.createElement('textarea');
+//                        textArea.setAttribute('id', 'submissioncomment'+clickednode.data.submissionid);
+//                        textArea.style.display = 'none';
+//                        textArea.setAttribute('rows', "2");
+//                        textArea.setAttribute('cols', "20");
+//                        div.appendChild(textArea);
+//                        window.document.getElementById('javaValues').appendChild(div);
+//        
+//                        var div2 = document.createElement('div');
+//                        div2.setAttribute('id', 'g'+clickednode.data.submissionid);
+//                        div2.style.display = 'none';
+//                        window.document.getElementById('javaValues').appendChild(div2);
+//        
+//                        var textArea2 = document.createElement('textarea');
+//                        textArea2.setAttribute('id', 'menumenu'+clickednode.data.submissionid);
+//                        textArea2.style.display = 'none';
+//                        textArea2.setAttribute('rows', "2");
+//                        textArea2.setAttribute('cols', "20");
+//                        window.document.getElementById('g'+clickednode.data.submissionid).appendChild(textArea2);
+//        
+//                        var div3 = document.createElement('div');
+//                        div3.setAttribute('id', 'ts'+clickednode.data.submissionid);
+//                        div3.style.display = 'none';
+//                        window.document.getElementById('javaValues').appendChild(div3);
+//        
+//                        var div4 = document.createElement('div');
+//                        div4.setAttribute('id', 'tt'+clickednode.data.submissionid);
+//                        div4.style.display = 'none';
+//                        window.document.getElementById('javaValues').appendChild(div4);
+//        
+//                        var div5 = document.createElement('div');
+//                        div5.setAttribute('id', 'up'+clickednode.data.submissionid);
+//                        div5.style.display = 'none';
+//                        window.document.getElementById('javaValues').appendChild(div5);
+//        
+//                        var div6 = document.createElement('div');
+//                        div6.setAttribute('id', 'finalgrade_'+clickednode.data.submissionid);
+//                        div6.style.display = 'none';
+//                        window.document.getElementById('javaValues').appendChild(div6);
+//        
                         // now add onclick
-                        var functionText  = "return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree(-1, '";
-                            functionText += clickednode.data.uniqueid+"'); ";
-        
-                        submitelements[0]["onclick"] = new Function(functionText);
-                        //submitelements[0]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree(-1, YAHOO.ajax_marking_block.main, '"+me+"', false); "); // IE
-                        saveelements = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName('saveandnext');
-        
-                        if (saveelements.length > 0) {
-                            saveelements[0].style.display = "none";
-                            nextelements = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName('next');
-                            nextelements[0].style.display = "none";
-                        }
+//                        var functionText  = "return YAHOO.ajax_marking_block.markingtree.remove_node_from_tree(-1, '";
+//                            functionText += clickednode.data.uniqueid+"'); ";
+//        
+//                        submitelements[0]["onclick"] = new Function(functionText);
+//                        //submitelements[0]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree(-1, YAHOO.ajax_marking_block.main, '"+me+"', false); "); // IE
+//                        saveelements = YAHOO.ajax_marking_block.popupholder.document.getElementsByName('saveandnext');
+//        
+//                        if (saveelements.length > 0) {
+//                            saveelements[0].style.display = "none";
+//                            nextelements = YAHOO.ajax_marking_block.popupholder.document.getElementsByName('next');
+//                            nextelements[0].style.display = "none";
+//                        }
                         // cancel the timer loop for this function
-                        window.clearInterval(YAHOO.ajax_marking_block.timerVar);
-                    }
-                }
+                        window.clearInterval(YAHOO.ajax_marking_block.popuptimer);
+                    //}
+                //}
             }
         }
     };
 })();
+
+// included here because the assignment pop up expects to have it
+
+var assignment = {};
+
+function setNext(){
+    document.getElementById('submitform').mode.value = 'next';
+    document.getElementById('submitform').userid.value = assignment.nextid;
+}
+
+function saveNext(){
+    document.getElementById('submitform').mode.value = 'saveandnext';
+    document.getElementById('submitform').userid.value = assignment.nextid;
+    document.getElementById('submitform').saveuserid.value = assignment.userid;
+    document.getElementById('submitform').menuindex.value = document.getElementById('submitform').grade.selectedIndex;
+}
+
+function initNext(nextid, usserid) {
+    assignment.nextid = nextid;
+    assignment.userid = userid;
+}
 
 
 

@@ -29,12 +29,12 @@ YAHOO.ajax_marking_block.forum = (function() {
         
             // first, add the onclick if possible
             // TODO - did this change work?
-            var inputtype = typeof(YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input'));
+            var inputtype = typeof(YAHOO.ajax_marking_block.popupholder.document.getElementsByTagName('input'));
             
             if (inputtype != 'undefined') {
-                // if (typeof YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input') != 'undefined') {
+                // if (typeof YAHOO.ajax_marking_block.popupholder.document.getElementsByTagName('input') != 'undefined') {
                 // The window is open with some input. could be loading lots though.
-                inputelements = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
+                inputelements = YAHOO.ajax_marking_block.popupholder.document.getElementsByTagName('input');
         
                 if (inputelements.length > 0) {
                 
@@ -45,12 +45,12 @@ YAHOO.ajax_marking_block.forum = (function() {
                     if (inputelements[key].value == amVariables.forumSaveString) {
                         // IE friendly
                         // TODO - did this change work?
-                        var functionText = "return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree('/mod/forum/rate.php', "
+                        var functionText = "return YAHOO.ajax_marking_block.markingtree.remove_node_from_tree('/mod/forum/rate.php', "
                                            +"'"+clickednode.data.uniqueid+"');";
                         inputelements[key]["onclick"] = new Function(functionText);
                         //els[key]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/forum/rate.php', YAHOO.ajax_marking_block.main, '"+me+"');");
                         // cancel loop for this function
-                        window.clearInterval(YAHOO.ajax_marking_block.timerVar);
+                        window.clearInterval(YAHOO.ajax_marking_block.popuptimer);
         
                     }
                 }

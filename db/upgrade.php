@@ -66,19 +66,19 @@ function amb_update_modules() {
 
                 if (in_array($pieces[0], $installed_modules)) {
 
-                    $modname = $pieces[0];
+                    $modulename = $pieces[0];
 
                     // add the modulename part of the filename to the array
-                    $modules[$modname] = new stdClass;
-                    $modules[$modname]->name = $modname;
+                    $modules[$modulename] = new stdClass;
+                    $modules[$modulename]->name = $modulename;
 
                     // do not store $CFG->dirroot so that any changes to it will not break the block
-                    $modules[$modname]->dir  = str_replace($CFG->dirroot, '', $directory);
-                    //$modules[$modname]->dir  = $directory;
+                    $modules[$modulename]->dir  = str_replace($CFG->dirroot, '', $directory);
+                    //$modules[$modulename]->dir  = $directory;
 
-                    $modules[$modname]->id   = $module_ids[$modname]->id;
+                    $modules[$modulename]->id   = $module_ids[$modulename]->id;
 
-                    echo "Registered $modname module <br />";
+                    echo "Registered $modulename module <br />";
                 }
             }
         }

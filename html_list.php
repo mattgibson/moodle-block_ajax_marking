@@ -46,7 +46,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class AMB_html_list extends ajax_marking_functions {
+class block_ajax_marking_html_list extends ajax_marking_functions {
 
     /**
      * This is to build the initial non-ajax set of html nodes for accessibility and non-javascript
@@ -98,11 +98,11 @@ class AMB_html_list extends ajax_marking_functions {
             $enabledmods = array_keys($enabledmods);
 
             // loop through each module, getting a count for this course id from each one.
-            foreach ($this->modulesettings as $modname => $module) {
+            foreach ($this->modulesettings as $modulename => $module) {
 
-                if (in_array($modname, $enabledmods)) {
+                if (in_array($modulename, $enabledmods)) {
 
-                    $mod_output = $this->$modname->course_assessment_nodes($course->id, true);
+                    $mod_output = $this->$modulename->course_assessment_nodes($course->id, true);
 
                     if ($mod_output['count'] > 0) {
                         $course_count  += $mod_output['count'];
@@ -140,7 +140,7 @@ class AMB_html_list extends ajax_marking_functions {
         if ($this->html_list) {
             return $this->html_list;
         } else {
-            return get_string('nothing', 'block_ajax_marking');
+            return get_string('nothingtomark', 'block_ajax_marking');
         }
 
     }

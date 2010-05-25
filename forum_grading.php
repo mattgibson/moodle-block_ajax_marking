@@ -328,7 +328,7 @@ class forum_functions extends module_base {
                         $timesum = $this->mainobject->make_time_summary($seconds, true);
 
                         if (!isset($discuss)) {
-                            $discuss = get_string('discussion', 'block_ajax_marking');
+                            $discuss = get_string('discussion', 'forum');
                         }
                         $summary = $discuss.': '.$shortsum.'<br />'.$timesum;
 

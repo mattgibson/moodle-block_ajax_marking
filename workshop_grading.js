@@ -2,8 +2,7 @@
 YAHOO.ajax_marking_block.workshop = (function() {
 
     // TODO - did this cahnge work?
-    var currenturl = YAHOO.ajax_marking_block.pop_up_holder.frames[0].location.href;
-    var targeturl = amVariables.wwwroot+'/mod/workshop/assessments.php';
+    
     
     return {
         
@@ -41,26 +40,27 @@ YAHOO.ajax_marking_block.workshop = (function() {
             var els ='';
             // check that the frames are loaded - this can vary according to conditions
             
-            if (typeof YAHOO.ajax_marking_block.pop_up_holder.frames[0] != 'undefined') {
+            if (typeof YAHOO.ajax_marking_block.popupholder.frames[0] != 'undefined') {
             
-        
+                //var currenturl = YAHOO.ajax_marking_block.popupholder.frames[0].location.href;
+               // var targeturl = amVariables.wwwroot+'/mod/workshop/assessments.php';
                 
                 if (currenturl != targeturl) {
                     // this is the early stage, pop up has loaded and grading is occurring
                     // annoyingly, the workshop module has not named its submit button, so we have to
                     // get it using another method as the 11th input
-                    els = YAHOO.ajax_marking_block.pop_up_holder.frames[0].document.getElementsByTagName('input');
+                    els = YAHOO.ajax_marking_block.popupholder.frames[0].document.getElementsByTagName('input');
                     
                     if (els.length == 11) {
                         // TODO - did this change work?
-                        var functiontext = "return YAHOO.ajax_marking_block.main_instance.remove_node_from_tree("
+                        var functiontext = "return YAHOO.ajax_marking_block.markingtree.remove_node_from_tree("
                                          + "'/mod/workshop/assessments.php', '"
                                          + clickednode.data.uniqueid+"');";
                         els[10]['onclick'] = new Function(functiontext);
                         // els[10]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/workshop/assessments.php', YAHOO.ajax_marking_block.main, '"+me+"', true);"); // IE
                         
                         // cancel timer loop
-                        window.clearInterval(YAHOO.ajax_marking_block.timerVar);
+                        window.clearInterval(YAHOO.ajax_marking_block.popuptimer);
                     }
                 }
             }
