@@ -737,15 +737,20 @@ class ajax_marking_functions {
          $groups = trim($groups);
          $groups_array = explode(' ', $groups);
 
-         foreach ($this->group_members as $group_member) {
+         if ($this->groups) {
 
-             $gid = $group_member->groupid;
+             foreach ($this->group_members as $group_member) {
 
-             foreach ($groups_array as $group) {
-                if ($gid == $group) {
-                    $uid = $group_member->userid;
-                    if ($uid == $memberid) {
-                        return true;
+                 $gid = $group_member->groupid;
+
+                 foreach ($groups_array as $group) {
+
+                    if ($gid == $group) {
+                        $uid = $group_member->userid;
+                        
+                        if ($uid == $memberid) {
+                            return true;
+                        }
                     }
                 }
             }
