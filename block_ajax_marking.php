@@ -10,7 +10,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2010061001;
+        $this->version = 2010061002;
     }
 
     function specialization() {
@@ -23,20 +23,20 @@ class block_ajax_marking extends block_base {
             return $this->content;
         }
 
-       global $CFG, $USER;
+        global $CFG, $USER;
        
 
-       // admins will have a problem as they will see all the courses on the entire site
-       // retrieve the teacher role id (3)
-       $teacher_role     =  get_field('role','id','shortname','editingteacher');
-       // retrieve the non-editing teacher role id (4)
-       $ne_teacher_role  =  get_field('role','id','shortname','teacher'); 
+        // admins will have a problem as they will see all the courses on the entire site
+        // retrieve the teacher role id (3)
+        $teacher_role     =  get_field('role','id','shortname','editingteacher');
+        // retrieve the non-editing teacher role id (4)
+        $ne_teacher_role  =  get_field('role','id','shortname','teacher');
 
-       // check to see if any roles allow grading of assessments
-       $coursecheck = 0;
-       $courses = get_my_courses($USER->id, 'fullname', 'id, visible');
+        // check to see if any roles allow grading of assessments
+        $coursecheck = 0;
+        $courses = get_my_courses($USER->id, 'fullname', 'id, visible');
 
-       foreach ($courses as $course) {
+        foreach ($courses as $course) {
 
             // exclude the front page
             if ($course->id == 1) {

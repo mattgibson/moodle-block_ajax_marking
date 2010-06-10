@@ -50,6 +50,8 @@ class journal_functions extends module_base {
 
         global $CFG;
 
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
+
         $sql = "SELECT je.id as entryid, je.userid, j.intro as description, j.course, j.name,
                        j.timemodified, j.id, c.id as cmid
                   FROM {$CFG->prefix}journal_entries je
@@ -57,11 +59,12 @@ class journal_functions extends module_base {
                     ON je.journal = j.id
             INNER JOIN {$CFG->prefix}course_modules c
                     ON j.id = c.instance
+            INNER JOIN ({$student_sql}) as stsql
+                    ON je.userid = stsql.id
                  WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
                    AND c.visible = 1
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
-                   AND je.userid IN({$this->mainobject->student_ids->$courseid})
                    AND j.course = {$courseid}";
 
         $unmarked = get_records_sql($sql);
@@ -105,6 +108,8 @@ class journal_functions extends module_base {
             return;
         }
 
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
+
         $this->mainobject->get_course_students($courseid);
 
         $sql = "SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified,
@@ -114,11 +119,12 @@ class journal_functions extends module_base {
                     ON je.journal = j.id
             INNER JOIN {$CFG->prefix}course_modules c
                     ON j.id = c.instance
+            INNER JOIN ({$student_sql}) as stsql
+                    ON je.userid = stsql.id
                  WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
                    AND c.visible = 1
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
-                   AND je.userid IN({$this->mainobject->student_ids->$courseid})
                    AND j.id = {$journal->id}";
 
         $submissions = get_records_sql($sql);

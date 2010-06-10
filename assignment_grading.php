@@ -113,6 +113,7 @@ class assignment_functions extends module_base {
 
         global $CFG;
         $unmarked = '';
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
         
         $sql = "SELECT s.id as subid, s.userid, a.id, a.name,
                        a.course, a.description, c.id as cmid
@@ -121,13 +122,16 @@ class assignment_functions extends module_base {
                     ON a.id = c.instance
             INNER JOIN {$CFG->prefix}assignment_submissions s
                     ON s.assignment = a.id
+            INNER JOIN ({$student_sql}) as stsql
+                    ON s.userid = stsql.id
+
+
                  WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
                    AND c.visible = 1
                    AND a.course = $courseid
                    AND s.timemarked < s.timemodified
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
                         OR (a.assignmenttype = 'upload'  AND s.data2 != 'submitted'))
-                   AND s.userid IN({$this->mainobject->student_ids->$courseid})
               ORDER BY a.id";
 
         $unmarked = get_records_sql($sql);
@@ -155,8 +159,10 @@ class assignment_functions extends module_base {
         if (!has_capability($this->capability, $modulecontext, $USER->id)) {
             return;
         }
-
+        
         $this->mainobject->get_course_students($courseid);
+
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
 
         $sql = "SELECT s.id as subid, s.userid, s.timemodified, c.id as cmid
                   FROM {$CFG->prefix}assignment_submissions s
@@ -164,8 +170,9 @@ class assignment_functions extends module_base {
                     ON s.assignment = c.instance
             INNER JOIN {$CFG->prefix}assignment a
                     ON s.assignment = a.id
+            INNER JOIN ({$student_sql}) as stsql
+                    ON s.userid = stsql.id
                  WHERE s.assignment = {$this->mainobject->id}
-                   AND s.userid IN ({$this->mainobject->student_ids->$courseid})
                    AND s.timemarked < s.timemodified
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
                        OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
@@ -194,6 +201,7 @@ class assignment_functions extends module_base {
 
                 //$group_filter = $this->mainobject->try_to_make_group_nodes($data);
                 $group_filter = $this->mainobject->try_to_make_group_nodes($submissions, $this->type, $this->mainobject->id, $assignment->course);
+
                 if (!$group_filter) {
                     return;
                 }

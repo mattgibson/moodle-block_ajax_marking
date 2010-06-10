@@ -42,6 +42,11 @@ YAHOO.ajax_marking_block.assignment.alter_popup = function(node_id, user_id) {
     var els2 = '';
     var els3 = '';
 
+    if (YAHOO.ajax_marking_block.pop_up_holder.closed) {
+        window.clearInterval(YAHOO.ajax_marking_block.timerVar);
+        return true;
+    }
+
     // when the DOM is ready, add the onclick events and hide the other buttons
     if (YAHOO.ajax_marking_block.pop_up_holder.window.document) {
         if (YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByName) {

@@ -27,6 +27,11 @@ YAHOO.ajax_marking_block.quiz.alter_popup = function (node_unique_id) {
     var els = '';
     var lastButOne = '';
 
+    if (YAHOO.ajax_marking_block.pop_up_holder.closed) {
+        window.clearInterval(YAHOO.ajax_marking_block.timerVar);
+        return true;
+    }
+
     if (typeof YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByTagName('input') != 'undefined') {
         // window is open with some input. could be loading lots though.
         els = YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByTagName('input');

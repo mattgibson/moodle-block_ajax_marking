@@ -54,7 +54,9 @@ class quiz_functions extends module_base {
     function get_all_course_unmarked($courseid) {
 
         global $CFG;
-        // 
+
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
+        
         $sql = "SELECT qsess.id as qsessid, qa.userid, qz.id, qz.course,
                        qz.intro as description, qz.name, c.id as cmid
                   FROM {$CFG->prefix}quiz qz
@@ -68,8 +70,9 @@ class quiz_functions extends module_base {
                     ON qsess.newest = qst.id
             INNER JOIN {$CFG->prefix}question q
                     ON qsess.questionid = q.id
-                 WHERE qa.userid IN ({$this->mainobject->student_ids->$courseid})
-                   AND qa.timefinish > 0
+            INNER JOIN ({$student_sql}) as stsql
+                    ON qa.userid = stsql.id
+                 WHERE qa.timefinish > 0
                    AND qa.preview = 0
                    AND c.module = {$this->mainobject->modulesettings['quiz']->id}
                    AND c.visible = 1
@@ -113,6 +116,8 @@ class quiz_functions extends module_base {
                       FROM {$CFG->prefix}quiz
                      WHERE id = {$this->mainobject->id}";
         $csv_questions = get_record_sql($csv_sql);
+
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
         
         $sql = "SELECT qst.id as qstid, qa.userid, qst.event, qs.questionid as id, q.name,
                        q.questiontext as description, q.qtype, qa.timemodified
@@ -123,9 +128,9 @@ class quiz_functions extends module_base {
                     ON qs.questionid = q.id
             INNER JOIN {$CFG->prefix}quiz_attempts qa
                     ON qs.attemptid = qa.uniqueid
+            INNER JOIN ({$student_sql}) as stsql
+                    ON qa.userid = stsql.id
                  WHERE qa.quiz = $quiz->id
-                   AND qa.userid
-                    IN ({$this->mainobject->student_ids->$courseid})
                    AND qa.timefinish > 0
                    AND qa.preview = 0
                    AND qs.questionid IN ($csv_questions->questions)
@@ -222,6 +227,8 @@ class quiz_functions extends module_base {
             return;
         }
 
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
+
         $this->mainobject->get_course_students($quiz->course);
 
         $sql = "SELECT COUNT(qst.id) AS count, qa.userid, qs.questionid, MIN(qst.timestamp) as timestamp
@@ -230,8 +237,9 @@ class quiz_functions extends module_base {
                     ON qs.newest = qst.id
             INNER JOIN {$CFG->prefix}quiz_attempts qa
                     ON qs.attemptid = qa.uniqueid
+            INNER JOIN ({$student_sql}) as stsql
+                    ON qa.userid = stsql.id
                  WHERE qa.quiz = {$this->mainobject->secondary_id}
-                   AND qa.userid IN ({$this->mainobject->student_ids->$courseid})
                    AND qa.timefinish > 0
                    AND qa.preview = 0
                    AND qs.questionid = {$this->mainobject->id}

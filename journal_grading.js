@@ -22,6 +22,11 @@ YAHOO.ajax_marking_block.journal.pop_up_opening_url = function (node) {
  */
 YAHOO.ajax_marking_block.journal.alter_popup = function (node_unique_id) {
 
+    if (YAHOO.ajax_marking_block.pop_up_holder.closed) {
+        window.clearInterval(YAHOO.ajax_marking_block.timerVar);
+        return true;
+    }
+
     // get the form submit input, which is always last but one (length varies)
     var input_elements = YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByTagName('input');
 

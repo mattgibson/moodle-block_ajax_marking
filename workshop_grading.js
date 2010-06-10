@@ -33,6 +33,12 @@ YAHOO.ajax_marking_block.workshop_final.pop_up_opening_url = function (node) {
  * unless the client is horribly slow. A better implementation will follow sometime soon.
  */
 YAHOO.ajax_marking_block.workshop_final.alter_popup = function (node_id, user_id) {
+
+    if (YAHOO.ajax_marking_block.pop_up_holder.closed) {
+        window.clearInterval(YAHOO.ajax_marking_block.timerVar);
+        return true;
+    }
+
     var els ='';
     // check that the frames are loaded - this can vary according to conditions
     if (typeof YAHOO.ajax_marking_block.pop_up_holder.frames[0] != 'undefined') {

@@ -69,7 +69,10 @@ YAHOO.ajax_marking_block.tree_base.prototype.request_node_data = function(clicke
 
     // Allow modules to add extra arguments to the AJAX request if necessary
     var type_array = clicked_node.data.type.split('_');
+
+    // TODO - sometimes this is called on 
     var type_object = eval('YAHOO.ajax_marking_block.'+type_array[0]);
+
     if ((typeof (type_object) != 'undefined') && (typeof (type_object.extra_ajax_request_arguments) != 'undefined')) {
         postData += type_object.extra_ajax_request_arguments(clicked_node);
     }
@@ -151,6 +154,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
         this.div.appendChild(message_div);
         this.icon.removeAttribute('class', 'loaderimage');
         this.icon.removeAttribute('className', 'loaderimage');
+        
         if (!document.getElementById('AMBcollapse')) {
             YAHOO.ajax_marking_block.make_footer();
         }
@@ -268,30 +272,12 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
                 'clickEvent',
                 function(click_arguments) {
 
+                    
+
                     var AJAXdata  = '';
 
                     // function to make checkboxes for each of the three main options
-                    function makeBox(value, id, label) {
-                        try{
-                            box = document.createElement('<input type="radio" name="showhide" />');
-                        }catch(error){
-                            box = document.createElement('input');
-                        }
-                        box.setAttribute('type','radio');
-                        box.setAttribute('name','showhide');
-                        box.value = value;
-                        box.id    = id;
-                        box.onclick = function() {
-                            YAHOO.ajax_marking_block.request_config_checkbox_data(this);
-                        };
-                        formDiv.appendChild(box);
-
-                        var boxText = document.createTextNode(label);
-                        formDiv.appendChild(boxText);
-
-                        var breaker = document.createElement('br');
-                        formDiv.appendChild(breaker);
-                    }
+                    
 
                     // remove group nodes from the previous item if they are there.
                     YAHOO.ajax_marking_block.remove_config_groups();
@@ -325,18 +311,21 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
                         hidden3.value = (click_arguments.node.data.type == 'config_course') ? 'course' : click_arguments.node.data.type;
                     formDiv.appendChild(hidden3);
 
+
+
+
                     // For non courses, add a default checkbox that will remove the record
                     if (click_arguments.node.data.type != 'config_course') {
-                        makeBox('default', 'config0', amVariables.confDefault);
-                        // make the three main checkboxes, appending them to the form as we go along
-                        makeBox('show',    'config1', amVariables.confAssessmentShow);
-                        makeBox('groups',  'config2', amVariables.confGroups);
-                        makeBox('hide',    'config3', amVariables.confAssessmentHide);
+                        YAHOO.ajax_marking_block.makeBox('default', 'config0', amVariables.confDefault, formDiv);
+
+                        YAHOO.ajax_marking_block.makeBox('show',    'config1', amVariables.confAssessmentShow, formDiv);
+                        YAHOO.ajax_marking_block.makeBox('groups',  'config2', amVariables.confGroups, formDiv);
+                        YAHOO.ajax_marking_block.makeBox('hide',    'config3', amVariables.confAssessmentHide, formDiv);
 
                     } else {
-                        makeBox('show',    'config1', amVariables.confCourseShow);
-                        makeBox('groups',  'config2', amVariables.confGroups);
-                        makeBox('hide',    'config3', amVariables.confCourseHide);
+                        YAHOO.ajax_marking_block.makeBox('show',    'config1', amVariables.confCourseShow, formDiv);
+                        YAHOO.ajax_marking_block.makeBox('groups',  'config2', amVariables.confGroups, formDiv);
+                        YAHOO.ajax_marking_block.makeBox('hide',    'config3', amVariables.confCourseHide, formDiv);
 
                     }
 
@@ -375,8 +364,6 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_group_nodes = function(respon
     for (var n =0; n<arrayLength; n++) {
 
         tmpNode4 = new YAHOO.widget.TextNode(responseArray[n], YAHOO.ajax_marking_block.node_holder, false);
-
-       // AJAXtree.textNodeMap[tmpNode4.labelElId] = tmpNode4;
 
         tmpNode4.labelStyle = 'icon-group';
 
@@ -780,6 +767,36 @@ YAHOO.ajax_marking_block.add_tooltips = function(tree) {
     }
     return false;
 };
+
+/**
+ * Makes one of the config checkboxes and attaches it to the form next to the config tree
+ */
+YAHOO.ajax_marking_block.makeBox = function(value, id, label, formDiv) {
+
+    var box = '';
+
+    try{
+        box = document.createElement('<input type="radio" name="showhide" />');
+    }catch(error){
+        box = document.createElement('input');
+    }
+    box.setAttribute('type','radio');
+    box.setAttribute('name','showhide');
+    box.value = value;
+    box.id    = id;
+    box.onclick = function() {
+        YAHOO.ajax_marking_block.request_config_checkbox_data(this);
+    };
+    formDiv.appendChild(box);
+
+    var boxText = document.createTextNode(label);
+    formDiv.appendChild(boxText);
+
+    var breaker = document.createElement('br');
+    formDiv.appendChild(breaker);
+
+};
+
 
 /**
  * This function enables the config popup radio buttons again after the AJAX request has

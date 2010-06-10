@@ -46,22 +46,27 @@ class workshop_functions extends module_base {
     function get_all_course_unmarked($courseid) {
 
         global $CFG, $USER;
+
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
+
         $sql = "SELECT s.id as submissionid, s.userid, w.id, w.name, w.course,
                        w.description, c.id as cmid
                   FROM ({$CFG->prefix}workshop w
             INNER JOIN {$CFG->prefix}course_modules c
                     ON w.id = c.instance)
+            
              LEFT JOIN {$CFG->prefix}workshop_submissions s
                     ON s.workshopid = w.id
              LEFT JOIN {$CFG->prefix}workshop_assessments a
                     ON (s.id = a.submissionid)
+             INNER JOIN ({$student_sql}) as stsql
+                    ON s.userid = stsql.id
                  WHERE (a.userid != {$USER->id}
                     OR (a.userid = {$USER->id}
                    AND a.grade = -1))
                    AND c.module = {$this->mainobject->modulesettings['workshop']->id}
                    AND c.visible = 1
                    AND w.course = {$courseid}
-                   AND s.userid IN ({$this->mainobject->student_ids->$courseid})
               ORDER BY w.id";
 
         $unmarked = get_records_sql($sql);
@@ -76,6 +81,7 @@ class workshop_functions extends module_base {
         $courseid = $workshop->course;
        
         $this->mainobject->get_course_students($workshop->course);
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
         
         $now = time();
         // fetch workshop submissions for this workshop where there is no corresponding record of
@@ -86,11 +92,12 @@ class workshop_functions extends module_base {
                     ON (s.id = a.submissionid)
             INNER JOIN {$CFG->prefix}workshop w
                     ON s.workshopid = w.id
+            INNER JOIN ({$student_sql}) as stsql
+                    ON s.userid = stsql.id
                  WHERE (a.userid != {$USER->id}
                     OR (a.userid = {$USER->id}
                    AND a.grade = -1))
                    AND s.workshopid = {$this->mainobject->id}
-                   AND s.userid IN ({$this->mainobject->student_ids->$courseid})
                    AND w.assessmentstart < {$now}
               ORDER BY s.timecreated ASC";
 

@@ -45,6 +45,7 @@ class ajax_marking_functions {
         $this->student_ids       = '';
         $this->student_array     = '';
         $this->student_details   = array();
+        $this->course_contexts   = array();
 
         if ($html) {
             $this->type = 'html';
@@ -181,12 +182,15 @@ class ajax_marking_functions {
             $student_details = array();
 
             // get the roles that are specified as graded in site config settings
-            $student_roles = get_field('config','value', 'name', 'gradebookroles');
+            if (empty($this->student_roles)) {
+                $this->student_roles = get_field('config','value', 'name', 'gradebookroles');
+            }
 
             // get students in this course with this role. This defaults to getting them from higher
             // up contexts too. If you don't need this and want to avoid the performance hit, replace
             // 'true' with 'false' in the next line
-            $course_students = get_role_users($student_roles, $course_context, true);
+            $course_students = get_role_users($this->student_roles, $course_context, true);
+
             if ($course_students) {
                 // we have an array of objects, which we need to get the student ids out of and into
                 // a comma separated list
@@ -651,9 +655,7 @@ class ajax_marking_functions {
         // find the relevant row of the config object
         $settings = $this->get_groups_settings($assessmenttype, $assessmentid);
 
-        //if (!isset($assessment->course)) {
-           // print_r($assessment);
-       // }
+        
 
         $course_settings = $this->get_groups_settings('course', $courseid);
 
@@ -663,7 +665,7 @@ class ajax_marking_functions {
             } else {
                 return true;
             }
-        } elseif ($course_settings) {
+        } else if ($course_settings) {
             // if there was no settings object for the item, check for a course level default
             if ($course_settings->showhide == AMB_CONF_HIDE) {
                 return false;
@@ -701,6 +703,7 @@ class ajax_marking_functions {
             $displaywithoutgroups = ($settings->showhide == AMB_CONF_SHOW);
             $displaywithgroups    = ($settings->showhide == AMB_CONF_GROUPS);
             $intherightgroup      = $this->check_group_membership($settings->groups, $submission->userid);
+
             if ($displaywithoutgroups || ($displaywithgroups && $intherightgroup)) {
                 return true;
             }
@@ -737,7 +740,7 @@ class ajax_marking_functions {
          $groups = trim($groups);
          $groups_array = explode(' ', $groups);
 
-         if ($this->groups) {
+         if (!empty($this->groups)) {
 
              foreach ($this->group_members as $group_member) {
 
@@ -1143,11 +1146,15 @@ class module_base {
             // get_groups_settings function call later for each submission
             
             // This assessment might be set to 'hidden'
+            //echo $this->mainobject->check_assessment_display_settings('quiz', 1, 2);
+
+
             if (!$this->mainobject->check_assessment_display_settings($this->type, $assessment->id, $course)) {
                 unset($this->assessment_ids[$key]);
             }
             
         }
+
         
         $count = 0;
         
@@ -1182,6 +1189,10 @@ class module_base {
             $count++;
         }
         return $count;
+
+         if ($this->type == 'quiz') {
+             print_r($this->assessment_ids);
+        }
     }
 
     /**
@@ -1406,6 +1417,57 @@ class module_base {
 
         //$levels = count($this->functions) + 2;
         return $this->levels;
+    }
+
+    /**
+     * Rather than waste resources getting loads of students we don't need via get_role_users() then
+     * cross referencing, we use this to drop the right SQL into a sub query. Without it, some large
+     * installations hit a barrier using IN($course_students) e.g. oracle can't cope with more than
+     * 1000 expressions in an IN() clause
+     *
+     * @param object $context the context object we want to get users for
+     * @param bool $parent should we look in higher contexts too?
+     */
+    function get_role_users_sql($context, $parent=true) {
+
+        global $CFG;
+
+        $parentcontexts = '';
+
+        if ($parent) {
+            $parentcontexts = substr($context->path, 1); // kill leading slash
+            $parentcontexts = str_replace('/', ',', $parentcontexts);
+
+            if ($parentcontexts !== '') {
+                $parentcontexts = ' OR ra.contextid IN ('.$parentcontexts.' )';
+            }
+        }
+
+        // get the roles that are specified as graded in site config settings. Will sometimes be here,
+        // sometimes not depending on ajax call
+        if (empty($this->mainobject->student_roles)) {
+            $this->mainobject->student_roles = get_field('config','value', 'name', 'gradebookroles');
+        }
+
+        if (is_array($this->mainobject->student_roles)) {
+            $roleselect = ' AND ra.roleid IN ('.implode(',', $this->mainobject->student_roles).')';
+        } elseif (!empty($this->mainobject->student_roles)) { // should not test for int, because it can come in as a string
+            $roleselect = "AND ra.roleid = {$this->mainobject->student_roles}";
+        } else {
+            $roleselect = '';
+        }
+
+        $sql = "SELECT u.id
+                  FROM {$CFG->prefix}role_assignments ra
+                  JOIN {$CFG->prefix}user u
+                    ON u.id = ra.userid
+                  JOIN {$CFG->prefix}role r
+                    ON ra.roleid = r.id
+                 WHERE (ra.contextid = $context->id $parentcontexts)
+                 $roleselect";
+
+        return $sql;
+
     }
 
 

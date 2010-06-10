@@ -23,6 +23,11 @@ YAHOO.ajax_marking_block.forum.pop_up_arguments = function (node) {
 YAHOO.ajax_marking_block.forum.alter_popup = function (node_unique_id) {
     var input_elements ='';
 
+    if (YAHOO.ajax_marking_block.pop_up_holder.closed) {
+        window.clearInterval(YAHOO.ajax_marking_block.timerVar);
+        return true;
+    }
+
     // first, add the onclick if possible
     // TODO - did this change work?
     var input_type = typeof YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByTagName('input');

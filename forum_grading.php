@@ -54,6 +54,7 @@ class forum_functions extends module_base {
 
         global $CFG, $USER;
         $unmarked = '';
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
 
         $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.course, f.type, f.id, f.name,
                        f.intro as description, c.id as cmid
@@ -64,10 +65,11 @@ class forum_functions extends module_base {
                     ON d.forum = f.id
             INNER JOIN {$CFG->prefix}forum_posts p
                     ON p.discussion = d.id
+            INNER JOIN ({$student_sql}) as stsql
+                    ON p.userid = stsql.id
              LEFT JOIN {$CFG->prefix}forum_ratings r
                     ON p.id = r.post
                  WHERE p.userid <> $USER->id
-                   AND p.userid IN ({$this->mainobject->student_ids->$courseid})
                    AND (((r.userid <> $USER->id) AND (r.userid NOT IN ({$this->mainobject->teachers})))
                        OR r.userid IS NULL)
                    AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
@@ -100,6 +102,8 @@ class forum_functions extends module_base {
             return;
         }
 
+        $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
+
         // get ready to fetch all the unrated posts
         $sql = "SELECT p.id, p.userid, p.created, p.message, d.id as discussionid
                   FROM {$CFG->prefix}forum_discussions d ";
@@ -111,11 +115,12 @@ class forum_functions extends module_base {
 
         $sql .= "INNER JOIN {$CFG->prefix}forum_posts p
                          ON p.discussion = d.id
+                 INNER JOIN ({$student_sql}) as stsql
+                         ON p.userid = stsql.id
                   LEFT JOIN {$CFG->prefix}forum_ratings r
                          ON  p.id = r.post
                       WHERE d.forum = {$this->mainobject->id}
                         AND p.userid <> {$USER->id}
-                        AND p.userid IN ({$this->mainobject->student_ids->$courseid})
                         AND (((r.userid <> {$USER->id})
                             AND (r.userid NOT IN ({$this->mainobject->teachers})))
                             OR r.userid IS NULL) ";
