@@ -23,7 +23,7 @@ YAHOO.ajax_marking_block.journal.pop_up_opening_url = function (node) {
 YAHOO.ajax_marking_block.journal.alter_popup = function (node_unique_id) {
 
     // get the form submit input, which is always last but one (length varies)
-    var input_elements = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
+    var input_elements = YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByTagName('input');
 
     // TODO - might catch the pop up half loaded. Not ideal.
     if (typeof(input_elements) != 'undefined' && input_elements.length > 0) {

@@ -6,7 +6,9 @@
     //echo "<br />";
 
     function icon_check($icon_name, $type) {
+
         global $CFG, $USER, $THEME;
+        
         if ($type=='mod') {
             $icon_name_mod = '/theme/'.current_theme().'/pix/'.$icon_name;
         } else {

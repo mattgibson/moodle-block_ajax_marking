@@ -43,9 +43,9 @@ YAHOO.ajax_marking_block.assignment.alter_popup = function(node_id, user_id) {
     var els3 = '';
 
     // when the DOM is ready, add the onclick events and hide the other buttons
-    if (YAHOO.ajax_marking_block.pop_up_holder.document) {
-        if (YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName) {
-            els = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByName('submit');
+    if (YAHOO.ajax_marking_block.pop_up_holder.window.document) {
+        if (YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByName) {
+            els = YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByName('submit');
             // the above line will not return anything until the pop up is fully loaded
             if (els.length > 0) {
                 // To keep the assignment javascript happy, we need to make some divs for it to

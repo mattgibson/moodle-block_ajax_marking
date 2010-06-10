@@ -25,11 +25,11 @@ YAHOO.ajax_marking_block.forum.alter_popup = function (node_unique_id) {
 
     // first, add the onclick if possible
     // TODO - did this change work?
-    var input_type = typeof YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
+    var input_type = typeof YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByTagName('input');
     if (input_type != 'undefined') {
     // if (typeof YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input') != 'undefined') {
         // The window is open with some input. could be loading lots though.
-        input_elements = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
+        input_elements = YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByTagName('input');
 
         if (input_elements.length > 0) {
             var key = input_elements.length -1;

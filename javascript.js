@@ -1510,7 +1510,7 @@ var  ajax_marking_block_callback = {
  */
 YAHOO.ajax_marking_block.initialise = function() {
     // workaround for odd https setups. Probably not needed in most cases
-    if ( document.location.toString().indexOf( 'https://' ) != -1 ) {
+    if ( document.location.toString().indexOf('https://') != -1) {
         amVariables.wwwroot = amVariables.wwwroot.replace('http:', 'https:');
     }
     // the context menu needs this for the skin to show up, as do other bits

@@ -217,14 +217,14 @@ class quiz_functions extends module_base {
         //permission to grade?
         $coursemodule = get_record('course_modules', 'course', $quiz->course, 'module', $this->mainobject->modulesettings['quiz']->id, 'instance', $quiz->id) ;
         $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
+        
         if (!has_capability($this->capability, $modulecontext, $USER->id)) {
             return;
         }
 
         $this->mainobject->get_course_students($quiz->course);
-        // 
 
-        $sql = "SELECT qst.id, COUNT(DISTINCT qst.id) as count, qa.userid, qst.event, qs.questionid, qst.timestamp
+        $sql = "SELECT COUNT(qst.id) AS count, qa.userid, qs.questionid, MIN(qst.timestamp) as timestamp
                   FROM {$CFG->prefix}question_states qst
             INNER JOIN {$CFG->prefix}question_sessions qs
                     ON qs.newest = qst.id
@@ -237,7 +237,7 @@ class quiz_functions extends module_base {
                    AND qs.questionid = {$this->mainobject->id}
                    AND qst.event NOT IN (3,6,9)
               GROUP BY qa.userid, qs.questionid
-              ORDER BY qa.timemodified";
+              ORDER BY timestamp ASC";
 
         $question_attempts = get_records_sql($sql);
 

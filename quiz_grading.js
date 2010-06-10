@@ -27,9 +27,9 @@ YAHOO.ajax_marking_block.quiz.alter_popup = function (node_unique_id) {
     var els = '';
     var lastButOne = '';
 
-    if (typeof YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input') != 'undefined') {
+    if (typeof YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByTagName('input') != 'undefined') {
         // window is open with some input. could be loading lots though.
-        els = YAHOO.ajax_marking_block.pop_up_holder.document.getElementsByTagName('input');
+        els = YAHOO.ajax_marking_block.pop_up_holder.window.document.getElementsByTagName('input');
 
         if (els.length > 14) {
             // there is at least the DOM present for a single attempt, but if the student has
