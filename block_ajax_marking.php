@@ -10,7 +10,7 @@ class block_ajax_marking extends block_base {
  
     function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2010061002;
+        $this->version = 2010061101;
     }
 
     function specialization() {
@@ -81,7 +81,7 @@ class block_ajax_marking extends block_base {
 
             // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if
             // necessary
-            include('html_list.php');
+            require_once($CFG->dirroot.'/blocks/ajax_marking/html_list.php');
             $AMB_html_list_object = new AMB_html_list;
             $this->content->text .= '<div id="AMB_html_list">';
             $this->content->text .= $AMB_html_list_object->make_html_list();
