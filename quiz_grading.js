@@ -16,7 +16,7 @@ YAHOO.ajax_marking_block.quiz.extra_ajax_request_arguments = function (node) {
     if (node.data.type == 'quiz_question') {
         return '&secondary_id='+node.parent.data.id;
     } else {
-        return true;
+        return '';
     }
 }
 

@@ -59,10 +59,10 @@ class journal_functions extends module_base {
                     ON je.journal = j.id
             INNER JOIN {$CFG->prefix}course_modules c
                     ON j.id = c.instance
-            INNER JOIN ({$student_sql}) as stsql
-                    ON je.userid = stsql.id
+          
                  WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
                    AND c.visible = 1
+                   AND (je.userid IN ({$student_sql}))
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
                    AND j.course = {$courseid}";
@@ -119,10 +119,10 @@ class journal_functions extends module_base {
                     ON je.journal = j.id
             INNER JOIN {$CFG->prefix}course_modules c
                     ON j.id = c.instance
-            INNER JOIN ({$student_sql}) as stsql
-                    ON je.userid = stsql.id
+      
                  WHERE c.module = {$this->mainobject->modulesettings['journal']->id}
                    AND c.visible = 1
+                   AND (je.userid IN ({$student_sql}))
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
                    AND j.id = {$journal->id}";

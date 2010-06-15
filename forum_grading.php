@@ -58,6 +58,7 @@ class forum_functions extends module_base {
 
         $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.course, f.type, f.id, f.name,
                        f.intro as description, c.id as cmid
+
                   FROM {$CFG->prefix}forum f
             INNER JOIN {$CFG->prefix}course_modules c
                     ON f.id = c.instance
@@ -65,18 +66,19 @@ class forum_functions extends module_base {
                     ON d.forum = f.id
             INNER JOIN {$CFG->prefix}forum_posts p
                     ON p.discussion = d.id
-            INNER JOIN ({$student_sql}) as stsql
-                    ON p.userid = stsql.id
              LEFT JOIN {$CFG->prefix}forum_ratings r
                     ON p.id = r.post
+
                  WHERE p.userid <> $USER->id
                    AND (((r.userid <> $USER->id) AND (r.userid NOT IN ({$this->mainobject->teachers})))
                        OR r.userid IS NULL)
                    AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
                    AND c.module = {$this->mainobject->modulesettings['forum']->id}
                    AND c.visible = 1
+                   AND (p.userid IN ({$student_sql}))
                    AND f.course = $courseid
                    AND f.assessed > 0
+                   
               ORDER BY f.id";
                 
         $unmarked = get_records_sql($sql);
@@ -115,12 +117,11 @@ class forum_functions extends module_base {
 
         $sql .= "INNER JOIN {$CFG->prefix}forum_posts p
                          ON p.discussion = d.id
-                 INNER JOIN ({$student_sql}) as stsql
-                         ON p.userid = stsql.id
                   LEFT JOIN {$CFG->prefix}forum_ratings r
                          ON  p.id = r.post
                       WHERE d.forum = {$this->mainobject->id}
                         AND p.userid <> {$USER->id}
+                        AND (p.userid IN ({$student_sql}))
                         AND (((r.userid <> {$USER->id})
                             AND (r.userid NOT IN ({$this->mainobject->teachers})))
                             OR r.userid IS NULL) ";

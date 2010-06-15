@@ -74,18 +74,19 @@ class assignment_functions extends module_base {
     }
 
 
-
     // procedures to fetch data and store it in the object
 
     /**
      * function called from courses() which returns all
      * unmarked assignments from all courses ready for sorting through and counting
+     * 
      * @return Boolean
      */
     function get_all_unmarked() {
 
         global $CFG;
-        $sql = "SELECT s.id as subid, s.userid, a.course, a.name, a.description, a.id, c.id as cmid
+
+        $sql = "SELECT s.id as subid, s.userid, s.data2, a.course, a.assignmenttype, a.name, a.description, a.id, c.id as cmid
                   FROM {$CFG->prefix}assignment a
             INNER JOIN {$CFG->prefix}course_modules c
                     ON a.id = c.instance
@@ -95,11 +96,28 @@ class assignment_functions extends module_base {
                    AND c.visible = 1
                    AND a.course IN ({$this->mainobject->course_ids})
                    AND s.timemarked < s.timemodified
-               AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
-                    OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
+               AND NOT (a.resubmit = 0 AND s.timemarked > 0)
               ORDER BY a.id";
-         $this->all_submissions = get_records_sql($sql);
-         return true;
+
+        $unmarked = get_records_sql($sql);
+
+        // Due to oracle being rubbish, there is no way to put this bit into sql as the data2 field is
+        // a CLOB and so cannot be used with any kind of comparison operator.
+        // It used to be:
+        // AND NOT (a.assignmenttype = 'upload'  AND s.data2 != 'submitted'))
+        
+
+        foreach ($unmarked as $key => $submission) {
+
+            if (($submission->data2 != 'submitted') && ($submission->assignmenttype == 'upload')) {
+                unset($unmarked[$key]);
+            }
+        }
+        
+
+        $this->all_submissions = $unmarked;
+
+        return true;
     }
 
 
@@ -114,30 +132,36 @@ class assignment_functions extends module_base {
         global $CFG;
         $unmarked = '';
         $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
-        
-        $sql = "SELECT s.id as subid, s.userid, a.id, a.name,
-                       a.course, a.description, c.id as cmid
+
+        $sql = "SELECT s.id as subid, s.userid, s.data2, a.id, a.name, a.assignmenttype,
+                       a.course, a.description, a.assignmenttype, c.id as cmid
                   FROM {$CFG->prefix}assignment a
             INNER JOIN {$CFG->prefix}course_modules c
                     ON a.id = c.instance
             INNER JOIN {$CFG->prefix}assignment_submissions s
                     ON s.assignment = a.id
-            INNER JOIN ({$student_sql}) as stsql
-                    ON s.userid = stsql.id
-
 
                  WHERE c.module = {$this->mainobject->modulesettings['assignment']->id}
                    AND c.visible = 1
+                   AND (s.userid IN ({$student_sql}))
                    AND a.course = $courseid
                    AND s.timemarked < s.timemodified
-               AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
-                        OR (a.assignmenttype = 'upload'  AND s.data2 != 'submitted'))
+               AND NOT (a.resubmit = 0 AND s.timemarked > 0)
+
               ORDER BY a.id";
 
         $unmarked = get_records_sql($sql);
+
+        foreach ($unmarked as $key => $submission) {
+
+            if (($submission->data2 != 'submitted') && ($submission->assignmenttype == 'upload')) {
+                unset($unmarked[$key]);
+            }
+        }
+        
+
         return $unmarked;
     }
-
 
     /**
      * procedure for assignment submissions. We have to deal with several situations -
@@ -156,6 +180,7 @@ class assignment_functions extends module_base {
         //permission to grade?
         $coursemodule = get_record('course_modules', 'module', $this->mainobject->modulesettings['assignment']->id, 'instance', $assignment->id) ;
         $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
+
         if (!has_capability($this->capability, $modulecontext, $USER->id)) {
             return;
         }
@@ -164,18 +189,17 @@ class assignment_functions extends module_base {
 
         $student_sql = $this->get_role_users_sql($this->mainobject->courses[$courseid]->context);
 
-        $sql = "SELECT s.id as subid, s.userid, s.timemodified, c.id as cmid
+        $sql = "SELECT s.id as subid, s.userid, s.timemodified, s.data2, c.id as cmid
                   FROM {$CFG->prefix}assignment_submissions s
             INNER JOIN {$CFG->prefix}course_modules c
                     ON s.assignment = c.instance
             INNER JOIN {$CFG->prefix}assignment a
                     ON s.assignment = a.id
-            INNER JOIN ({$student_sql}) as stsql
-                    ON s.userid = stsql.id
                  WHERE s.assignment = {$this->mainobject->id}
                    AND s.timemarked < s.timemodified
-               AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
-                       OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
+                   AND (s.userid IN ({$student_sql}))
+               AND NOT (a.resubmit = 0 AND s.timemarked > 0)
+                     
                    AND c.module = {$this->mainobject->modulesettings['assignment']->id}
               ORDER BY timemodified ASC";
 
@@ -211,8 +235,13 @@ class assignment_functions extends module_base {
             $this->mainobject->output = '[{"type":"submissions"}';
 
             foreach ($submissions as $submission) {
-            // add submission to JSON array of objects
+                // add submission to JSON array of objects
                 if (!isset($submission->userid)) {
+                    continue;
+                }
+
+                // ignore non-submitted uploaded files
+                if (($assignment->assignmenttype == 'upload') && ($submission->data2 != 'submitted')) {
                     continue;
                 }
 

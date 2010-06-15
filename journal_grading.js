@@ -16,6 +16,7 @@ YAHOO.ajax_marking_block.journal.pop_up_opening_url = function (node) {
     return url;
 }
 
+
 /**
  * adds onclick stuff to the journal pop up elements once they are ready.
  * me is the id number of the journal we want

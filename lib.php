@@ -655,23 +655,18 @@ class ajax_marking_functions {
         // find the relevant row of the config object
         $settings = $this->get_groups_settings($assessmenttype, $assessmentid);
 
-        
-
         $course_settings = $this->get_groups_settings('course', $courseid);
 
         if ($settings) {
+
             if ($settings->showhide == AMB_CONF_HIDE) {
                 return false;
-            } else {
-                return true;
-            }
+            } 
         } else if ($course_settings) {
             // if there was no settings object for the item, check for a course level default
             if ($course_settings->showhide == AMB_CONF_HIDE) {
                 return false;
-            } else {
-                return true;
-            }
+            } 
         }
         // default to show
         return true;
@@ -700,19 +695,27 @@ class ajax_marking_functions {
         //echo "submission display check";
 
         if ($settings) {
+
             $displaywithoutgroups = ($settings->showhide == AMB_CONF_SHOW);
             $displaywithgroups    = ($settings->showhide == AMB_CONF_GROUPS);
             $intherightgroup      = $this->check_group_membership($settings->groups, $submission->userid);
 
             if ($displaywithoutgroups || ($displaywithgroups && $intherightgroup)) {
                 return true;
+            } else {
+                // set to hidden, or in the wrong group
+                return false;
             }
+
         } else {
+
             // check at course level for a default
             if ($course_settings) {
+
                 $displaywithgroups    = ($course_settings->showhide == AMB_CONF_GROUPS);
                 $intherightgroup      = $this->check_group_membership($course_settings->groups, $submission->userid);
                 $displaywithoutgroups = ($course_settings->showhide == AMB_CONF_SHOW);
+                
                 if ($displaywithoutgroups || ($displaywithgroups && $intherightgroup)) {
                     return true;
                 } else {
@@ -728,32 +731,27 @@ class ajax_marking_functions {
     /**
      * This runs through the previously retrieved group members list looking for a match between
      * student id and group id. If one is found, it returns true. False means that the student is
-     * not a member of said group, or there were no groups supplied. Takes a comma separated list so
-     * that it can be used with groups list taken straight from the user settings in the DB
+     * not a member of said group, or there were no groups supplied. Takes a space separated list so
+     * that it can be used with groups list taken straight from the user settings in the DB. The aim is
+     * to prevent huge number of single db queries via groups_is_member()
      *
-     * @para string $groups A comma separated list of groups.
+     * @para string $groups A space separated list of groups.
      * @param array $data
      */
     function check_group_membership($groups, $memberid){
 
-         $groups_array = array();
-         $groups = trim($groups);
-         $groups_array = explode(' ', $groups);
+        $groups_array = array();
+        $groups = trim($groups);
+        $groups_array = explode(' ', $groups);
 
-         if (!empty($this->groups)) {
+        if (!empty($this->group_members)) {
 
-             foreach ($this->group_members as $group_member) {
+            foreach ($this->group_members as $group_member) {
 
-                 $gid = $group_member->groupid;
+                if ($group_member->id = $memberid) {
 
-                 foreach ($groups_array as $group) {
-
-                    if ($gid == $group) {
-                        $uid = $group_member->userid;
-                        
-                        if ($uid == $memberid) {
-                            return true;
-                        }
+                    if (in_array($group_member->groupid, $groups_array)) {
+                        return true;
                     }
                 }
             }
@@ -1154,7 +1152,6 @@ class module_base {
             }
             
         }
-
         
         $count = 0;
         
@@ -1457,7 +1454,7 @@ class module_base {
             $roleselect = '';
         }
 
-        $sql = "SELECT u.id
+        $sql = "SELECT u.id as userid
                   FROM {$CFG->prefix}role_assignments ra
                   JOIN {$CFG->prefix}user u
                     ON u.id = ra.userid

@@ -59,13 +59,13 @@ class workshop_functions extends module_base {
                     ON s.workshopid = w.id
              LEFT JOIN {$CFG->prefix}workshop_assessments a
                     ON (s.id = a.submissionid)
-             INNER JOIN ({$student_sql}) as stsql
-                    ON s.userid = stsql.id
+          
                  WHERE (a.userid != {$USER->id}
                     OR (a.userid = {$USER->id}
                    AND a.grade = -1))
                    AND c.module = {$this->mainobject->modulesettings['workshop']->id}
                    AND c.visible = 1
+                   AND (s.userid IN ({$student_sql}))
                    AND w.course = {$courseid}
               ORDER BY w.id";
 
@@ -97,6 +97,7 @@ class workshop_functions extends module_base {
                  WHERE (a.userid != {$USER->id}
                     OR (a.userid = {$USER->id}
                    AND a.grade = -1))
+                   AND (s.userid IN ({$student_sql}))
                    AND s.workshopid = {$this->mainobject->id}
                    AND w.assessmentstart < {$now}
               ORDER BY s.timecreated ASC";

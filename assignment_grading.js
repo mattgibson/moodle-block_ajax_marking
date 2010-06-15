@@ -14,7 +14,7 @@ YAHOO.ajax_marking_block.assignment.pop_up_opening_url = function (clicked_node)
     return '/mod/assignment/submissions.php?id='+clicked_node.data.aid+'&userid='+clicked_node.data.sid+'&mode=single&offset=0';
 };
 YAHOO.ajax_marking_block.assignment.extra_ajax_request_arguments = function (clicked_node) {
-    return true;
+    return '';
 };
 
 /**

@@ -116,8 +116,11 @@ YAHOO.ajax_marking_block.tree_base.prototype.update_parent_node = function(paren
 
         this.update_node_count(parent_node_to_update, running_total);
     }
-    // move up one level so that the change propagates to the whole tree recursively
-    this.update_parent_node(parent_node_to_update.parent);
+
+    if (parent_node_to_update.parent != null) {
+        // move up one level so that the change propagates to the whole tree recursively
+        this.update_parent_node(parent_node_to_update.parent);
+    }
     return true;
     
 };

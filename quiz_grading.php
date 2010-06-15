@@ -70,13 +70,13 @@ class quiz_functions extends module_base {
                     ON qsess.newest = qst.id
             INNER JOIN {$CFG->prefix}question q
                     ON qsess.questionid = q.id
-            INNER JOIN ({$student_sql}) as stsql
-                    ON qa.userid = stsql.id
+           
                  WHERE qa.timefinish > 0
                    AND qa.preview = 0
                    AND c.module = {$this->mainobject->modulesettings['quiz']->id}
                    AND c.visible = 1
                    AND qz.course = {$courseid}
+                   AND (qa.userid IN ({$student_sql}))
                    AND q.qtype = 'essay'
                    AND qst.event NOT IN (3,6,9)
                  ORDER BY qa.timemodified";
@@ -128,11 +128,11 @@ class quiz_functions extends module_base {
                     ON qs.questionid = q.id
             INNER JOIN {$CFG->prefix}quiz_attempts qa
                     ON qs.attemptid = qa.uniqueid
-            INNER JOIN ({$student_sql}) as stsql
-                    ON qa.userid = stsql.id
+           
                  WHERE qa.quiz = $quiz->id
                    AND qa.timefinish > 0
                    AND qa.preview = 0
+                   AND (qa.userid IN ({$student_sql}))
                    AND qs.questionid IN ($csv_questions->questions)
                    AND q.qtype = 'essay'
                    AND qst.event NOT IN (3,6,9)
@@ -145,7 +145,9 @@ class quiz_functions extends module_base {
         $questions = $this->mainobject->list_assessment_ids($question_attempts);
 
         if (!$this->mainobject->group) {
+
             $group_check = $this->mainobject->try_to_make_group_nodes($question_attempts, 'quiz', $this->mainobject->id, $quiz->course);
+            
             if (!$group_check) {
                 return;
             }
@@ -163,10 +165,12 @@ class quiz_functions extends module_base {
                 // if we have come from a group node, ignore attempts where the user is not in the
                 // right group. Also ignore attempts not relevant to this question
                 $groupnode     = $this->mainobject->group;
+                //echo 'q: '.$this->mainobject->group.' qu: '.$question_attempt->userid;
                 $inrightgroup  = $this->mainobject->check_group_membership($this->mainobject->group, $question_attempt->userid);
                 $rightquestion = ($question_attempt->id == $question->id);
+                //echo $groupnode.' '.$inrightgroup.' '.$rightquestion;
                 if (($groupnode && !$inrightgroup) || ! $rightquestion) {
-                    continue;
+                    //continue;
                 }
                 $count = $count + 1;
             }
@@ -237,11 +241,11 @@ class quiz_functions extends module_base {
                     ON qs.newest = qst.id
             INNER JOIN {$CFG->prefix}quiz_attempts qa
                     ON qs.attemptid = qa.uniqueid
-            INNER JOIN ({$student_sql}) as stsql
-                    ON qa.userid = stsql.id
+          
                  WHERE qa.quiz = {$this->mainobject->secondary_id}
                    AND qa.timefinish > 0
                    AND qa.preview = 0
+                   AND (qa.userid IN ({$student_sql}))
                    AND qs.questionid = {$this->mainobject->id}
                    AND qst.event NOT IN (3,6,9)
               GROUP BY qa.userid, qs.questionid
