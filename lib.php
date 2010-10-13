@@ -748,7 +748,7 @@ class ajax_marking_functions {
 
             foreach ($this->group_members as $group_member) {
 
-                if ($group_member->id = $memberid) {
+                if ($group_member->userid == $memberid) {
 
                     if (in_array($group_member->groupid, $groups_array)) {
                         return true;
