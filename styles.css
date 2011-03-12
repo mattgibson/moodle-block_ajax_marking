@@ -27,7 +27,7 @@
   padding-left: 0px;
   padding-bottom: 0px;
   background-repeat: no-repeat;
-  cursor:pointer;
+  cursor: pointer;
   background-color: transparent;
 
   /* white-space: nowrap; */
@@ -264,4 +264,9 @@ span.ygtvlabel {
   background-color: transparent;
 }
 
+/* change loading icon. Standard one has white background */
+.ygtvloading {
+    width:18px; height:22px;
+    background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
+}
 

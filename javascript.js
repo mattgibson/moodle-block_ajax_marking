@@ -49,10 +49,10 @@ YAHOO.ajax_marking_block.tree_base = function(treediv) {
 // make the base class into a subclass of the YUI treeview widget
 YAHOO.lang.extend(YAHOO.ajax_marking_block.tree_base, YAHOO.widget.TreeView);
 
+
 /**
- * function to build the assessment nodes once the AJAX request has returned a data object
- * 
- * @param array nodes_array the nodes to be rendered
+ *
+ * @param nodesarray
  */
 YAHOO.ajax_marking_block.tree_base.prototype.build_assessment_nodes = function(nodesarray) {
 
@@ -61,7 +61,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_assessment_nodes = function(n
     // cycle through the array and make the nodes
     var  nodeslength = nodesarray.length;
     
-    for (var m=0; m<nodeslength; m++) {
+    for (var m=0; m < nodeslength; m++) {
 
         // use the object to create a new node
         tempnode = new YAHOO.widget.TextNode(nodesarray[m], YAHOO.ajax_marking_block.parentnodeholder , false);
@@ -85,8 +85,8 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_assessment_nodes = function(n
 /**
  * This function is called when a node is clicked (expanded) and makes the ajax request
  * 
- * @param object clicked_node
- * @param string onCompleteCallback
+ * @param clickednode
+ * @param callbackfunction
  */
 YAHOO.ajax_marking_block.tree_base.prototype.request_node_data = function(clickednode, callbackfunction) {
 
@@ -124,7 +124,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.request_node_data = function(clicke
  * if more work has been found, or a piece has now been marked, the count for that label will be
  * accurate along with the counts of all its parent nodes and the total count.
  * 
- * @param object parentnodetoupdate the node of the treeview object to alter the count of
+ * @param parentnodetoupdate the node of the treeview object to alter the count of
  * @return void
  */
 YAHOO.ajax_marking_block.tree_base.prototype.update_parent_node = function(parentnodetoupdate) {
@@ -160,15 +160,17 @@ YAHOO.ajax_marking_block.tree_base.prototype.update_parent_node = function(paren
             this.update_node_count(parentnodetoupdate, runningtotal);
         }
         // move up one level so that the change propagates to the whole tree recursively
-        this.update_parent_node(nextnodeup);   
+        if (nextnodeup != null) {
+            this.update_parent_node(nextnodeup);
+        }
     }
 };
 
 /**
  * function to alter a node's label with a new count once the children are removed or reloaded
  * 
- * @param object newnode the node of the tree whose count we wish to change
- * @param int newcount the new number of items to display
+ * @param newnode the node of the tree whose count we wish to change
+ * @param newcount the new number of items to display
  * @return void
  */
 YAHOO.ajax_marking_block.tree_base.prototype.update_node_count = function(newnode, newcount) {
@@ -284,19 +286,24 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
                     // Open a pop up with the url and arguments as specified in the module specific object
                     var popupurl = YAHOO.ajax_marking_block.variables.wwwroot+module_javascript.pop_up_opening_url(node);
                     var popupargs = module_javascript.pop_up_arguments(node);
-                    YAHOO.ajax_marking_block.popupholder = window.open(popupurl, '_blank', popupargs);
 
-                    // This function will add the module specifi javascript to the pop up. It is necessary
+                    YAHOO.ajax_marking_block.popupholder = window.open(popupurl, 'ajax_marking_popup', popupargs);
+
+                    // This function will add the module specific javascript to the pop up. It is necessary
                     // in order to make the pop up update the main tree and close itself once
                     // the work has been graded
-                    timer_function = function() {
-                        module_javascript.alter_popup(node);
-                    };
+                    // timer_function = function() {
+                    //    module_javascript.alter_popup(node);
+                    //};
+
+//                    while (!module_javascript.alter_popup(node)) {
+//                        window.setTimeout(timer_function, 1000);
+//                    }
 
                     // keep trying to run the function every 2 seconds till it executes (the pop up
                     // takes time to load)
                     // TODO: can an onload event work for a popup like this?
-                    YAHOO.ajax_marking_block.popuptimer = window.setInterval(timer_function, 2000);
+                   // YAHOO.ajax_marking_block.popuptimer = window.setInterval(timer_function, 1000);
                     YAHOO.ajax_marking_block.popupholder.focus();                 
                     return true;
                 }
@@ -376,16 +383,16 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
 
                     // For non courses, add a default checkbox that will remove the record
                     if (clickargumentsobject.node.data.type != 'config_course') {
-                        make_box('default', 'config0', YAHOO.ajax_marking_block.variables.coursedefault);
+                        YAHOO.ajax_marking_block.make_box('default', 'config0', YAHOO.ajax_marking_block.variables.coursedefault, formDiv);
                         // make the three main checkboxes, appending them to the form as we go along
-                        make_box('show',    'config1', YAHOO.ajax_marking_block.variables.showthisassessment);
-                        make_box('groups',  'config2', YAHOO.ajax_marking_block.variables.showwithgroups);
-                        make_box('hide',    'config3', YAHOO.ajax_marking_block.variables.hidethisassessment);
+                        YAHOO.ajax_marking_block.make_box('show',    'config1', YAHOO.ajax_marking_block.variables.showthisassessment, formDiv);
+                        YAHOO.ajax_marking_block.make_box('groups',  'config2', YAHOO.ajax_marking_block.variables.showwithgroups, formDiv);
+                        YAHOO.ajax_marking_block.make_box('hide',    'config3', YAHOO.ajax_marking_block.variables.hidethisassessment, formDiv);
 
                     } else {
-                        make_box('show',    'config1', YAHOO.ajax_marking_block.variables.showthiscourse);
-                        make_box('groups',  'config2', YAHOO.ajax_marking_block.variables.showwithgroups);
-                        make_box('hide',    'config3', YAHOO.ajax_marking_block.variables.hidethiscourse);
+                        YAHOO.ajax_marking_block.make_box('show',    'config1', YAHOO.ajax_marking_block.variables.showthiscourse, formDiv);
+                        YAHOO.ajax_marking_block.make_box('groups',  'config2', YAHOO.ajax_marking_block.variables.showwithgroups, formDiv);
+                        YAHOO.ajax_marking_block.make_box('hide',    'config3', YAHOO.ajax_marking_block.variables.hidethiscourse, formDiv);
                     }
 
                     // now, we need to find out what the current group mode is and display that box as checked.
@@ -414,7 +421,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_course_nodes = function(nodes
 /**
  * Make the group nodes for an assessment
  * 
-* @param array ajaxresponsearray Takes ajax data array as input
+* @param ajaxresponsearray Takes ajax data array as input
 * @retrun void
  */
 YAHOO.ajax_marking_block.tree_base.prototype.build_group_nodes = function(ajaxresponsearray) {
@@ -445,7 +452,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_group_nodes = function(ajaxre
 /**
 * Makes the submission nodes for each student with unmarked work. 
 * 
-* @param array ajaxresponsearray Takes ajax data array as input
+* @param ajaxresponsearray Takes ajax data array as input
 * @retrun void
 */
 YAHOO.ajax_marking_block.tree_base.prototype.build_submission_nodes = function(ajaxresponsearray) {
@@ -455,22 +462,21 @@ YAHOO.ajax_marking_block.tree_base.prototype.build_submission_nodes = function(a
     var uniqueid = '';
     var seconds = 0;
     
-    for (var k=0; k<arraylength; k++) {
-
-        // set up a unique id so the node can be removed when needed
-        uniqueid = ajaxresponsearray[k].type + ajaxresponsearray[k].assessmentid + 'submissionid' + ajaxresponsearray[k].submissionid + '';
+    for (var k = 0; k < arraylength; k++) {
 
         // set up time-submitted thing for tooltip. This is set to make the time match the
         // browser's local timezone, but I can't find a way to use the user's specified timezone
         // from $USER. Not sure if this really matters.
-
         seconds = parseInt(ajaxresponsearray[k].seconds, 10);
+
         // TODO is the comment below relevant?
         // javascript likes to work in miliseconds, whereas moodle uses unix format (whole seconds)
 
         // altered - does this work?
         tempnode = new YAHOO.widget.TextNode(ajaxresponsearray[k], YAHOO.ajax_marking_block.parentnodeholder, false);
-        tempnode.data.uniqueid = uniqueid;
+
+        // the unique id lets this node in particular be removed later on once it's marked
+        //tempnode.data.uniqueid = uniqueid;
 
         // apply a style according to how long since it was submitted
 
@@ -571,10 +577,11 @@ YAHOO.ajax_marking_block.tree_base.prototype.update_total_count = function() {
 * then it updates the parent nodes and refreshes the tree, then sets a timer so that the popup will
 * be closed when it goes to the 'changes saved' url.
 *
-* @param string windowurl The changes saved url. If not present, it shuts by itself, so no timer needed.
+* @param windowurl The changes saved url. Can be passed as an empty string if the windows shuts itself anyway
+* @param nodeuniqueid The id of the node to remove
 * @return void
 */
-YAHOO.ajax_marking_block.tree_base.prototype.remove_node_from_tree = function(windowurl, nodeuniqueid) {
+YAHOO.ajax_marking_block.tree_base.prototype.remove_node_from_tree = function(nodeuniqueid, windowurl) {
 
     /// get the node that was just marked and its parent node
     var nodetoremove = this.getNodeByProperty("uniqueid", nodeuniqueid);
@@ -592,7 +599,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.remove_node_from_tree = function(wi
     this.update_total_count();
 
     // no need if there's no url as the pop up is self closing
-    if (windowurl != -1) {
+    if (windowurl !== undefined) {
         var window_closer = "YAHOO.ajax_marking_block.popup_closing_timer('"+windowurl+"')";
         setTimeout(window_closer, 500);
     }
@@ -602,7 +609,7 @@ YAHOO.ajax_marking_block.tree_base.prototype.remove_node_from_tree = function(wi
  * Ajax success function called when the server responds with valid data, which checks the data 
  * coming in and calls the right function depending on the type of data it is
  * 
- * @param object o the ajax response object, passed automatically
+ * @param o the ajax response object, passed automatically
  * @return void
  */
 YAHOO.ajax_marking_block.ajax_success_handler = function (o) {
@@ -733,6 +740,9 @@ YAHOO.ajax_marking_block.ajax_success_handler = function (o) {
                 break;
 
         }
+    } else {
+        // TODO what if we get an empty response?
+        YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.markingtree);
     }
 };
 
@@ -740,7 +750,7 @@ YAHOO.ajax_marking_block.ajax_success_handler = function (o) {
  * function which fires if the AJAX call fails
  * TODO: why does this not fire when the connection times out?
  * 
- * @param object o the ajax response object, passed automatically
+ * @param o the ajax response object, passed automatically
  * @return void
  */
 YAHOO.ajax_marking_block.ajax_failure_handler = function(o) {
@@ -791,6 +801,35 @@ YAHOO.ajax_marking_block.enable_config_radio_buttons = function() {
 };
 
 /**
+ * Makes one of the config checkboxes and attaches it to the form next to the config tree
+ */
+YAHOO.ajax_marking_block.makeBox = function(value, id, label, formDiv) {
+
+    var box = '';
+
+    try{
+        box = document.createElement('<input type="radio" name="showhide" />');
+    }catch(error){
+        box = document.createElement('input');
+    }
+    box.setAttribute('type','radio');
+    box.setAttribute('name','showhide');
+    box.value = value;
+    box.id    = id;
+    box.onclick = function() {
+        YAHOO.ajax_marking_block.request_config_checkbox_data(this);
+    };
+    formDiv.appendChild(box);
+
+    var boxText = document.createTextNode(label);
+    formDiv.appendChild(boxText);
+
+    var breaker = document.createElement('br');
+    formDiv.appendChild(breaker);
+
+};
+
+/**
  * This function disables the radio buttons when AJAX request is sent so that
  * more than one request can't be sent at once.
  * 
@@ -825,7 +864,7 @@ YAHOO.ajax_marking_block.disable_config_radio_buttons = function() {
  * funtion to refresh all the nodes once the update operations have all been carried out by
  * remove_node_from_tree()
  * 
- * @param object treeobject the tree to be refreshed
+ * @param treeobject the tree to be refreshed
  * @return void
  */
 YAHOO.ajax_marking_block.refresh_tree_after_changes = function(treeobject) {
@@ -848,7 +887,7 @@ YAHOO.ajax_marking_block.refresh_tree_after_changes = function(treeobject) {
 /**
 * Refresh tree function - for Collapse & refresh link in the main block
 * 
-* @param objecttreeobject the YUI treeview object to refresh (config or main)
+* @param treeobject the YUI treeview object to refresh (config or main)
 * @return void
 */
 YAHOO.ajax_marking_block.refresh_tree = function(treeobject) {
@@ -865,7 +904,7 @@ YAHOO.ajax_marking_block.refresh_tree = function(treeobject) {
  * Makes a list of groups as checkboxes and appends them to the config div next to the config
  * tree. Called when the 'show by groups' check box is selected for a node.
  * 
- * @param object data the list of groups for this assessment returned from the ajax call
+ * @param data the list of groups for this assessment returned from the ajax call
  * @return void
  */
 YAHOO.ajax_marking_block.make_config_groups_list = function(data) {
@@ -989,7 +1028,7 @@ YAHOO.ajax_marking_block.config_checkbox_onclick = function() {
  * function that waits till the pop up has a particular location,
  * i.e. the one it gets to when the data has been saved, and then shuts it.
  * 
- * @param string urltoclose the url to wait for, which is normally the 'data has been saved' page
+ * @param urltoclose the url to wait for, which is normally the 'data has been saved' page
  * @return void
  */
 YAHOO.ajax_marking_block.popup_closing_timer = function (urltoclose) {
@@ -1110,7 +1149,7 @@ YAHOO.ajax_marking_block.config_checkbox_ = function(showHide) {
  * the onclick function for the radio buttons in the config screen. If show by group is clicked, 
  * the groups checkboxes appear below. If another one is, the groups thing is hidden.
  * 
- * @param object checkbox the box that was clicked
+ * @param checkbox the box that was clicked
  * @return void
  */
 YAHOO.ajax_marking_block.request_config_checkbox_data = function(checkbox) {
@@ -1191,7 +1230,7 @@ YAHOO.ajax_marking_block.remove_config_right_panel_contents = function() {
 /**
  * Used by other functions to clear all child nodes from some element.
  * 
- * @param object parentnode a dom reference
+ * @param parentnode a dom reference
  * @return void
  */
 YAHOO.ajax_marking_block.remove_all_child_nodes = function (parentnode) {
@@ -1219,11 +1258,11 @@ YAHOO.ajax_marking_block.make_footer = function () {
             onclick   : {fn: function() {YAHOO.ajax_marking_block.refresh_tree(YAHOO.ajax_marking_block.markingtree);}},
             container : 'block_ajax_marking_refresh_button'});
 
-    var configurebutton = new YAHOO.widget.Button({
-            label     : YAHOO.ajax_marking_block.variables.configure,
-            id        : 'block_ajax_marking_configure_button_button',
-            onclick   : {fn: function() {YAHOO.ajax_marking_block.build_config_overlay();}},
-            container : 'block_ajax_marking_configure_button'});
+//    var configurebutton = new YAHOO.widget.Button({
+//            label     : YAHOO.ajax_marking_block.variables.configure,
+//            id        : 'block_ajax_marking_configure_button_button',
+//            onclick   : {fn: function() {YAHOO.ajax_marking_block.build_config_overlay();}},
+//            container : 'block_ajax_marking_configure_button'});
 
     // Add bits to them like onclick
     // append them to each other and the DOM

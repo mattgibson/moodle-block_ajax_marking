@@ -22,8 +22,18 @@
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-    // include the upgrade file so we have access to amb_update_modules() in case of no settings
-    include_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
+
+// show/hide constants for config settings
+define('AMB_CONF_DEFAULT', 0);
+define('AMB_CONF_SHOW', 1);
+define('AMB_CONF_GROUPS', 2);
+define('AMB_CONF_HIDE', 3);
+
+// include the upgrade file so we have access to amb_update_modules() in case of no settings
+include_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
+
+require_once("$CFG->dirroot/enrol/locallib.php");
+
 
 /**
  * All of the main functions for the AJAX marking block are contained within this class. Its is
@@ -72,11 +82,7 @@ class ajax_marking_functions {
 
         global $USER, $CFG, $DB;
 
-        // show/hide constants for config settings
-        define('AMB_CONF_DEFAULT', 0);
-        define('AMB_CONF_SHOW', 1);
-        define('AMB_CONF_GROUPS', 2);
-        define('AMB_CONF_HIDE', 3);
+        
 
         // Now, build an array of the names of modules with grading code available
         // This assumes that a modulename_grading.php file has been created and is in the main
@@ -90,7 +96,7 @@ class ajax_marking_functions {
         // instantiate function classes for each of the available modules and store them
         foreach ($this->modulesettings as $modulename => $module) {
             // echo "{$CFG->dirroot}{$module->dir}/{$modulename}_grading.php ";
-            include("{$CFG->dirroot}{$module->dir}/{$modulename}_grading.php");
+            require_once("{$CFG->dirroot}{$module->dir}/{$modulename}_grading.php");
             //include("{$module->dir}/{$modulename}_grading.php");
             $classname = $modulename.'_functions';
             //pass this object in so that a reference to it can be stored, allowing library functions
@@ -106,13 +112,13 @@ class ajax_marking_functions {
         // call expensive queries only when needed. The
         // ajax calls that dont need this are all the submissions ones and some
         // of the config save ones
-        $standard_get_my_courses_types = array(
+        $views_needing_courses = array(
                 'html',
                 'main',
                 'config_course',
                 'config_main_tree',
                 'course');
-        $standard_course_type = in_array($this->type, $standard_get_my_courses_types);
+        $needs_list_of_courses = in_array($this->type, $views_needing_courses);
 
         $module_type = in_array($this->type, array_keys($this->modulesettings));
 
@@ -128,8 +134,9 @@ class ajax_marking_functions {
             }
         }
 
-        if ($standard_course_type || $module_type || $level_check) {
-            $this->courses = get_my_courses($USER->id, 'fullname', 'id') or die('get my courses error');
+        if ($needs_list_of_courses || $module_type || $level_check) {
+            $this->courses = ajax_marking_functions::get_my_teacher_courses($USER->id);
+           // $this->courses = enrol_get_my_courses('fullname, id') or die('get my courses error');
 
             if ($this->courses) {
                 $this->make_courseids_list();
@@ -207,28 +214,33 @@ class ajax_marking_functions {
      *
      * @return void
      */
-    function get_course_students($courseid) {
+    function get_course_students($course) {
 
         global $DB;
 
-        if (!isset($this->students->ids->$courseid)) {
-            $course_context = get_context_instance(CONTEXT_COURSE, $courseid);
+        if (!isset($this->students->ids->{$course->id})) {
+
+            $manager = new course_enrolment_manager($course);
+            //$table = new course_enrolment_users_table($manager, $PAGE->url);
+            $coursestudents = $manager->get_users('lastname');
+
+            //$course_context = get_context_instance(CONTEXT_COURSE, $courseid);
 
             // get the roles that are specified as graded in site config settings
-            $student_roles = $DB->get_field('config', 'value', array('name' => 'gradebookroles'));
+            //$student_roles = $DB->get_field('config', 'value', array('name' => 'gradebookroles'));
 
             // get students in this course with this role. This defaults to getting them from higher
             // up contexts too. If you don't need this and want to avoid the performance hit, replace
             // 'true' with 'false' in the next line
-            $coursestudents = get_role_users($student_roles, $course_context, true);
+            //$coursestudents = get_role_users($student_roles, $course_context, true);
 
             if (count($coursestudents) > 0) {
 
                 // save the list so it can be reused
-                $this->students->ids->$courseid   = array_keys($coursestudents);
+                $this->students->ids->{$course->id}   = array_keys($coursestudents);
                 // keep all student details so they can be used for making nodes.
                 if (!empty($this->students->details)) {
-                    $this->students->details = array_merge($this->students->details, $coursestudents);
+                    $this->students->details = $this->students->details + $coursestudents;
                 } else {
                     $this->students->details = $coursestudents;
                 }
@@ -338,48 +350,85 @@ class ajax_marking_functions {
         $this->data->showhide       = $this->showhide;
     }
 
-    /**
-     * takes data as the $this->data object and writes it to the db as either a new record or an
+/**
+     * Takes data as the $this->data object and writes it to the db as either a new record or an
      * updated one. Might be to show or not show or show by groups.
      * Called from config_set, config_groups, make_config_groups_radio_buttons ($this->data->groups)
      *
-     * @return <type>
+     * @return bool
      */
     function config_write() {
 
-        global $USER, $DB;
-        $check  = null;
-        $check2 = null;
+        global $USER;
+        $existingrecord  = false;
+        $recordid = '';
 
-        $check = $DB->get_record('block_ajax_marking', array('assessmenttype' => $this->assessmenttype,
-                                 'assessmentid' => $this->assessmentid, 'userid' => $USER->id));
+        $existingrecord = get_record('block_ajax_marking', 'assessmenttype', $this->assessmenttype,
+                            'assessmentid', $this->assessmentid, 'userid', $USER->id);
+        if ($existingrecord) {
 
-        if ($check) {
+            // get all existing group stuff. We can assume that if there is no existing config
+            // record then there will also be no groups as config records are never deleted
+            $currentgroups = get_records('block_ajax_marking', 'configid', $existingrecord->id);
 
-            // record exists, so we update
-            $this->data->id = $check->id;
-            $check2 = $DB->update_record('block_ajax_marking', $this->data);
+            // a record exists, so we update
+            $recordid = $this->data->id = $existingrecord->id;
 
-            //print_r($this->data);
-
-            if ($check2) {
-                return true;
-            } else {
+            if (!update_record('block_ajax_marking', $this->data)) {
                 return false;
             }
+
         } else {
-            // no record, so we create
+            // no record, so we create one
+            $recordid = insert_record('block_ajax_marking', $this->data);
 
-            $check = $DB->insert_record('block_ajax_marking', $this->data);
-
-            if ($check) {
-                return true;
-            } else {
+            if (!$recordid) {
                 return false;
             }
         }
-        echo $check;
+
+        // Save each group
+        if (isset($this->data->groups)) {
+
+            $groups = explode(' ', trim($this->data->groups));
+
+            if ($groups) {
+
+                foreach ($groups as $group) {
+
+                    $data = new stdClass;
+                    $data->groupid = $group;
+                    $data->display = 1;
+                    $data->configid = $recordid;
+
+                    // is there an existing record?
+                    if ($currentgroups) {
+
+                        foreach ($currentgroups as $currentgroup) {
+
+                            if ($currentgroup->groupid == $group) {
+                                $data->id = $currentgroup->id;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (isset($data->id)) {
+                        if(!update_record('block_ajax_marking_groups', $data)) {
+                            return false;
+                        }
+                    } else {
+                        if (!insert_record('block_ajax_marking_groups', $data)) {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        // no errors so far
+        return true;
     }
+
 
     /**
      * finds the groups info for a given course for the config tree. It then needs to check if those
@@ -793,10 +842,10 @@ class ajax_marking_functions {
     /**
      * This runs through the previously retrieved group members list looking for a match between
      * student id and group id. If one is found, it returns true. False means that the student is
-     * not a member of said group, or there were no groups supplied. Takes a comma separated list so
+     * not a member of said group, or there were no groups supplied. Takes a space separated list so
      * that it can be used with groups list taken straight from the user settings in the DB
      *
-     * @param string $groups A comma separated list of groups.
+     * @param string $groups A space separated list of groups.
      * @param int $memberid the student id to be searched for
      * @return bool
      */
@@ -806,16 +855,13 @@ class ajax_marking_functions {
         $groups = trim($groups);
         $groups_array = explode(' ', $groups);
 
-        foreach ($this->group_members as $group_member) {
+        if (!empty($this->group_members)) {
 
-            $gid = $group_member->groupid;
+            foreach ($this->group_members as $group_member) {
 
-            foreach ($groups_array as $group) {
+                if ($group_member->id == $memberid) {
 
-                if ($gid == $group) {
-                    $uid = $group_member->userid;
-
-                    if ($uid == $memberid) {
+                    if (in_array($group_member->groupid, $groups_array)) {
                         return true;
                     }
                 }
@@ -866,39 +912,66 @@ class ajax_marking_functions {
      * @param bool $dynamic should it be possible to expand the node?
      * @return void
      */
-    function make_submission_node($name, $submission_id, $assessment_id, $summary,
-                                  $type, $seconds, $time_modified, $count=1, $dynamic=false) {
-        $this->output .= ',';
+    function make_submission_node($data) {
+    //function make_submission_node($name, $submission_id, $assessment_id, $summary,
+    //                              $type, $seconds, $time_modified, $count=1, $dynamic=false) {
 
-        $this->output .= '{';
+        // transformations for specific parts of the data
+        $data['label'] = $this->add_icon('user').htmlentities($data['name'], ENT_QUOTES);
+        //$data['assessmentid'] = $data['submissionid'];
+        //$data['id'] = $data['submissionid'];
+        $data['icon'] = $this->add_icon('user');
+        $data['count'] = isset($data['count']) ? $data['count'] : 1;
+        //$data['uniqueid'] = $data['type'].'submission'.$data['submissionid'];
+
+        // notes
+        // $submission_id needs underscore removed and is really userid of the student
+        // assessmentid is sometimes cmid
+        // $summary needs to become 'title'
+        // $time_modified needs to be 'time'
+
+        $output = ',';
+        $output .= '{';
+
+        $addcomma = false;
+
+        foreach ($data as $label => $value) {
+            $output .= $addcomma ? ',' :'';
+            $output .= '"'.$label.'":"'.$value.'"';
+            $addcomma = true;
+        }
+
+        $output .= '}';
+
+        return $output;
 
         // TODO - make the input for this function into an array/object
 
-            $this->output .= '"label":"';
+//            $this->output .= '"label":"';
             // some assessment types only have 2 levels as they cannot be displayed per student
             // e.g. journals
 
-            $this->output .= $this->add_icon('user');
-            $this->output .= htmlentities($name, ENT_QUOTES).'",';
+//            $this->output .= $this->add_icon('user');
+//            $this->output .= htmlentities($name, ENT_QUOTES).'",';
             // this bit gets the user icon anyway as it isn't used at level 2
-            $this->output .= '"name":"'    .htmlentities($name, ENT_QUOTES).'",';
-            $this->output .= '"dynamic":"false",';
+//            $this->output .= '"name":"'    .htmlentities($name, ENT_QUOTES).'",';
+//            $this->output .= '"dynamic":"false",';
             // id of submission for hyperlink
-            $this->output .= '"submissionid":"'     .$submission_id.'",';
+//            $this->output .= '"submissionid":"'     .$submission_id.'",';
             // id of assignment for hyperlink
-            $this->output .= '"assessmentid":"'     .$assessment_id.'",';
+//            $this->output .= '"assessmentid":"'     .$assessment_id.'",';
             // might need uniqueId to replace it
-            $this->output .= '"id":"'      .$assessment_id.'",';
-            $this->output .= '"title":"'   .$this->clean_summary_text($summary).'",';
-            $this->output .= '"type":"'    .$type.'",';
-            $this->output .= '"icon":"'    .$this->add_icon('user').'",';
+//            $this->output .= '"id":"'      .$assessment_id.'",';
+//            $this->output .= '"title":"'   .$this->clean_summary_text($summary).'",';
+//            $this->output .= '"type":"'    .$type.'",';
+//            $this->output .= '"icon":"'    .$this->add_icon('user').'",';
             // 'seconds ago' sent to allow style to change according to how long it has been
-            $this->output .= '"seconds":"' .$seconds.'",';
+//            $this->output .= '"seconds":"' .$seconds.'",';
             // send the time of submission for tooltip
-            $this->output .= '"time":"'    .$time_modified.'",';
-            $this->output .= '"uniqueid":"'.$type.'submission'.$submission_id.'",';
-            $this->output .= '"count":"'   .$count.'"';
-        $this->output .= '}';
+//            $this->output .= '"time":"'    .$time_modified.'",';
+//            $this->output .= '"uniqueid":"'.$type.'submission'.$submission_id.'",';
+//            $this->output .= '"count":"'   .$count.'"';
+        
     }
 
     /**
@@ -975,6 +1048,7 @@ class ajax_marking_functions {
             $this->courseids = array();
 
             // retrieve the teacher role id (3)
+            // TODO make this into a setting
             $teacherrole = $DB->get_field('role', 'id', array('shortname' => 'editingteacher'));
 
             foreach ($this->courses as $key=>$course) {
@@ -982,10 +1056,10 @@ class ajax_marking_functions {
                 $allowed_role = false;
 
                 // exclude the front page.
-                if ($course->id == 1) {
-                    unset($this->courses[$key]);
-                    continue;
-                }
+//                if ($course->id == 1) {
+//                    unset($this->courses[$key]);
+//                    continue;
+//                }
 
                 // role check bit borrowed from block_marking, thanks to Mark J Tyers [ZANNET]
                 $teachers = 0;
@@ -1009,7 +1083,7 @@ class ajax_marking_functions {
                     // check the non-editing teacher role id (4) only if the last bit failed
                     $noneditingteacherrole = $DB->get_field('role', 'id', array('shortname' => 'teacher'));
                     // check for non-editing teachers
-                    $noneditingteachers = get_role_users($noneditingteacherrole, $course->context, true);
+                    $noneditingteachers = get_role_users($noneditingteacherrole, $context, true);
 
                     if ($noneditingteachers) {
 
@@ -1087,7 +1161,7 @@ class ajax_marking_functions {
         $this->output .= '"id":"'           .$assessment->id.'",';
         $this->output .= '"icon":"'         .$this->add_icon($assessment->type).'",';
         // $this->output .= '"icon":"'         .$this->add_icon($assessment->type).'",';
-        $this->output .= '"assessmentid":"a'.$assessment->id.'",';
+        $this->output .= '"assessmentid":"' .$assessment->id.'",';
         $this->output .= '"cmid":"'         .$assessment->cmid.'",';
         $this->output .= '"type":"'         .$assessment->type.'",';
         $this->output .= '"uniqueid":"'     .$assessment->type.$assessment->id.'",';
@@ -1145,6 +1219,9 @@ class ajax_marking_functions {
 
         global $CFG, $OUTPUT;
 
+        // TODO make this work properly - load all icons in HTML, then apply them using css as needed
+        return;
+
         $result = "<img class='amb-icon' src='";
 
         // If custompix is not enabled, assume that the theme does not have any icons worth using
@@ -1199,6 +1276,164 @@ class ajax_marking_functions {
         $node .= '<strong>('.$item->count.')</strong> '.$item->name.'</a></li>';
         return $node;
     }
+
+    /**
+     * Records the display settings for one group in the database
+     *
+     * @param int $groupid The id of the group
+     * @param int $display 1 to show it, 0 to hide it
+     * @param int $configid The id of the row int he config table that this corresponds to
+     * @return bool
+     */
+    function set_group_display($groupid, $display, $configid) {
+
+        $data = new stdClass;
+        $data->groupid = $groupid;
+        $data->configid = $configid;
+        $data->display = $display;
+
+        $current = get_record('block_ajax_marking_groups', 'groupid', $groupid);
+
+        if ($current) {
+            $data->id = $current->id;
+            update_record('block_ajax_marking_groups', $data);
+        } else {
+            insert_record('block_ajax_marking_groups', $data);
+        }
+    }
+
+    /**
+     * Returns the sql and params array for 'IN (x, y, z)' where xyz are the ids of teacher or non-editing
+     * teacher roles
+     * @return <type>
+     */
+    static function teacherrole_sql() {
+
+        global $DB;
+
+        // TODO should be a site wide or block level setting
+        $teacherroles = $DB->get_records('role', array('archetype' => 'teacher'));
+        $editingteacherroles = $DB->get_records('role', array('archetype' => 'editingteacher'));
+        $teacherroleids = array_keys($teacherroles + $editingteacherroles);
+        //list($rolesql, $roleparams)
+        return $DB->get_in_or_equal($teacherroleids);
+    }
+
+    static function get_number_of_category_levels() {
+
+        global $DB;
+
+        $sql = 'SELECT MAX(cx.depth) as depth
+                  FROM {context} cx
+                 WHERE cx.contextlevel <= ? ';
+        $params = array(CONTEXT_COURSECAT);
+
+        $categorylevels = $DB->get_record_sql($sql, $params);
+        $categorylevels = $categorylevels->depth;
+        $categorylevels--; // ignore site level category to get actual number of categories
+        return $categorylevels;
+    }
+
+    /**
+     * This is to find out what courses a person has a teacher role. This is instead of
+     * enrol_get_my_courses(), which would prevent teachers from being assigned at category level
+     *
+     * @param int $userid
+     * @param string|array $fields either a single field from the courses table to return, or an array. Default: *
+     */
+    static function get_my_teacher_courses($userid, $fields='*') {
+
+        // NOTE could also use subquery without union
+        global $DB;
+
+        list($rolesql, $roleparams) = ajax_marking_functions::teacherrole_sql();
+
+        $fieldssql = 'c.';
+        $fieldssql .= is_array($fields) ? implode(', c.', $fields) : $fields;
+
+        // option one: use enrolments only then filter to see if there is a teacher role.
+        // this will miss any category or site level roles
+
+        // Option 2 collect all the contexts whose parent paths are mentioned in a role assignment record
+        // This will get all the courses, but may be horribly slow
+        // Logic:
+        // - get all role assignments for this user
+        // - get all direct joined contexts for these role assignments
+        // - get all contexts where
+
+        // get this from DB - how deep are the contexts? Includes top level, so always 1 more than
+        // actual number of categories
+//        $sql = 'SELECT MAX(cx.depth) as depth
+//                  FROM {context} cx
+//                 WHERE cx.contextlevel <= ? ';
+//        $params = array(CONTEXT_COURSECAT);
+//
+//        $categorylevels = $DB->get_record_sql($sql, $params);
+//        $categorylevels = $categorylevels->depth;
+
+
+        $categorylevels = ajax_marking_functions::get_number_of_category_levels();
+
+
+        // Main bit
+
+        // all directly assigned roles
+        $select = "SELECT {$fieldssql}
+                     FROM {course} c
+               INNER JOIN {context} cx
+                       ON cx.instanceid = c.id
+               INNER JOIN {role_assignments} ra
+                       ON ra.contextid = cx.id
+                    WHERE cx.contextlevel = ?
+                      AND ra.userid = ?
+                      AND ra.roleid {$rolesql} ";
+        $params = array(CONTEXT_COURSE, $userid);
+        $params = array_merge($params, $roleparams);
+        $courseswithcourseroles = $DB->get_records_sql($select, $params);
+
+
+        // roles assigned in category 1 or 2 etc
+        //
+        // what if roles are assigned in two categories that are parent/child?
+        $select1 = "SELECT {$fieldssql}
+                     FROM {course} c
+
+                LEFT JOIN {course_categories} cat1
+                       ON c.category = cat1.id ";
+
+        $select2 =   "WHERE EXISTS (SELECT 1
+                                      FROM {context} cx
+                                INNER JOIN {role_assignments} ra
+                                        ON ra.contextid = cx.id
+                                     WHERE cx.contextlevel = ?
+                                       AND ra.userid = ?
+                                       AND ra.roleid {$rolesql}
+                                       AND (cx.instanceid = cat1.id ";
+
+        // loop adding extra join tables. $categorylevels = 2 means we only need one level of categories (which
+        // we already have with the first left join above) so we start from 2 and only add anything if
+        // there are 3 levels or more
+        // TODO does this cope with no hierarchy at all?
+        for ($i = 2; $i <= $categorylevels; $i++) {
+
+            $previouscat = $i-1;
+            $select1 .= "LEFT JOIN {course_categories} cat{$i}
+                               ON cat{$previouscat}.parent = cat{$i}.id ";
+
+            $select2 .= "OR cx.instanceid = cat{$i}.id ";
+        }
+
+        $query = $select1.$select2.'))';
+
+        $params = array(CONTEXT_COURSECAT, $userid);
+        $params = array_merge($params, $roleparams);
+
+        $courseswithcategoryroles = $DB->get_records_sql($query, $params);
+
+        return $courseswithcourseroles + $courseswithcategoryroles;
+
+    }
+
 }
 
 
@@ -1532,5 +1767,78 @@ class module_base {
         //$levels = count($this->functions) + 2;
         return $this->levels;
     }
+
+    /**
+     * Rather than waste resources getting loads of students we don't need via get_role_users() then
+     * cross referencing, we use this to drop the right SQL into a sub query. Without it, some large
+     * installations hit a barrier using IN($course_students) e.g. oracle can't cope with more than
+     * 1000 expressions in an IN() clause
+     *
+     * @param object $context the context object we want to get users for
+     * @param bool $parent should we look in higher contexts too?
+     */
+    function get_role_users_sql($context, $parent=true, $paramtype=SQL_PARAMS_NAMED) {
+
+        global $CFG, $DB;
+
+        $parentcontexts = '';
+        $parentcontextssql = '';
+        // need an empty one for array_merge() later
+        $parentcontextsparams = array();
+
+        $parentcontexts = substr($context->path, 1); // kill leading slash
+        // $parentcontexts = str_replace('/', ',', $parentcontexts);
+        $parentcontexts = explode('/', $parentcontexts);
+
+        if ($parentcontexts !== '') {
+            //$parentcontexts = ' OR ra.contextid IN ('.$parentcontexts.' )';
+            list($parentcontextssql, $parentcontextsparams) = $DB->get_in_or_equal($parentcontexts, $paramtype, 'param9000');
+        }
+
+        // get the roles that are specified as graded in site config settings. Will sometimes be here,
+        // sometimes not depending on ajax call
+        if (empty($this->mainobject->student_roles)) {
+            $this->mainobject->student_roles = $DB->get_field('config','value', array('name'=>'gradebookroles'));
+        }
+
+//        if (is_array($this->mainobject->student_roles)) {
+//            $roleselect = ' AND ra.roleid IN ('.implode(',', $this->mainobject->student_roles).')';
+//        } elseif (!empty($this->mainobject->student_roles)) { // should not test for int, because it can come in as a string
+//            $roleselect = "AND ra.roleid = {$this->mainobject->student_roles}";
+//        } else {
+//            $roleselect = '';
+//        }
+
+        // start this set of params at a later point to avoid collisions
+        list($studentrolesql, $studentroleparams) = $DB->get_in_or_equal($this->mainobject->student_roles, $paramtype, 'param0900');
+
+        $sql = " SELECT u.id
+                   FROM {role_assignments} ra
+                   JOIN {user} u
+                     ON u.id = ra.userid
+                   JOIN {role} r
+                     ON ra.roleid = r.id
+                  WHERE ra.contextid {$parentcontextssql}
+                    AND ra.roleid {$studentrolesql}";
+
+        $data = new stdClass;
+        $data->params = $parentcontextsparams + $studentroleparams;
+        $data->sql = $sql;
+        return $data;
+
+    }
+
+    /**
+     * Returns an SQL snippet that will tll us 
+     */
+    private function get_enrolled_student_sql() {
+
+
+
+
+    }
+
+   
+
 
 }

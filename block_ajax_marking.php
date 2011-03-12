@@ -65,64 +65,20 @@ class block_ajax_marking extends block_base {
 
         global $CFG, $USER, $DB, $PAGE;
 
+        require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+
         // admins will have a problem as they will see all the courses on the entire site
         // retrieve the teacher role id (3)
-        $teacherrole     =  $DB->get_field('role', 'id', array('shortname' => 'editingteacher'));
+        //$teacherrole     =  $DB->get_field('role', 'id', array('shortname' => 'editingteacher'));
         // retrieve the non-editing teacher role id (4)
-        $noneditingteacherrole  =  $DB->get_field('role', 'id', array('shortname' => 'teacher'));
+        //$noneditingteacherrole  =  $DB->get_field('role', 'id', array('shortname' => 'teacher'));
 
         // check to see if any roles allow grading of assessments
-        $coursecheck = 0;
-        $courses = get_my_courses($USER->id, 'fullname', 'id, visible');
-        $isteacherinanycourse = false;
+        //$courseswithteacherrole = 0;
+        //$courses = enrol_get_my_courses('fullname, id, visible');
+        $courses = ajax_marking_functions::get_my_teacher_courses($USER->id);
 
-        foreach ($courses as $course) {
-
-            // exclude the front page
-            if ($course->id == 1) {
-                continue;
-            }
-
-            // role check bit borrowed from block_narking, thanks to Mark J Tyers [ZANNET]
-            $context = get_context_instance(CONTEXT_COURSE, $course->id);
-
-            // check for editing teachers
-            $teachers = get_role_users($teacherrole, $context, true);
-            $correctrole = false;
-
-            if ($teachers) {
-
-                foreach ($teachers as $teacher) {
-
-                    if ($teacher->id == $USER->id) {
-                        $correctrole = true;
-                        $isteacherinanycourse = true;
-                    }
-                }
-            }
-            // check for non-editing teachers
-            $noneditingteachers = get_role_users($noneditingteacherrole, $context, true);
-
-            if ($noneditingteachers) {
-
-                foreach ($noneditingteachers as $noneditingteacher) {
-
-                    if ($noneditingteacher->id == $USER->id) {
-                        $correctrole = true;
-                        $isteacherinanycourse = true;
-                    }
-                }
-            }
-            // skip this course if no teacher or teacher_non_editing role
-            if (!$correctrole) {
-                continue;
-            }
-
-            $coursecheck++;
-
-        }
-
-        if ($coursecheck > 0) {
+        if (count($courses) > 0) {
             // Grading permissions exist in at least one course, so display the block
 
             //start building content output
@@ -130,7 +86,7 @@ class block_ajax_marking extends block_base {
 
             // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if
             // necessary
-            include('html_list.php');
+            require_once($CFG->dirroot.'/blocks/ajax_marking/html_list.php');
             $htmllistobject = new block_ajax_marking_html_list;
             $this->content->text .= '<div id="block_ajax_marking_html_list">';
             $this->content->text .= $htmllistobject->make_html_list();
@@ -210,12 +166,11 @@ class block_ajax_marking extends block_base {
                     <div id='status'></div>
                     <div id='treediv' class='yui-skin-sam'></div>";
 
-                // Don't warn about javascript if the sreenreader option is set - it was deliberate
+                // Don't warn about javascript if the screenreader option is set - it was deliberate
                 if (!$USER->screenreader) {
-                    $this->content->text .= '<noscript><p>AJAX marking block requires javascript, ';
+                    $this->content->text .= '<noscript><p>AJAX marking block prefers javascript, ';
                     $this->content->text .= 'but you have it turned off.</p></noscript>';
                 }
-
 
 
                 $PAGE->requires->yui2_lib('treeview');
@@ -260,6 +215,9 @@ class block_ajax_marking extends block_base {
             if ($PAGE->user_is_editing()) {
                 $this->content->text .= get_string('nogradedassessments', 'block_ajax_marking');
                 $this->content->footer = '';
+            } else {
+                // this will stop the other functions like has_content() from running all the way through this again
+                $this->content = false;
             }
 
         }

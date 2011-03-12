@@ -20,6 +20,10 @@ YAHOO.ajax_marking_block.journal = (function(clickednode) {
                 url += ((typeof(clickednode.data.group)) != 'undefined') ? clickednode.data.group : '0' ;
             return url;
         },
+
+        extra_ajax_request_arguments : function () {
+            return '';
+        },
         
         /**
          * adds onclick stuff to the journal pop up elements once they are ready.

@@ -34,7 +34,7 @@ class forum_functions extends module_base {
      *
      * @param object $mainobject parent object passed in by reference
      */
-    function forum_functions(&$mainobject) {
+    function __construct(&$mainobject) {
         $this->mainobject = $mainobject;
         // must be the same as th DB modulename
         $this->type = 'forum';
@@ -56,10 +56,13 @@ class forum_functions extends module_base {
     function get_all_unmarked() {
         global $CFG, $USER, $DB;
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED, 'param0000');
-        list($usql2, $params2) = $DB->get_in_or_equal($this->mainobject->teachers, SQL_PARAMS_NAMED,
-                                                      'param900000', false);
-        $sql = "SELECT p.id as postid, p.userid, d.id, f.id, f.name, f.course, c.id as cmid
+        list($coursesql, $courseparams) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED, 'forumcourseparam0000');
+
+        $teachersql = $this->get_teacher_sql();
+
+        $params = $courseparams;
+
+        $sql = "SELECT p.id as postid, p.userid, d.id, f.id, f.name, f.course, cm.id as cmid
                   FROM {forum_posts} p
              LEFT JOIN {rating} r
                     ON p.id = r.itemid
@@ -67,22 +70,24 @@ class forum_functions extends module_base {
                     ON p.discussion = d.id
             INNER JOIN {forum} f
                     ON d.forum = f.id
-            INNER JOIN {course_modules} c
-                    ON f.id = c.instance
+            INNER JOIN {course_modules} cm
+                    ON f.id = cm.instance
+            INNER JOIN {course} c
+                    ON c.id = f.course
                  WHERE p.userid <> :userid
-                   AND f.course $usql
-                   AND (((r.userid <> :userid2) AND (r.userid $usql2))
-                    OR r.userid IS NULL)
-                   AND c.module = :moduleid
+                   AND f.course $coursesql
+                   AND ( ( (r.userid <> :userid2) AND {$teachersql})
+                         OR r.userid IS NULL)
+                   AND cm.module = :moduleid
                    AND c.visible = 1
                    AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
                    AND f.assessed > 0
               ORDER BY f.id";
-        $params = array_merge($params, $params2);
-        $params['userid'] = $USER->id;
 
+        $params['userid'] = $USER->id;
         $params['userid2'] = $USER->id;
-        $params['moduleid'] = $this->mainobject->modulesettings['forum']->id;
+        $params['moduleid'] = $this->mainobject->modulesettings[$this->type]->id;
+
         $this->all_submissions = $DB->get_records_sql($sql, $params);
         return true;
     }
@@ -96,43 +101,116 @@ class forum_functions extends module_base {
      */
     function get_all_course_unmarked($courseid) {
 
+        //return array();
+
         global $CFG, $USER, $DB;
         $unmarked = '';
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid,
-                                                    SQL_PARAMS_NAMED, 'param0000');
-        list($usql2, $params2) = $DB->get_in_or_equal($this->mainobject->teachers,
-                                                      SQL_PARAMS_NAMED, 'param900000', false);
+        $context = get_context_instance(CONTEXT_COURSE, $courseid);
+
+        $student_sql = $this->get_role_users_sql($context);
+        $params = $student_sql->params;
 
         $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.course, f.type, f.id, f.name,
                        f.intro as description, c.id as cmid
                   FROM {forum} f
-            INNER JOIN {course_modules} c
-                    ON f.id = c.instance
+            INNER JOIN {course} c
+                    ON c.id = f.course
+            INNER JOIN {course_modules} cm
+                    ON f.id = cm.instance
             INNER JOIN {forum_discussions} d
                     ON d.forum = f.id
             INNER JOIN {forum_posts} p
                     ON p.discussion = d.id
              LEFT JOIN {rating} r
                     ON p.id = r.itemid
+            INNER JOIN ({$student_sql->sql}) stsql
+                    ON p.userid = stsql.id
                  WHERE p.userid <> :userid
-                   AND p.userid $usql
-                   AND (((r.userid <> :userid2) AND (r.userid $usql2))
-                       OR r.userid IS NULL)
+                   AND (((r.userid <> :userid2) AND ".$this->get_teacher_sql().")
+                    OR r.userid IS NULL)
                    AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
-                   AND c.module = :moduleid
-                   AND c.visible = 1
+                   AND cm.module = :moduleid
+                   AND cm.visible = 1
                    AND f.course = :courseid
                    AND f.assessed > 0
               ORDER BY f.id";
-        $params = array_merge($params, $params2);
         $params['userid'] = $USER->id;
         $params['userid2'] = $USER->id;
-        $params['moduleid'] = $this->mainobject->modulesettings['forum']->id;
+        $params['moduleid'] = $this->mainobject->modulesettings[$this->type]->id;
         $params['courseid'] = $courseid;
+
+//        echo $sql;
+//        print_r($params);
+//        die;
 
         $unmarked = $DB->get_records_sql($sql, $params);
         return $unmarked;
+    }
+
+    /**
+     * Puts all the generation of the sql for 'is this person not a teacher in this course' This is so
+     * that anything already marked by another teacher will not show up.
+     *
+     * Assumes that it is part of a larger query with course aliased as c
+     *
+     * @param int $forumid
+     * @return array named parameters
+     */
+    function get_teacher_sql() {
+
+        // making a where not exists to make sure the rating is not a teacher.
+        // asume that the main query has a 'course c' and 'ratings r' clause in FROM
+
+        // correlated sub query for the where should be OK if the joins only give a small number of
+        // rows
+
+        // role_assignment -> context -> cat1 -> coursecategory
+        //                            -> cat1 -> coursecategory
+        //
+
+        $categorylevels = ajax_marking_functions::get_number_of_category_levels();
+
+        // get category and course role assignments separately
+        // for category level, we look for users with a role assignment where the contextinstance can be
+        // left joined to any category that's a parent of the suplied course
+        $select = "NOT EXISTS( SELECT 1
+                                 FROM {role_assignments} ra
+                           INNER JOIN {context} cx
+                                   ON ra.contextid = cx.id
+                           INNER JOIN {course_categories} cat1
+                                   ON cx.instanceid = cat1.id ";
+
+        $selectwhere = array('c.category = cat1.id');
+
+        for ($i = 2; $i <= $categorylevels; $i++) {
+
+            $onebefore = $i - 1;
+
+            $select .=     "LEFT JOIN {course_categories} cat{$i}
+                                   ON cat{$onebefore}.parent = cat{$i}.id ";
+            $selectwhere[] =         "c.category = cat{$i}.id";
+
+        }
+
+        $select .= 'WHERE('.implode(' OR ', $selectwhere).') ';
+        $select .= 'AND ra.userid = r.userid
+                    AND cx.contextlevel = '.CONTEXT_COURSECAT.' ';
+
+
+        $select .=            " UNION
+
+                               SELECT 1
+                                 FROM {role_assignments} ra
+                           INNER JOIN {context} cx
+                                   ON ra.contextid = cx.id
+                                WHERE cx.contextlevel = ".CONTEXT_COURSE." 
+                                  AND ra.userid = r.userid
+                                  AND cx.instanceid = c.id
+                                ) ";
+
+        return $select;
+
     }
 
     /**
@@ -148,7 +226,10 @@ class forum_functions extends module_base {
         $discussions = '';
         $forum = $DB->get_record('forum', array('id' => $this->mainobject->id));
         $courseid = $forum->course;
-        $this->mainobject->get_course_students($courseid);
+
+        // so we have cached student details
+        $course = $DB->get_record('course', array('id' => $courseid));
+        $this->mainobject->get_course_students($course);
 
         $discussions = $DB->get_records('forum_discussions', array('forum' => $this->mainobject->id));
 
@@ -156,10 +237,9 @@ class forum_functions extends module_base {
             return;
         }
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid,
-                                                    SQL_PARAMS_NAMED, 'param0000');
-        list($usql2, $params2) = $DB->get_in_or_equal($this->mainobject->teachers,
-                                                      SQL_PARAMS_NAMED, 'param900000', false);
+        $coursecontext = get_context_instance(CONTEXT_COURSE, $courseid);
+        $student_sql = $this->get_role_users_sql($coursecontext, true, SQL_PARAMS_NAMED);
+        $params = $student_sql->params;
 
         // get ready to fetch all the unrated posts
         $sql = 'SELECT p.id, p.userid, p.created, p.message, d.id as discussionid
@@ -172,13 +252,15 @@ class forum_functions extends module_base {
 
         $sql .= "INNER JOIN {forum_posts} p
                          ON p.discussion = d.id
+                 INNER JOIN ({$student_sql->sql}) stsql
+                         ON p.userid = stsql.id
+                 INNER JOIN {course} c
+                         ON d.course = c.id
                   LEFT JOIN {rating} r
-                         ON  p.id = r.itemid
-                      WHERE d.forum = :forumid
-                        AND p.userid <> :userid
-                        AND p.userid $usql
-                        AND (((r.userid <> :userid)
-                        AND (r.userid $usql2))
+                         ON p.id = r.itemid
+                      WHERE d.forum = :forum
+                        AND p.userid <> :userid1
+                        AND (((r.userid <> :userid2) AND ".$this->get_teacher_sql().")
                          OR r.userid IS NULL) ";
 
         if ($forum->type == 'eachuser') {
@@ -186,10 +268,12 @@ class forum_functions extends module_base {
             $sql .= "AND (f.type = 'eachuser' AND p.id = d.firstpost)";
         }
 
-        $params = array_merge($params, $params2);
-        $params['userid'] = $USER->id;
-        $params['forumid'] = $this->mainobject->id;
+        $params['forum'] = $this->mainobject->id;
+        $params['userid1'] = $USER->id;
+        $params['userid2'] = $USER->id;
+        
 
+        // TODO this is NOT fast at all. Even on a small DB.
         $posts = $DB->get_records_sql($sql, $params);
 
         if ($posts) {
@@ -332,14 +416,17 @@ class forum_functions extends module_base {
                         }
                         $summary = $discuss.': '.$shortsum.'<br />'.$timesum;
 
-                        $node = $this->mainobject->make_submission_node($name,
-                                                                        $firstpost->id,
-                                                                        $discussion->id,
-                                                                        $summary,
-                                                                        'forum_final',
-                                                                        $seconds,
-                                                                        $time,
-                                                                        $count);
+                        $node = $this->mainobject->make_submission_node(array(
+                                'name' => $name,
+                                'firstpostid' => $firstpost->id,
+                                'discussionid' => $discussion->id,
+                                'uniqueid' => 'forum_final'.$discussion->id.'-'.$firstpost->id,
+                                'title' => $summary,
+                                'type' => 'forum_final',
+                                'seconds' => $seconds,
+                                'time' => $time,
+                                'count' => $count));
+
                         $this->mainobject->output .= $node;
                     }
                 }

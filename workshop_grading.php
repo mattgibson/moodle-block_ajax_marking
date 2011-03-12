@@ -43,8 +43,8 @@ class workshop_functions extends module_base {
         $this->mainobject = $mainobject;
         // must be the same as th DB modulename
         $this->type = 'workshop';
-        $this->capability = 'mod/workshop:manage';
-        $this->levels = 3;
+        $this->capability = 'mod/workshop:editdimensions';
+        $this->levels = 2;
         $this->icon = 'mod/workshop/icon.gif';
         $this->functions  = array(
             'workshop' => 'submissions'
@@ -80,7 +80,7 @@ class workshop_functions extends module_base {
               ORDER BY w.id";
         $params['userid'] = $USER->id;
         $params['userid2'] = $USER->id;
-        $params['moduleid'] = $this->mainobject->modulesettings['workshop']->id;
+        $params['moduleid'] = $this->mainobject->modulesettings[$this->type]->id;
         $this->all_submissions = $DB->get_records_sql($sql, $params);
         return true;
     }
@@ -97,6 +97,10 @@ class workshop_functions extends module_base {
 
         list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
 
+        $context = get_context_instance(CONTEXT_COURSE, $courseid);
+        $student_sql = $this->get_role_users_sql($context);
+        $params = $student_sql->params;
+
         $sql = "SELECT s.id as submissionid, s.authorid as userid, w.id, w.name, w.course,
                        w.intro as description, c.id as cmid
                   FROM ({workshop} w
@@ -106,17 +110,18 @@ class workshop_functions extends module_base {
                     ON s.workshopid = w.id
              LEFT JOIN {workshop_assessments} a
                     ON (s.id = a.submissionid)
+            INNER JOIN ({$student_sql->sql}) stsql
+                    ON s.authorid = stsql.id
                  WHERE (a.reviewerid != :userid
                     OR (a.reviewerid = :userid2
                    AND a.grade = -1))
                    AND c.module = :moduleid
                    AND c.visible = 1
                    AND w.course = :courseid
-                   AND s.authorid $usql
               ORDER BY w.id";
         $params['userid'] = $USER->id;
         $params['userid2'] = $USER->id;
-        $params['moduleid'] = $this->mainobject->modulesettings['workshop']->id;
+        $params['moduleid'] = $this->mainobject->modulesettings[$this->type]->id;
         $params['courseid'] = $courseid;
         $unmarked = $DB->get_records_sql($sql, $params);
         return $unmarked;
@@ -140,17 +145,22 @@ class workshop_functions extends module_base {
         // a teacher assessment
         list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
 
+        $context = get_context_instance(CONTEXT_COURSE, $courseid);
+        $studentsql = $this->get_role_users_sql($context);
+        $params = $studentsql->params;
+
         $sql = "SELECT s.id, s.authorid as userid, s.title, s.timecreated, s.workshopid
                   FROM {workshop_submissions} s
              LEFT JOIN {workshop_assessments} a
                     ON (s.id = a.submissionid)
             INNER JOIN {workshop} w
                     ON s.workshopid = w.id
+            INNER JOIN ({$studentsql->sql}) stsql
+                    ON s.authorid = stsql.id
                  WHERE (a.reviewerid != :userid
                     OR (a.reviewerid = :userid2
                    AND a.grade = -1))
                    AND s.workshopid = :workshopid
-                   AND s.authorid $usql
                    AND w.assessmentstart < :now
               ORDER BY s.timecreated ASC";
 
@@ -196,7 +206,7 @@ class workshop_functions extends module_base {
                 $name = $this->mainobject->get_fullname($submission->userid);
 
                 // sort out the time stuff
-                $seconds = ($now - $submission->timecreated);
+                $seconds = (time() - $submission->timecreated);
                 $summary = $this->mainobject->make_time_summary($seconds);
 
                 // make the node
@@ -232,7 +242,7 @@ class workshop_functions extends module_base {
                    AND c.visible = 1
                    AND w.course $usql
               ORDER BY w.id";
-        $params['moduleid'] = $this->mainobject->modulesettings['workshop']->id;
+        $params['moduleid'] = $this->mainobject->modulesettings[$this->type]->id;
         $workshops = $DB->get_records_sql($sql, $params);
         $this->assessments = $workshops;
     }

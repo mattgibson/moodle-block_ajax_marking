@@ -83,7 +83,7 @@ class block_ajax_marking_html_list extends ajax_marking_functions {
                 continue;
             }
 
-            $this->get_course_students($courseid);
+            $this->get_course_students($course);
 
             if ((!isset($this->students->ids->$courseid)) || empty($this->students->ids->$courseid)) {
                 // no students in this course

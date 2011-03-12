@@ -84,7 +84,9 @@ class assignment_functions extends module_base {
     function get_all_unmarked() {
 
         global $CFG, $DB;
+
         list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
+
         $sql = "SELECT s.id as subid, s.userid, a.course, a.name, a.intro as description, a.id, c.id as cmid
                   FROM {assignment} a
             INNER JOIN {course_modules} c
@@ -98,7 +100,9 @@ class assignment_functions extends module_base {
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
                     OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
               ORDER BY a.id";
-        $params['coursemodule'] = $this->mainobject->modulesettings['assignment']->id;
+
+        $params['coursemodule'] = $this->mainobject->modulesettings[$this->type]->id;
+        
         $this->all_submissions = $DB->get_records_sql($sql, $params);
         return true;
     }
@@ -115,7 +119,11 @@ class assignment_functions extends module_base {
         global $CFG, $DB;
         $unmarked = '';
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
+        $context = get_context_instance(CONTEXT_COURSE, $courseid);
+        $student_sql = $this->get_role_users_sql($context);
+        $params = $student_sql->params;
+
+        //list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
 
         $sql = "SELECT s.id as subid, s.userid, a.id, a.name,
                        a.course, a.intro as description, c.id as cmid
@@ -124,15 +132,17 @@ class assignment_functions extends module_base {
                     ON a.id = c.instance
             INNER JOIN {assignment_submissions} s
                     ON s.assignment = a.id
-                 WHERE c.module = :coursemodule
+            INNER JOIN ({$student_sql->sql}) stsql
+                    ON s.userid = stsql.id
+                 WHERE c.module = :coursemodule 
                    AND c.visible = 1
                    AND a.course = $courseid
                    AND s.timemarked < s.timemodified
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
                         OR (a.assignmenttype = 'upload'  AND s.data2 != 'submitted'))
-                   AND s.userid $usql
               ORDER BY a.id";
-        $params['coursemodule'] = $this->mainobject->modulesettings['assignment']->id;
+        $params['coursemodule'] = $this->mainobject->modulesettings[$this->type]->id;
+
         $unmarked = $DB->get_records_sql($sql, $params);
         return $unmarked;
     }
@@ -153,6 +163,10 @@ class assignment_functions extends module_base {
         $assignment = $DB->get_record('assignment', array('id' => $this->mainobject->id));
         $courseid = $assignment->course;
 
+        // so we have cached student details
+        $course = $DB->get_record('course', array('id' => $courseid));
+        $this->mainobject->get_course_students($course);
+
         //permission to grade?
         $params = array('module' => $this->mainobject->modulesettings['assignment']->id, 'instance' => $assignment->id);
         $coursemodule = $DB->get_record('course_modules', $params);
@@ -162,23 +176,28 @@ class assignment_functions extends module_base {
             return;
         }
 
-        $this->mainobject->get_course_students($courseid);
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
+        $context = get_context_instance(CONTEXT_COURSE, $courseid);
+        $student_sql = $this->get_role_users_sql($context);
+        $params = $student_sql->params;
+
+        //$this->mainobject->get_course_students($courseid);
+        //list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
         $sql = "SELECT s.id as subid, s.userid, s.timemodified, c.id as cmid
                   FROM {assignment_submissions} s
             INNER JOIN {course_modules} c
                     ON s.assignment = c.instance
             INNER JOIN {assignment} a
                     ON s.assignment = a.id
+            INNER JOIN ({$student_sql->sql}) stsql
+                    ON s.userid = stsql.id
                  WHERE s.assignment = :assignment
-                   AND s.userid $usql
                    AND s.timemarked < s.timemodified
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
                        OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
                    AND c.module = :coursemodule
               ORDER BY timemodified ASC";
         $params['assignment'] = $this->mainobject->id;
-        $params['coursemodule'] = $this->mainobject->modulesettings['assignment']->id;
+        $params['coursemodule'] = $this->mainobject->modulesettings[$this->type]->id;
         $submissions = $DB->get_records_sql($sql, $params);
 
         if ($submissions) {
@@ -235,15 +254,19 @@ class assignment_functions extends module_base {
                 $seconds = ($now - $submission->timemodified);
                 $summary = $this->mainobject->make_time_summary($seconds);
 
-                $this->mainobject->make_submission_node($name,
-                                                        $submission->userid,
-                                                        $submission->cmid,
-                                                        $summary,
-                                                        'assignment_final',
-                                                        $seconds,
-                                                        $submission->timemodified);
+                $node = $this->mainobject->make_submission_node(array(
+                        'name' => $name,
+                        'userid' => $submission->userid,
+                        'coursemoduleid' => $submission->cmid,
+                        'uniqueid' => 'assignment_final'.$submission->cmid.'-'.$submission->userid,
+                        'summary' => $summary,
+                        'type' => 'assignment_final',
+                        'seconds' => $seconds,
+                        'time' => $submission->timemodified));
 
+                $this->mainobject->output .= $node;
             }
+            
             $this->mainobject->output .= ']'; // end JSON array
 
         }

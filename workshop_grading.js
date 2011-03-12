@@ -7,7 +7,7 @@ YAHOO.ajax_marking_block.workshop = (function() {
     return {
         
         pop_up_arguments : function() {
-            return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';
+            return 'menubar=0,location=0,scrollbars,resizable,width=980,height=630';
         },
         
         //YAHOO.ajax_marking_block.workshop_final.pop_up_post_data = function (node) {
@@ -19,9 +19,12 @@ YAHOO.ajax_marking_block.workshop = (function() {
         },
         
         pop_up_opening_url : function (clickednode) {
-            return '/mod/workshop/assess.php?id='+clickednode.data.assessmentid+'&sid='+clickednode.data.submissionid+'&redirect='+amVariables.wwwroot;
+            return '/mod/workshop/view.php?id='+clickednode.data.cmid;
         },
-        
+
+        extra_ajax_request_arguments : function () {
+            return '';
+        },
         /**
          * workshop pop up stuff
          * function to add workshop onclick stuff and shut the pop up after its been graded.

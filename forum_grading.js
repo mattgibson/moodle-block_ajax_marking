@@ -2,21 +2,25 @@ YAHOO.ajax_marking_block.forum = (function() {
 
     return {
         
-        pop_up_post_data : function(clickednode) {
-            return 'd='+clickednode.data.assessmentid+'#p'+clickednode.data.submissionid;
-        },
+//        pop_up_post_data : function(clickednode) {
+//            return 'd='+clickednode.data.assessmentid+'#p'+clickednode.data.firstpostid;
+//        },
         
         pop_up_closing_url : function() {
             return '/mod/forum/discuss.php';
         },
         
-        pop_up_opening_url : function () {
+        pop_up_opening_url : function (clickednode) {
+            return '/mod/forum/discuss.php/?d='+clickednode.data.discussionid;
         },
         
         pop_up_arguments : function () {
             return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630'; 
         },
-        
+
+        extra_ajax_request_arguments : function () {
+            return '';
+        },
         /**
          * function to add onclick stuff to the forum ratings button. This button also has no name or id
          * so we identify it by getting the last tag in the array of inputs. The function is triggered

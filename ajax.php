@@ -28,7 +28,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once('../../config.php');
+require_once(dirname(_FILE__).'/../../config.php');
 require_login(0, false);
 require_once('lib.php');
 require_once('output.class.php');
@@ -64,7 +64,7 @@ class ajax_marking_response extends ajax_marking_functions {
      * This function takes the POST data, makes variables out of it, then chooses the correct
      * function to deal with the request, before printing the output.
      */
-    function ajax_marking_response() {
+    function __construct() {
         // constructor retrieves GET data and works out what type of AJAX call has been made before
         // running the correct function
         // TODO: should check capability with $USER here to improve security. currently, this is only
@@ -123,7 +123,7 @@ class ajax_marking_response extends ajax_marking_functions {
 
                     // we must make sure we only get work from enrolled students
                     $courseid = $course->id;
-                    $this->get_course_students($courseid);
+                    $this->get_course_students($course);
 
                     // If there are no students, there's no point counting
                     if (!isset($this->students->ids->$courseid)) {
@@ -263,7 +263,8 @@ class ajax_marking_response extends ajax_marking_functions {
 
                 $courseid = $this->id;
                 // we must make sure we only get work from enrolled students
-                $this->get_course_students($courseid);
+                $course = $DB->get_record('course', array('id' => $courseid));
+                $this->get_course_students($course);
 
                 $this->output = '[{"type":"course"}';
 
@@ -275,6 +276,7 @@ class ajax_marking_response extends ajax_marking_functions {
                 break;
 
             case 'config_course':
+                $course = $DB->get_record('course', array('id' => $courseid));
                 $this->get_course_students($this->id);
 
                 $this->config = true;

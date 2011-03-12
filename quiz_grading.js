@@ -2,20 +2,22 @@ YAHOO.ajax_marking_block.quiz = (function() {
 
     return {
         
-        pop_up_post_data : function(clickednode) {
-            return 'mode=grading&action=grade&q='+clickednode.parent.parent.data.id+'&questionid='+clickednode.data.aid+'&userid='+clickednode.data.sid;
-        },
+//        pop_up_post_data : function(clickednode) {
+//            return 'mode=grading&action=grade&q='+clickednode.parent.parent.data.id+'&questionid='+
+//                   clickednode.data.aid+'&userid='+clickednode.data.sid;
+//        },
         
         pop_up_closing_url : function() {
             return '/mod/quiz/report.php';
         },
         
         pop_up_opening_url : function(clickednode) {
-            return '/mod/quiz/report.php?mode=grading&q='+clickednode.parent.parent.data.id+'&questionid='+clickednode.data.aid+'&userid='+clickednode.data.sid;
+            return '/blocks/ajax_marking/actions/grading_popup.php?module=quiz&attempt='+clickednode.data.attemptid+
+                   '&question='+clickednode.data.questionid+'&uniqueid='+clickednode.data.uniqueid;
         },
         
         pop_up_arguments : function() {
-            return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630';
+            return 'menubar=0,location=0,scrollbars,resizable,width=780,height=670';
         },
         
         extra_ajax_request_arguments : function(clickednode) {
@@ -23,7 +25,7 @@ YAHOO.ajax_marking_block.quiz = (function() {
             if (clickednode.data.type == 'quiz_question') {
                 return '&secondary_id='+clickednode.parent.data.id;
             } else {
-                return true;
+                return '';
             }
         },
         
