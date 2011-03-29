@@ -1812,7 +1812,7 @@ class module_base {
         // start this set of params at a later point to avoid collisions
         list($studentrolesql, $studentroleparams) = $DB->get_in_or_equal($this->mainobject->student_roles, $paramtype, 'param0900');
 
-        $sql = " SELECT u.id
+        $sql = " SELECT DISTINCT(u.id)
                    FROM {role_assignments} ra
                    JOIN {user} u
                      ON u.id = ra.userid
