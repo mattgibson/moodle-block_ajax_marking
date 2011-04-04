@@ -32,12 +32,14 @@
  *
  * @return void
  */
-function amb_update_modules() {
+function block_ajax_marking_update_modules($verbose=true) {
 
     global $CFG, $DB;
 
     $modules = array();
-    echo '<br /><br />Scanning site for modules which have an AJAX Marking Block plugin... <br />';
+    if ($verbose) {
+        echo '<br /><br />'.get_string('scanning', 'block_ajax_marking').'<br />';
+    }
 
     // make a list of directories to check for module grading files
     $installed_modules = get_list_of_plugins('mod');
@@ -78,14 +80,18 @@ function amb_update_modules() {
 
                     $modules[$modulename]->id   = $module_ids[$modulename]->id;
 
-                    echo "Registered $modulename module <br />";
+                    if ($verbose) {
+                        echo get_string('registered', 'block_ajax_marking', $modulename).'<br />';
+                    }
                 }
             }
         }
     }
 
-    echo '<br />For instructions on how to write extensions for this block, '
-         .'see the documentation on Moodle Docs<br /><br />';
+    if ($verbose) {
+        echo '<br />'.get_string('extensions', 'block_ajax_marking').'<br /><br />';
+    }
+    
 
     set_config('modules', serialize($modules), 'block_ajax_marking');
 }
@@ -127,12 +133,69 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         $result = $result && $dbman->create_table($table);
     }
 
-    if ($result && $oldversion < 2010050101) {
+    if ($result && $oldversion < 2010061801) {
+
+        // Define key useridkey (foreign) to be dropped form block_ajax_marking
+        $table = new XMLDBTable('block_ajax_marking');
+        $key = new XMLDBKey('useridkey');
+        $key->setAttributes(XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
+
+        // Launch drop key useridkey
+        $result = $result && drop_key($table, $key);
+
+        // Define table block_ajax_marking_groups to be created
+        $table = new XMLDBTable('block_ajax_marking_groups');
+
+        // Adding fields to table block_ajax_marking_groups
+        $table->addFieldInfo('id', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null, null);
+        $table->addFieldInfo('configid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, null);
+        $table->addFieldInfo('groupid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, null);
+        $table->addFieldInfo('display', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null, null);
+
+        // Adding keys to table block_ajax_marking_groups
+        $table->addKeyInfo('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->addKeyInfo('configid-id', XMLDB_KEY_FOREIGN, array('configid'), 'block_ajax_marking', array('id'));
+
+        // Launch create table for block_ajax_marking_groups
+        $result = $result && create_table($table);
+
+        // Transfer all groups stuff to the new table
+
+        $sql = "SELECT id, groups FROM {$CFG->prefix}block_ajax_marking";
+        $oldrecords = get_records_sql($sql);
+
+        foreach ($oldrecords as $record) {
+
+            // get the csv groups from the groups column
+            if(!empty($record->groups)) {
+                $groups = explode(' ', trim($record->groups));
+
+                foreach ($groups as $group) {
+
+                    $data = new stdClass;
+                    $data->groupid = $group;
+                    $data->configid = $record->id;
+                    $data->display = 1;
+
+                    $result = $result && insert_record('block_ajax_marking_groups', $data);
+                }
+            }
+        }
+
+        //Drop the groups column on the old table
+        
+        // Define field groups to be dropped from block_ajax_marking
+        $table = new XMLDBTable('block_ajax_marking');
+        $field = new XMLDBField('groups');
+
+        // Launch drop field groups
+        $result = $result && drop_field($table, $field);
+
 
     }
 
     // run this on every upgrade.
-    amb_update_modules();
+    block_ajax_marking_update_modules();
 
     return $result;
 }

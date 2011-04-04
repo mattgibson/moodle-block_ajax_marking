@@ -62,24 +62,14 @@ class block_ajax_marking extends block_base {
         if ($this->content !== null) {
             return $this->content;
         }
-
+        
         global $CFG, $USER, $DB, $PAGE;
 
         require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 
-        // admins will have a problem as they will see all the courses on the entire site
-        // retrieve the teacher role id (3)
-        //$teacherrole     =  $DB->get_field('role', 'id', array('shortname' => 'editingteacher'));
-        // retrieve the non-editing teacher role id (4)
-        //$noneditingteacherrole  =  $DB->get_field('role', 'id', array('shortname' => 'teacher'));
+        $courses = block_ajax_marking_get_my_teacher_courses();
 
-        // check to see if any roles allow grading of assessments
-        //$courseswithteacherrole = 0;
-        //$courses = enrol_get_my_courses('fullname, id, visible');
-        $courses = ajax_marking_functions::get_my_teacher_courses($USER->id);
-
-        if (count($courses) > 0) {
-            // Grading permissions exist in at least one course, so display the block
+        if (count($courses) > 0) { // Grading permissions exist in at least one course, so display the block
 
             //start building content output
             $this->content = new stdClass;
@@ -87,9 +77,9 @@ class block_ajax_marking extends block_base {
             // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if
             // necessary
             require_once($CFG->dirroot.'/blocks/ajax_marking/html_list.php');
-            $htmllistobject = new block_ajax_marking_html_list;
+            
             $this->content->text .= '<div id="block_ajax_marking_html_list">';
-            $this->content->text .= $htmllistobject->make_html_list();
+            $this->content->text .= $htmllist;
             $this->content->text .= '</div>';
             $this->content->footer = '';
 
@@ -131,9 +121,33 @@ class block_ajax_marking extends block_base {
                         'coursedefault'       => get_string('coursedefault',       'block_ajax_marking'),
                         'debuglevel'          => $CFG->debug
                 );
+                
+                $jsmodule = array(
+                    'name'     => 'block_ajax_marking',
+                    'fullpath' => '/blocks/ajax_marking/module.js.php',
+                    'requires' => array('yui2-treeview', 'yui2-button', 'yui2-connection', 'yui2-json'),
+                    'strings' => array(
+                        array('totaltomark',         'block_ajax_marking'),
+                        array('instructions',        'block_ajax_marking'),
+                        array('nogradedassessments', 'block_ajax_marking'),
+                        array('nothingtomark',       'block_ajax_marking'),
+                        array('refresh',             'block_ajax_marking'),
+                        array('configure',           'block_ajax_marking'),
+                        array('connectfail',       'block_ajax_marking'),
+                        array('nogroups',       'block_ajax_marking'),
+                        array('settingsheadertext',       'block_ajax_marking'),
+                        array('showthisassessment',       'block_ajax_marking'),
+                        array('showthiscourse',       'block_ajax_marking'),
+                        array('showwithgroups',       'block_ajax_marking'),
+                        array('hidethisassessment',       'block_ajax_marking'),
+                        array('hidethiscourse',       'block_ajax_marking'),
+                        array('coursedefault',       'block_ajax_marking'),
+                        array('hidethiscourse',       'block_ajax_marking'),
+                    )
+                );
 
-                $jsvariables  = "YAHOO.ajax_marking_block.variables = [];
-                        var YAV = YAHOO.ajax_marking_block.variables;
+                $jsvariables  = "M.block_ajax_marking.variables = [];
+                        var YAV = M.block_ajax_marking.variables;
                         YAV['wwwroot']             = '".$CFG->wwwroot."';
                         YAV['totaltomark']         = '".get_string('totaltomark',         'block_ajax_marking')."';
                         YAV['userid']              = '".$USER->id."';
@@ -172,38 +186,17 @@ class block_ajax_marking extends block_base {
                     $this->content->text .= 'but you have it turned off.</p></noscript>';
                 }
 
+//                if ($CFG->debug == DEBUG_DEVELOPER) {
+//                    $PAGE->requires->yui2_lib('logger');
+//                }
 
-                $PAGE->requires->yui2_lib('treeview');
-                $PAGE->requires->yui2_lib('button');
-                $PAGE->requires->yui2_lib('connection');
-                $PAGE->requires->yui2_lib('json');
-
-                if ($CFG->debug == 38911) { //TODO use proper constant
-                    $PAGE->requires->yui2_lib('logger');
+                $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true, $jsmodule);
+                // also need to add any js from individual modules, which the html list will
+                // have provided
+                foreach ($moduleclasses as $moduleclass) {
+                    $moduleclass->include_javascript();
+                    $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true, $jsmodule);
                 }
-
-                $PAGE->requires->js('/blocks/ajax_marking/javascript.js');
-                $PAGE->requires->js_init_code($jsvariables);
-
-                // also need to add any js from individual modules
-                foreach ($htmllistobject->modulesettings as $modulename => $module) {
-
-
-                    $fileinblockdirectory = file_exists("{$CFG->dirroot}/blocks/ajax_marking/{$modulename}_grading.js");
-
-                    if ($fileinblockdirectory) {
-                        $PAGE->requires->js("/blocks/ajax_marking/{$modulename}_grading.js");
-                    } else {
-
-                        $fileinmoddirectory  = file_exists("{$CFG->dirroot}{$module->dir}/{$modulename}_grading.js");
-
-                        if ($fileinmoddirectory) {
-                            $PAGE->requires->js('/'.$module->dir.'/'.$modulename.'_grading.js');
-                        }
-                    }
-                }
-
-                $PAGE->requires->js_init_call('YAHOO.ajax_marking_block.initialise', null, true);
 
                 $this->content->footer .= '<div id="block_ajax_marking_refresh_button"></div><div id="block_ajax_marking_configure_button"></div>';
 
@@ -246,7 +239,7 @@ class block_ajax_marking extends block_base {
         global $CFG;
 
         include_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
-        amb_update_modules();
+        block_ajax_marking_update_modules();
 
     }
 }

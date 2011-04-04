@@ -19,7 +19,7 @@
  * Class file for the quiz grading class
  *
  * @package   blocks-ajax_marking
- * @copyright 2008-2010 Matt Gibson
+ * @copyright 2008-2011 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -41,25 +41,27 @@ require_once($CFG->dirroot.'/lib/questionlib.php');
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class quiz_functions extends module_base {
-
+class block_ajax_marking_quiz extends block_ajax_marking_module_base {
+    
     /**
      * Constructor
      *
      * @param object $reference the parent object passed in by reference so that it's data can be used
      * @return void
      */
-    function quiz_functions(&$reference) {
-
-        $this->mainobject = $reference;
+    function __construct() {
+        
         // must be the same as the DB modulename
-        $this->type = 'quiz';
-        $this->capability = 'mod/quiz:grade';
-        $this->levels = 4;
-        $this->icon = 'mod/quiz/icon.gif';
-        $this->functions  = array(
-            'quiz' => 'quiz_questions',
-            'quiz_question' => 'submissions'
+        $this->modulename  = 'quiz';
+
+        $this->moduleid    = $this->get_module_id();
+
+        $this->capability  = 'mod/quiz:grade';
+        $this->levels      = 4;
+        $this->icon        = 'mod/quiz/icon.gif';
+        $this->callbackfunctions   = array(
+            'quiz_questions',
+            'submissions'
         );
     }
 
@@ -68,11 +70,12 @@ class quiz_functions extends module_base {
      *
      * @return bool true
      */
-    function get_all_unmarked() {
+    function get_all_unmarked($courseids) {
 
-        global $CFG, $DB;
+        global $DB;
 
-        list($coursessql, $coursesparams) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
+        list($coursessql, $coursesparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+
 
         $sql = "SELECT qst.id as qstid, qa.userid, qsess.questionid, qz.id,
                        qz.name, qz.course, c.id as cmid
@@ -93,11 +96,53 @@ class quiz_functions extends module_base {
                    AND c.visible = 1
                    AND q.qtype = 'essay'
                    AND qz.course $coursessql
-                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".QUESTION_EVENTCLOSEANDGRADE.", ".QUESTION_EVENTMANUALGRADE.")
+                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".
+                                           QUESTION_EVENTCLOSEANDGRADE.", ".
+                                           QUESTION_EVENTMANUALGRADE.")
               ORDER BY qa.timemodified";
-        $coursesparams['moduleid'] = $this->mainobject->modulesettings[$this->type]->id;
-        $this->all_submissions = $DB->get_records_sql($sql, $coursesparams);
-        return true;
+        $coursesparams['moduleid'] = $this->moduleid;
+        return $DB->get_records_sql($sql, $coursesparams);
+    }
+    
+    /**
+     * See documentation for abstract function in superclass
+     * 
+     * @global type $DB
+     * @return array of objects
+     */
+    function get_course_totals() {
+        
+        global $DB;
+
+        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('qz', 'qa.userid');
+        
+        $sql = "SELECT qz.course AS courseid, COUNT(qst.id) AS count
+                  FROM {quiz} qz
+            INNER JOIN {course_modules} c
+                    ON qz.id = c.instance
+            INNER JOIN {quiz_attempts} qa
+                    ON qz.id = qa.quiz
+            INNER JOIN {question_sessions} qsess
+                    ON qsess.attemptid = qa.uniqueid
+            INNER JOIN {question_states} qst
+                    ON qsess.newest = qst.id
+            INNER JOIN {question} q
+                    ON qsess.questionid = q.id
+                       {$displayjoin}
+                 WHERE qa.timefinish > 0
+                   AND qa.preview = 0
+                   AND c.module = :moduleid
+                   AND c.visible = 1
+                   AND q.qtype = 'essay'
+                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".
+                                           QUESTION_EVENTCLOSEANDGRADE.", ".
+                                           QUESTION_EVENTMANUALGRADE.")
+                       {$displaywhere}
+              GROUP BY qz.course";
+        
+        $params = array();
+        $params['moduleid'] = $this->moduleid;
+        return $DB->get_records_sql($sql, $params);
     }
 
     /**
@@ -111,8 +156,7 @@ class quiz_functions extends module_base {
         global $CFG, $DB;
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        $student_sql = $this->get_role_users_sql($context);
-        $params = $student_sql->params;
+        list($studentsql, $params) = $this->get_role_users_sql($context);
 
         $sql = "SELECT qsess.id as qsessid, qa.userid, qz.id, qz.course,
                        qz.intro as description, qz.name, c.id as cmid
@@ -127,7 +171,7 @@ class quiz_functions extends module_base {
                     ON qsess.newest = qst.id
             INNER JOIN {question} q
                     ON qsess.questionid = q.id
-            INNER JOIN ({$student_sql->sql}) stsql
+            INNER JOIN ({$studentsql}) stsql
                     ON qa.userid = stsql.id
                  WHERE qa.timefinish > 0
                    AND qa.preview = 0
@@ -135,9 +179,11 @@ class quiz_functions extends module_base {
                    AND c.visible = 1
                    AND qz.course = :courseid
                    AND q.qtype = 'essay'
-                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".QUESTION_EVENTCLOSEANDGRADE.", ".QUESTION_EVENTMANUALGRADE.")
+                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".
+                                           QUESTION_EVENTCLOSEANDGRADE.", ".
+                                           QUESTION_EVENTMANUALGRADE.")
                  ORDER BY qa.timemodified";
-        $params['moduleid'] = $this->mainobject->modulesettings[$this->type]->id;
+        $params['moduleid'] = $this->moduleid;
         $params['courseid'] = $courseid;
         $submissions = $DB->get_records_sql($sql, $params);
         return $submissions;
@@ -150,22 +196,28 @@ class quiz_functions extends module_base {
      * will mostly have a class to mark rather than a question to mark.
      * Uses $this->id as the quiz id
      *
+     * @param int $quizid The id of the quiz to get questions for
+     * @param int $groupid The id of the group that may have been supplied with the ajax request
      * @return void
      */
-    function quiz_questions() {
+    function quiz_questions($quizid, $groupid=null) {
 
         global $CFG, $USER, $DB;
+        
+        $data = new stdClass;
+        $nodes = array();
+        $data->nodetype = 'assessment';
 
-        $quiz = $DB->get_record('quiz', array('id' => $this->mainobject->id));
+        $quiz = $DB->get_record('quiz', array('id' => $quizid));
         $courseid = $quiz->course;
 
         $course = $DB->get_record('course', array('id' => $courseid));
-        $this->mainobject->get_course_students($course);
+        //block_ajax_marking_get_course_students($course);
 
         //permission to grade?
         $moduleconditions = array(
-                'course' => $quiz->course,
-                'module' => $this->mainobject->modulesettings[$this->type]->id,
+                'course'   => $quiz->course,
+                'module'   => $this->moduleid,
                 'instance' => $quiz->id
         );
         $coursemodule = $DB->get_record('course_modules', $moduleconditions);
@@ -176,12 +228,9 @@ class quiz_functions extends module_base {
         }
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        $studentsql = $this->get_role_users_sql($context);
-        $params = $studentsql->params;
+        list($studentsql, $params) = $this->get_role_users_sql($context);
 
-        //list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
-
-        $csv_questions = $DB->get_field('quiz', 'questions', array('id' => $this->mainobject->id));
+        $csv_questions = $DB->get_field('quiz', 'questions', array('id' => $quizid));
         $csv_questions = explode(',', $csv_questions);
         list($questionsql, $questionparams) = $DB->get_in_or_equal($csv_questions, SQL_PARAMS_NAMED, 'param9999');
 
@@ -194,14 +243,16 @@ class quiz_functions extends module_base {
                     ON qs.questionid = q.id
             INNER JOIN {quiz_attempts} qa
                     ON qs.attemptid = qa.uniqueid
-            INNER JOIN ({$studentsql->sql}) stsql
+            INNER JOIN ({$studentsql}) stsql
                     ON qa.userid = stsql.id
                  WHERE qa.quiz = :quizid
                    AND qa.timefinish > 0
                    AND qa.preview = 0
                    AND qs.questionid $questionsql
                    AND q.qtype = 'essay'
-                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".QUESTION_EVENTCLOSEANDGRADE.", ".QUESTION_EVENTMANUALGRADE.")
+                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".
+                                           QUESTION_EVENTCLOSEANDGRADE.", ".
+                                           QUESTION_EVENTMANUALGRADE.")
               ORDER BY qa.timemodified";
         $params = array_merge($params, $questionparams);
         $params['quizid'] = $quiz->id;
@@ -210,21 +261,16 @@ class quiz_functions extends module_base {
 
         // not the same as $csv_questions as some of those questions will have no attempts
         // needing attention
-        $questions = $this->mainobject->list_assessment_ids($question_attempts);
+        $questions = block_ajax_marking_list_assessment_ids($question_attempts);
 
-        if (!$this->mainobject->group) {
-            $group_check = $this->mainobject->assessment_groups_filter($question_attempts,
-                                                                       'quiz',
-                                                                       $this->mainobject->id,
-                                                                       $quiz->course);
+        if (!$groupid) {
 
-            if (!$group_check) {
+            if (!block_ajax_marking_assessment_groups_filter($question_attempts, 'quiz', $quizid, $quiz->course)) {
                 return;
             }
         }
 
-        // begin json object.   Why course?? Children treatment?
-        $this->mainobject->output = '[{"type":"quiz_question"}';
+        // begin json object.
 
         foreach ($questions as $question) {
 
@@ -232,17 +278,12 @@ class quiz_functions extends module_base {
 
             foreach ($question_attempts as $question_attempt) {
 
-                if (!isset($question_attempt->userid)) {
-                    continue;
-                }
                 // if we have come from a group node, ignore attempts where the user is not in the
                 // right group. Also ignore attempts not relevant to this question
-                $groupnode     = $this->mainobject->group;
-                $inrightgroup  = $this->mainobject->check_group_membership($this->mainobject->group,
-                                                                           $question_attempt->userid);
                 $rightquestion = ($question_attempt->id == $question->id);
 
-                if (($groupnode && !$inrightgroup) || ! $rightquestion) {
+                if (($groupid && !block_ajax_marking_is_member_of_group($groupid, $question_attempt->userid)) 
+                     || !$rightquestion) {
                     continue;
                 }
                 $count = $count + 1;
@@ -259,51 +300,60 @@ class quiz_functions extends module_base {
                     $shortsum .= '...';
                 }
                 $length = 30;
-                $this->mainobject->output .= ',';
+                
+                $node = new stdClass();
 
-                $this->mainobject->output .= '{';
-                $this->mainobject->output .= '"label":"'.$this->mainobject->add_icon('question');
-                $this->mainobject->output .=     '(<span class=\"AMB_count\">'.$count.'</span>) ';
-                $this->mainobject->output .=     $this->mainobject->clean_name_text($name, $length).'",';
-                $this->mainobject->output .= '"name":"'.$this->mainobject->clean_name_text($name, $length).'",';
-                $this->mainobject->output .= '"id":"'.$questionid.'",';
-                $this->mainobject->output .= '"icon":"'.$this->mainobject->add_icon('question').'",';
-
-                $this->mainobject->output .= $this->mainobject->group ? '"group":"'.$this->mainobject->group.'",' : '';
-
-                $this->mainobject->output .= '"assid":"qq'.$questionid.'",';
-                $this->mainobject->output .= '"type":"quiz_question",';
-                $this->mainobject->output .= '"summary":"'.$this->mainobject->clean_summary_text($shortsum).'",';
-                $this->mainobject->output .= '"count":"'.$count.'",';
-                $this->mainobject->output .= '"uniqueid":"quiz_question'.$questionid.'",';
-                $this->mainobject->output .= '"dynamic":"true"';
-                $this->mainobject->output .= '}';
+                $node->label                = block_ajax_marking_add_icon('question').
+                                              '(<span class="AMB_count">'.$count.'</span>) '.
+                                              block_ajax_marking_clean_name_text($name, $length);
+                $node->name                 = block_ajax_marking_clean_name_text($name, $length);
+                $node->callbackparamtwo     = $questionid;
+                $node->callbackparamone     = $quizid;
+                $node->icon                 = block_ajax_marking_add_icon('question');
+                
+                if ($groupid) {
+                $node->group                = $groupid;
+                }
+                $node->assid                = 'qq'.$questionid;
+                $node->callbackfunction     = 'submissions';
+                $node->summary              = block_ajax_marking_clean_summary_text($shortsum);
+                $node->count                = $count;
+                $node->uniqueid             = 'quiz'.$quizid.'quiz_question'.$questionid;
+                $node->modulename           = $this->modulename;
+                
+                $nodes[] = $node;
             }
         }
-        // end JSON array
-        $this->mainobject->output .= ']';
+        return array($data, $nodes);
     }
 
     /**
      * Makes the nodes with the student names for each question. works either with or without a group having been set.
      *
+     * @param int $quizid
+     * @param int $questionid
+     * @param int $groupid
      * @return void
      */
-    function submissions() {
+    function submissions($quizid, $groupid, $questionid) {
 
         global $CFG, $USER, $DB;
+        
+        $data = new stdClass;
+        $nodes = array();
+        $data->nodetype = 'submission';
 
-        $quiz = $DB->get_record('quiz', array('id' => $this->mainobject->secondary_id));
+        $quiz = $DB->get_record('quiz', array('id' => $quizid));
         $courseid = $quiz->course;
 
         // so we have cached student details
-        $course = $DB->get_record('course', array('id' => $courseid));
-        $this->mainobject->get_course_students($course);
+        //$course = $DB->get_record('course', array('id' => $courseid));
+        //get_course_students($course);
 
         //permission to grade?
         $moduleconditions = array(
-                'course' => $quiz->course,
-                'module' => $this->mainobject->modulesettings['quiz']->id,
+                'course'   => $quiz->course,
+                'module'   => $this->moduleid,
                 'instance' => $quiz->id
         );
         $coursemodule = $DB->get_record('course_modules', $moduleconditions);
@@ -314,51 +364,45 @@ class quiz_functions extends module_base {
             return;
         }
 
-        $student_sql = $this->get_role_users_sql($coursecontext);
-        $params = $student_sql->params;
-
-        //$this->mainobject->get_course_students($quiz->course);
-        //list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
+        list($studentsql, $params) = $this->get_role_users_sql($coursecontext);
 
         $sql = "SELECT qst.id, COUNT(DISTINCT qst.id) as count, qa.userid, qst.event, 
-                       qs.questionid, qst.timestamp, qs.attemptid
+                       qs.questionid, qst.timestamp, qs.attemptid, u.firstname, u.lastname
                   FROM {question_states} qst
             INNER JOIN {question_sessions} qs
                     ON qs.newest = qst.id
             INNER JOIN {quiz_attempts} qa
                     ON qs.attemptid = qa.uniqueid
-            INNER JOIN ({$student_sql->sql}) stsql
+            INNER JOIN {user} u
+                    ON qa.userid = u.id
+            INNER JOIN ({$studentsql}) stsql
                     ON qa.userid = stsql.id
                  WHERE qa.quiz = :quizid
                    AND qa.timefinish > 0
                    AND qa.preview = 0
                    AND qs.questionid = :questionid
-                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".QUESTION_EVENTCLOSEANDGRADE.", ".QUESTION_EVENTMANUALGRADE.")
+                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".
+                                           QUESTION_EVENTCLOSEANDGRADE.", ".
+                                           QUESTION_EVENTMANUALGRADE.")
               GROUP BY qa.userid, qs.questionid
               ORDER BY qa.timemodified";
-        $params['quizid'] = $this->mainobject->secondary_id;
-        $params['questionid'] = $this->mainobject->id;
+        $params['quizid'] = $quizid;
+        $params['questionid'] = $questionid;
         $question_attempts = $DB->get_records_sql($sql, $params);
 
         if ($question_attempts) {
-
-            $this->mainobject->output = '[{"type":"submissions"}';
 
             foreach ($question_attempts as $question_attempt) {
 
                 if (!isset($question_attempt->userid)) {
                     continue;
                 }
+                
                 // If this is a group node, ignore those where the student is not in the right group
-                $groupnode = $this->mainobject->group &&
-                $inrightgroup = $this->mainobject->check_group_membership($this->mainobject->group,
-                                                                          $question_attempt->userid);
-
-                if ($groupnode && !$inrightgroup) {
+                if ($groupid && !block_ajax_marking_is_member_of_group($grtoupid, $question_attempt->userid)) {
                      continue;
                 }
 
-                $name = $this->mainobject->get_fullname($question_attempt->userid);
                 // Sometimes, a person will have more than 1 attempt for the question.
                 // No need to list them twice, so we add a count after their name.
                 if ($question_attempt->count > 1) {
@@ -367,23 +411,22 @@ class quiz_functions extends module_base {
 
                 $now = time();
                 $seconds = ($now - $question_attempt->timestamp);
-                $summary = $this->mainobject->make_time_summary($seconds);
+                $summary = block_ajax_marking_make_time_summary($seconds);
 
-                $node = $this->mainobject->make_submission_node(array(
-                        'name' => $name,
-                        'attemptid' => $question_attempt->attemptid,
-                        'questionid' => $this->mainobject->id,
-                        'uniqueid' => 'quiz_final'.$question_attempt->attemptid.'-'.$this->mainobject->id,
-                        'title' => $summary,
-                        'type' => 'quiz_final',
-                        'seconds' => $seconds,
-                        'time' => $question_attempt->timestamp,
-                        'count' => $question_attempt->count));
+                $nodes[] = block_ajax_marking_make_submission_node(array(
+                        'name'          => fullname($question_attempt),
+                        'attemptid'     => $question_attempt->attemptid,
+                        'questionid'    => $questionid,
+                        'uniqueid'      => 'quiz_final'.$question_attempt->attemptid.'-'.$quizid,
+                        'title'         => $summary,
+                        'seconds'       => $seconds,
+                        'time'          => $question_attempt->timestamp,
+                        'modulename'    => $this->modulename,
+                        'count'         => $question_attempt->count));
 
-                $this->mainobject->output .= $node;
 
             }
-            $this->mainobject->output .= ']';
+            return array($data, $nodes);
         }
     }
 
@@ -392,11 +435,11 @@ class quiz_functions extends module_base {
      *
      * @return void
      */
-    function get_all_gradable_items() {
+    function get_all_gradable_items($courseids) {
 
         global $CFG, $DB;
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
+        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
 
         $sql = "SELECT qz.id, qz.course, qz.intro as summary, qz.name, c.id as cmid
                   FROM {quiz} qz
@@ -411,7 +454,7 @@ class quiz_functions extends module_base {
                    AND q.qtype = 'essay'
                    AND qz.course $usql
               ORDER BY qz.id";
-        $params['moduleid'] = $this->mainobject->modulesettings['quiz']->id;
+        $params['moduleid'] = $this->moduleid;
         $quizzes = $DB->get_records_sql($sql, $params);
         $this->assessments = $quizzes;
 

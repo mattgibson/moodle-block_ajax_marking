@@ -1,5 +1,5 @@
 // TODO - this used to be workshop_final. Why?
-YAHOO.ajax_marking_block.workshop = (function() {
+M.block_ajax_marking.workshop = (function() {
 
     // TODO - did this cahnge work?
     
@@ -10,7 +10,7 @@ YAHOO.ajax_marking_block.workshop = (function() {
             return 'menubar=0,location=0,scrollbars,resizable,width=980,height=630';
         },
         
-        //YAHOO.ajax_marking_block.workshop_final.pop_up_post_data = function (node) {
+        //M.block_ajax_marking.workshop_final.pop_up_post_data = function (node) {
         //    return 'id='+node.data.aid+'&sid='+node.data.sid+'&redirect='+amVariables.wwwroot;
         //}
         
@@ -43,27 +43,27 @@ YAHOO.ajax_marking_block.workshop = (function() {
             var els ='';
             // check that the frames are loaded - this can vary according to conditions
             
-            if (typeof YAHOO.ajax_marking_block.popupholder.frames[0] != 'undefined') {
+            if (typeof M.block_ajax_marking.popupholder.frames[0] != 'undefined') {
             
-                //var currenturl = YAHOO.ajax_marking_block.popupholder.frames[0].location.href;
+                //var currenturl = M.block_ajax_marking.popupholder.frames[0].location.href;
                // var targeturl = amVariables.wwwroot+'/mod/workshop/assessments.php';
                 
                 if (currenturl != targeturl) {
                     // this is the early stage, pop up has loaded and grading is occurring
                     // annoyingly, the workshop module has not named its submit button, so we have to
                     // get it using another method as the 11th input
-                    els = YAHOO.ajax_marking_block.popupholder.frames[0].document.getElementsByTagName('input');
+                    els = M.block_ajax_marking.popupholder.frames[0].document.getElementsByTagName('input');
                     
                     if (els.length == 11) {
                         // TODO - did this change work?
-                        var functiontext = "return YAHOO.ajax_marking_block.markingtree.remove_node_from_tree("
+                        var functiontext = "return M.block_ajax_marking.markingtree.remove_node_from_tree("
                                          + "'/mod/workshop/assessments.php', '"
                                          + clickednode.data.uniqueid+"');";
                         els[10]['onclick'] = new Function(functiontext);
-                        // els[10]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/workshop/assessments.php', YAHOO.ajax_marking_block.main, '"+me+"', true);"); // IE
+                        // els[10]["onclick"] = new Function("return M.block_ajax_marking.remove_node_from_tree('/mod/workshop/assessments.php', M.block_ajax_marking.main, '"+me+"', true);"); // IE
                         
                         // cancel timer loop
-                        window.clearInterval(YAHOO.ajax_marking_block.popuptimer);
+                        window.clearInterval(M.block_ajax_marking.popuptimer);
                     }
                 }
             }

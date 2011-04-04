@@ -31,7 +31,7 @@ require_login(0, false);
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class journal_functions extends module_base {
+class block_ajax_marking_journal extends block_ajax_marking_module_base {
 
     /**
      * Constructor
@@ -39,20 +39,18 @@ class journal_functions extends module_base {
      * @param object $reference the parent object, passed in so it's functions can be referenced
      * @return void
      */
-    function journal_functions(&$reference) {
-        $this->mainobject = $reference;
+    function __construct() {
+        
         // must be the same as the DB modulename
-        $this->type = 'journal';
+        $this->modulename        = 'journal';
+        $this->moduleid    = $this->get_module_id();
         // doesn't seem to be a journal capability :s
-        $this->capability = 'mod/assignment:grade';
+        $this->capability  = 'mod/assignment:grade';
         // How many nodes in total when fully expanded (no groups)?
-        $this->levels = 2;
+        $this->levels      = 2;
         // function to trigger for the third level nodes (might be different if there are four
-        //$this->level2_return_function = 'journal_submissions';
-        $this->icon = 'mod/journal/icon.gif';
-        $this->functions  = array(
-            'journal' => 'submissions'
-        );
+        $this->icon        = 'mod/journal/icon.gif';
+        $this->callbackfunctions   = array();
     }
 
      /**
@@ -61,10 +59,11 @@ class journal_functions extends module_base {
       *
       * @return bool true
       */
-    function get_all_unmarked() {
+    function get_all_unmarked($courseids) {
 
-        global $CFG, $DB;
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
+        global $DB;
+        
+        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
         $sql = "SELECT je.id as entryid, je.userid, j.name, j.course, j.id, c.id as cmid
                   FROM {journal_entries} je
             INNER JOIN {journal} j
@@ -76,10 +75,43 @@ class journal_functions extends module_base {
                    AND c.visible = 1
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked";
-        $params['moduleid'] = $this->mainobject->modulesettings['journal']->id;
-        $this->all_submissions = $DB->get_records_sql($sql, $params);
-        return true;
+        $params['moduleid'] = $this->moduleid;
+        return $DB->get_records_sql($sql, $params);
+        
     }
+    
+    /**
+     * See documentation for abstract function in superclass
+     * 
+     * @global type $DB
+     * @return array of objects
+     */
+    function get_course_totals() {
+        
+        global $DB;
+        
+        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('j', 'je.userid');
+        
+        $sql = "SELECT j.course AS courseid, COUNT(je.id) AS count
+                  FROM {journal_entries} je
+            INNER JOIN {journal} j
+                    ON je.journal = j.id
+            INNER JOIN {course_modules} c
+                    ON j.id = c.instance
+                       {$displayjoin}
+                 WHERE c.module = :moduleid
+                   AND c.visible = 1
+                   AND j.assessed <> 0
+                   AND je.modified > je.timemarked
+                       {$displaywhere}";
+        
+        $params = array();
+        $params['moduleid'] = $this->moduleid;
+        
+        return $DB->get_records_sql($sql, $params);
+        
+    }
+    
 
     /**
      * Gets all the unmarked journals for a course
@@ -90,7 +122,11 @@ class journal_functions extends module_base {
     function get_all_course_unmarked($courseid) {
 
         global $CFG, $DB;
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
+        //list($usql, $params) = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED);
+        
+        $context = get_context_instance(CONTEXT_COURSE, $courseid);
+
+        list($studentsql, $params) = $this->get_role_users_sql($context);
 
         $sql = "SELECT je.id as entryid, je.userid, j.intro as description, j.course, j.name,
                        j.timemodified, j.id, c.id as cmid
@@ -99,13 +135,14 @@ class journal_functions extends module_base {
                     ON je.journal = j.id
             INNER JOIN {course_modules} c
                     ON j.id = c.instance
+            INNER JOIN ({$studentsql}) stsql
+                    ON je.userid = stsql.id
                  WHERE c.module = :moduleid
                    AND c.visible = 1
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
-                   AND je.userid $usql
                    AND j.course = :courseid";
-        $params['moduleid'] = $this->mainobject->modulesettings['journal']->id;
+        $params['moduleid'] = $this->moduleid;
         $params['courseid'] = $courseid;
 
         $unmarked = $DB->get_records_sql($sql, $params);
@@ -117,11 +154,11 @@ class journal_functions extends module_base {
      *
      * @return void
      */
-    function get_all_gradable_items() {
+    function get_all_gradable_items($courseids) {
 
         global $CFG, $DB;
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
+        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
 
         $sql = "SELECT j.id, j.intro as summary, j.name, j.course, c.id as cmid
                   FROM {journal} j
@@ -131,7 +168,7 @@ class journal_functions extends module_base {
                    AND c.visible = 1
                    AND j.assessed <> 0
                    AND j.course $usql";
-        $params['moduleid'] = $this->mainobject->modulesettings['journal']->id;
+        $params['moduleid'] = $this->moduleid;
 
         $journals = $DB->get_records_sql($sql, $params);
         $this->assessments = $journals;
@@ -143,44 +180,49 @@ class journal_functions extends module_base {
      *
      * @return void
      */
-    function submissions() {
+    function submissions($journalid) {
 
         global $USER, $CFG, $DB;
         // need to get course id in order to retrieve students
-        $journal = $DB->get_record('journal', array('id' => $this->mainobject->id));
+        $journal = $DB->get_record('journal', array('id' => $journalid));
         $courseid = $journal->course;
 
-        $coursemodule = $DB->get_record('course_modules', array('module' => '1', 'instance' => $journal->id));
+        $coursemodule = $DB->get_record('course_modules', array('module' => '1', 'instance' => $journalid));
         $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
 
         if (!has_capability($this->capability, $modulecontext, $USER->id)) {
             return;
         }
+        
+        $context = get_context_instance(CONTEXT_COURSE, $courseid);
 
-        $this->mainobject->get_course_students($courseid);
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
+        list($studentsql, $params) = $this->get_role_users_sql($context);
 
         $sql = "SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified,
-                       j.id, c.id as cmid
+                       u.firstname, u.lastname, j.id, c.id as cmid
                   FROM {journal_entries} je
+            INNER JOIN {user} u
+                    ON s.userid = u.id
             INNER JOIN {journal} j
                     ON je.journal = j.id
             INNER JOIN {course_modules} c
                     ON j.id = c.instance
+            INNER JOIN ({$studentsql}) stsql
+                    ON je.userid = stsql.id
                  WHERE c.module = :moduleid
                    AND c.visible = 1
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
                    AND je.userid $usql
                    AND j.id = :journalid";
-        $params['moduleid'] = $this->mainobject->modulesettings['journal']->id;
+        $params['moduleid'] = $this->moduleid;
         $params['journalid'] = $journal->id;
         $submissions = $DB->get_records_sql($sql, $params);
 
         // TODO: does this work with 'journal' rather than 'journal_final'?
 
         // This function does not need any checks for group status as it will only be called if groups are set.
-        $group_filter = $this->mainobject->assessment_groups_filter($submissions,
+        $group_filter = block_ajax_marking_assessment_groups_filter($submissions,
                                                                     'journal',
                                                                     $journal->id,
                                                                     $journal->course);

@@ -1,4 +1,4 @@
-YAHOO.ajax_marking_block.quiz = (function() {
+M.block_ajax_marking.quiz = (function() {
 
     return {
         
@@ -37,9 +37,9 @@ YAHOO.ajax_marking_block.quiz = (function() {
             var inputelements = '';
             var lastbutone = '';
         
-            if (typeof(YAHOO.ajax_marking_block.popupholder.document.getElementsByTagName('input')) != 'undefined') {
+            if (typeof(M.block_ajax_marking.popupholder.document.getElementsByTagName('input')) != 'undefined') {
                 // window is open with some input. could be loading lots though.
-                inputelements = YAHOO.ajax_marking_block.popupholder.document.getElementsByTagName('input');
+                inputelements = M.block_ajax_marking.popupholder.document.getElementsByTagName('input');
         
                 if (inputelements.length > 14) {
                 
@@ -52,13 +52,13 @@ YAHOO.ajax_marking_block.quiz = (function() {
                         // the onclick carries out the functions that are already specified in lib.php,
                         // followed by the function to update the tree
                         // TODO - did this change work?
-                        var functiontext = "return YAHOO.ajax_marking_block.markingtree.remove_node_from_tree('/mod/quiz/report.php', '"
+                        var functiontext = "return M.block_ajax_marking.markingtree.remove_node_from_tree('/mod/quiz/report.php', '"
                                          + clickednode.data.uniqueid+"'); ";
                         inputelements[lastbutone]['onclick'] = new Function(functiontext);
-                        //inputelements[lastButOne]["onclick"] = new Function("return YAHOO.ajax_marking_block.remove_node_from_tree('/mod/quiz/report.php', YAHOO.ajax_marking_block.main, '"+me+"'); ");
+                        //inputelements[lastButOne]["onclick"] = new Function("return M.block_ajax_marking.remove_node_from_tree('/mod/quiz/report.php', M.block_ajax_marking.main, '"+me+"'); ");
                         // cancel the loop for this function
         
-                        window.clearInterval(YAHOO.ajax_marking_block.popuptimer);
+                        window.clearInterval(M.block_ajax_marking.popuptimer);
                     }
                 }
             }

@@ -43,7 +43,7 @@ require_login(0, false);
  * @copyright 2008 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class assignment_functions extends module_base {
+class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
     /**
      * Constuctor. Needs to be duplicated in all modules, so best put in parent. PHP4 issue though.
@@ -54,25 +54,18 @@ class assignment_functions extends module_base {
      * @param object $reference the parent object to be referred to
      * @return void
      */
-    function assignment_functions(&$reference) {
+    function __construct() {
 
-        // make the main library object available
-        $this->mainobject = $reference;
         // must be the same as the DB modulename
-        $this->type       = 'assignment';
+        $this->modulename = 'assignment';
+        $this->moduleid   = $this->get_module_id();
         $this->capability = 'mod/assignment:grade';
         $this->icon       = 'mod/assignment/icon.gif';
-        // this array is used to match the types which are returned from the nodes
-        // being clicked in the ajax tree to the functions which return the next
-        // level of the tree. The initial course->assessment node one is built in,
-        // so you just need to add the second and possibly third level connections.
-        // Groups nodes asre also added aoutomatically. If your module just has two
-        // levels, leave the array empty.
-        $this->functions  = array(
-            'assignment' => 'submissions'
+        
+        // what nodes, if any come after the course and assessment ones for this module?
+        $this->callbackfunctions  = array(
+            'submissions'
         );
-        $this->levels = 3;
-
     }
 
     /**
@@ -81,11 +74,13 @@ class assignment_functions extends module_base {
      *
      * @return bool
      */
-    function get_all_unmarked() {
+    function get_all_unmarked($courseids) {
 
-        global $CFG, $DB;
+        global $DB;
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
+        list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+        
+        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('a', 's');
 
         $sql = "SELECT s.id as subid, s.userid, a.course, a.name, a.intro as description, a.id, c.id as cmid
                   FROM {assignment} a
@@ -93,35 +88,71 @@ class assignment_functions extends module_base {
                     ON a.id = c.instance
             INNER JOIN {assignment_submissions} s
                     ON s.assignment = a.id
+                       {$displayjoin}
                  WHERE c.module = :coursemodule
                    AND c.visible = 1
-                   AND a.course $usql
+                   AND a.course $coursesql
                    AND s.timemarked < s.timemodified
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
                     OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
+                       {$displaywhere}
               ORDER BY a.id";
 
-        $params['coursemodule'] = $this->mainobject->modulesettings[$this->type]->id;
+        $params['coursemodule'] = $this->moduleid;
         
-        $this->all_submissions = $DB->get_records_sql($sql, $params);
-        return true;
+        return $DB->get_records_sql($sql, $params);
+    }
+    
+    /**
+     * See documentation for abstract function in superclass
+     * 
+     * @global type $DB
+     * @return array of objects
+     */
+    function get_course_totals() {
+        
+        global $DB;
+
+        // TODO - need to check for enrolment status. Don't want to include unenrolled students
+        
+        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('a', 's.userid');
+        
+        $sql = "SELECT a.course AS courseid, COUNT(s.id) AS count
+                  FROM {assignment} a
+            INNER JOIN {course_modules} c
+                    ON a.id = c.instance
+            INNER JOIN {assignment_submissions} s
+                    ON s.assignment = a.id
+                       {$displayjoin}
+                 WHERE c.module = :coursemodule
+                   AND c.visible = 1
+                   AND s.timemarked < s.timemodified
+               AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
+                    OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
+                       {$displaywhere}
+              GROUP BY a.course";
+
+        $params = array();
+        $params['coursemodule'] = $this->moduleid;
+        
+        return $DB->get_records_sql($sql, $params);
+        
     }
 
     /**
      *fetches all of the unmarked assignment submissions for a course
      *
-     * @global <type> $CFG
      * @param int $courseid The courseid from the main database.
      * @return object The results straight from the DB
      */
     function get_all_course_unmarked($courseid) {
 
-        global $CFG, $DB;
+        global $DB;
+        
         $unmarked = '';
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        $student_sql = $this->get_role_users_sql($context);
-        $params = $student_sql->params;
+        list($studentsql, $params) = $this->get_role_users_sql($context);
 
         //list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
 
@@ -132,7 +163,7 @@ class assignment_functions extends module_base {
                     ON a.id = c.instance
             INNER JOIN {assignment_submissions} s
                     ON s.assignment = a.id
-            INNER JOIN ({$student_sql->sql}) stsql
+            INNER JOIN ({$studentsql}) stsql
                     ON s.userid = stsql.id
                  WHERE c.module = :coursemodule 
                    AND c.visible = 1
@@ -141,10 +172,9 @@ class assignment_functions extends module_base {
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
                         OR (a.assignmenttype = 'upload'  AND s.data2 != 'submitted'))
               ORDER BY a.id";
-        $params['coursemodule'] = $this->mainobject->modulesettings[$this->type]->id;
+        $params['coursemodule'] = $this->moduleid;
 
-        $unmarked = $DB->get_records_sql($sql, $params);
-        return $unmarked;
+        return $DB->get_records_sql($sql, $params);
     }
 
     /**
@@ -153,22 +183,28 @@ class assignment_functions extends module_base {
      * divert this request to the groups function if the config asks for that
      * show the selected group's students
      *
+     * @param int $assignmentid 
+     * @param int $groupid The id of the group with the ajax request may have passed through
      * @return void
      */
-    function submissions() {
+    function submissions($assignmentid, $groupid=null) {
 
         global $CFG, $USER, $DB;
+        
+        $data = new stdClass;
+        $nodes = array();
+        
+        $data->nodetype = 'submission';
 
         // need to get course id in order to retrieve students
-        $assignment = $DB->get_record('assignment', array('id' => $this->mainobject->id));
+        $assignment = $DB->get_record('assignment', array('id' => $assignmentid));
         $courseid = $assignment->course;
 
         // so we have cached student details
         $course = $DB->get_record('course', array('id' => $courseid));
-        $this->mainobject->get_course_students($course);
 
         //permission to grade?
-        $params = array('module' => $this->mainobject->modulesettings['assignment']->id, 'instance' => $assignment->id);
+        $params = array('module' => $this->moduleid, 'instance' => $assignment->id);
         $coursemodule = $DB->get_record('course_modules', $params);
         $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
 
@@ -177,51 +213,40 @@ class assignment_functions extends module_base {
         }
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        $student_sql = $this->get_role_users_sql($context);
-        $params = $student_sql->params;
+        list($studentsql, $params) = $this->get_role_users_sql($context);
 
-        //$this->mainobject->get_course_students($courseid);
-        //list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
-        $sql = "SELECT s.id as subid, s.userid, s.timemodified, c.id as cmid
+        $sql = "SELECT s.id as subid, s.userid, s.timemodified, c.id as cmid, u.firstname, u.lastname
                   FROM {assignment_submissions} s
+            INNER JOIN {user} u
+                    ON s.userid = u.id
             INNER JOIN {course_modules} c
                     ON s.assignment = c.instance
             INNER JOIN {assignment} a
                     ON s.assignment = a.id
-            INNER JOIN ({$student_sql->sql}) stsql
-                    ON s.userid = stsql.id
+            INNER JOIN ({$studentsql}) stsql
+                    ON s.userid = stsql.id 
                  WHERE s.assignment = :assignment
                    AND s.timemarked < s.timemodified
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
                        OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
                    AND c.module = :coursemodule
               ORDER BY timemodified ASC";
-        $params['assignment'] = $this->mainobject->id;
-        $params['coursemodule'] = $this->mainobject->modulesettings[$this->type]->id;
+        $params['assignment'] = $assignmentid;
+        $params['coursemodule'] = $this->moduleid;
         $submissions = $DB->get_records_sql($sql, $params);
 
         if ($submissions) {
-
-            $data = array();
 
             // If we are not making the submissions for a specific group, run the group filtering
             // function to see if the config settings say display by groups and display them if they
             // are (returning false). If there are no groups, the function will return true and we
             // carry on, but if the config settings say 'don't display' then it will return false
             // and we skip this assignment
-            if (!$this->mainobject->group) {
+            if (!$groupid) {
 
-                //TODO - data array as input for function
-
-                //$data['submissions'] = $submissions;
-                //$data['type']        = $this->type;
-                //$data['id']          = $this->mainobject->id;
-                //$data['course']      = $assignment->course;
-
-                //$group_filter = $this->mainobject->assessment_groups_filter($data);
-                $group_filter = $this->mainobject->assessment_groups_filter($submissions,
-                                                                            $this->type,
-                                                                            $this->mainobject->id,
+                $group_filter = block_ajax_marking_assessment_groups_filter($submissions,
+                                                                            $this->modulename,
+                                                                            $assignmentid,
                                                                             $assignment->course);
 
                 if (!$group_filter) {
@@ -229,46 +254,28 @@ class assignment_functions extends module_base {
                 }
             }
 
-            // begin json object
-            $this->mainobject->output = '[{"type":"submissions"}';
-
             foreach ($submissions as $submission) {
-                // add submission to JSON array of objects
-                if (!isset($submission->userid)) {
-                    continue;
-                }
-
+                
                 // if we are displaying for just one group, skip this submission if it doesn't match
-                $groupisset = $this->mainobject->group;
-                $memberofgroup = $this->mainobject->check_group_membership($this->mainobject->group,
-                                                                           $submission->userid);
-
-                if ($groupisset && !$memberofgroup) {
+                if ($groupid && !block_ajax_marking_is_member_of_group($groupid, $submission->userid)) {
                     continue;
                 }
-
-                $name = $this->mainobject->get_fullname($submission->userid);
 
                 // sort out the time info
-                $now     = time();
-                $seconds = ($now - $submission->timemodified);
-                $summary = $this->mainobject->make_time_summary($seconds);
+                $summary = block_ajax_marking_make_time_summary(time() - $submission->timemodified);
 
-                $node = $this->mainobject->make_submission_node(array(
-                        'name' => $name,
-                        'userid' => $submission->userid,
-                        'coursemoduleid' => $submission->cmid,
-                        'uniqueid' => 'assignment_final'.$submission->cmid.'-'.$submission->userid,
-                        'summary' => $summary,
-                        'type' => 'assignment_final',
-                        'seconds' => $seconds,
-                        'time' => $submission->timemodified));
-
-                $this->mainobject->output .= $node;
+                $nodes[] = block_ajax_marking_make_submission_node(array(
+                        'name'            => fullname($submission),
+                        'userid'          => $submission->userid,
+                        'coursemoduleid'  => $submission->cmid,
+                        'uniqueid'        => 'assignment_final'.$submission->cmid.'-'.$submission->userid,
+                        'summary'         => $summary,
+                        'seconds'         => (time() - $submission->timemodified),
+                        'modulename'      => $this->modulename,
+                        'time'            => $submission->timemodified));
             }
             
-            $this->mainobject->output .= ']'; // end JSON array
-
+            return array($data, $nodes);
         }
     }
 
@@ -278,10 +285,10 @@ class assignment_functions extends module_base {
      *
      * @return void
      */
-    function get_all_gradable_items() {
+    function get_all_gradable_items($courseids) {
 
         global $CFG, $DB;
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
+        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
 
         $sql = "SELECT a.id, a.name, a.intro as summary, a.course, c.id as cmid
                   FROM {assignment} a
@@ -291,7 +298,7 @@ class assignment_functions extends module_base {
                    AND c.visible = 1
                    AND a.course $usql
               ORDER BY a.id";
-        $params['moduleid'] = $this->mainobject->modulesettings['assignment']->id;
+        $params['moduleid'] = $this->moduleid;
         $assignments = $DB->get_records_sql($sql, $params);
         $this->assessments = $assignments;
 
@@ -310,10 +317,5 @@ class assignment_functions extends module_base {
         return $address;
     }
 
-    // count for all assignments in a course
-
-    // nodes for all assignments in a course + counts and provide link data
-
-    // student nodes for a single assignment
 
 }

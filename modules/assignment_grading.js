@@ -2,8 +2,8 @@
 /**
  * @param object clickednode the node of the tree that was clicked to open the popup
  */
-YAHOO.ajax_marking_block.assignment = (function() {
-
+M.block_ajax_marking.assignment = (function() {
+    
     return {
         
         pop_up_arguments : function() {
@@ -58,16 +58,16 @@ YAHOO.ajax_marking_block.assignment = (function() {
 
 
             //do nothing if it's been shut
-            if (YAHOO.ajax_marking_block.pop_up_holder.closed) {
-                window.clearInterval(YAHOO.ajax_marking_block.timerVar);
+            if (M.block_ajax_marking.pop_up_holder.closed) {
+                window.clearInterval(M.block_ajax_marking.timerVar);
                 return true;
             }
 
             // is the pop up even open? Hard to check if the elements of the DOM are not present yet,
             // so we check for the existence of each one before trying to add the onclick.
-            if (YAHOO.ajax_marking_block.popupholder.document) {
+            if (M.block_ajax_marking.popupholder.document) {
 
-                var buttons = YAHOO.util.Dom.getElementsByClassName('buttons', 'div', YAHOO.ajax_marking_block.popupholder.document);
+                var buttons = YAHOO.util.Dom.getElementsByClassName('buttons', 'div', M.block_ajax_marking.popupholder.document);
 
                 if(buttons.length > 0) {
 
@@ -78,7 +78,7 @@ YAHOO.ajax_marking_block.assignment = (function() {
                     // TODO pass the value needed in obj?
                     // TODO can 'this' be used to get the data object from the node?
 
-                    var functiontext  = "return YAHOO.ajax_marking_block.markingtree.remove_node_from_tree('', '"
+                    var functiontext  = "return M.block_ajax_marking.markingtree.remove_node_from_tree('', '"
                                       + clickednode.data.uniqueid+"'); ";
                     YAHOO.util.on(buttons[0].childNodes[0], 'click', functiontext);
 
@@ -89,7 +89,7 @@ YAHOO.ajax_marking_block.assignment = (function() {
             return false;
 
             // cancel the timer loop for this function
-            window.clearInterval(YAHOO.ajax_marking_block.popuptimer);
+            window.clearInterval(M.block_ajax_marking.popuptimer);
          
         }
     };
@@ -115,6 +115,7 @@ function initNext(nextid, usserid) {
     assignment.nextid = nextid;
     assignment.userid = userid;
 }
+
 
 
 

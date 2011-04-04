@@ -27,22 +27,22 @@ require_login(0, false);
 /**
  * Provides functionality for grading of forum discussions
  */
-class forum_functions extends module_base {
+class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
     /**
      * Constructor
      *
      * @param object $mainobject parent object passed in by reference
      */
-    function __construct(&$mainobject) {
-        $this->mainobject = $mainobject;
+    function __construct() {
         // must be the same as th DB modulename
-        $this->type = 'forum';
-        $this->capability = 'mod/forum:viewhiddentimedposts';
-        $this->levels = 3;
-        $this->icon = 'mod/forum/icon.gif';
-        $this->functions  = array(
-            'forum' => 'submissions'
+        $this->modulename        = 'forum';
+        $this->moduleid    = $this->get_module_id();
+        $this->capability  = 'mod/forum:viewhiddentimedposts';
+        $this->levels      = 3;
+        $this->icon        = 'mod/forum/icon.gif';
+        $this->callbackfunctions   = array(
+                'submissions'
         );
     }
 
@@ -53,10 +53,11 @@ class forum_functions extends module_base {
      *
      * @return <type> gets all unmarked forum discussions for all courses
      */
-    function get_all_unmarked() {
-        global $CFG, $USER, $DB;
+    function get_all_unmarked($courseids) {
+        
+        global $USER, $DB;
 
-        list($coursesql, $courseparams) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED, 'forumcourseparam0000');
+        list($coursesql, $courseparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'forumcourseparam0000');
 
         $teachersql = $this->get_teacher_sql();
 
@@ -84,12 +85,55 @@ class forum_functions extends module_base {
                    AND f.assessed > 0
               ORDER BY f.id";
 
-        $params['userid'] = $USER->id;
-        $params['userid2'] = $USER->id;
-        $params['moduleid'] = $this->mainobject->modulesettings[$this->type]->id;
+        $params['userid']   = $USER->id;
+        $params['userid2']  = $USER->id;
+        $params['moduleid'] = $this->moduleid;
 
-        $this->all_submissions = $DB->get_records_sql($sql, $params);
-        return true;
+        return $DB->get_records_sql($sql, $params);
+    }
+    
+    /**
+     * See documentation for abstract function in superclass
+     * 
+     * @global type $DB
+     * @return array of objects
+     */
+    function get_course_totals() {
+        
+        global $USER, $DB;
+
+        $teachersql = $this->get_teacher_sql();
+        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('f', 'p.userid');
+
+        $sql = "SELECT f.course AS courseid, COUNT(p.id) AS count
+                  FROM {forum_posts} p
+             LEFT JOIN {rating} r
+                    ON p.id = r.itemid
+            INNER JOIN {forum_discussions} d
+                    ON p.discussion = d.id
+            INNER JOIN {forum} f
+                    ON d.forum = f.id
+            INNER JOIN {course_modules} cm
+                    ON f.id = cm.instance
+            INNER JOIN {course} c
+                    ON c.id = f.course
+                       {$displayjoin}
+                 WHERE p.userid <> :userid
+                   AND ( ( (r.userid <> :userid2) AND {$teachersql})
+                         OR r.userid IS NULL)
+                   AND cm.module = :moduleid
+                   AND c.visible = 1
+                   AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
+                   AND f.assessed > 0
+                       {$displaywhere}
+              GROUP BY f.course";
+
+        $params = array();
+        $params['userid']   = $USER->id;
+        $params['userid2']  = $USER->id;
+        $params['moduleid'] = $this->moduleid;
+
+        return $DB->get_records_sql($sql, $params);
     }
 
     /**
@@ -101,15 +145,13 @@ class forum_functions extends module_base {
      */
     function get_all_course_unmarked($courseid) {
 
-        //return array();
-
         global $CFG, $USER, $DB;
+        
         $unmarked = '';
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
 
-        $student_sql = $this->get_role_users_sql($context);
-        $params = $student_sql->params;
+        list($studentsql, $params) = $this->get_role_users_sql($context);
 
         $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.course, f.type, f.id, f.name,
                        f.intro as description, c.id as cmid
@@ -124,7 +166,7 @@ class forum_functions extends module_base {
                     ON p.discussion = d.id
              LEFT JOIN {rating} r
                     ON p.id = r.itemid
-            INNER JOIN ({$student_sql->sql}) stsql
+            INNER JOIN ({$studentsql}) stsql
                     ON p.userid = stsql.id
                  WHERE p.userid <> :userid
                    AND (((r.userid <> :userid2) AND ".$this->get_teacher_sql().")
@@ -137,12 +179,8 @@ class forum_functions extends module_base {
               ORDER BY f.id";
         $params['userid'] = $USER->id;
         $params['userid2'] = $USER->id;
-        $params['moduleid'] = $this->mainobject->modulesettings[$this->type]->id;
+        $params['moduleid'] = $this->moduleid;
         $params['courseid'] = $courseid;
-
-//        echo $sql;
-//        print_r($params);
-//        die;
 
         $unmarked = $DB->get_records_sql($sql, $params);
         return $unmarked;
@@ -169,7 +207,7 @@ class forum_functions extends module_base {
         //                            -> cat1 -> coursecategory
         //
 
-        $categorylevels = ajax_marking_functions::get_number_of_category_levels();
+        $categorylevels = block_ajax_marking_get_number_of_category_levels();
 
         // get category and course role assignments separately
         // for category level, we look for users with a role assignment where the contextinstance can be
@@ -217,32 +255,36 @@ class forum_functions extends module_base {
      * function to make nodes for forum submissions. It works on the existing object data
      * and outputs via echo to make the AJAX response
      *
+     * @param int forumid
+     * @param int $groupid
      * @return void
      */
-    function submissions() {
+    function submissions($forumid, $groupid=null) {
 
         global $CFG, $USER, $DB;
+        
+        $data = new stdClass;
+        $nodes = array();
+        $data->nodetype = 'submission';
 
         $discussions = '';
-        $forum = $DB->get_record('forum', array('id' => $this->mainobject->id));
+        $forum = $DB->get_record('forum', array('id' => $forumid));
         $courseid = $forum->course;
 
         // so we have cached student details
         $course = $DB->get_record('course', array('id' => $courseid));
-        $this->mainobject->get_course_students($course);
 
-        $discussions = $DB->get_records('forum_discussions', array('forum' => $this->mainobject->id));
+        $discussions = $DB->get_records('forum_discussions', array('forum' => $forumid));
 
         if (!$discussions) {
             return;
         }
 
         $coursecontext = get_context_instance(CONTEXT_COURSE, $courseid);
-        $student_sql = $this->get_role_users_sql($coursecontext, true, SQL_PARAMS_NAMED);
-        $params = $student_sql->params;
+        list($studentsql, $params) = $this->get_role_users_sql($coursecontext, true, SQL_PARAMS_NAMED);
 
         // get ready to fetch all the unrated posts
-        $sql = 'SELECT p.id, p.userid, p.created, p.message, d.id as discussionid
+        $sql = 'SELECT p.id, p.userid, p.created, p.message, d.id as discussionid, u.firstname, u.lastname
                   FROM {forum_discussions} d ';
 
         if ($forum->type == 'eachuser') {
@@ -252,7 +294,9 @@ class forum_functions extends module_base {
 
         $sql .= "INNER JOIN {forum_posts} p
                          ON p.discussion = d.id
-                 INNER JOIN ({$student_sql->sql}) stsql
+                 INNER JOIN {user} u
+                         ON p.userid = u.id
+                 INNER JOIN ({$studentsql}) stsql
                          ON p.userid = stsql.id
                  INNER JOIN {course} c
                          ON d.course = c.id
@@ -268,7 +312,7 @@ class forum_functions extends module_base {
             $sql .= "AND (f.type = 'eachuser' AND p.id = d.firstpost)";
         }
 
-        $params['forum'] = $this->mainobject->id;
+        $params['forum']   = $forumid;
         $params['userid1'] = $USER->id;
         $params['userid2'] = $USER->id;
         
@@ -305,30 +349,25 @@ class forum_functions extends module_base {
 
             // Check to see if group nodes need to be made instead of submissions
 
-            if (!$this->mainobject->group) {
-                $group_filter = $this->mainobject->assessment_groups_filter($posts, $this->type,
-                                                                            $forum->id, $forum->course);
-
-                if (!$group_filter) {
+            if (!$groupid) {
+                
+                if (!block_ajax_marking_assessment_groups_filter($posts, $this->modulename, $forum->id, $forum->course)) {
                     return;
                 }
             }
 
             // Submissions nodes are needed, so make one per discussion
-            $this->mainobject->output = '[{"type":"submissions"}';      // begin json object.
-
+           /// $output = '[{"callbackfunction":"submissions"}';      // begin json object.
+            
             // we may have excluded all of them now, so check again
             if (count($posts) > 0) {
-
+                
                 foreach ($discussions as $discussion) {
 
                     $firstpost = null;
 
                     // If we are under a group node, we want to ignore submissions from other groups
-                    $groupnode     = $this->mainobject->group;
-                    $memberofgroup = $this->mainobject->check_group_membership($groupnode, $discussion->userid);
-
-                    if ($groupnode && !$memberofgroup) {
+                    if ($groupid && !block_ajax_marking_is_member_of_group($groupid, $discussion->userid)) {
                         continue;
                     }
 
@@ -387,14 +426,14 @@ class forum_functions extends module_base {
                     // Add the node if there were any posts -  the node is the discussion with a
                     // count of the number of unrated posts.
                     if ($count > 0) {
-
+                        
                         // Make all the variables ready to put them together into the array.
                         $seconds = time() - $discussion->timemodified;
 
                         // We will show the student name as the node name as there is only one post
                         // that matters.
                         if ($forum->type == 'eachuser') {
-                            $name = $this->mainobject->get_fullname($firstpost->userid);
+                            $name = fullname($firstpost);
 
                         } else {
                             // // the name will be the name of the discussion
@@ -409,29 +448,27 @@ class forum_functions extends module_base {
                         if (strlen($shortsum) < strlen($sum)) {
                             $shortsum .= '...';
                         }
-                        $timesum = $this->mainobject->make_time_summary($seconds, true);
+                        $timesum = block_ajax_marking_make_time_summary($seconds, true);
 
                         if (!isset($discuss)) {
                             $discuss = get_string('discussion', 'forum');
                         }
                         $summary = $discuss.': '.$shortsum.'<br />'.$timesum;
 
-                        $node = $this->mainobject->make_submission_node(array(
-                                'name' => $name,
-                                'firstpostid' => $firstpost->id,
-                                'discussionid' => $discussion->id,
-                                'uniqueid' => 'forum_final'.$discussion->id.'-'.$firstpost->id,
-                                'title' => $summary,
-                                'type' => 'forum_final',
-                                'seconds' => $seconds,
-                                'time' => $time,
-                                'count' => $count));
-
-                        $this->mainobject->output .= $node;
+                        $nodes[] = block_ajax_marking_make_submission_node(array(
+                                'name'           => $name,
+                                'firstpostid'    => $firstpost->id,
+                                'discussionid'   => $discussion->id,
+                                'uniqueid'       => 'forum_final'.$discussion->id.'-'.$firstpost->id,
+                                'title'          => $summary,
+                                'seconds'        => $seconds,
+                                'time'           => $time,
+                                'modulename'     => $this->modulename,
+                                'count'          => $count));
                     }
                 }
             }
-            $this->mainobject->output .= ']';
+            return array($data, $nodes);
         }
     }
 
@@ -442,11 +479,11 @@ class forum_functions extends module_base {
      *
      * @return void
      */
-    function get_all_gradable_items() {
+    function get_all_gradable_items($courseids) {
 
         global $CFG, $DB;
 
-        list($usql, $params) = $DB->get_in_or_equal($this->mainobject->courseids, SQL_PARAMS_NAMED);
+        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
 
         $sql = "SELECT f.id, f.course, f.intro as summary, f.name, f.type, c.id as cmid
                   FROM {forum} f
@@ -457,7 +494,7 @@ class forum_functions extends module_base {
                    AND f.course $usql
                    AND f.assessed > 0
               ORDER BY f.id";
-        $params['moduleid'] = $this->mainobject->modulesettings['forum']->id;
+        $params['moduleid'] = $this->moduleid;
         $forums = $DB->get_records_sql($sql, $params);
         $this->assessments = $forums;
     }

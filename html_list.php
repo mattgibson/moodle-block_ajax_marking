@@ -29,6 +29,7 @@
 
 require_login(0, false);
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+require_once('classes/module_base.class.php');
 
 /**
  * This class alows the building of the <ul> list of clickable links for non-javascript enabled
@@ -46,103 +47,84 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
-class block_ajax_marking_html_list extends ajax_marking_functions {
 
-    /**
-     * This is to build the initial non-ajax set of html nodes for accessibility and non-javascript
-     * browsers. It will eventually (hopefully) be used in a progressive enhancement way so that the
-     * block exhibits gracful degradation, but this may prove awkward to implement.
-     *
-     * The output is a ul indented list of courses and assessment items with counts, with each
-     * assessment item as a link to the grading page.
-     *
-     * The ul list can be recycled to make an accessible config tree in time.
-     *
-     * @return void
-     */
-    function make_html_list() {
+/**
+ * This is to build the initial non-ajax set of html nodes for accessibility and non-javascript
+ * browsers. It will eventually (hopefully) be used in a progressive enhancement way so that the
+ * block exhibits gracful degradation, but this may prove awkward to implement.
+ *
+ * The output is a ul indented list of courses and assessment items with counts, with each
+ * assessment item as a link to the grading page.
+ *
+ * The ul list can be recycled to make an accessible config tree in time.
+ *
+ * @return void
+ */
 
-        global $CFG, $DB;
+//block_ajax_marking_initial_setup(true);
 
-        $this->initial_setup(true);
+global $USER, $CFG, $DB;
 
-        // get each module to do the sorting out - perhaps do this once when the request goes out
-        // first.
-        $this->html_list = '';
+$moduleclasses = block_ajax_marking_get_module_classes();
 
-        // Foreach course, ask each module for all of the nodes to be returned as an array, with
-        // each item having all the node details.
-        foreach ($this->courses as $course) {
+// get each module to do the sorting out - perhaps do this once when the request goes out
+// first.
+$htmllist = get_string('nothingtomark', 'block_ajax_marking');
 
-            $course_output = '';
-            $course_count = 0;
-            $courseid = $course->id;
-            $first = true;
+$courses = block_ajax_marking_get_my_teacher_courses();
 
-            if (!$course->visible) {
-                continue;
-            }
+// Foreach course, ask each module for all of the nodes to be returned as an array, with
+// each item having all the node details.
+foreach ($courses as $course) {
 
-            $this->get_course_students($course);
+    $course_output = '';
+    $course_count = 0;
+    $courseid = $course->id;
+    $first = true;
 
-            if ((!isset($this->students->ids->$courseid)) || empty($this->students->ids->$courseid)) {
-                // no students in this course
-                continue;
-            }
+    if (!$course->visible) {
+        continue;
+    }
 
-            // see which modules are currently enabled
-            $sql = 'SELECT name
-                      FROM {modules}
-                     WHERE visible = 1';
-            $enabledmods =  $DB->get_records_sql($sql);
-            $enabledmods = array_keys($enabledmods);
+    $studentids = block_ajax_marking_get_course_students($course);
 
-            // loop through each module, getting a count for this course id from each one.
-            foreach ($this->modulesettings as $modulename => $module) {
+    if (empty($studentids)) {
+        // no students in this course
+        continue;
+    }
 
-                if (in_array($modulename, $enabledmods)) {
+    // see which modules are currently enabled
+    $sql = 'SELECT name
+              FROM {modules}
+             WHERE visible = 1';
+    $enabledmods =  $DB->get_records_sql($sql);
+    $enabledmods = array_keys($enabledmods);
 
-                    $mod_output = $this->$modulename->course_assessment_nodes($course->id, true);
+    // loop through each module, getting a count for this course id from each one.
+    foreach ($moduleclasses as $moduleclass) {
 
-                    if ($mod_output['count'] > 0) {
-                        $course_count  += $mod_output['count'];
-                        $course_output .= $mod_output['data'];
-                    }
-                }
+        list($count, $data) = $moduleclass->course_assessment_nodes($course->id, true);
 
-            }
-
-            if ($course_count > 0) {
-
-//                if ($first) {
-//                    $this->html_list .= '<li>';
-//                    $first = false;
-//                }
-
-                $this->html_list .= '<ul class="AMB_html">'
-                                        .'<li class="AMB_html_course">'
-                                            .$this->add_icon('course')
-                                            .'<strong>('.$course_count.')</strong> '
-                                            .$course->shortname
-                                        .'</li>'
-                                        .'<li><ul class="AMB_html_items">'
-                                            .$course_output
-                                        .'</ul></li>'
-                                    .'</ul>';
-            }
-
-        }
-
-//        if (!$first) {
-//            $this->html_list .= '</li>';
-//        }
-
-        if ($this->html_list) {
-            return $this->html_list;
-        } else {
-            return get_string('nothingtomark', 'block_ajax_marking');
+        if ($count > 0) {
+            $course_count  += $count;
+            $course_output .= $data;
         }
 
     }
 
+    if ($course_count > 0) {
+
+        $htmllist .= '<ul class="AMB_html">'
+                                .'<li class="AMB_html_course">'
+                                    .block_ajax_marking_add_icon('course')
+                                    .'<strong>('.$course_count.')</strong> '
+                                    .$course->shortname
+                                .'</li>'
+                                .'<li><ul class="AMB_html_items">'
+                                    .$course_output
+                                .'</ul></li>'
+                            .'</ul>';
+    }
 }
+
+
