@@ -293,7 +293,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         if(0) { ?><script><?php } 
         
         ?>
-// TODO - this used to be workshop_final. Why?
+            
 M.block_ajax_marking.workshop = (function() {
 
     // TODO - did this cahnge work?

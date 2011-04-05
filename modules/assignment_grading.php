@@ -446,10 +446,8 @@ function initNext(nextid, usserid) {
     assignment.nextid = nextid;
     assignment.userid = userid;
 }
-
         
         <?php
-        
         
         // Get the IDE to do proper script highlighting
         if(0) { ?></script><?php } 

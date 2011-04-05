@@ -1361,7 +1361,7 @@ if ($moduledir) {
             require_once(dirname(__FILE__).'/modules/'.$modfile);
             
             $modclassname = 'block_ajax_marking_'.$matches[1];
-            echo "\n\nIncluding extra javascript for the ".$matches[1]." module\n\n";
+            echo "\n\n// Including extra javascript for the ".$matches[1]." module\n\n";
             echo $modclassname::extra_javascript();
         }
         

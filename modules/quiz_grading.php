@@ -27,15 +27,21 @@ if (!defined('MOODLE_INTERNAL')) {
     die();
 }
 
-require_once($CFG->dirroot.'/lib/questionlib.php');
+// We only need this file for the constants. Doing this so that we don't have problems including the file from
+// module.js.php
+global $CFG;
+
+if (isset($CFG) && !empty($CFG)) {  
+    require_once($CFG->dirroot.'/lib/questionlib.php');
+}
 
 // constants from /lib/questionlib.php
 // Moodle has graded the responses. A SUBMIT event can be changed to a GRADE event by Moodle.
-//define('QUESTION_EVENTGRADE', '3');
+// define('QUESTION_EVENTGRADE', '3');
 // Moodle has graded the responses. A CLOSE event can be changed to a CLOSEANDGRADE event by Moodle.
-//define('QUESTION_EVENTCLOSEANDGRADE', '6');
+// define('QUESTION_EVENTCLOSEANDGRADE', '6');
 // Grade was entered by teacher
-//define('QUESTION_EVENTMANUALGRADE', '9');
+// define('QUESTION_EVENTMANUALGRADE', '9');
 
 /**
  * Provides all marking functionality for the quiz module
