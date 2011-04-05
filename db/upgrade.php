@@ -43,7 +43,7 @@ function block_ajax_marking_update_modules($verbose=true) {
 
     // make a list of directories to check for module grading files
     $installed_modules = get_list_of_plugins('mod');
-    $directories = array($CFG->dirroot.'/blocks/ajax_marking');
+    $directories = array($CFG->dirroot.'/blocks/ajax_marking/modules');
 
     foreach ($installed_modules as $module) {
         $directories[] = $CFG->dirroot.'/mod/'.$module;
@@ -194,8 +194,9 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
 
     }
 
-    // run this on every upgrade.
-    block_ajax_marking_update_modules();
+    // run this on every upgrade, but only make it noisy for devs.
+    $verbose = ($CFG->debug = DEBUG_DEVELOPER);
+    block_ajax_marking_update_modules($verbose);
 
     return $result;
 }

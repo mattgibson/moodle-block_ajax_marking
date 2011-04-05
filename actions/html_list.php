@@ -29,7 +29,7 @@
 
 require_login(0, false);
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
-require_once('classes/module_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
 /**
  * This class alows the building of the <ul> list of clickable links for non-javascript enabled

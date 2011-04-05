@@ -15,7 +15,9 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
+if (!defined('MOODLE_INTERNAL')) {
+    die();
+}
 /**
  * This class forms the basis of the objects that hold and process the module data. The aim is for
  * node data to be returned ready for output in JSON or HTML format. Each module that's active will

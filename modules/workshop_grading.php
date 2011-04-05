@@ -23,7 +23,9 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_login(0, false);
+if (!defined('MOODLE_INTERNAL')) {
+    die();
+}
 
 /**
  * Provides marking funcionality for the workshop module
@@ -278,6 +280,97 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         global $CFG;
         $address = $CFG->wwwroot.'/mod/workshop/view.php?id='.$item->cmid;
         return $address;
+    }
+    
+    /**
+     * Slightly neater than having a separate file for the js that we include is to have this as a 
+     * static function here. 
+     * 
+     * @return string the javascript to append to module.js.php
+     */
+    static function extra_javascript() {
+        // Get the IDE to do proper script highlighting
+        if(0) { ?><script><?php } 
+        
+        ?>
+// TODO - this used to be workshop_final. Why?
+M.block_ajax_marking.workshop = (function() {
+
+    // TODO - did this cahnge work?
+    
+    
+    return {
+        
+        pop_up_arguments : function() {
+            return 'menubar=0,location=0,scrollbars,resizable,width=980,height=630';
+        },
+        
+        //M.block_ajax_marking.workshop_final.pop_up_post_data = function (node) {
+        //    return 'id='+node.data.aid+'&sid='+node.data.sid+'&redirect='+amVariables.wwwroot;
+        //}
+        
+        pop_up_closing_url : function () {
+            return '/mod/workshop/assess.php';
+        },
+        
+        pop_up_opening_url : function (clickednode) {
+            return '/mod/workshop/view.php?id='+clickednode.data.cmid;
+        },
+
+        extra_ajax_request_arguments : function () {
+            return '';
+        },
+        /**
+         * workshop pop up stuff
+         * function to add workshop onclick stuff and shut the pop up after its been graded.
+         * the pop -up goes to a redirect to display the grade, so we have to wait until
+         * then before closing it so that the grade is processed properly.
+         *
+         * note: this looks odd because there are 2 things that needs doing, one after the pop up loads
+         * (add onclicks)and one after it goes to its redirect (close window).it is easier to check for
+         * a fixed url (i.e. the redirect page) than to mess around with regex stuff to detect a dynamic
+         * url, so the else will be met first, followed by the if. The loop will keep running whilst the
+         * pop up is open, so this is not very elegant or efficient, but should not cause any problems
+         * unless the client is horribly slow. A better implementation will follow sometime soon.
+         */
+        alter_popup : function (clickednode) {
+        
+            var els ='';
+            // check that the frames are loaded - this can vary according to conditions
+            
+            if (typeof M.block_ajax_marking.popupholder.frames[0] != 'undefined') {
+            
+                //var currenturl = M.block_ajax_marking.popupholder.frames[0].location.href;
+               // var targeturl = amVariables.wwwroot+'/mod/workshop/assessments.php';
+                
+                if (currenturl != targeturl) {
+                    // this is the early stage, pop up has loaded and grading is occurring
+                    // annoyingly, the workshop module has not named its submit button, so we have to
+                    // get it using another method as the 11th input
+                    els = M.block_ajax_marking.popupholder.frames[0].document.getElementsByTagName('input');
+                    
+                    if (els.length == 11) {
+                        // TODO - did this change work?
+                        var functiontext = "return M.block_ajax_marking.markingtree.remove_node_from_tree("
+                                         + "'/mod/workshop/assessments.php', '"
+                                         + clickednode.data.uniqueid+"');";
+                        els[10]['onclick'] = new Function(functiontext);
+                        // els[10]["onclick"] = new Function("return M.block_ajax_marking.remove_node_from_tree('/mod/workshop/assessments.php', M.block_ajax_marking.main, '"+me+"', true);"); // IE
+                        
+                        // cancel timer loop
+                        window.clearInterval(M.block_ajax_marking.popuptimer);
+                    }
+                }
+            }
+        }
+    }
+})();            
+            
+        <?php
+        
+        // Get the IDE to do proper script highlighting
+        if(0) { ?></script><?php } 
+        
     }
 
 }

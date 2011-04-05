@@ -28,11 +28,11 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once(dirname(__FILE__).'/../../config.php');
+require_once(dirname(__FILE__).'/../../../config.php');
 require_login(0, false);
-require_once('lib.php');
-require_once('output.class.php');
-require_once('classes/module_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/output.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
 /**
  * Wrapper for the main functions library class which adds the parts that deal with the AJAX
@@ -53,7 +53,6 @@ global $CFG, $USER, $DB;
 
 // TODO - not necessary to load all things for all types. submissions level doesn't need
 // the data for all the other types
-
 $callbackfunction  = required_param('callbackfunction', PARAM_TEXT);
 $callbackparamone  = optional_param('callbackparamone', null, PARAM_INT);
 $callbackparamtwo  = optional_param('callbackparamtwo', null, PARAM_INT);
@@ -67,7 +66,7 @@ $modulename        = optional_param('modulename', null, PARAM_TEXT);
 
 $moduleclasses = block_ajax_marking_get_module_classes();
 
-$outputobject = new block_ajax_marking_output();
+//$outputobject = new block_ajax_marking_output();
 
 $output = array();
 $data = new stdClass;

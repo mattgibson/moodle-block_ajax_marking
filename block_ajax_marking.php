@@ -19,7 +19,7 @@
  * Main block file
  *
  * @package   blocks-ajax_marking
- * @copyright 2008-2010 Matt Gibson
+ * @copyright 2008-2011 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -76,7 +76,7 @@ class block_ajax_marking extends block_base {
 
             // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if
             // necessary
-            require_once($CFG->dirroot.'/blocks/ajax_marking/html_list.php');
+            require_once($CFG->dirroot.'/blocks/ajax_marking/actions/html_list.php');
             
             $this->content->text .= '<div id="block_ajax_marking_html_list">';
             $this->content->text .= $htmllist;
@@ -193,10 +193,6 @@ class block_ajax_marking extends block_base {
                 $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true, $jsmodule);
                 // also need to add any js from individual modules, which the html list will
                 // have provided
-                foreach ($moduleclasses as $moduleclass) {
-                    $moduleclass->include_javascript();
-                    $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true, $jsmodule);
-                }
 
                 $this->content->footer .= '<div id="block_ajax_marking_refresh_button"></div><div id="block_ajax_marking_configure_button"></div>';
 

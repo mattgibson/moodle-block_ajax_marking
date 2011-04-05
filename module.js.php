@@ -43,6 +43,10 @@ M.block_ajax_marking.popupholder = '';
 // this holds the timer that keeps trying to add the onclick stuff to the pop ups as the pop up loads
 M.block_ajax_marking.popuptimer = '';
 
+M.block_ajax_marking.ajaxurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/ajax.php';
+
+
+
 
 /**
  * Base class that can be used for the main and config trees. This extends the
@@ -107,7 +111,6 @@ M.block_ajax_marking.tree_base.prototype.request_node_data = function(clickednod
     M.block_ajax_marking.oncompletefunctionholder = callbackfunction;
     
     // request data using AJAX
-    var requesturl = M.cfg.wwwroot+'/blocks/ajax_marking/ajax.php';
     var postdata = 'callbackparamone='+clickednode.data.callbackparamone+
                    '&callbackfunction='+clickednode.data.callbackfunction;
                
@@ -140,7 +143,7 @@ M.block_ajax_marking.tree_base.prototype.request_node_data = function(clickednod
         postdata += callbackobject.extra_ajax_request_arguments(clickednode);
     }
  
-    var request = YAHOO.util.Connect.asyncRequest('POST', requesturl, block_ajax_marking_callback, postdata);
+    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxurl, block_ajax_marking_callback, postdata);
 };
 
 /**
@@ -406,8 +409,6 @@ M.block_ajax_marking.tree_base.prototype.build_course_nodes = function(nodesarra
                     }
 
                     // now, we need to find out what the current group mode is and display that box as checked.
-                    var ajaxurl   = M.cfg.wwwroot+'/blocks/ajax_marking/ajax.php';
-                    
                     if (clickargumentsobject.node.data.type !== 'config_course') {
                         ajaxdata += 'courseid='       +clickargumentsobject.node.parent.data.id;
                         ajaxdata += '&assessmenttype='+clickargumentsobject.node.data.type;
@@ -419,7 +420,7 @@ M.block_ajax_marking.tree_base.prototype.build_course_nodes = function(nodesarra
                         ajaxdata += '&type=config_check';
                     }
                     
-                    var request = YAHOO.util.Connect.asyncRequest('POST', ajaxurl, block_ajax_marking_callback, ajaxdata);
+                    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxurl, block_ajax_marking_callback, ajaxdata);
 
                     return true;
                 }
@@ -541,17 +542,15 @@ M.block_ajax_marking.tree_base.prototype.build_submission_nodes = function(ajaxr
 /**
  * Builds the tree when the block is loaded, or refresh is clicked
  * 
- * @return bool true
+ * @return void
  */
 M.block_ajax_marking.tree_base.prototype.build_ajax_tree = function() {
 
     this.icon.setAttribute('class', 'loaderimage');
     this.icon.setAttribute('className', 'loaderimage');
     
-    var ajaxurl = M.cfg.wwwroot+'/blocks/ajax_marking/ajax.php';
-    var request = YAHOO.util.Connect.asyncRequest('POST', ajaxurl, block_ajax_marking_callback, this.course_post_data);
+    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxurl, block_ajax_marking_callback, this.course_post_data);
     
-    return true;
 };
 
 /**
@@ -1005,12 +1004,11 @@ M.block_ajax_marking.config_checkbox_onclick = function() {
         groupids = 'none';
     }
 
-    var ajaxurl = M.cfg.wwwroot+'/blocks/ajax_marking/ajax.php';
     var postdata = 'id='+course+'&assessmenttype='+assessmentType+'&assessmentid='+assessment
                    +'&type=config_group_save&userid='+M.str.block_ajax_marking.userid
                    +'&showhide=2&groups='+groupids;
 
-    var request = YAHOO.util.Connect.asyncRequest('POST', ajaxurl, block_ajax_marking_callback, postdata);
+    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxurl, block_ajax_marking_callback, postdata);
 };
 
 /**
@@ -1178,7 +1176,6 @@ M.block_ajax_marking.request_config_checkbox_data = function(checkbox) {
     
     //Construct the url and data, with variations depending on whether it's option 2 (where groups
     // need to be requested to make the checkboxes) or not
-    var url        = M.cfg.wwwroot+'/blocks/ajax_marking/ajax.php';
     var postData   = 'userid='+M.str.block_ajax_marking.userid;
         postData  += '&assessmenttype='+form.elements['assessmenttype'].value;
         postData  += '&assessmentid='+form.elements['assessment'].value;
@@ -1199,7 +1196,7 @@ M.block_ajax_marking.request_config_checkbox_data = function(checkbox) {
     
     M.block_ajax_marking.disable_config_radio_buttons();
     
-    var request = YAHOO.util.Connect.asyncRequest('POST', url, block_ajax_marking_callback, postData);
+    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxurl, block_ajax_marking_callback, postData);
 };
 
 /**
@@ -1336,24 +1333,40 @@ M.block_ajax_marking.initialise = function() {
 
     M.block_ajax_marking.markingtree.build_ajax_tree();
 }
-
+<?php
 // Get the IDE to do proper script highlighting
-<?php if(0) { ?></script><?php } 
+if(0) { ?></script><?php } 
 
 
-// We need to append all of the plugin specific .js files 
+// We need to append all of the plugin specific javascript. This file will be requested as part of a 
+// separate http request after the PHP has all been finished with, so we do this cheaply to keep 
+// overheads low by not using setup.php and having the js in static functions.
 
-// assume that all files ending in .js in the modules directory need including
+if (!defined('MOODLE_INTERNAL')) { // necessary because class files are expecting it
+    define('MOODLE_INTERNAL', true);
+}
+
 $moduledir = opendir(dirname(__FILE__).'/modules');
 
 if ($moduledir) {
     
+    // We never instantiate the classes, but it complains if it can't find the base class
+    require_once(dirname(__FILE__).'/classes/module_base.class.php');
+    
+    // Loop through the module files, including each one, then echoing the extra javascript from it
     while (($modfile = readdir($moduledir)) !== false) {
         
-        if (preg_match('/.js$/', $modfile)) {
+        // Ignore any that don't fit the pattern, like . and ..
+        if (preg_match('/([a-z]*)_grading.php$/', $modfile, $matches)) {
             require_once(dirname(__FILE__).'/modules/'.$modfile);
+            
+            $modclassname = 'block_ajax_marking_'.$matches[1];
+            echo "\n\nIncluding extra javascript for the ".$matches[1]." module\n\n";
+            echo $modclassname::extra_javascript();
         }
+        
     }
+    
     closedir($moduledir);
 }
 
