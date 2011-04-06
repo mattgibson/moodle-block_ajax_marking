@@ -15,12 +15,15 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+
 /**
- * The main library file for the ajax marking block
+ * The main library file for the AJAX Marking block
  *
- * @package   blocks-ajax_marking
- * @copyright 2008-2010 Matt Gibson
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    block
+ * @subpackage ajax_marking
+ * @copyright  2008 Matt Gibson
+ * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 // show/hide constants for config settings
@@ -1185,20 +1188,10 @@ function &block_ajax_marking_get_module_classes() {
     global $DB, $CFG;
     
     // cache them so we don't waste them
-//    static $moduleclasses = array();
-//    
-//    if ($moduleclasses) {
-//        return $moduleclasses;
-//    }
+    static $moduleclasses = array();
     
-    // Now, build an array of the names of modules with grading code available
-    // This assumes that a modulename_grading.php file has been created and is in the main
-    // block directory
-    $modulesettings = unserialize(get_config('block_ajax_marking', 'modules'));
-
-    if (empty($modulesettings)) {
-        block_ajax_marking_update_modules();
-        $modulesettings = unserialize(get_config('block_ajax_marking', 'modules'));
+    if ($moduleclasses) {
+        return $moduleclasses;
     }
 
     // see which modules are currently enabled
@@ -1208,12 +1201,14 @@ function &block_ajax_marking_get_module_classes() {
     $enabledmods = $DB->get_records_sql($sql);
     $enabledmods = array_keys($enabledmods);
 
-    foreach ($modulesettings as $modulename => $module) {
-
-        if (in_array($modulename, $enabledmods)) {
-            require_once("{$CFG->dirroot}{$module->dir}/{$modulename}_grading.php");
-            $classname = 'block_ajax_marking_'.$modulename;
-            $moduleclasses[$modulename] = new $classname();
+    foreach ($enabledmods as $enabledmod) {
+        
+        $file = "{$CFG->dirroot}/blocks/ajax_marking/modules/{$enabledmod}_grading.php";
+        
+        if (file_exists($file)) {
+            require_once($file);
+            $classname = 'block_ajax_marking_'.$enabledmod;
+            $moduleclasses[$enabledmod] = new $classname();
         }
     }
     

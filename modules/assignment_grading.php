@@ -17,11 +17,11 @@
 
 
 /**
- * This is the file that contains all the code specific to the assignment module.
- *
- * @package   blocks-ajax_marking
- * @copyright 2008-2011 Matt Gibson
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * Class file for the Assignment grading functions
+ * @package    block
+ * @subpackage ajax_marking
+ * @copyright  2008 onwards Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 if (!defined('MOODLE_INTERNAL')) {
@@ -58,8 +58,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      */
     function __construct() {
 
-        // must be the same as the DB modulename
-        $this->modulename = 'assignment';
+        
+        $this->modulename = 'assignment';  // must be the same as the DB modulename
         $this->moduleid   = $this->get_module_id();
         $this->capability = 'mod/assignment:grade';
         $this->icon       = 'mod/assignment/icon.gif';
@@ -70,41 +70,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         );
     }
 
-    /**
-     * function called from courses() which returns all
-     * unmarked assignments from all courses ready for sorting through and counting
-     *
-     * @return bool
-     */
-    function get_all_unmarked($courseids) {
-
-        global $DB;
-
-        list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-        
-        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('a', 's');
-
-        $sql = "SELECT s.id as subid, s.userid, a.course, a.name, a.intro as description, a.id, c.id as cmid
-                  FROM {assignment} a
-            INNER JOIN {course_modules} c
-                    ON a.id = c.instance
-            INNER JOIN {assignment_submissions} s
-                    ON s.assignment = a.id
-                       {$displayjoin}
-                 WHERE c.module = :coursemodule
-                   AND c.visible = 1
-                   AND a.course $coursesql
-                   AND s.timemarked < s.timemodified
-               AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
-                    OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
-                       {$displaywhere}
-              ORDER BY a.id";
-
-        $params['coursemodule'] = $this->moduleid;
-        
-        return $DB->get_records_sql($sql, $params);
-    }
-    
     /**
      * See documentation for abstract function in superclass
      * 

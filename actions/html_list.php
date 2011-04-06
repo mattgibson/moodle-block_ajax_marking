@@ -15,6 +15,7 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+
 /**
  * This is the file that is called by block_ajax_marking.php when the block is created during page-load.
  *
@@ -22,9 +23,11 @@
  * in it, then instantiates a new html_list object which will process the request and output the HTML
  * that the block needs.
  *
- * @package   blocks-ajax_marking
- * @copyright 2008 Matt Gibson
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    block
+ * @subpackage ajax_marking
+ * @copyright  2008 Matt Gibson
+ * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_login(0, false);

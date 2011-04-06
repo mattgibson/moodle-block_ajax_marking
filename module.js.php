@@ -1,3 +1,5 @@
+<?php
+
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -14,15 +16,17 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * @package   block-ajax_marking
- * @copyright 2008-2010 Matt Gibson
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * This file conatins all the javascript for the AJAX Marking block
+ * 
+ * @package    block
+ * @subpackage ajax_marking
+ * @copyright  2007 Matt Gibson
+ * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
  
 
-<?php 
-// Get the IDE to do proper script highlighting
-if(0) { ?><script><?php } 
+if(0) { ?><script><?php } // Get the IDE to do proper script highlighting for the javascript
 ?>
 
  
@@ -1313,6 +1317,22 @@ var  block_ajax_marking_callback = {
     timeout  : 10000
 
 };
+
+/**
+ * This is run before the block does anything so that we can't see the HTML stuff if we don't need to
+ */
+M.block_ajax_marking.hide_html_list = function() {
+    
+    var styleElement = document.createElement("style");
+    styleElement.type = "text/css";
+    
+    if (styleElement.styleSheet) {
+        styleElement.styleSheet.cssText = "#block_ajax_marking_html_list { display: none; }";
+    } else {
+        styleElement.appendChild(document.createTextNode("#block_ajax_marking_html_list {display: none;}"));
+    }
+    document.getElementsByTagName("head")[0].appendChild(styleElement);
+}
 
 /**
  * The initialising stuff to get everything started

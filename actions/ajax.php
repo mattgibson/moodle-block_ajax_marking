@@ -19,13 +19,11 @@
 /**
  * This is the file that is called by all the browser's ajax requests.
  *
- * It first includes the main lib.php fie that contains the base class
- * which has all of the functions in it, then instantiates a new ajax_marking_response
- * object which will process the request.
- *
- * @package   blocks-ajax_marking
- * @copyright 2008-2010 Matt Gibson
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    block
+ * @subpackage ajax_marking
+ * @copyright  2007 Matt Gibson
+ * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 require_once(dirname(__FILE__).'/../../../config.php');
@@ -34,21 +32,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/output.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
-/**
- * Wrapper for the main functions library class which adds the parts that deal with the AJAX
- * request process.
- *
- * The block is used in two ways. Firstly when the PHP version is made, necessitating a HTML list
- * of courses + assessment names, and secondly when an AJAX request is made, which requires a JSON
- * response with just one set of nodes e.g. courses OR assessments OR student. The logic is that
- * shared functions go in the base class and this is extended by either the ajax_marking_response
- * class as here, or the HTML_list class in the html_list.php file.
- *
- * @package   blocks-ajax_marking
- * @copyright 2008-2010 Matt Gibson
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
+// For unit tests to work
 global $CFG, $USER, $DB;
 
 // TODO - not necessary to load all things for all types. submissions level doesn't need
@@ -66,7 +50,6 @@ $modulename        = optional_param('modulename', null, PARAM_TEXT);
 
 $moduleclasses = block_ajax_marking_get_module_classes();
 
-//$outputobject = new block_ajax_marking_output();
 
 $output = array();
 $data = new stdClass;

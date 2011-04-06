@@ -18,9 +18,11 @@
 /**
  * Main block file
  *
- * @package   blocks-ajax_marking
- * @copyright 2008-2011 Matt Gibson
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    block
+ * @subpackage ajax_marking
+ * @copyright  2008 Matt Gibson
+ * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
 /**
@@ -84,21 +86,21 @@ class block_ajax_marking extends block_base {
             $this->content->footer = '';
 
             // Build the AJAX stuff on top of the plain HTML list
-            if ($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
+            //if ($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
 
                 // Add a style to hide the HTML list and prevent flicker
-                $s  = '<script type="text/javascript" defer="defer">';
-                $s .= '/* <![CDATA[ */ var styleElement = document.createElement("style");';
-                $s .= 'styleElement.type = "text/css";';
-                $s .= 'if (styleElement.styleSheet) {';
-                $s .=     'styleElement.styleSheet.cssText = "#block_ajax_marking_html_list { display: none; }";';
-                $s .= '} else {';
-                $s .=     'styleElement.appendChild(document.createTextNode("#block_ajax_marking_html_list {display: none;}"));';
-                $s .= '}';
-                $s .= 'document.getElementsByTagName("head")[0].appendChild(styleElement);';
-                $s .= '/* ]]> */</script>';
-
-                $this->content->text .=  $s;
+//                $s  = '<script type="text/javascript" defer="defer">';
+//                $s .= '/* <![CDATA[ */ var styleElement = document.createElement("style");';
+//                $s .= 'styleElement.type = "text/css";';
+//                $s .= 'if (styleElement.styleSheet) {';
+//                $s .=     'styleElement.styleSheet.cssText = "#block_ajax_marking_html_list { display: none; }";';
+//                $s .= '} else {';
+//                $s .=     'styleElement.appendChild(document.createTextNode("#block_ajax_marking_html_list {display: none;}"));';
+//                $s .= '}';
+//                $s .= 'document.getElementsByTagName("head")[0].appendChild(styleElement);';
+//                $s .= '/* ]]> */</script>';
+//
+//                $this->content->text .=  $s;
 
                 $variables  = array(
                         'wwwroot'             => $CFG->wwwroot,
@@ -190,13 +192,15 @@ class block_ajax_marking extends block_base {
 //                    $PAGE->requires->yui2_lib('logger');
 //                }
 
+                $PAGE->requires->js_init_call('M.block_ajax_marking.hide_html_list', null, true, $jsmodule);
                 $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true, $jsmodule);
+                
                 // also need to add any js from individual modules, which the html list will
                 // have provided
 
                 $this->content->footer .= '<div id="block_ajax_marking_refresh_button"></div><div id="block_ajax_marking_configure_button"></div>';
 
-            }
+           // }
 
         } else {
             // no grading permissions in any courses - don't display the block. Exception for

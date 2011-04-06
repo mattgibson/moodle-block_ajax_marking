@@ -24,9 +24,10 @@ if (!defined('MOODLE_INTERNAL')) {
  * provide a class definition in it's modname_grading.php file, which will extend this base class
  * and add methods specific to that module which can return the right nodes.
  *
- * @package   blocks-ajax_marking
- * @copyright 2008-2011 Matt Gibson
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ * @package    block
+ * @subpackage ajax_marking
+ * @copyright  2008-2011 Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 abstract class block_ajax_marking_module_base {
     
@@ -124,15 +125,6 @@ abstract class block_ajax_marking_module_base {
     }
     
     /**
-     * This is to get all of the unmarked submissions for the module across all courses so they can 
-     * be sorted through.
-     * 
-     * @param array $courseids
-     * @return array of objects
-     */
-    abstract protected function get_all_unmarked($courseids);
-    
-    /**
      * This will retrieve the counts for each course in the site so they can be aggregated into 
      * counts for each course node in the main level of the tree
      */
@@ -147,7 +139,6 @@ abstract class block_ajax_marking_module_base {
      * @return int the number of unmarked assessments
      */
     function count_course_submissions($courseid) {
-        
         
         // Need to switch to using sql queries that return counts for each course.
         
@@ -174,75 +165,6 @@ abstract class block_ajax_marking_module_base {
         
         // TODO enrolment SQL
         // - does the student have an enrolment
-        
-        
-        
-        
-        // old stuff below
-
-        // html_list.php will be doing this many times, so we reuse the data.
-        if (!isset($this->allsubmissions)) {
-            $this->allsubmissions = $this->get_all_unmarked($studentids);
-        }
-
-        // maybe there is nothing to mark?
-        if (isset($this->allsubmissions) && !$this->allsubmissions) {
-            return 0;
-        }
-
-        // Run through all of the unmarked work, extracting the ids of the assessment items they
-        // belong to.
-
-        // get a list of all the assessments in this course, ready to loop through
-        $this->course_assessment_ids = block_ajax_marking_list_assessment_ids($this->allsubmissions, $courseid);
-        
-        // echo count($this->assessment_ids).' ';
-        // Now check all of these assessment ids to see if the user has grading capabilities
-        foreach ($this->course_assessment_ids as $key => $assessment) {
-
-            if (!$this->permission_to_grade($assessment)) {
-                unset($this->course_assessment_ids[$key]);
-            }
-            // TODO get the group settings here and attach them to the array, avoiding a
-            // get_groups_settings function call later for each submission
-
-            // This assessment might be set to 'hidden'
-            if (!block_ajax_marking_check_assessment_display_settings($this->modulename, $assessment->id, $courseid)) {
-                unset($this->course_assessment_ids[$key]);
-            }
-
-        }
-
-        $count = 0;
-
-        // loop through all of the submissions, ignoring any that should not be counted
-        foreach ($this->allsubmissions as $submission) {
-
-            $check = null;
-
-            // Is this assignment attached to this course?
-            if ($submission->course != $courseid) {
-                continue;
-            }
-
-            // the object may contain assessments with no submissions
-            if (!isset($submission->userid)) {
-                continue;
-            } else {
-                // is the submission from a current user of this course
-                if (!in_array($submission->userid, $studentids)) {
-                    continue;
-                }
-            }
-
-            
-
-            if (!block_ajax_marking_can_show_submission($this->modulename, $submission)) {
-                continue;
-            }
-            $count++;
-        }
-        return $count;
     }
     
     /**
@@ -595,74 +517,41 @@ abstract class block_ajax_marking_module_base {
      * Returns an SQL snippet that will tell us whether a student is enrolled in this course
      * Needs to also check parent contexts.
      */
-    private function get_enrolled_student_sql() {
+    private function get_enrolled_student_sql($tablealias) {
+        
+        global $DB;
+        
+        // cache the sql fragment - it won't change during one page request and it saves DB queries to reuse it
+        static $enrolsql = '';
+        
+        if ($enrolsql) {
+            return $enrolsql;
+        }
 
         // TODO how does the normal enrolment check do this?
         
         // TODO what is an enrolment filter and how does it work?
         
         // begin stuff lifted from enrolment manager
-        
-        global $DB;
-//        if ($direction !== 'ASC') {
-//            $direction = 'DESC';
-//        }
-//        $key = md5("$sort-$direction-$page-$perpage");
-//        if (!array_key_exists($key, $this->users)) {
-            list($instancessql, $params, $filter) = $this->get_instance_sql();
-            
-            // begin stuff from get_instance_sql()
-            
-            global $DB;
-            if ($this->_instancessql === null) {
-                $instances = $this->get_enrolment_instances();
-                $filter = $this->get_enrolment_filter();
-                if ($filter && array_key_exists($filter, $instances)) {
-                    $sql = " = :ifilter";
-                    $params = array('ifilter'=>$filter);
-                } else {
-                    $filter = 0;
-                    if ($instances) {
-                        list($sql, $params) = $DB->get_in_or_equal(array_keys($this->get_enrolment_instances()), SQL_PARAMS_NAMED);
-                    } else {
-                        // no enabled instances, oops, we should probably say something
-                        $sql = "= :never";
-                        $params = array('never'=>-1);
-                    }
-                }
-                $this->instancefilter = $filter;
-                $this->_instancessql = array($sql, $params, $filter);
-            }
-            return $this->_instancessql;
-            
-            // end get_instance_sql() stuff
-            
-            
-            
-            
-            
-            $ufields = user_picture::fields('u', array('lastaccess', 'email'));
-            $sql = "SELECT DISTINCT $ufields, ul.timeaccess AS lastseen
-                      FROM {user} u
-                      JOIN {user_enrolments} ue ON (ue.userid = u.id  AND ue.enrolid $instancessql)
-                      JOIN {enrol} e ON (e.id = ue.enrolid)
-                 LEFT JOIN {user_lastaccess} ul ON (ul.courseid = e.courseid AND ul.userid = u.id)";
-            if ($sort === 'firstname') {
-                $sql .= " ORDER BY u.firstname $direction, u.lastname $direction";
-            } else if ($sort === 'lastname') {
-                $sql .= " ORDER BY u.lastname $direction, u.firstname $direction";
-            } else if ($sort === 'email') {
-                $sql .= " ORDER BY u.email $direction, u.lastname $direction, u.firstname $direction";
-            } else if ($sort === 'lastseen') {
-                $sql .= " ORDER BY ul.timeaccess $direction, u.lastname $direction, u.firstname $direction";
-            }
-            $this->users[$key] = $DB->get_records_sql($sql, $params, $page*$perpage, $perpage);
-//        }
-//        return $this->users[$key];
-        
-        // end stuff lifted from enrolment manager
 
+        // TODO Hopefully, this will be an empty string when none are enabled
+        if ($CFG->enrol_plugins_enabled) {
+            // returns list of english names of enrolment plugins
+            list($enabledsql, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED);
+        } else {
+            // no enabled instances, oops, we should probably say something
+            $enabledsql = "= :never";
+            $params = array('never'=>-1);
+        }
 
+        $sql = "SELECT DISTINCT (u.id)
+                  FROM {user} u
+            INNER JOIN {user_enrolments} ue ON ue.userid = u.id 
+            INNER JOIN {enrol} e ON (e.id = ue.enrolid)
+                 WHERE e.courseid = {$tablealias}.course
+                   AND e.enrol $enabledsql";
+
+        return array($sql, $params);
     }
 
     /**
