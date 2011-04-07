@@ -147,7 +147,11 @@ abstract class block_ajax_marking_module_base {
             $this->coursetotals = $this->get_course_totals();
         }
         
-        return $this->coursetotals[$courseid]->count;
+        if ($this->coursetotals && isset($this->coursetotals[$courseid])) {
+            return $this->coursetotals[$courseid]->count;
+        }
+        
+        return 0;
         
         // TODO grading permission SQL as subquery
         // i.e. denied permissions at assessment level or denied permission to this type of 
@@ -516,42 +520,57 @@ abstract class block_ajax_marking_module_base {
     /**
      * Returns an SQL snippet that will tell us whether a student is enrolled in this course
      * Needs to also check parent contexts.
+     * 
+     * @param string $coursealias the thing that contains the userid e.g. s.userid
+     * @param string $coursealias the thing that contains the courseid e.g. a.course
+     * @return array The join and where strings, with params. (Where starts with 'AND)
      */
-    private function get_enrolled_student_sql($tablealias) {
+    protected function get_enrolled_student_sql($coursealias, $useralias) {
         
-        global $DB;
-        
-        // cache the sql fragment - it won't change during one page request and it saves DB queries to reuse it
-        static $enrolsql = '';
-        
-        if ($enrolsql) {
-            return $enrolsql;
-        }
-
-        // TODO how does the normal enrolment check do this?
-        
-        // TODO what is an enrolment filter and how does it work?
-        
-        // begin stuff lifted from enrolment manager
+        global $DB, $CFG;
 
         // TODO Hopefully, this will be an empty string when none are enabled
         if ($CFG->enrol_plugins_enabled) {
             // returns list of english names of enrolment plugins
             list($enabledsql, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED);
         } else {
-            // no enabled instances, oops, we should probably say something
+            // no enabled enrolment plugins
             $enabledsql = "= :never";
-            $params = array('never'=>-1);
+            $params = array('never'=> -1);
         }
 
-        $sql = "SELECT DISTINCT (u.id)
-                  FROM {user} u
-            INNER JOIN {user_enrolments} ue ON ue.userid = u.id 
-            INNER JOIN {enrol} e ON (e.id = ue.enrolid)
-                 WHERE e.courseid = {$tablealias}.course
-                   AND e.enrol $enabledsql";
-
-        return array($sql, $params);
+        $join = " INNER JOIN {user_enrolments} ue 
+                          ON ue.userid = {$useralias} 
+                  INNER JOIN {enrol} e 
+                          ON (e.id = ue.enrolid) ";
+        $where = "       AND e.courseid = {$coursealias}
+                         AND e.enrol {$enabledsql} ";
+                        
+        return array($join, $where, $params);
+    }
+    
+    /**
+     * All modules have acommon need to hide work which has been submitted to items that are now hidden.
+     * Not sure if this is relevant so much, but it's worth doing so that test data and test courses don't appear.
+     * 
+     * @param string $moduletablename The name of the module table. Assumes it will have both course and id fields
+     * @return array The join string, where string and params array. Note, where starts with 'AND'
+     */
+    protected function get_visible_sql($moduletablename) {
+        
+        $join = "INNER JOIN {course_modules} cm
+                         ON cm.instance = {$moduletablename}.id 
+                 INNER JOIN {course} c 
+                         ON c.id = {$moduletablename}.course ";
+        
+        $where = 'AND cm.module = :moduleid 
+                  AND cm.visible = 1
+                  AND c.visible = 1 ';
+        
+        $params = array('moduleid' => $this->moduleid);
+        
+        return array($join, $where, $params);
+        
     }
 
     /**

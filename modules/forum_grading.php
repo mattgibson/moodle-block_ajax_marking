@@ -59,45 +59,45 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      *
      * @return <type> gets all unmarked forum discussions for all courses
      */
-    function get_all_unmarked($courseids) {
-        
-        global $USER, $DB;
-
-        list($coursesql, $courseparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'forumcourseparam0000');
-
-        $teachersql = $this->get_teacher_sql();
-
-        $params = $courseparams;
-
-        $sql = "SELECT p.id as postid, p.userid, d.id, f.id, f.name, f.course, cm.id as cmid
-                  FROM {forum_posts} p
-             LEFT JOIN {rating} r
-                    ON p.id = r.itemid
-            INNER JOIN {forum_discussions} d
-                    ON p.discussion = d.id
-            INNER JOIN {forum} f
-                    ON d.forum = f.id
-            INNER JOIN {course_modules} cm
-                    ON f.id = cm.instance
-            INNER JOIN {course} c
-                    ON c.id = f.course
-                 WHERE p.userid <> :userid
-                   AND f.course $coursesql
-                   AND ( ( (r.userid <> :userid2) AND {$teachersql})
-                         OR r.userid IS NULL)
-                   AND cm.module = :moduleid
-                   AND c.visible = 1
-                   AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
-                   AND f.assessed > 0
-              ORDER BY f.id";
-
-        $params['userid']   = $USER->id;
-        $params['userid2']  = $USER->id;
-        $params['moduleid'] = $this->moduleid;
-
-        return $DB->get_records_sql($sql, $params);
-    }
-    
+//    function get_all_unmarked($courseids) {
+//        
+//        global $USER, $DB;
+//
+//        list($coursesql, $courseparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'forumcourseparam0000');
+//        
+//        $teachersql = $this->get_teacher_sql();
+//
+//        $params = $courseparams;
+//
+//        $sql = "SELECT p.id as postid, p.userid, d.id, f.id, f.name, f.course, cm.id as cmid
+//                  FROM {forum_posts} p
+//             LEFT JOIN {rating} r
+//                    ON p.id = r.itemid
+//            INNER JOIN {forum_discussions} d
+//                    ON p.discussion = d.id
+//            INNER JOIN {forum} f
+//                    ON d.forum = f.id
+//            INNER JOIN {course_modules} cm
+//                    ON f.id = cm.instance
+//            INNER JOIN {course} c
+//                    ON c.id = f.course
+//                 WHERE p.userid <> :userid
+//                   AND f.course $coursesql
+//                   AND ( ( (r.userid <> :userid2) AND {$teachersql})
+//                         OR r.userid IS NULL)
+//                   AND cm.module = :moduleid
+//                   AND c.visible = 1
+//                   AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
+//                   AND f.assessed > 0
+//              ORDER BY f.id";
+//
+//        $params['userid']   = $USER->id;
+//        $params['userid2']  = $USER->id;
+//        $params['moduleid'] = $this->moduleid;
+//
+//        return $DB->get_records_sql($sql, $params);
+//    }
+//    
     /**
      * See documentation for abstract function in superclass
      * 
@@ -110,6 +110,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         $teachersql = $this->get_teacher_sql();
         list($displayjoin, $displaywhere) = $this->get_display_settings_sql('f', 'p.userid');
+        list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('f.course', 'p.userid');
 
         $sql = "SELECT f.course AS courseid, COUNT(p.id) AS count
                   FROM {forum_posts} p
@@ -124,6 +125,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
             INNER JOIN {course} c
                     ON c.id = f.course
                        {$displayjoin}
+                       {$enroljoin}
                  WHERE p.userid <> :userid
                    AND ( ( (r.userid <> :userid2) AND {$teachersql})
                          OR r.userid IS NULL)
@@ -132,9 +134,9 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                    AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
                    AND f.assessed > 0
                        {$displaywhere}
+                       {$enrolwhere}
               GROUP BY f.course";
 
-        $params = array();
         $params['userid']   = $USER->id;
         $params['userid2']  = $USER->id;
         $params['moduleid'] = $this->moduleid;

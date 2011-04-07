@@ -26,6 +26,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+// include constants
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+
 /**
  * Standard upgrade function run every time the block's version number changes
  *
@@ -39,45 +42,17 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
 
     $dbman = $DB->get_manager();
 
-    if ($oldversion < 2007052901) { //New version in version.php
-
-        // Define table block_ajax_marking to be created
-        $table = new xmldb_table('block_ajax_marking');
-
-        // Adding fields to table block_ajax_marking
-        $table->add_field('id',             XMLDB_TYPE_INTEGER, '10'    , XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
-        $table->add_field('userid',         XMLDB_TYPE_INTEGER, '10'    , XMLDB_UNSIGNED, null, null, null, null);
-        $table->add_field('assessmenttype', XMLDB_TYPE_CHAR,    '40'    , null, null, null, null, null);
-        $table->add_field('assessmentid',   XMLDB_TYPE_INTEGER, '10'    , XMLDB_UNSIGNED, null, null, null, null);
-        $table->add_field('showhide',       XMLDB_TYPE_INTEGER, '1'     , XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, '1');
-        $table->add_field('groups',         XMLDB_TYPE_TEXT,    'small' , null, null, null, null, null);
-
-
-        // Adding keys to table block_ajax_marking
-        $table->add_key('primary',   XMLDB_KEY_PRIMARY, array('id'));
-        $table->add_key('useridkey', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
-
-        // Launch create table for block_ajax_marking
-        $dbman->create_table($table);
-        
-        upgrade_mod_savepoint(true, 2007052901, 'block_ajax_marking');
-    }
-
+    // TODO untested 
     if ($oldversion < 2010061801) {
 
-        // Define key useridkey (foreign) to be dropped form block_ajax_marking
-        $table = new XMLDBTable('block_ajax_marking');
-        $key   = new XMLDBKey('useridkey');
-        $key->setAttributes(XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
-
-        // Launch drop key useridkey
-        $result = $result && drop_key($table, $key);
+        // Define key useridkey (foreign) to be dropped from block_ajax_marking
+        $table = new xmldb_table('block_ajax_marking');
+        $key = new xmldb_key('useridkey', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
+        $dbman->drop_key($table, $key);
 
         // Define table block_ajax_marking_groups to be created
-        $table = new XMLDBTable('block_ajax_marking_groups');
+        $table = new xmldb_table('block_ajax_marking_groups');
         
-        //$table->add_field();
-
         // Adding fields to table block_ajax_marking_groups
         $table->add_field('id',       XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
         $table->add_field('configid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null);
@@ -103,15 +78,9 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
                 $groups = explode(' ', trim($record->groups));
 
                 foreach ($groups as $group) {
-
                     $data = new stdClass;
                     $data->groupid  = $group;
                     $data->configid = $record->id;
-                    // when we switch from groups to something else, we wanty to keep the groups settings
-                    // so that it's easier to switch back. Alternative is to have to re enter the groups
-                    // after they are removed from this table
-                    $data->display  = 1;
-
                     $DB->insert_record('block_ajax_marking_groups', $data);
                 }
             }
@@ -120,16 +89,46 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         //Drop the groups column on the old table
         
         // Define field groups to be dropped from block_ajax_marking
-        $table = new XMLDBTable('block_ajax_marking');
-        $field = new XMLDBField('groups');
+        $table = new xmldb_table('block_ajax_marking');
+        $field = new xmldb_field('groups');
 
         // Launch drop field groups
-        $dbman->drop_field($table, $field);
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);   
+        }
         
         upgrade_mod_savepoint(true, 2010061801, 'block_ajax_marking');
 
 
     }
+    
+    
+    if ($oldversion < 2011040602) {
+        
+        // Remove the module settings from the config_plugins table
+        $DB->delete_records('config_plugins', array('plugin' => 'block_ajax_marking'));
+        
+        // Remove the display column from the groups table - not needed
+        $table = new xmldb_table('block_ajax_marking_groups');
+        $field = new xmldb_field('display');
+        
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);   
+        }
+        
+        // put key in for groupid-id
+        $table = new xmldb_table('block_ajax_marking_groups');
+        $key = new xmldb_key('groupid-id', XMLDB_KEY_FOREIGN, array('groupid'), 'groups', array('id'));
+        $dbman->add_key($table, $key);
+        
+        // put key back for userid
+        $table = new xmldb_table('block_ajax_marking');
+        $key = new xmldb_key('useridkey', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
+        $dbman->add_key($table, $key);
+                
+        upgrade_mod_savepoint(true, 2011040602, 'block_ajax_marking');
+    }
+    
 
     return true;
 }

@@ -18,9 +18,11 @@
 
 /**
  * Class file for the Assignment grading functions
+ * 
  * @package    block
  * @subpackage ajax_marking
- * @copyright  2008 onwards Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @copyright  2008 Matt Gibson
+ * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -57,7 +59,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * @return void
      */
     function __construct() {
-
         
         $this->modulename = 'assignment';  // must be the same as the DB modulename
         $this->moduleid   = $this->get_module_id();
@@ -83,24 +84,26 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // TODO - need to check for enrolment status. Don't want to include unenrolled students
         
         list($displayjoin, $displaywhere) = $this->get_display_settings_sql('a', 's.userid');
+        list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('a.course', 's.userid');
         
         $sql = "SELECT a.course AS courseid, COUNT(s.id) AS count
                   FROM {assignment} a
-            INNER JOIN {course_modules} c
-                    ON a.id = c.instance
+            INNER JOIN {course_modules} cm
+                    ON a.id = cm.instance
             INNER JOIN {assignment_submissions} s
                     ON s.assignment = a.id
                        {$displayjoin}
-                 WHERE c.module = :coursemodule
-                   AND c.visible = 1
+                       {$enroljoin}
+                 WHERE cm.module = :moduleid
+                   AND cm.visible = 1
                    AND s.timemarked < s.timemodified
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
                     OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
                        {$displaywhere}
+                       {$enrolwhere}
               GROUP BY a.course";
 
-        $params = array();
-        $params['coursemodule'] = $this->moduleid;
+        $params['moduleid'] = $this->moduleid;
         
         return $DB->get_records_sql($sql, $params);
         

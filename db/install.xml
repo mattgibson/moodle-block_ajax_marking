@@ -6,12 +6,12 @@
   <TABLES>
     <TABLE NAME="block_ajax_marking" COMMENT="stores user preferences (if any) on which assessments they would like hidden and which groups they would like to display in the AJAX marking block." NEXT="block_ajax_marking_groups">
       <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" SEQUENCE="true" ENUM="false" COMMENT="id of the table, please edit me" NEXT="userid"/>
-        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="false" SEQUENCE="false" ENUM="false" COMMENT="the userid of the person to whom this preference applies" PREVIOUS="id" NEXT="assessmenttype"/>
-        <FIELD NAME="assessmenttype" TYPE="char" LENGTH="40" NOTNULL="false" SEQUENCE="false" ENUM="false" COMMENT="this allows us to know what the next field, assessment id refers to i.e. aquiz, a forum etc." PREVIOUS="userid" NEXT="assessmentid"/>
-        <FIELD NAME="assessmentid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="false" SEQUENCE="false" ENUM="false" COMMENT="id of the assessment (quiz, forum, etc) that this preference refers to" PREVIOUS="assessmenttype" NEXT="showhide"/>
-        <FIELD NAME="showhide" TYPE="int" LENGTH="1" NOTNULL="true" UNSIGNED="false" DEFAULT="1" SEQUENCE="false" ENUM="false" COMMENT="should this assessment be shown at all to this user? 0=no 1=yes default to yes" PREVIOUS="assessmentid" NEXT="groups"/>
-        <FIELD NAME="groups" TYPE="text" LENGTH="small" NOTNULL="false" SEQUENCE="false" ENUM="false" COMMENT="comma separated list of group ids that should be displayed for this assessment and this user." PREVIOUS="showhide"/>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="false" SEQUENCE="true" COMMENT="id of the table, please edit me" NEXT="userid"/>
+        <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="false" SEQUENCE="false" COMMENT="the userid of the person to whom this preference applies" PREVIOUS="id" NEXT="assessmenttype"/>
+        <FIELD NAME="assessmenttype" TYPE="char" LENGTH="40" NOTNULL="false" SEQUENCE="false" COMMENT="this allows us to know what the next field, assessment id refers to i.e. aquiz, a forum etc." PREVIOUS="userid" NEXT="assessmentid"/>
+        <FIELD NAME="assessmentid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="false" SEQUENCE="false" COMMENT="id of the assessment (quiz, forum, etc) that this preference refers to" PREVIOUS="assessmenttype" NEXT="showhide"/>
+        <FIELD NAME="showhide" TYPE="int" LENGTH="1" NOTNULL="true" UNSIGNED="false" DEFAULT="1" SEQUENCE="false" COMMENT="should this assessment be shown at all to this user? 0=no 1=yes default to yes" PREVIOUS="assessmentid" NEXT="groups"/>
+        <FIELD NAME="groups" TYPE="text" LENGTH="small" NOTNULL="false" SEQUENCE="false" COMMENT="comma separated list of group ids that should be displayed for this assessment and this user." PREVIOUS="showhide"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="primary key of the table, please edit me" NEXT="useridkey"/>
@@ -20,14 +20,15 @@
     </TABLE>
     <TABLE NAME="block_ajax_marking_groups" COMMENT="Holds the show/hide status of the groups for each user's config choices. Display 1=show the group, display 0=hide it. A group id of -1 means what to do for students in no group." PREVIOUS="block_ajax_marking">
       <FIELDS>
-        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" ENUM="false" NEXT="configid"/>
-        <FIELD NAME="configid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false" ENUM="false" COMMENT="The id of the field in the config table" PREVIOUS="id" NEXT="groupid"/>
-        <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false" ENUM="false" COMMENT="The id of the group" PREVIOUS="configid" NEXT="display"/>
-        <FIELD NAME="display" TYPE="int" LENGTH="1" NOTNULL="true" UNSIGNED="true" SEQUENCE="false" ENUM="false" COMMENT="1=show 0=hide" PREVIOUS="groupid"/>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true"  NEXT="configid"/>
+        <FIELD NAME="configid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false" COMMENT="The id of the field in the config table" PREVIOUS="id" NEXT="groupid"/>
+        <FIELD NAME="groupid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false" COMMENT="The id of the group" PREVIOUS="configid" NEXT="display"/>
+        <FIELD NAME="display" TYPE="int" LENGTH="1" NOTNULL="true" UNSIGNED="true" SEQUENCE="false" COMMENT="1=show 0=hide" PREVIOUS="groupid"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" NEXT="configid-id"/>
-        <KEY NAME="configid-id" TYPE="foreign" FIELDS="configid" REFTABLE="block_ajax_marking" REFFIELDS="id" COMMENT="Links this table with the config table" PREVIOUS="primary"/>
+        <KEY NAME="configid-id" TYPE="foreign" FIELDS="configid" REFTABLE="block_ajax_marking" REFFIELDS="id" COMMENT="Links this table with the config table" PREVIOUS="primary" NEXT="groupid-id"/>
+        <KEY NAME="groupid-id" TYPE="foreign" FIELDS="groupid" REFTABLE="groups" REFFIELDS="id" COMMENT="Links this table with the groups table" PREVIOUS="configid-id"/>
       </KEYS>
     </TABLE>
   </TABLES>

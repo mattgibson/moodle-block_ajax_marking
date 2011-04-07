@@ -64,26 +64,26 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
       *
       * @return bool true
       */
-    function get_all_unmarked($courseids) {
-
-        global $DB;
-        
-        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-        $sql = "SELECT je.id as entryid, je.userid, j.name, j.course, j.id, c.id as cmid
-                  FROM {journal_entries} je
-            INNER JOIN {journal} j
-                    ON je.journal = j.id
-            INNER JOIN {course_modules} c
-                    ON j.id = c.instance
-                 WHERE c.module = :moduleid
-                   AND j.course $usql
-                   AND c.visible = 1
-                   AND j.assessed <> 0
-                   AND je.modified > je.timemarked";
-        $params['moduleid'] = $this->moduleid;
-        return $DB->get_records_sql($sql, $params);
-        
-    }
+//    function get_all_unmarked($courseids) {
+//
+//        global $DB;
+//        
+//        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+//        $sql = "SELECT je.id as entryid, je.userid, j.name, j.course, j.id, c.id as cmid
+//                  FROM {journal_entries} je
+//            INNER JOIN {journal} j
+//                    ON je.journal = j.id
+//            INNER JOIN {course_modules} c
+//                    ON j.id = c.instance
+//                 WHERE c.module = :moduleid
+//                   AND j.course $usql
+//                   AND c.visible = 1
+//                   AND j.assessed <> 0
+//                   AND je.modified > je.timemarked";
+//        $params['moduleid'] = $this->moduleid;
+//        return $DB->get_records_sql($sql, $params);
+//        
+//    }
     
     /**
      * See documentation for abstract function in superclass
@@ -96,6 +96,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
         global $DB;
         
         list($displayjoin, $displaywhere) = $this->get_display_settings_sql('j', 'je.userid');
+        list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('j.course', 'je.userid');
         
         $sql = "SELECT j.course AS courseid, COUNT(je.id) AS count
                   FROM {journal_entries} je
@@ -110,7 +111,6 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
                    AND je.modified > je.timemarked
                        {$displaywhere}";
         
-        $params = array();
         $params['moduleid'] = $this->moduleid;
         
         return $DB->get_records_sql($sql, $params);

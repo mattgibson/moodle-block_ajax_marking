@@ -60,32 +60,32 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
      *
      * @return bool true
      */
-    function get_all_unmarked($courseids) {
-
-        global $CFG, $USER, $DB;
-
-        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-
-        $sql = "SELECT s.id as subid, s.authorid as userid, w.id, w.name, w.course, w.intro as description, c.id as cmid
-                  FROM ({workshop} w
-            INNER JOIN {course_modules} c
-                    ON w.id = c.instance)
-             LEFT JOIN {workshop_submissions} s
-                    ON s.workshopid = w.id
-             LEFT JOIN {workshop_assessments} a
-                    ON (s.id = a.submissionid)
-                 WHERE (a.reviewerid != :userid
-                    OR (a.reviewerid = :userid2
-                   AND a.grade = -1))
-                   AND c.module = :moduleid
-                   AND w.course $usql
-                   AND c.visible = 1
-              ORDER BY w.id";
-        $params['userid']   = $USER->id;
-        $params['userid2']  = $USER->id;
-        $params['moduleid'] = $this->moduleid;
-        return $DB->get_records_sql($sql, $params);
-    }
+//    function get_all_unmarked($courseids) {
+//
+//        global $CFG, $USER, $DB;
+//
+//        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+//
+//        $sql = "SELECT s.id as subid, s.authorid as userid, w.id, w.name, w.course, w.intro as description, c.id as cmid
+//                  FROM ({workshop} w
+//            INNER JOIN {course_modules} c
+//                    ON w.id = c.instance)
+//             LEFT JOIN {workshop_submissions} s
+//                    ON s.workshopid = w.id
+//             LEFT JOIN {workshop_assessments} a
+//                    ON (s.id = a.submissionid)
+//                 WHERE (a.reviewerid != :userid
+//                    OR (a.reviewerid = :userid2
+//                   AND a.grade = -1))
+//                   AND c.module = :moduleid
+//                   AND w.course $usql
+//                   AND c.visible = 1
+//              ORDER BY w.id";
+//        $params['userid']   = $USER->id;
+//        $params['userid2']  = $USER->id;
+//        $params['moduleid'] = $this->moduleid;
+//        return $DB->get_records_sql($sql, $params);
+//    }
     
     /**
      * See documentation for abstract function in superclass
@@ -97,26 +97,31 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         
         global $USER, $DB;
         
-        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('w', 's.authorid');
+        list($displayjoin, $displaywhere)      = $this->get_display_settings_sql('w', 's.authorid');
+        list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('w.course', 's.authorid');
 
         $sql = "SELECT w.course AS courseid, COUNT(s.id) as count
-                  FROM ({workshop} w
-            INNER JOIN {course_modules} c
-                    ON w.id = c.instance)
+                  FROM {workshop} w
+            INNER JOIN {course_modules} cm
+                    ON w.id = cm.instance
+            INNER JOIN {course} c
+                    ON w.course = c.id
              LEFT JOIN {workshop_submissions} s
                     ON s.workshopid = w.id
              LEFT JOIN {workshop_assessments} a
                     ON (s.id = a.submissionid)
                        {$displayjoin}
+                       {$enroljoin}
                  WHERE (a.reviewerid != :userid
                         OR (a.reviewerid = :userid2
                             AND a.grade = -1))
-                   AND c.module = :moduleid
+                   AND cm.module = :moduleid
+                   AND cm.visible = 1
                    AND c.visible = 1
                        {$displaywhere}
+                       {$enrolwhere}
               GROUP BY w.course";
         
-        $params = array();
         $params['userid']   = $USER->id;
         $params['userid2']  = $USER->id;
         $params['moduleid'] = $this->moduleid;

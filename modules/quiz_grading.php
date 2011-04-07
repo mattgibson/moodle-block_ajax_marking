@@ -81,39 +81,39 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      *
      * @return bool true
      */
-    function get_all_unmarked($courseids) {
-
-        global $DB;
-
-        list($coursessql, $coursesparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-
-
-        $sql = "SELECT qst.id as qstid, qa.userid, qsess.questionid, qz.id,
-                       qz.name, qz.course, c.id as cmid
-                  FROM {quiz} qz
-            INNER JOIN {course_modules} c
-                    ON qz.id = c.instance
-            INNER JOIN {quiz_attempts} qa
-                    ON qz.id = qa.quiz
-            INNER JOIN {question_sessions} qsess
-                    ON qsess.attemptid = qa.uniqueid
-            INNER JOIN {question_states} qst
-                    ON qsess.newest = qst.id
-            INNER JOIN {question} q
-                    ON qsess.questionid = q.id
-                 WHERE qa.timefinish > 0
-                   AND qa.preview = 0
-                   AND c.module = :moduleid
-                   AND c.visible = 1
-                   AND q.qtype = 'essay'
-                   AND qz.course $coursessql
-                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".
-                                           QUESTION_EVENTCLOSEANDGRADE.", ".
-                                           QUESTION_EVENTMANUALGRADE.")
-              ORDER BY qa.timemodified";
-        $coursesparams['moduleid'] = $this->moduleid;
-        return $DB->get_records_sql($sql, $coursesparams);
-    }
+//    function get_all_unmarked($courseids) {
+//
+//        global $DB;
+//
+//        list($coursessql, $coursesparams) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+//
+//
+//        $sql = "SELECT qst.id as qstid, qa.userid, qsess.questionid, qz.id,
+//                       qz.name, qz.course, c.id as cmid
+//                  FROM {quiz} qz
+//            INNER JOIN {course_modules} c
+//                    ON qz.id = c.instance
+//            INNER JOIN {quiz_attempts} qa
+//                    ON qz.id = qa.quiz
+//            INNER JOIN {question_sessions} qsess
+//                    ON qsess.attemptid = qa.uniqueid
+//            INNER JOIN {question_states} qst
+//                    ON qsess.newest = qst.id
+//            INNER JOIN {question} q
+//                    ON qsess.questionid = q.id
+//                 WHERE qa.timefinish > 0
+//                   AND qa.preview = 0
+//                   AND c.module = :moduleid
+//                   AND c.visible = 1
+//                   AND q.qtype = 'essay'
+//                   AND qz.course $coursessql
+//                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".
+//                                           QUESTION_EVENTCLOSEANDGRADE.", ".
+//                                           QUESTION_EVENTMANUALGRADE.")
+//              ORDER BY qa.timemodified";
+//        $coursesparams['moduleid'] = $this->moduleid;
+//        return $DB->get_records_sql($sql, $coursesparams);
+//    }
     
     /**
      * See documentation for abstract function in superclass
@@ -126,13 +126,16 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         global $DB;
 
         list($displayjoin, $displaywhere) = $this->get_display_settings_sql('qz', 'qa.userid');
+        list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('qz.course', 'qa.userid');
         
         $sql = "SELECT qz.course AS courseid, COUNT(qst.id) AS count
                   FROM {quiz} qz
-            INNER JOIN {course_modules} c
-                    ON qz.id = c.instance
+            INNER JOIN {course_modules} cm
+                    ON qz.id = cm.instance
             INNER JOIN {quiz_attempts} qa
                     ON qz.id = qa.quiz
+            INNER JOIN {course} c
+                    ON qz.course = c.id
             INNER JOIN {question_sessions} qsess
                     ON qsess.attemptid = qa.uniqueid
             INNER JOIN {question_states} qst
@@ -140,18 +143,20 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             INNER JOIN {question} q
                     ON qsess.questionid = q.id
                        {$displayjoin}
+                       {$enroljoin}
                  WHERE qa.timefinish > 0
                    AND qa.preview = 0
-                   AND c.module = :moduleid
+                   AND cm.module = :moduleid
+                   AND cm.visible = 1
                    AND c.visible = 1
                    AND q.qtype = 'essay'
                    AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".
                                            QUESTION_EVENTCLOSEANDGRADE.", ".
                                            QUESTION_EVENTMANUALGRADE.")
                        {$displaywhere}
+                       {$enrolwhere}
               GROUP BY qz.course";
         
-        $params = array();
         $params['moduleid'] = $this->moduleid;
         return $DB->get_records_sql($sql, $params);
     }
