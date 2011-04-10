@@ -203,8 +203,7 @@ abstract class block_ajax_marking_module_base {
                           INNER JOIN {block_ajax_marking_groups} gs
                                   ON g.id = gs.groupid
                                WHERE gm.userid = {$submissiontablealias}
-                                 AND g.courseid = {$assessmenttablealias}.course
-                                 AND gs.display = ".BLOCK_AJAX_MARKING_CONF_SHOW.") ";
+                                 AND g.courseid = {$assessmenttablealias}.course) ";
                             
                             
         // where starts with the course defaults in case we find no assessment preference

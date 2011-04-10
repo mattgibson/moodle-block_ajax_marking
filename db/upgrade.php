@@ -97,7 +97,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
             $dbman->drop_field($table, $field);   
         }
         
-        upgrade_mod_savepoint(true, 2010061801, 'block_ajax_marking');
+        upgrade_block_savepoint(true, 2010061801, 'ajax_marking');
 
 
     }
@@ -126,7 +126,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         $key = new xmldb_key('useridkey', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
         $dbman->add_key($table, $key);
                 
-        upgrade_mod_savepoint(true, 2011040602, 'block_ajax_marking');
+        upgrade_block_savepoint(true, 2011040602, 'ajax_marking');
     }
     
 
