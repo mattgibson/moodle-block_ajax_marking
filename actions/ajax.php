@@ -44,7 +44,7 @@ $groups            = optional_param('groups', null, PARAM_TEXT);
 $assessmenttype    = optional_param('assessmenttype', null, PARAM_TEXT);
 $assessmentid      = optional_param('assessmentid', null, PARAM_INT);
 $showhide          = optional_param('showhide', null, PARAM_INT);
-$groupid             = optional_param('group', '', PARAM_TEXT);
+$groupid           = optional_param('group', '', PARAM_TEXT);
 $courseid          = optional_param('courseid', null, PARAM_TEXT);
 $modulename        = optional_param('modulename', null, PARAM_TEXT);
 
@@ -69,13 +69,8 @@ switch ($callbackfunction) {
         // TODO - this has big issues around language. role names will not be the same in
         // diffferent translations.
         
-        
         $data->nodetype = 'course';
         $data->callbackfunction = 'course';
-        
-        
-
-        // begin JSON object
 
         // iterate through each course, checking permisions, counting relevant assignment
         // submissions and adding the course to the JSON output if any appear
@@ -93,8 +88,6 @@ switch ($callbackfunction) {
                 continue;
             }
 
-
-
             // we must make sure we only get work from enrolled students
             $courseid = $course->id;
             $studentids = block_ajax_marking_get_course_students($course);
@@ -103,8 +96,6 @@ switch ($callbackfunction) {
             if (empty($studentids)) {
                 continue;
             }
-
-            
 
             // loop through each module, getting a count for this course id from each one.
             foreach ($moduleclasses as $moduleclass) {
@@ -229,19 +220,17 @@ switch ($callbackfunction) {
     case 'course':
         
         $data->nodetype = 'assessment';
+        
+        $nodes = array();
 
         $courseid = $callbackparamone;
         // we must make sure we only get work from enrolled students
         $course = $DB->get_record('course', array('id' => $courseid));
 
-//        $output = '[{"callbackfunction":"course"}';
-
         foreach ($moduleclasses as $moduleclass) {
             $nodes = array_merge($nodes, $moduleclass->course_assessment_nodes($courseid));
-//            $output .= $moduleclass->course_assessment_nodes($courseid);
         }
 
-//        $output .= ']';
         break;
 
     case 'config_course':

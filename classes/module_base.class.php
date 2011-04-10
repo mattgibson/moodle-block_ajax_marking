@@ -140,8 +140,6 @@ abstract class block_ajax_marking_module_base {
      */
     function count_course_submissions($courseid) {
         
-        // Need to switch to using sql queries that return counts for each course.
-        
         // cache the object with the totals
         if (!isset($this->coursetotals)) {
             $this->coursetotals = $this->get_course_totals();
@@ -152,23 +150,23 @@ abstract class block_ajax_marking_module_base {
         }
         
         return 0;
+    }
+    
+    /**
+     * This will return a fragment of SQL that will check whether a user has permission to grade a particular
+     * assessment item.
+     * 
+     */
+    protected function get_capability_sql() {
         
-        // TODO grading permission SQL as subquery
-        // i.e. denied permissions at assessment level or denied permission to this type of 
-        // assessment at course level?
-        // - complex due to overrides. Could use cached permissions to supply a list of coursemodule ids
-        //   that this user is allowed to mark as an IN() clause. Make sure to limit this to courses 
-        //   that are current
-        //
-        // get all cmids for all courses
-        // filter using has_capability()
+        // Need to write this carefully
         
-        // TODO check display settings SQL
-        // - is it display = yes
-        // - is it display = groups and the student is in the group
+        // Get right context
         
-        // TODO enrolment SQL
-        // - does the student have an enrolment
+        // Check for roles giving permission
+        
+        // check for overrides that might 
+        
     }
     
     /**
@@ -361,15 +359,15 @@ abstract class block_ajax_marking_module_base {
                     $nodes[] = block_ajax_marking_make_assessment_node($assessment);
                 }
             }
-
-            if ($html) {
+        }
+        
+        if ($html) {
                 // text string of <li> nodes
                 $html_array = array($html_count, $html_output);
                 return $html_array;
             } else {
                 return $nodes;
             }
-        }
     }
 
     /**
@@ -453,18 +451,6 @@ abstract class block_ajax_marking_module_base {
         } else {
             return false;
         }
-    }
-
-    /**
-     * Getter function for the levels stored as part of the
-     * pluggable modules object
-     *
-     * @return int the number of levels
-     */
-    function levels() {
-
-        //$levels = count($this->functions) + 2;
-        return $this->levels;
     }
 
     /**

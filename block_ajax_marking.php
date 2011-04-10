@@ -86,7 +86,7 @@ class block_ajax_marking extends block_base {
             $this->content->footer = '';
 
             // Build the AJAX stuff on top of the plain HTML list
-            //if ($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
+            if ($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
 
                 // Add a style to hide the HTML list and prevent flicker
                 $s  = '<script type="text/javascript" defer="defer">';
@@ -200,7 +200,7 @@ class block_ajax_marking extends block_base {
 
                 $this->content->footer .= '<div id="block_ajax_marking_refresh_button"></div><div id="block_ajax_marking_configure_button"></div>';
 
-           // }
+            }
 
         } else {
             // no grading permissions in any courses - don't display the block. Exception for

@@ -57,33 +57,6 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
         $this->icon        = 'mod/journal/icon.gif';
         $this->callbackfunctions   = array();
     }
-
-     /**
-      * gets all unmarked journal submissions from all courses ready for counting
-      * called from get_main_level_data
-      *
-      * @return bool true
-      */
-//    function get_all_unmarked($courseids) {
-//
-//        global $DB;
-//        
-//        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-//        $sql = "SELECT je.id as entryid, je.userid, j.name, j.course, j.id, c.id as cmid
-//                  FROM {journal_entries} je
-//            INNER JOIN {journal} j
-//                    ON je.journal = j.id
-//            INNER JOIN {course_modules} c
-//                    ON j.id = c.instance
-//                 WHERE c.module = :moduleid
-//                   AND j.course $usql
-//                   AND c.visible = 1
-//                   AND j.assessed <> 0
-//                   AND je.modified > je.timemarked";
-//        $params['moduleid'] = $this->moduleid;
-//        return $DB->get_records_sql($sql, $params);
-//        
-//    }
     
     /**
      * See documentation for abstract function in superclass
@@ -97,21 +70,22 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
         
         list($displayjoin, $displaywhere) = $this->get_display_settings_sql('j', 'je.userid');
         list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('j.course', 'je.userid');
+        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_visible_sql('j');
         
         $sql = "SELECT j.course AS courseid, COUNT(je.id) AS count
                   FROM {journal_entries} je
             INNER JOIN {journal} j
                     ON je.journal = j.id
-            INNER JOIN {course_modules} c
-                    ON j.id = c.instance
                        {$displayjoin}
-                 WHERE c.module = :moduleid
-                   AND c.visible = 1
+                       {$enroljoin}
+                       {$visiblejoin}
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
-                       {$displaywhere}";
-        
-        $params['moduleid'] = $this->moduleid;
+                       {$displaywhere}
+                       {$enroljoin}
+                       {$visiblewhere}";
+                       
+        $params = array_merge($params, $visibleparams);
         
         return $DB->get_records_sql($sql, $params);
         

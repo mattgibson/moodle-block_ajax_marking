@@ -239,24 +239,24 @@ div.block_ajax_marking div.footer {
 
 /* Stuff to make the lists display right with AJAX turned off */
 
-
+ul.AMB_html li {
+    list-style-type: none;
+}
 ul.AMB_html {
   padding-left: 5px;
   list-style-type: none;
   margin: 0;
-  margin-left: 10px;
-
 }
 li.AMB_html, li.AMB_html_course {
-  text-indent: -24px;
   padding-top: 3px;
   padding-bottom: 3px;
+  list-style-type: none;
 }
 li.AMB_html_course {
   background-color: #ddd;
+  padding-left: 7px;
 }
 ul.AMB_html_items {
-  padding-left: 15px;
   margin-top: 5px;
 
   list-style-type: none;
@@ -270,7 +270,8 @@ span.ygtvlabel {
 
 /* change loading icon. Standard one has white background */
 .ygtvloading {
-    width:18px; height:22px;
+    width:18px; 
+    height:22px;
     background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
 }
 

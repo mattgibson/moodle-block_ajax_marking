@@ -34,45 +34,13 @@ require_login(0, false);
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
-/**
- * This class alows the building of the <ul> list of clickable links for non-javascript enabled
- * browsers
- *
- * It's a wrapper for the main functions library class which adds the parts that deal with the HTML list
- * generation.
- *
- * The block is used in two ways. Firstly when the PHP version is made, necessitating a HTML list of
- * courses & assessment names, and secondly when an AJAX request is made, which requires a JSON
- * response with just one set of nodes e.g. courses OR assessments OR student. The logic is that
- * shared functions go in the base class and this is extended by either the ajax_marking_response
- * class in the ajax.php file, or the HTML_list class here.
- *
- * @copyright 2008-2010 Matt Gibson
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
-/**
- * This is to build the initial non-ajax set of html nodes for accessibility and non-javascript
- * browsers. It will eventually (hopefully) be used in a progressive enhancement way so that the
- * block exhibits gracful degradation, but this may prove awkward to implement.
- *
- * The output is a ul indented list of courses and assessment items with counts, with each
- * assessment item as a link to the grading page.
- *
- * The ul list can be recycled to make an accessible config tree in time.
- *
- * @return void
- */
-
-//block_ajax_marking_initial_setup(true);
-
 global $USER, $CFG, $DB;
 
 $moduleclasses = block_ajax_marking_get_module_classes();
 
 // get each module to do the sorting out - perhaps do this once when the request goes out
 // first.
-$htmllist = get_string('nothingtomark', 'block_ajax_marking');
+$htmllist = '';
 
 $courses = block_ajax_marking_get_my_teacher_courses();
 
@@ -115,19 +83,22 @@ foreach ($courses as $course) {
 
     }
 
+
     if ($course_count > 0) {
 
         $htmllist .= '<ul class="AMB_html">'
-                                .'<li class="AMB_html_course">'
-                                    .block_ajax_marking_add_icon('course')
-                                    .'<strong>('.$course_count.')</strong> '
-                                    .$course->shortname
-                                .'</li>'
-                                .'<li><ul class="AMB_html_items">'
-                                    .$course_output
-                                .'</ul></li>'
-                            .'</ul>';
+                        .'<li class="AMB_html_course">'
+                            .block_ajax_marking_add_icon('course')
+                            .'<strong>('.$course_count.')</strong> '
+                            .$course->shortname
+                        .'</li>'
+                        .'<li><ul class="AMB_html_items">'
+                            .$course_output
+                        .'</ul></li>'
+                    .'</ul>';
     }
 }
+
+$htmllist = $htmllist ? $htmllist : get_string('nothingtomark', 'block_ajax_marking');
 
 

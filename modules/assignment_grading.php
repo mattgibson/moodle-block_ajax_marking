@@ -85,25 +85,24 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         
         list($displayjoin, $displaywhere) = $this->get_display_settings_sql('a', 's.userid');
         list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('a.course', 's.userid');
+        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_visible_sql('a');
         
         $sql = "SELECT a.course AS courseid, COUNT(s.id) AS count
                   FROM {assignment} a
-            INNER JOIN {course_modules} cm
-                    ON a.id = cm.instance
             INNER JOIN {assignment_submissions} s
                     ON s.assignment = a.id
                        {$displayjoin}
                        {$enroljoin}
-                 WHERE cm.module = :moduleid
-                   AND cm.visible = 1
-                   AND s.timemarked < s.timemodified
+                       {$visiblejoin}
+                 WHERE s.timemarked < s.timemodified
                AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
                     OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
                        {$displaywhere}
                        {$enrolwhere}
+                       {$visiblewhere}
               GROUP BY a.course";
 
-        $params['moduleid'] = $this->moduleid;
+        $params = array_merge($params, $visibleparams);
         
         return $DB->get_records_sql($sql, $params);
         
