@@ -63,17 +63,16 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
     function __construct() {
         
         // must be the same as the DB modulename
-        $this->modulename  = 'quiz';
-
-        $this->moduleid    = $this->get_module_id();
-
-        $this->capability  = 'mod/quiz:grade';
-        $this->levels      = 4;
-        $this->icon        = 'mod/quiz/icon.gif';
-        $this->callbackfunctions   = array(
-            'quiz_questions',
-            'submissions'
+        $this->modulename           = 'quiz';
+        $this->capability           = 'mod/quiz:grade';
+        $this->icon                 = 'mod/quiz/icon.gif';
+        $this->callbackfunctions    = array(
+                'quiz_questions',
+                'submissions'
         );
+        
+        // call parent constructor with the same arguments
+        call_user_func_array(array($this, 'parent::__construct'), func_get_args());
     }
     
     /**

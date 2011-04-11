@@ -60,15 +60,16 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      */
     function __construct() {
         
-        $this->modulename = 'assignment';  // must be the same as the DB modulename
-        $this->moduleid   = $this->get_module_id();
-        $this->capability = 'mod/assignment:grade';
-        $this->icon       = 'mod/assignment/icon.gif';
-        
+        $this->modulename           = 'assignment';  // must be the same as the DB modulename
+        $this->capability           = 'mod/assignment:grade';
+        $this->icon                 = 'mod/assignment/icon.gif';
         // what nodes, if any come after the course and assessment ones for this module?
-        $this->callbackfunctions  = array(
-            'submissions'
+        $this->callbackfunctions    = array(
+                'submissions'
         );
+        
+        // call parent constructor with the same arguments
+        call_user_func_array(array($this, 'parent::__construct'), func_get_args());
     }
 
     /**
@@ -81,8 +82,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         
         global $DB;
 
-        // TODO - need to check for enrolment status. Don't want to include unenrolled students
-        
         list($displayjoin, $displaywhere) = $this->get_display_settings_sql('a', 's.userid');
         list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('a.course', 's.userid');
         list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_visible_sql('a');

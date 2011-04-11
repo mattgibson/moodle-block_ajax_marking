@@ -88,25 +88,6 @@ function block_ajax_marking_clean_name_text($text, $length=0) {
     return $text;
 }
 
-/**
- * This function returns a comma separated list of all student ids in a course. It uses the
- * config variable for gradebookroles to get ones other than 'student' and to make it language
- * neutral. Point is that when students leave the course, often their work remains, so we need
- * to check that we are only using work from currently enrolled students.
- *
- * @param object $course
- * @return array
- */
-function block_ajax_marking_get_course_students($course) {
-
-    global $DB;
-
-    $manager = new course_enrolment_manager($course);
-    $coursestudents = $manager->get_users('lastname');
-
-    return array_keys($coursestudents);
-}
-
 
 /**
  * function to make the summary for submission nodes, showing how long ago it was
@@ -656,7 +637,7 @@ function block_ajax_marking_is_member_of_group($groups, $memberid) {
     if (!$groupmembers) {
         
         // TODO can we cache the course ids?
-        list($coursesql, $courseparams) = block_ajax_marking_get_my_teacher_courses($USER->id, array(), true);
+        list($coursesql, $courseparams) = block_ajax_marking_get_my_teacher_courses(true);
 
         $sql = "SELECT gm.*
                   FROM {groups_members} gm
@@ -1080,40 +1061,36 @@ function block_ajax_marking_get_number_of_category_levels() {
  * This is to find out what courses a person has a teacher role. This is instead of
  * enrol_get_my_courses(), which would prevent teachers from being assigned at category level
  *
- * @param int $userid
- * @param array $fields an array of fields to return as well as id
  * @param bool $returnsql flag to determine whether we want to get the sql and params to use as a subquery for something else
  */
-function block_ajax_marking_get_my_teacher_courses($userid=null, $fields=null, $returnsql=false) {
+function block_ajax_marking_get_my_teacher_courses($returnsql=false) {
 
     // NOTE could also use subquery without union
     global $DB, $USER;
     
-    $userid = isset($userid) ? $userid : $USER->id;
+    // cache to save DB queries.  
+    static $courses = '';
+    static $query = '';
+    static $params = '';
     
-    // TODO - remove unecessary columns
-    $defaultfields = array(
-            'category',
-            'sortorder',
-            'fullname',
-            'shortname',
-            'idnumber',
-            'modinfo',
-            'visible',
-            'visibleold',
-            'hiddensections',
-            'groupmode',
-            'groupmodeforce',
-            'defaultgroupingid',
-            'restrictmodules',
-    );
-    
-    $fields = isset($fields) ? $fields : $defaultfields;
+    if ($returnsql) {
         
+        if (!empty($query)) {
+            return array($query, $params);
+        }
+        
+    } else {
+        
+        if (!empty($courses)) {
+            return $courses;
+        }
+    }
+    
     list($rolesql, $roleparams) = block_ajax_marking_teacherrole_sql();
 
     $fieldssql = 'DISTINCT(c.id)';
-    $fieldssql .= is_array($fields) ? ', c.'.implode(', c.', $fields) : '';
+    // Only get extra columns back if we are returning the actual results. Subqueries won't need it.
+    $fieldssql .= $returnsql ? '' : ', fullname, shortname';
 
     // Main bit
 
@@ -1124,7 +1101,8 @@ function block_ajax_marking_get_my_teacher_courses($userid=null, $fields=null, $
                    ON cx.instanceid = c.id
            INNER JOIN {role_assignments} ra
                    ON ra.contextid = cx.id
-                WHERE cx.contextlevel = ?
+                WHERE c.visible = 1
+                  AND cx.contextlevel = ?
                   AND ra.userid = ?
                   AND ra.roleid {$rolesql} ";
 
@@ -1139,7 +1117,8 @@ function block_ajax_marking_get_my_teacher_courses($userid=null, $fields=null, $
             LEFT JOIN {course_categories} cat1
                    ON c.category = cat1.id ";
 
-    $where =   "WHERE EXISTS (SELECT 1
+    $where =   "WHERE c.visible = 1
+                  AND EXISTS (SELECT 1
                                   FROM {context} cx
                             INNER JOIN {role_assignments} ra
                                     ON ra.contextid = cx.id
@@ -1165,7 +1144,7 @@ function block_ajax_marking_get_my_teacher_courses($userid=null, $fields=null, $
 
     $query = $select.$where.'))';
 
-    $params = array_merge(array(CONTEXT_COURSE, $userid), $roleparams, array(CONTEXT_COURSECAT, $userid), $roleparams);
+    $params = array_merge(array(CONTEXT_COURSE, $USER->id), $roleparams, array(CONTEXT_COURSECAT, $USER->id), $roleparams);
 
     if ($returnsql) {
         return array($query, $params);

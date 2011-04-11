@@ -26,7 +26,7 @@ if (!defined('MOODLE_INTERNAL')) {
  *
  * @package    block
  * @subpackage ajax_marking
- * @copyright  2008-2011 Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @copyright  2008 Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 abstract class block_ajax_marking_module_base {
@@ -121,7 +121,7 @@ abstract class block_ajax_marking_module_base {
      * Constructor. Overridden by all subclasses.
      */
     public function __construct() {
-        
+        $this->moduleid   = $this->get_module_id();
     }
     
     /**
@@ -154,18 +154,69 @@ abstract class block_ajax_marking_module_base {
     
     /**
      * This will return a fragment of SQL that will check whether a user has permission to grade a particular
-     * assessment item.
+     * assessment item. It is of the get_in_or_equals() type and needs to be compared to coursemoduleids.
+     * Blank string and empty array if no blocked items.
      * 
+     * @return array The sql and params
      */
-    protected function get_capability_sql() {
+    protected function get_permission_denied_sql() {
         
-        // Need to write this carefully
+        global $DB;
         
-        // Get right context
+        // Get coursemoduleids for all items of this type in all courses as one query
+        // TODO what if there are none at all?
         
-        // Check for roles giving permission
+        // There will be courses, or we would not be here
+        $courses = block_ajax_marking_get_my_teacher_courses();
         
-        // check for overrides that might 
+        list($coursesql, $params) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
+        
+        $sql = "SELECT id 
+                  FROM {course_modules}
+                 WHERE course {$coursesql}
+                   AND module = :moduleid ";
+        $params['moduleid'] = $this->moduleid;
+                   
+        $coursemoduleids = $DB->get_records_sql($sql, $params);
+        
+        // Get all contexts (will cache them)
+        $contexts = get_context_instance(CONTEXT_MODULE, array_keys($coursemoduleids));
+        
+        // Use has_capability to loop through them finding out which are blocked. Unset all that we have
+        // parmission to grade, leaving just those we are not allowed (smaller list)
+        foreach ($contexts as $key => $context) {
+            
+            if (has_capability($this->capability, $context)) {
+                unset($contexts[$key]);
+            }
+        }
+        
+        $returnsql = '';
+        $returnparams = array();
+        
+        // return a get_in_or_equals with NOT IN if there are any, or empty strings if there arent.
+        if (!empty($contexts)) {
+            list($returnsql, $returnparams) = $DB->get_in_or_equal(array_keys($contexts), SQL_PARAMS_NAMED, 'context0000', false);
+        }
+        
+        return array($returnsql, $returnparams);
+        
+    }
+    
+    private function get_groups_subquery($submissiontablealias, $assessmenttablealias, $configalias) {
+        
+        // TODO this doesn't check for a matching config id
+        $groupsql = " EXISTS (SELECT 1 
+                                FROM {groups_members} gm
+                          INNER JOIN {groups} g
+                                  ON gm.groupid = g.id 
+                          INNER JOIN {block_ajax_marking_groups} gs
+                                  ON g.id = gs.groupid
+                               WHERE gm.userid = {$submissiontablealias}
+                                 AND g.courseid = {$assessmenttablealias}.course
+                                 AND gs.configid = {$configalias}.id) ";
+                                 
+        return $groupsql;                         
         
     }
     
@@ -182,45 +233,69 @@ abstract class block_ajax_marking_module_base {
         // TODO this should use coursemoduleid
         // TODO needs testing
         
+        // New plan. 
+        // Check for coursemodule leve stuff
+        // EXISTS (SELECT 1 
+        //           FROM {block_ajax_marking} bama
+        //          WHERE {$assessmenttablealias}.id = bama.assessmentid 
+        //            AND bama.assessmenttype = '{$this->modulename})
+        
+        // OR EXISTS(SELECT 1 
+        //           FROM )
+        
+        
+        
+        
         // bama = block ajax marking assessment
         // bamc = block ajax marking course
         // gmc  = groups members courses
         
         $join = "LEFT JOIN {block_ajax_marking} bama
                         ON ({$assessmenttablealias}.id = bama.assessmentid AND bama.assessmenttype = '{$this->modulename}')
+                 
                  LEFT JOIN {block_ajax_marking} bamc
-                        ON ({$assessmenttablealias}.course = bamc.assessmentid AND bamc.assessmenttype = 'course') ";
+                        ON ({$assessmenttablealias}.course = bamc.assessmentid AND bamc.assessmenttype = 'course') 
+                 ";
                         
         // either no settings, or definitely display
         // TODO doesn't work without proper join table for groups
                             
         // student might be a member of several groups. As long as one group is in the settings table, it's ok.
         // TODO is this more or less efficient than doing an inner join to a subquery?
-        $groupsql = " EXISTS (SELECT 1 
-                                FROM {groups_members} gm
-                          INNER JOIN {groups} g
-                                  ON gm.groupid = g.id 
-                          INNER JOIN {block_ajax_marking_groups} gs
-                                  ON g.id = gs.groupid
-                               WHERE gm.userid = {$submissiontablealias}
-                                 AND g.courseid = {$assessmenttablealias}.course) ";
+                        
+//        // TODO this doesn't check for a matching config id
+//        $groupsql = " EXISTS (SELECT 1 
+//                                FROM {groups_members} gm
+//                          INNER JOIN {groups} g
+//                                  ON gm.groupid = g.id 
+//                          INNER JOIN {block_ajax_marking_groups} gs
+//                                  ON g.id = gs.groupid
+//                               WHERE gm.userid = {$submissiontablealias}
+//                                 AND g.courseid = {$assessmenttablealias}.course) 
+//                                  ";
                             
                             
         // where starts with the course defaults in case we find no assessment preference
         // Hopefully short circuit evaluation will makes this efficient.
+        $configalias = 'bamc';
+        $groupsubquery = $this->get_groups_subquery($submissiontablealias, $assessmenttablealias, $configalias);
+        
         $where = " AND (( ( bama.showhide IS NULL 
                             OR bama.showhide = ".BLOCK_AJAX_MARKING_CONF_DEFAULT."
                           ) AND ( 
                             bamc.showhide IS NULL 
                             OR bamc.showhide = ".BLOCK_AJAX_MARKING_CONF_SHOW."
-                            OR (bama.showhide = ".BLOCK_AJAX_MARKING_CONF_GROUPS. " AND {$groupsql})
+                            OR (bamc.showhide = ".BLOCK_AJAX_MARKING_CONF_GROUPS. " AND {$groupsubquery})
                           )
                         ) ";
                     
 
         // now we look at the assessment options
+        $configalias = 'bama';
+        $groupsubquery = $this->get_groups_subquery($submissiontablealias, $assessmenttablealias, $configalias);
+        
         $where .= " OR bama.showhide = ".BLOCK_AJAX_MARKING_CONF_SHOW.
-                  " OR (bama.showhide = ".BLOCK_AJAX_MARKING_CONF_GROUPS. " AND {$groupsql})) ";
+                  " OR (bama.showhide = ".BLOCK_AJAX_MARKING_CONF_GROUPS. " AND {$groupsubquery})) ";
         
         return array($join, $where);
         
@@ -543,16 +618,19 @@ abstract class block_ajax_marking_module_base {
      */
     protected function get_visible_sql($moduletablename) {
         
+        list($permissionsql, $params) = $this->get_permission_denied_sql();
+        
         $join = "INNER JOIN {course_modules} cm
                          ON cm.instance = {$moduletablename}.id 
                  INNER JOIN {course} c 
                          ON c.id = {$moduletablename}.course ";
         
-        $where = 'AND cm.module = :moduleid 
+        $where = "AND cm.id {$permissionsql}
+                  AND cm.module = :moduleid 
                   AND cm.visible = 1
-                  AND c.visible = 1 ';
+                  AND c.visible = 1 ";
         
-        $params = array('moduleid' => $this->moduleid);
+        $params['moduleid'] = $this->moduleid;
         
         return array($join, $where, $params);
         
@@ -621,8 +699,6 @@ abstract class block_ajax_marking_module_base {
         $moddirectoryfile   = "/mod/{$this->modulename}/{$this->modulename}_grading.js";
         
         if (file_exists($CFG->dirroot.$blockdirectoryfile)) {
-            
-            //require_once($blockdirectoryfile);
             
             $PAGE->requires->js($blockdirectoryfile);
             

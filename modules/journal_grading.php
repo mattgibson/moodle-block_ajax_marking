@@ -48,14 +48,15 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
         
         // must be the same as the DB modulename
         $this->modulename        = 'journal';
-        $this->moduleid    = $this->get_module_id();
         // doesn't seem to be a journal capability :s
         $this->capability  = 'mod/assignment:grade';
         // How many nodes in total when fully expanded (no groups)?
-        $this->levels      = 2;
         // function to trigger for the third level nodes (might be different if there are four
         $this->icon        = 'mod/journal/icon.gif';
         $this->callbackfunctions   = array();
+        
+        // call parent constructor with the same arguments
+        call_user_func_array(array($this, 'parent::__construct'), func_get_args());
     }
     
     /**

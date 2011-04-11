@@ -203,7 +203,7 @@ class block_ajax_marking extends block_base {
             }
 
         } else {
-            // no grading permissions in any courses - don't display the block. Exception for
+            // no grading permissions in any courses - don't display the block (student). Exception for
             // when the block is just installed and editing is on. Might look broken otherwise.
             if ($PAGE->user_is_editing()) {
                 $this->content->text .= get_string('nogradedassessments', 'block_ajax_marking');
@@ -214,6 +214,7 @@ class block_ajax_marking extends block_base {
             }
 
         }
+        
         return $this->content;
     }
 

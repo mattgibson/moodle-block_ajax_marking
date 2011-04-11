@@ -43,13 +43,14 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     function __construct() {
         // must be the same as th DB modulename
         $this->modulename        = 'forum';
-        $this->moduleid    = $this->get_module_id();
         $this->capability  = 'mod/forum:viewhiddentimedposts';
-        $this->levels      = 3;
         $this->icon        = 'mod/forum/icon.gif';
         $this->callbackfunctions   = array(
                 'submissions'
         );
+        
+        // call parent constructor with the same arguments
+        call_user_func_array(array($this, 'parent::__construct'), func_get_args());
     }
 
 

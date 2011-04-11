@@ -21,7 +21,7 @@
  *
  * @package    block
  * @subpackage ajax_marking
- * @copyright  2011 onwards Matt Gibson
+ * @copyright  2011 Matt Gibson
  * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
@@ -31,22 +31,11 @@ require_once(dirname(__FILE__) . '/../../../config.php');
 $module = required_param('module', PARAM_ALPHA); // attempt id
 $uniqueid = required_param('uniqueid', PARAM_ALPHANUMEXT);
 
-$modulesettings = unserialize(get_config('block_ajax_marking', 'modules'));
-
-if (empty($modulesettings)) {
-    block_ajax_marking_update_modules();
-    $modulesettings = unserialize(get_config('block_ajax_marking', 'modules'));
-}
-
-// include all module files
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
-require_once("{$CFG->dirroot}{$modulesettings[$module]->dir}/{$module}_grading.php");
-//include("{$module->dir}/{$modulename}_grading.php");
+require_once("{$CFG->dirroot}/blocks/ajax_marking/modules/{$module}_grading.php");
+
 $classname = 'block_ajax_marking_'.$module;
-//pass this object in so that a reference to it can be stored, allowing library functions
-// to be called
-//$moduleobject = new $classname();
 
 // stuff from /mod/quiz/comment.php - catch data if this is a self-submit
 if ($data = data_submitted() and confirm_sesskey()) {
@@ -62,8 +51,7 @@ if ($data = data_submitted() and confirm_sesskey()) {
         $PAGE->set_pagelayout('popup');
         
         echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
-        // YAHOO.ajax_marking_block.markingtree.remove_node_from_tree('/mod/quiz/report.php', '"
-        //                                 + clickednode.data.uniqueid+"');
+        
         $PAGE->requires->js_function_call('window.opener.YAHOO.ajax_marking_block.markingtree.remove_node_from_tree',
                                           array($uniqueid));
         close_window(2, false);

@@ -48,8 +48,8 @@ $groupid           = optional_param('group', '', PARAM_TEXT);
 $courseid          = optional_param('courseid', null, PARAM_TEXT);
 $modulename        = optional_param('modulename', null, PARAM_TEXT);
 
+// TODO this is not always needed.
 $moduleclasses = block_ajax_marking_get_module_classes();
-
 
 $output = array();
 $data = new stdClass;
@@ -67,42 +67,24 @@ switch ($callbackfunction) {
         // admins will have a problem as they will see all the courses on the entire site.
         // However, they may want this (CONTRIB-1017)
         // TODO - this has big issues around language. role names will not be the same in
-        // diffferent translations.
+        // different translations.
         
         $data->nodetype = 'course';
         $data->callbackfunction = 'course';
 
         // iterate through each course, checking permisions, counting relevant assignment
         // submissions and adding the course to the JSON output if any appear
-        $courses = block_ajax_marking_get_my_teacher_courses($USER->id);
+        $courses = block_ajax_marking_get_my_teacher_courses();
         
         foreach ($courses as $course) {
 
-            $courseid = '';
-            $students = '';
             // set course assessments counter to 0
             $coursecount = 0;
-
-            // show nothing if the course is hidden
-            if (!$course->visible == 1) {
-                continue;
-            }
-
-            // we must make sure we only get work from enrolled students
-            $courseid = $course->id;
-            $studentids = block_ajax_marking_get_course_students($course);
-
-            // If there are no students, there's no point counting
-            if (empty($studentids)) {
-                continue;
-            }
 
             // loop through each module, getting a count for this course id from each one.
             foreach ($moduleclasses as $moduleclass) {
                 // Do not use modules which have been disabled by the admin
-                
-                $coursecount += $moduleclass->count_course_submissions($courseid, $studentids);
-                
+                $coursecount += $moduleclass->count_course_submissions($course->id);
             }
 
             // TO DO: need to check in future for who has been assigned to mark them (new
@@ -115,7 +97,7 @@ switch ($callbackfunction) {
                 
                 $node = new stdClass;
 
-                $node->callbackparamone   = $courseid;
+                $node->callbackparamone   = $course->id;
                 $node->callbackfunction   = 'course';
 
                 $node->label              = block_ajax_marking_add_icon('course');
@@ -128,7 +110,7 @@ switch ($callbackfunction) {
                 $node->title              = block_ajax_marking_clean_name_text($course->shortname, -2);
                 $node->summary            = block_ajax_marking_clean_name_text($course->shortname, -2);
                 $node->icon               = block_ajax_marking_add_icon('course');
-                $node->uniqueid           = 'course'.$courseid;
+                $node->uniqueid           = 'course'.$course->id;
                 $node->count              = $coursecount;
                 $node->dynamic            = 'true';
                 
@@ -153,16 +135,12 @@ switch ($callbackfunction) {
 
         $output = '[{"callbackfunction":"config_main_tree"}';
         
-        $courses = block_ajax_marking_get_my_teacher_courses($USER->id);
+        $courses = block_ajax_marking_get_my_teacher_courses();
 
         foreach ($courses as $course) {
             // iterate through each course, checking permisions, counting assignments and
             // adding the course to the JSON output if anything is there that can be graded
             $coursecount = 0;
-
-            if (!$course->visible) {
-                continue;
-            }
 
             foreach ($moduleclasses as $moduleclass) {
                 $coursecount += $moduleclass->count_course_assessment_nodes($course->id);

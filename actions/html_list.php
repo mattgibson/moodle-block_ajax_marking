@@ -42,6 +42,7 @@ $moduleclasses = block_ajax_marking_get_module_classes();
 // first.
 $htmllist = '';
 
+// This will always be present due to the include
 $courses = block_ajax_marking_get_my_teacher_courses();
 
 // Foreach course, ask each module for all of the nodes to be returned as an array, with
@@ -50,26 +51,6 @@ foreach ($courses as $course) {
 
     $course_output = '';
     $course_count = 0;
-    $courseid = $course->id;
-    $first = true;
-
-    if (!$course->visible) {
-        continue;
-    }
-
-    $studentids = block_ajax_marking_get_course_students($course);
-
-    if (empty($studentids)) {
-        // no students in this course
-        continue;
-    }
-
-    // see which modules are currently enabled
-    $sql = 'SELECT name
-              FROM {modules}
-             WHERE visible = 1';
-    $enabledmods =  $DB->get_records_sql($sql);
-    $enabledmods = array_keys($enabledmods);
 
     // loop through each module, getting a count for this course id from each one.
     foreach ($moduleclasses as $moduleclass) {

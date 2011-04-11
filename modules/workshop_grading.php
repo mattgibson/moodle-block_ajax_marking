@@ -45,13 +45,14 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
      * @return void
      */
     function __construct() {
-        // must be the same as th DB modulename
-        $this->modulename   = 'workshop';
-        $this->moduleid     = $this->get_module_id();
-        $this->capability   = 'mod/workshop:editdimensions';
-        //$this->levels       = 2;
-        $this->icon         = 'mod/workshop/icon.gif';
+        
+        $this->modulename           = 'workshop';
+        $this->capability           = 'mod/workshop:editdimensions';
+        $this->icon                 = 'mod/workshop/icon.gif';
         $this->callbackfunctions    = array();
+        
+        // call parent constructor with the same arguments
+        call_user_func_array(array($this, 'parent::__construct'), func_get_args());
     }
     
     /**
