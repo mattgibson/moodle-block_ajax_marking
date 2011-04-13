@@ -83,8 +83,7 @@ switch ($callbackfunction) {
 
             // loop through each module, getting a count for this course id from each one.
             foreach ($moduleclasses as $moduleclass) {
-                // Do not use modules which have been disabled by the admin
-                $coursecount += $moduleclass->count_course_submissions($course->id);
+                $coursecount += $moduleclass->course_count($course->id);
             }
 
             // TO DO: need to check in future for who has been assigned to mark them (new
@@ -202,11 +201,13 @@ switch ($callbackfunction) {
         $nodes = array();
 
         $courseid = $callbackparamone;
-        // we must make sure we only get work from enrolled students
-        $course = $DB->get_record('course', array('id' => $courseid));
 
         foreach ($moduleclasses as $moduleclass) {
-            $nodes = array_merge($nodes, $moduleclass->course_assessment_nodes($courseid));
+            $assessments = $moduleclass->module_nodes($courseid);
+            
+            foreach ($assessments as $assessment) {
+                $nodes[] = block_ajax_marking_make_assessment_node($assessment);
+            }
         }
 
         break;

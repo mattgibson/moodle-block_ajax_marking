@@ -55,15 +55,14 @@ foreach ($courses as $course) {
     // loop through each module, getting a count for this course id from each one.
     foreach ($moduleclasses as $moduleclass) {
 
-        list($count, $data) = $moduleclass->course_assessment_nodes($course->id, true);
-
-        if ($count > 0) {
-            $course_count  += $count;
-            $course_output .= $data;
+        $nodes = $moduleclass->module_nodes($course->id, true);
+        $course_count += count($nodes);
+        
+        foreach ($nodes as $node) {
+            $node->link = $moduleclass->make_html_link($node);
+            $course_output .= block_ajax_marking_make_html_node($node);
         }
-
     }
-
 
     if ($course_count > 0) {
 

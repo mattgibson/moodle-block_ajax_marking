@@ -76,48 +76,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
     }
     
     /**
-     * See documentation for abstract function in superclass
-     * 
-     * @global type $DB
-     * @return array of objects
-     */
-    function get_course_totals() {
-        
-        global $DB;
-
-        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('qz', 'qa.userid');
-        list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('qz.course', 'qa.userid');
-        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_visible_sql('qz');
-        
-        $sql = "SELECT qz.course AS courseid, COUNT(qst.id) AS count
-                  FROM {quiz} qz
-            INNER JOIN {quiz_attempts} qa
-                    ON qz.id = qa.quiz
-            INNER JOIN {question_sessions} qsess
-                    ON qsess.attemptid = qa.uniqueid
-            INNER JOIN {question_states} qst
-                    ON qsess.newest = qst.id
-            INNER JOIN {question} q
-                    ON qsess.questionid = q.id
-                       {$displayjoin}
-                       {$enroljoin}
-                       {$visiblejoin}
-                 WHERE qa.timefinish > 0
-                   AND qa.preview = 0
-                   AND q.qtype = 'essay'
-                   AND qst.event NOT IN (".QUESTION_EVENTGRADE.", ".
-                                           QUESTION_EVENTCLOSEANDGRADE.", ".
-                                           QUESTION_EVENTMANUALGRADE.")
-                       {$displaywhere}
-                       {$enrolwhere}
-                       {$visiblewhere}
-              GROUP BY qz.course";
-        
-        $params = array_merge($params, $visibleparams);
-        return $DB->get_records_sql($sql, $params);
-    }
-
-    /**
      * Gets all the unmarked quiz submissions for a course
      *
      * @param int $courseid the id number of the course
@@ -128,7 +86,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         global $CFG, $DB;
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        list($studentsql, $params) = $this->get_role_users_sql($context);
+        list($studentsql, $params) = $this->get_sql_role_users($context);
 
         $sql = "SELECT qsess.id as qsessid, qa.userid, qz.id, qz.course,
                        qz.intro as description, qz.name, c.id as cmid
@@ -200,7 +158,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         }
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        list($studentsql, $params) = $this->get_role_users_sql($context);
+        list($studentsql, $params) = $this->get_sql_role_users($context);
 
         $csv_questions = $DB->get_field('quiz', 'questions', array('id' => $quizid));
         $csv_questions = explode(',', $csv_questions);
@@ -336,7 +294,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             return;
         }
 
-        list($studentsql, $params) = $this->get_role_users_sql($coursecontext);
+        list($studentsql, $params) = $this->get_sql_role_users($coursecontext);
 
         $sql = "SELECT qst.id, COUNT(DISTINCT qst.id) as count, qa.userid, qst.event, 
                        qs.questionid, qst.timestamp, qs.attemptid, u.firstname, u.lastname
@@ -443,6 +401,49 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         global $CFG;
         $address = $CFG->wwwroot.'/mod/quiz/report.php?q='.$item->id.'&mode=grading';
         return $address;
+    }
+    
+    /**
+     * See superclass for details
+     * 
+     * @return array the select, join and where clauses, with the aliases for module and submission tables
+     */
+    function get_sql_count() {
+        
+        $moduletable = $this->get_sql_module_table();
+        $submissiontable = $this->get_sql_submission_table();
+        
+        // problem - this is not the sub table
+        $useridcolumn = 'qa.userid';
+        
+        $from = "    FROM {{$moduletable}} module
+               INNER JOIN {quiz_attempts} qa
+                       ON module.id = qa.quiz
+               INNER JOIN {question_sessions} qsess
+                       ON qsess.attemptid = qa.uniqueid
+               INNER JOIN {{$submissiontable}} sub
+                       ON qsess.newest = sub.id
+               INNER JOIN {question} q
+                       ON qsess.questionid = q.id ";
+                       
+        $where = "  WHERE qa.timefinish > 0
+                      AND qa.preview = 0
+                      AND q.qtype = 'essay'
+                      AND sub.event NOT IN (".QUESTION_EVENTGRADE.", ".
+                                              QUESTION_EVENTCLOSEANDGRADE.", ".
+                                              QUESTION_EVENTMANUALGRADE.") ";
+        
+        $params = array();
+                        
+        return array($from, $where, $params);
+    }
+    
+    protected function get_sql_submission_table() {
+        return 'question_states';
+    }
+    
+    protected function get_sql_userid_column() {
+        return 'qa.userid';
     }
 
     /**

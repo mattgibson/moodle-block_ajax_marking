@@ -18,6 +18,7 @@
 if (!defined('MOODLE_INTERNAL')) {
     die();
 }
+
 /**
  * This class forms the basis of the objects that hold and process the module data. The aim is for
  * node data to be returned ready for output in JSON or HTML format. Each module that's active will
@@ -115,21 +116,43 @@ abstract class block_ajax_marking_module_base {
      * 
      * @var array of objects 
      */
-    protected $coursetotals;
+    protected $coursetotals = null;
     
     /**
      * Constructor. Overridden by all subclasses.
      */
     public function __construct() {
-        $this->moduleid   = $this->get_module_id();
+        $this->moduleid = $this->get_module_id();
+    }
+    
+//    private function get_course_totals_select() {
+//        $moduletable = $this->get_module_table();
+//        $submissiontable = $this->get_submission_table();
+//        
+//        return " ";
+//    }
+    
+    abstract protected function get_sql_submission_table();
+    
+    /**
+     * So far, all the module tables ar enamed after their modulenames
+     * 
+     * @return string
+     */
+    protected function get_sql_module_table() {
+        return $this->modulename;
     }
     
     /**
-     * This will retrieve the counts for each course in the site so they can be aggregated into 
-     * counts for each course node in the main level of the tree
+     * This returns the column name in the submissions table that holds the userid. It varies according 
+     * to module, but the default is here. Other modules can override if they need to
+     * 
+     * @return string
      */
-    abstract protected function get_course_totals();
-
+    protected function get_sql_userid_column() {
+        return 'sub.userid';
+    }
+    
     /**
      * This counts how many unmarked assessments of a particular type are waiting for a particular
      * course. It is called from the courses() function when the top level nodes are built
@@ -138,18 +161,43 @@ abstract class block_ajax_marking_module_base {
      * @param array $studentids array of students who are enrolled in the course we are counting submissions for
      * @return int the number of unmarked assessments
      */
-    function count_course_submissions($courseid) {
+    public function course_count($courseid) {
         
-        // cache the object with the totals
         if (!isset($this->coursetotals)) {
-            $this->coursetotals = $this->get_course_totals();
+            
+            error_log('making course totals for '.$this->modulename);
+
+            global $DB;
+
+            list($from, $where, $params) = $this->get_sql_count();
+            list($displayjoin, $displaywhere) = $this->get_sql_display_settings();
+            list($enroljoin, $enrolwhere, $enrolparams) = $this->get_sql_enrolled_students();
+            list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_sql_visible();
+
+            $sql = "SELECT module.course AS courseid, COUNT(sub.id) AS count ".
+
+                   $from.
+                   $displayjoin.
+                   $enroljoin.
+                   $visiblejoin.
+
+                   $where.
+                   $displaywhere.
+                   $enrolwhere.
+                   $visiblewhere.
+
+                   "GROUP BY module.course";
+
+            $params = array_merge($params, $enrolparams, $visibleparams);
+
+            $this->coursetotals = $DB->get_records_sql($sql, $params);
         }
         
-        if ($this->coursetotals && isset($this->coursetotals[$courseid])) {
+        if (!isset($this->coursetotals[$courseid])) {
+            error_log($courseid.' missing from '.$this->modulename);
+        } else {
             return $this->coursetotals[$courseid]->count;
         }
-        
-        return 0;
     }
     
     /**
@@ -159,7 +207,9 @@ abstract class block_ajax_marking_module_base {
      * 
      * @return array The sql and params
      */
-    protected function get_permission_denied_sql() {
+    protected function get_sql_permission_denied() {
+        
+        return array('IS NOT NULL ', array());
         
         global $DB;
         
@@ -203,7 +253,10 @@ abstract class block_ajax_marking_module_base {
         
     }
     
-    private function get_groups_subquery($submissiontablealias, $assessmenttablealias, $configalias) {
+    private function get_sql_groups_subquery($configalias) {
+        
+        $submissiontablealias = $this->get_sql_submission_table();
+        $useridfield = $this->get_sql_userid_column();
         
         // TODO this doesn't check for a matching config id
         $groupsql = " EXISTS (SELECT 1 
@@ -212,8 +265,8 @@ abstract class block_ajax_marking_module_base {
                                   ON gm.groupid = g.id 
                           INNER JOIN {block_ajax_marking_groups} gs
                                   ON g.id = gs.groupid
-                               WHERE gm.userid = {$submissiontablealias}
-                                 AND g.courseid = {$assessmenttablealias}.course
+                               WHERE gm.userid = {$useridfield}
+                                 AND g.courseid = module.course
                                  AND gs.configid = {$configalias}.id) ";
                                  
         return $groupsql;                         
@@ -228,7 +281,7 @@ abstract class block_ajax_marking_module_base {
      * @param string $submissiontablealias the SQL alias for the submission table e.g. 's' 
      * @return array of 2 strings with the join and where parts in that order
      */
-    protected function get_display_settings_sql($assessmenttablealias, $submissiontablealias) {
+    protected function get_sql_display_settings() {
         
         // TODO this should use coursemoduleid
         // TODO needs testing
@@ -244,17 +297,15 @@ abstract class block_ajax_marking_module_base {
         //           FROM )
         
         
-        
-        
         // bama = block ajax marking assessment
         // bamc = block ajax marking course
         // gmc  = groups members courses
         
         $join = "LEFT JOIN {block_ajax_marking} bama
-                        ON ({$assessmenttablealias}.id = bama.assessmentid AND bama.assessmenttype = '{$this->modulename}')
+                        ON (module.id = bama.assessmentid AND bama.assessmenttype = '{$this->modulename}')
                  
                  LEFT JOIN {block_ajax_marking} bamc
-                        ON ({$assessmenttablealias}.course = bamc.assessmentid AND bamc.assessmenttype = 'course') 
+                        ON (module.course = bamc.assessmentid AND bamc.assessmenttype = 'course') 
                  ";
                         
         // either no settings, or definitely display
@@ -263,22 +314,9 @@ abstract class block_ajax_marking_module_base {
         // student might be a member of several groups. As long as one group is in the settings table, it's ok.
         // TODO is this more or less efficient than doing an inner join to a subquery?
                         
-//        // TODO this doesn't check for a matching config id
-//        $groupsql = " EXISTS (SELECT 1 
-//                                FROM {groups_members} gm
-//                          INNER JOIN {groups} g
-//                                  ON gm.groupid = g.id 
-//                          INNER JOIN {block_ajax_marking_groups} gs
-//                                  ON g.id = gs.groupid
-//                               WHERE gm.userid = {$submissiontablealias}
-//                                 AND g.courseid = {$assessmenttablealias}.course) 
-//                                  ";
-                            
-                            
         // where starts with the course defaults in case we find no assessment preference
         // Hopefully short circuit evaluation will makes this efficient.
-        $configalias = 'bamc';
-        $groupsubquery = $this->get_groups_subquery($submissiontablealias, $assessmenttablealias, $configalias);
+        $groupsubquery = $this->get_sql_groups_subquery('bamc');
         
         $where = " AND (( ( bama.showhide IS NULL 
                             OR bama.showhide = ".BLOCK_AJAX_MARKING_CONF_DEFAULT."
@@ -288,11 +326,9 @@ abstract class block_ajax_marking_module_base {
                             OR (bamc.showhide = ".BLOCK_AJAX_MARKING_CONF_GROUPS. " AND {$groupsubquery})
                           )
                         ) ";
-                    
 
         // now we look at the assessment options
-        $configalias = 'bama';
-        $groupsubquery = $this->get_groups_subquery($submissiontablealias, $assessmenttablealias, $configalias);
+        $groupsubquery = $this->get_sql_groups_subquery('bama');
         
         $where .= " OR bama.showhide = ".BLOCK_AJAX_MARKING_CONF_SHOW.
                   " OR (bama.showhide = ".BLOCK_AJAX_MARKING_CONF_GROUPS. " AND {$groupsubquery})) ";
@@ -310,138 +346,71 @@ abstract class block_ajax_marking_module_base {
      * @param bool $html Are we making a HTML list?
      * @return mixed array or void depending on the html type
      */
-    function course_assessment_nodes($courseid, $html=false, $config=false) {
-
-        global $CFG, $SESSION, $USER;
-        $dynamic = true;
-
+    public function module_nodes($courseid, $html=false, $config=false) {
+        
+        global $DB, $CFG, $USER;
+        
         // the HTML list needs to know the count for the course
         $html_output = '';
         $html_count = 0;
-        $nodes = array();
+        
+        $modulealias = $this->get_sql_module_table();
+        $submissionstable = $this->get_sql_submission_table();
 
-        // if the unmarked stuff for all courses has already been requested (html_list.php), filter
-        // it to save a DB query.
-        // this will be the case only if making the non-ajax <ul> list
-        if (isset($this->allsubmissions) && !empty($this->submissions)) {
+        list($from, $where, $params) = $this->get_sql_count();
+        list($displayjoin, $displaywhere) = $this->get_sql_display_settings();
+        list($enroljoin, $enrolwhere, $enrolparams) = $this->get_sql_enrolled_students();
+        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_sql_visible();
+        
+        $sql = "SELECT module.id, COUNT(sub.id) AS count, 
+                       COALESCE(bama.showhide, bamc.showhide, 1) as showhide, cm.id as cmid, 
+                       module.name, module.intro as description ".
+        
+               $from.
+               $displayjoin.
+               $enroljoin.
+               $visiblejoin.
+                       
+               $where.
+               $displaywhere.
+               $enrolwhere.
+               $visiblewhere.
+        
+               "AND module.course = :courseid 
+           GROUP BY module.id ";
 
-            $unmarked = new stdClass();
+        $params = array_merge($params, $enrolparams, $visibleparams);
+        $params['courseid'] = $courseid;
+        
+        $modulecounts = $DB->get_records_sql($sql, $params);
+        
+  
+        foreach ($modulecounts as &$assessment) {
 
-            foreach ($this->allsubmissions as $key => $submission) {
+            // Send the callback function with the nodes so that when they are clicked on, they will 
+            // request the right sort of data to be returned
+            // if there are only two levels, there will only need to be dynamic load if there are groups to display
+            if (count($this->callbackfunctions === 0)) {
 
-                if ($submission->course == $courseid) {
-                     $unmarked->$key = $submission;
-                }
-            }
-            $this->coursesubmissions[$courseid] = $unmarked;
-        } else {
-            // We have no data, so get it from the DB (normal ajax.php call)
-            $this->coursesubmissions[$courseid] = $this->get_all_course_unmarked($courseid);
-
-        }
-
-        // now loop through the returned items, checking for permission to grade etc.
-
-        // check that there is stuff to loop through
-        if (isset($this->coursesubmissions[$courseid]) && !empty($this->coursesubmissions[$courseid])) {
-
-            // we need all the assessment ids for the loop, so we make an array of them
-            $assessments = block_ajax_marking_list_assessment_ids($this->coursesubmissions[$courseid]);
-
-            foreach ($assessments as $assessment) {
-
-                // counter for number of unmarked submissions
-                $count = 0;
-
-                // permission to grade?
-                $modulecontext = get_context_instance(CONTEXT_MODULE, $assessment->cmid);
-
-                if (!has_capability($this->capability, $modulecontext, $USER->id)) {
-                    continue;
-                }
-
-                if (!$config) {
-
-                    //we are making the main block tree, not the configuration tree
-
-                    // retrieve the user-defined display settings for this assessment item
-                    //$settings = $this->mainobject->get_groups_settings($this->type, $assessment->id);
-
-                    // check if this item should be displayed at all
-                    $oktodisplayassessment = block_ajax_marking_check_assessment_display_settings($this->modulename,
-                                                                               $assessment->id,
-                                                                               $courseid);
-
-                    if (!$oktodisplayassessment) {
-                        continue;
-                    }
-
-                    // If the submission is for this assignment and group settings are 'display all',
-                    // or 'display by groups' and the user is a group member of one of them, count it.
-                    foreach ($this->coursesubmissions[$courseid] as $assessment_submission) {
-
-                        if ($assessment_submission->id == $assessment->id) {
-
-                            if (!isset($assessment_submission->userid)) {
-                                continue;
-                            }
-
-                            // if the item is set to group display, it may not be right to add the
-                            // student's submission if they are in the wrong group
-                            $oktodisplaysubmission = block_ajax_marking_can_show_submission($this->modulename, $assessment_submission);
-
-                            if (!$oktodisplaysubmission) {
-                                continue;
-                            }
-                            $count++;
-                        }
-                    }
-
-                    // if there are no unmarked assignments, just skip this one. Important not to skip
-                    // it in the SQL as config tree needs all assignments
-                    if ($count == 0) {
-                        continue;
-                    }
-                }
-
-                // if there are only two levels, there will only need to be dynamic load if there are groups to display
-                if (count($this->callbackfunctions === 0)) {
-
-                    $assessment_settings = block_ajax_marking_get_groups_settings($this->modulename, $assessment->id);
-                    $course_settings     = block_ajax_marking_get_groups_settings('course', $courseid);
-
-                    if (($assessment_settings && $assessment_settings->showhide == BLOCK_AJAX_MARKING_CONF_GROUPS) ||
-                        ($course_settings && $course_settings->showhide == BLOCK_AJAX_MARKING_CONF_GROUPS)) {
-                            $assessment->callbackfunction = 'groups';
-                    } else {
-                        // will be 'submission' in most cases
-                        $assessment->callbackfunction = isset($this->callbackfunctions[0]) ? $this->callbackfunctions[0] : false;
-                    }
-                }
-
-                $assessment->count       = $count;
-                $assessment->modulename  = $this->modulename;
-                $assessment->icon        = block_ajax_marking_add_icon($this->modulename);
-
-                if ($html) {
-                    // make a node for returning as part of an array
-                    $assessment->link    = $this->make_html_link($assessment);
-                    $html_output .= block_ajax_marking_make_html_node($assessment);
-                    $html_count += $assessment->count;
+                if ($assessment->showhide == BLOCK_AJAX_MARKING_CONF_GROUPS) {
+                    $assessment->callbackfunction = 'groups';
                 } else {
-                    // add this node to the JSON output object
-                    $nodes[] = block_ajax_marking_make_assessment_node($assessment);
+                    // will be 'submission' in most cases. Make it non dynamic if there are no further callbacks listed
+                    // by the module
+                    $assessment->callbackfunction = isset($this->callbackfunctions[0]) ? $this->callbackfunctions[0] : false;
                 }
             }
+
+            $assessment->modulename  = $this->modulename;
+            $assessment->icon        = block_ajax_marking_add_icon($this->modulename);
+           
+            // add this node to the JSON output object
+            //$nodes[] = block_ajax_marking_make_assessment_node($assessment);
+            
         }
         
-        if ($html) {
-                // text string of <li> nodes
-                $html_array = array($html_count, $html_output);
-                return $html_array;
-            } else {
-                return $nodes;
-            }
+        return $modulecounts;
+            
     }
 
     /**
@@ -450,7 +419,7 @@ abstract class block_ajax_marking_module_base {
      * @param int $course course id of the course we are counting for
      * @return int count of items
      */
-    function count_course_assessment_nodes($course) {
+    public function count_course_assessment_nodes($course) {
 
         if (!isset($this->assessments)) {
             $this->get_all_gradable_items();
@@ -481,7 +450,7 @@ abstract class block_ajax_marking_module_base {
      * @param string $modulename e.g. forum
      * @return void
      */
-    function config_assessment_nodes($course, $modulename) {
+    public function config_assessment_nodes($course, $modulename) {
 
         $this->get_all_gradable_items();
 
@@ -515,12 +484,11 @@ abstract class block_ajax_marking_module_base {
      * @param string $type the type name variable from the ajax call
      * @return bool
      */
-    function return_function($type, $args) {
+    public function return_function($type, $args) {
 
         if (array_key_exists($type, $this->functions)) {
             $function = $this->functions[$type];
             call_user_func_array(array($this, $function), $args);
-//            $this->$function();
             return true;
         } else {
             return false;
@@ -538,7 +506,7 @@ abstract class block_ajax_marking_module_base {
      * @param object $context the context object we want to get users for
      * @param bool $parent should we look in higher contexts too?
      */
-    protected function get_role_users_sql($context, $parent=true, $paramtype=SQL_PARAMS_NAMED) {
+    protected function get_sql_role_users($context, $parent=true, $paramtype=SQL_PARAMS_NAMED) {
 
         global $CFG, $DB;
 
@@ -581,13 +549,15 @@ abstract class block_ajax_marking_module_base {
      * Returns an SQL snippet that will tell us whether a student is enrolled in this course
      * Needs to also check parent contexts.
      * 
-     * @param string $coursealias the thing that contains the userid e.g. s.userid
-     * @param string $coursealias the thing that contains the courseid e.g. a.course
+     * @param string $useralias the thing that contains the userid e.g. s.userid
+     * @param string $moduletable the thing that contains the courseid e.g. a.course
      * @return array The join and where strings, with params. (Where starts with 'AND)
      */
-    protected function get_enrolled_student_sql($coursealias, $useralias) {
+    protected function get_sql_enrolled_students() {
         
         global $DB, $CFG;
+        
+        $usercolumn = $this->get_sql_userid_column();
 
         // TODO Hopefully, this will be an empty string when none are enabled
         if ($CFG->enrol_plugins_enabled) {
@@ -600,36 +570,36 @@ abstract class block_ajax_marking_module_base {
         }
 
         $join = " INNER JOIN {user_enrolments} ue 
-                          ON ue.userid = {$useralias} 
+                          ON ue.userid = {$usercolumn} 
                   INNER JOIN {enrol} e 
                           ON (e.id = ue.enrolid) ";
-        $where = "       AND e.courseid = {$coursealias}
+        $where = "       AND e.courseid = module.course
                          AND e.enrol {$enabledsql} ";
                         
         return array($join, $where, $params);
     }
     
     /**
-     * All modules have acommon need to hide work which has been submitted to items that are now hidden.
+     * All modules have a common need to hide work which has been submitted to items that are now hidden.
      * Not sure if this is relevant so much, but it's worth doing so that test data and test courses don't appear.
      * 
-     * @param string $moduletablename The name of the module table. Assumes it will have both course and id fields
      * @return array The join string, where string and params array. Note, where starts with 'AND'
      */
-    protected function get_visible_sql($moduletablename) {
+    protected function get_sql_visible() {
         
-        list($permissionsql, $params) = $this->get_permission_denied_sql();
+        list($permissionsql, $params) = $this->get_sql_permission_denied();
         
         $join = "INNER JOIN {course_modules} cm
-                         ON cm.instance = {$moduletablename}.id 
+                         ON cm.instance = module.id 
                  INNER JOIN {course} c 
-                         ON c.id = {$moduletablename}.course ";
-        
+                         ON c.id = module.course ";
+        //{$permissionsql}
         $where = "AND cm.id {$permissionsql}
                   AND cm.module = :moduleid 
                   AND cm.visible = 1
                   AND c.visible = 1 ";
         
+        //$params = array();
         $params['moduleid'] = $this->moduleid;
         
         return array($join, $where, $params);
@@ -710,6 +680,12 @@ abstract class block_ajax_marking_module_base {
         }
         
     }
+    
+    /**
+     * This will provide the sql to count the number of student submissions. It is added to to make 
+     * the queries for each set of nodes
+     */
+    abstract protected function get_sql_count();
 
 
 }

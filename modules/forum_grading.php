@@ -53,50 +53,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         call_user_func_array(array($this, 'parent::__construct'), func_get_args());
     }
 
-
-    /**
-     * See documentation for abstract function in superclass
-     * 
-     * @global type $DB
-     * @return array of objects
-     */
-    function get_course_totals() {
-        
-        global $USER, $DB;
-
-        $teachersql = $this->get_teacher_sql();
-        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('f', 'p.userid');
-        list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('f.course', 'p.userid');
-        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_visible_sql('f');
-
-        $sql = "SELECT f.course AS courseid, COUNT(p.id) AS count
-                  FROM {forum_posts} p
-             LEFT JOIN {rating} r
-                    ON p.id = r.itemid
-            INNER JOIN {forum_discussions} d
-                    ON p.discussion = d.id
-            INNER JOIN {forum} f
-                    ON d.forum = f.id
-                       {$displayjoin}
-                       {$enroljoin}
-                       {$visiblejoin}
-                 WHERE p.userid <> :userid
-                   AND ( ( (r.userid <> :userid2) AND {$teachersql})
-                         OR r.userid IS NULL)
-                   AND ((f.type <> 'eachuser') OR (f.type = 'eachuser' AND p.id = d.firstpost))
-                   AND f.assessed > 0
-                       {$displaywhere}
-                       {$enrolwhere}
-                       {$visiblewhere}
-              GROUP BY f.course";
-                       
-        $params = array_merge($params, $visibleparams);
-        $params['userid']   = $USER->id;
-        $params['userid2']  = $USER->id;
-
-        return $DB->get_records_sql($sql, $params);
-    }
-
     /**
      * Gets all unmarked forum posts in a particular course
      *
@@ -112,7 +68,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
 
-        list($studentsql, $params) = $this->get_role_users_sql($context);
+        list($studentsql, $params) = $this->get_sql_role_users($context);
 
         $sql = "SELECT p.id as post_id, p.userid, d.firstpost, f.course, f.type, f.id, f.name,
                        f.intro as description, c.id as cmid
@@ -242,7 +198,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         }
 
         $coursecontext = get_context_instance(CONTEXT_COURSE, $courseid);
-        list($studentsql, $params) = $this->get_role_users_sql($coursecontext, true, SQL_PARAMS_NAMED);
+        list($studentsql, $params) = $this->get_sql_role_users($coursecontext, true, SQL_PARAMS_NAMED);
 
         // get ready to fetch all the unrated posts
         $sql = 'SELECT p.id, p.userid, p.created, p.message, d.id as discussionid, u.firstname, u.lastname
@@ -471,6 +427,48 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         global $CFG;
         $address = $CFG->wwwroot.'/mod/forum/view.php?id='.$item->cmid;
         return $address;
+    }
+    
+    /**
+     * See superclass for details
+     * 
+     * @return array the select, join and where clauses, params array, and the aliases for module and submission tables
+     */
+    function get_sql_count() {
+        
+        global $USER;
+        
+        $submissiontable = $this->get_sql_submission_table();
+        
+        $teachersql = $this->get_teacher_sql();
+        $moduletable = $this->get_sql_module_table();
+        
+        $from =     "FROM {{$submissiontable}} sub
+                LEFT JOIN {rating} r
+                       ON sub.id = r.itemid
+               INNER JOIN {forum_discussions} d
+                       ON sub.discussion = d.id
+               INNER JOIN {{$moduletable}} module
+                       ON d.forum = module.id ";
+                       
+        $where =   "WHERE sub.userid <> :userid
+                      AND ( ( ( r.userid <> :userid2) 
+                                AND {$teachersql})
+                              OR r.userid IS NULL)
+                            AND ( ( module.type <> 'eachuser') 
+                                  OR ( module.type = 'eachuser' 
+                                       AND sub.id = d.firstpost))
+                      AND module.assessed > 0 ";
+                      
+        $params = array(
+                'userid' => $USER->id, 
+                'userid2' => $USER->id);
+        
+        return array($from, $where, $params);
+    }
+    
+    protected function get_sql_submission_table() {
+        return 'forum_posts';
     }
     
     /**

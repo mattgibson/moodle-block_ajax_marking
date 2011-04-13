@@ -54,45 +54,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         // call parent constructor with the same arguments
         call_user_func_array(array($this, 'parent::__construct'), func_get_args());
     }
-    
-    /**
-     * See documentation for abstract function in superclass
-     * 
-     * @global type $DB
-     * @return array of objects
-     */
-    function get_course_totals() {
-        
-        global $USER, $DB;
-        
-        list($displayjoin, $displaywhere)      = $this->get_display_settings_sql('w', 's.authorid');
-        list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('w.course', 's.authorid');
-        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_visible_sql('w');
-
-        $sql = "SELECT w.course AS courseid, COUNT(s.id) as count
-                  FROM {workshop} w
-             LEFT JOIN {workshop_submissions} s
-                    ON s.workshopid = w.id
-             LEFT JOIN {workshop_assessments} a
-                    ON (s.id = a.submissionid)
-                       {$displayjoin}
-                       {$enroljoin}
-                       {$visiblejoin}
-                 WHERE (a.reviewerid != :userid
-                        OR (a.reviewerid = :userid2
-                            AND a.grade = -1))
-                       {$displaywhere}
-                       {$enrolwhere}
-                       {$visiblewhere}
-              GROUP BY w.course";
-        
-        $params = array_merge($params, $visibleparams);
-        $params['userid']   = $USER->id;
-        $params['userid2']  = $USER->id;
-        
-        return $DB->get_records_sql($sql, $params);
-    }
-
+  
     /**
      * Gets all the unmarked stuff for a course
      *
@@ -106,7 +68,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         //list($usql, $params) = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED);
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        list($studentsql, $params) = $this->get_role_users_sql($context);
+        list($studentsql, $params) = $this->get_sql_role_users($context);
 
         $sql = "SELECT s.id as submissionid, s.authorid as userid, w.id, w.name, w.course,
                        w.intro as description, c.id as cmid
@@ -150,7 +112,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         $courseid = $workshop->course;
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        list($studentsql, $params) = $this->get_role_users_sql($context);
+        list($studentsql, $params) = $this->get_sql_role_users($context);
 
         $sql = "SELECT s.id, s.authorid as userid, s.title, s.timecreated, s.workshopid, u.firstname, u.lastname
                   FROM {workshop_submissions} s
@@ -252,6 +214,48 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         global $CFG;
         $address = $CFG->wwwroot.'/mod/workshop/view.php?id='.$item->cmid;
         return $address;
+    }
+    
+    /**
+     * See superclass for details
+     * 
+     * @return array the submission atble alias, join and where clauses, with the aliases for module table
+     */
+    function get_sql_count() {
+        
+        global $USER;
+        
+        $moduletable = $this->get_sql_module_table();
+        $submissiontable = $this->get_sql_submission_table();
+        
+        $from =     "FROM {{$moduletable}} module
+                LEFT JOIN {{$submissiontable}} sub
+                       ON sub.workshopid = module.id
+                LEFT JOIN {workshop_assessments} a
+                       ON (sub.id = a.submissionid) ";
+        
+        $where =   "WHERE (a.reviewerid != :userid
+                           OR (a.reviewerid = :userid2
+                               AND a.grade = -1)) ";
+        
+        $params = array(
+                'userid' => $USER->id, 
+                'userid2' => $USER->id);
+                       
+        return array($from, $where, $params);
+    }
+    
+    /**
+     * Returns the column from the workshop_submissions table that has the userid in it
+     * 
+     * @return string
+     */
+    protected function get_sql_userid_column() {
+        return 'sub.authorid';
+    }
+    
+    protected function get_sql_submission_table() {
+        return 'workshop_submissions';
     }
     
     /**

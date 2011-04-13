@@ -60,40 +60,6 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
     }
     
     /**
-     * See documentation for abstract function in superclass
-     * 
-     * @global type $DB
-     * @return array of objects
-     */
-    function get_course_totals() {
-        
-        global $DB;
-        
-        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('j', 'je.userid');
-        list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('j.course', 'je.userid');
-        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_visible_sql('j');
-        
-        $sql = "SELECT j.course AS courseid, COUNT(je.id) AS count
-                  FROM {journal_entries} je
-            INNER JOIN {journal} j
-                    ON je.journal = j.id
-                       {$displayjoin}
-                       {$enroljoin}
-                       {$visiblejoin}
-                   AND j.assessed <> 0
-                   AND je.modified > je.timemarked
-                       {$displaywhere}
-                       {$enroljoin}
-                       {$visiblewhere}";
-                       
-        $params = array_merge($params, $visibleparams);
-        
-        return $DB->get_records_sql($sql, $params);
-        
-    }
-    
-
-    /**
      * Gets all the unmarked journals for a course
      *
      * @param int $courseid the id of the course
@@ -106,7 +72,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
         
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
 
-        list($studentsql, $params) = $this->get_role_users_sql($context);
+        list($studentsql, $params) = $this->get_sql_role_users($context);
 
         $sql = "SELECT je.id as entryid, je.userid, j.intro as description, j.course, j.name,
                        j.timemodified, j.id, c.id as cmid
@@ -176,7 +142,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
         
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
 
-        list($studentsql, $params) = $this->get_role_users_sql($context);
+        list($studentsql, $params) = $this->get_sql_role_users($context);
 
         $sql = "SELECT je.id as entryid, je.userid, j.intro as description, j.name, j.timemodified,
                        u.firstname, u.lastname, j.id, c.id as cmid
@@ -222,6 +188,32 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
         global $CFG;
         $address = $CFG->wwwroot.'/mod/journal/report.php?id='.$item->cmid;
         return $address;
+    }
+    
+    /**
+     * See superclass for details
+     * 
+     * @return array the select, join and where clauses, with the aliases for module and submission tables
+     */
+    function get_sql_count() {
+        
+        $moduletable = $this->get_sql_module_table();
+        $submissionstable = $this->get_sql_submission_table();
+        
+        $from =     "FROM {{$submissionstable}} module
+               INNER JOIN {{$moduletable}} sub
+                       ON sub.journal = module.id ";
+                       
+        $where =   "WHERE module.assessed <> 0
+                      AND sub.modified > sub.timemarked ";
+        
+        $params = array();
+                       
+        return array($from, $where, $params);
+    }
+    
+    protected function get_sql_submission_table() {
+        return 'journal_entries';
     }
     
     /**

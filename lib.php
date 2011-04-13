@@ -970,15 +970,16 @@ function block_ajax_marking_add_icon($type) {
 /**
  * This is to make the nodes for the ul/li list that is used if AJAX is disabled.
  *
- * @param object $item contains data about thecourse or assessment
+ * @param object $item contains data about the course or assessment
  * @return string
  */
 function block_ajax_marking_make_html_node($item) {
     global $CFG;
-    //item could be course or assessment
-    $node = '<li class="AMB_html"><a href="'.$item->link.'" title="';
-    $node .= block_ajax_marking_clean_name_text($item->description).'" >'.block_ajax_marking_add_icon($item->modulename);
-    $node .= '<strong>('.$item->count.')</strong> '.$item->name.'</a></li>';
+    
+    $node = '<li class="AMB_html">
+                <a href="'.$item->link.'" title="'.block_ajax_marking_clean_name_text($item->description).'" >'.
+                        block_ajax_marking_add_icon($item->modulename).'<strong>('.$item->count.')</strong> '.$item->name.
+            '</a></li>';
     return $node;
 }
 

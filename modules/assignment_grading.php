@@ -73,41 +73,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     }
 
     /**
-     * See documentation for abstract function in superclass
-     * 
-     * @global type $DB
-     * @return array of objects
-     */
-    function get_course_totals() {
-        
-        global $DB;
-
-        list($displayjoin, $displaywhere) = $this->get_display_settings_sql('a', 's.userid');
-        list($enroljoin, $enrolwhere, $params) = $this->get_enrolled_student_sql('a.course', 's.userid');
-        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_visible_sql('a');
-        
-        $sql = "SELECT a.course AS courseid, COUNT(s.id) AS count
-                  FROM {assignment} a
-            INNER JOIN {assignment_submissions} s
-                    ON s.assignment = a.id
-                       {$displayjoin}
-                       {$enroljoin}
-                       {$visiblejoin}
-                 WHERE s.timemarked < s.timemodified
-               AND NOT ((a.resubmit = 0 AND s.timemarked > 0)
-                    OR (a.assignmenttype = 'upload' AND s.data2 != 'submitted'))
-                       {$displaywhere}
-                       {$enrolwhere}
-                       {$visiblewhere}
-              GROUP BY a.course";
-
-        $params = array_merge($params, $visibleparams);
-        
-        return $DB->get_records_sql($sql, $params);
-        
-    }
-
-    /**
      *fetches all of the unmarked assignment submissions for a course
      *
      * @param int $courseid The courseid from the main database.
@@ -120,7 +85,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $unmarked = '';
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        list($studentsql, $params) = $this->get_role_users_sql($context);
+        list($studentsql, $params) = $this->get_sql_role_users($context);
 
         //list($usql, $params) = $DB->get_in_or_equal($this->mainobject->students->ids->$courseid, SQL_PARAMS_NAMED);
 
@@ -181,7 +146,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         }
 
         $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        list($studentsql, $params) = $this->get_role_users_sql($context);
+        list($studentsql, $params) = $this->get_sql_role_users($context);
 
         $sql = "SELECT s.id as subid, s.userid, s.timemodified, c.id as cmid, u.firstname, u.lastname
                   FROM {assignment_submissions} s
@@ -281,8 +246,39 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     function make_html_link($item) {
 
         global $CFG;
+        
         $address = $CFG->wwwroot.'/mod/assignment/submissions.php?id='.$item->cmid;
         return $address;
+    }
+    
+    protected function get_sql_submission_table() {
+        return 'assignment_submissions';
+    }
+    
+    
+    /**
+     * See superclass for details
+     * 
+     * @return array the select, join and where clauses, with the aliases for module and submission tables
+     */
+    protected function get_sql_count() {
+        
+        $moduletable = $this->get_sql_module_table();
+        $submissiontable = $this->get_sql_submission_table();
+        
+        $from =     "FROM {{$moduletable}} module
+               INNER JOIN {{$submissiontable}} sub
+                       ON sub.assignment = module.id ";
+                       
+        $where =   "WHERE sub.timemarked < sub.timemodified
+                  AND NOT ((module.resubmit = 0 
+                           AND sub.timemarked > 0)
+                       OR (module.assignmenttype = 'upload' 
+                           AND sub.data2 != 'submitted')) ";
+        
+        $params = array();
+                       
+        return array($from, $where, $params);
     }
     
     /**
