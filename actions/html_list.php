@@ -55,7 +55,8 @@ foreach ($courses as $course) {
     // loop through each module, getting a count for this course id from each one.
     foreach ($moduleclasses as $moduleclass) {
 
-        $nodes = $moduleclass->module_nodes($course->id, true);
+        //$nodes = $moduleclass->fetch_submissions('modules', array('courseid' => $course->id));
+        $nodes = $moduleclass->module_nodes($course->id);
         $course_count += count($nodes);
         
         foreach ($nodes as $node) {

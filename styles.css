@@ -111,11 +111,11 @@
 #hidden-icons {
   display: none;
 }
-
-#totalmessage, #count {
+#totalmessage {
   float: left;
   padding-bottom: 2px;
   margin-left: 3px;
+  visibility: collapse;
 }
 .loaderimage {
   background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
@@ -138,8 +138,6 @@
   float: left;
   margin-left: 8px;
 }
-
-
 
 /*
  styles for the config screen pop up
@@ -275,3 +273,7 @@ span.ygtvlabel {
     background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
 }
 
+
+#page-blocks-ajax_marking-actions-grading_popup #page-content #region-main .region-content {
+    padding: 0 10px;
+}

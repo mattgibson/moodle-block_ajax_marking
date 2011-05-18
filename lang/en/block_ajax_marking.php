@@ -60,7 +60,12 @@ $string['refresh']              = 'Refresh';
 $string['registered']           = 'Registered {$a} module';
 $string['scanning']             = 'Scanning site for modules which have an AJAX Marking Block plugin...';
 $string['submitted']            = 'Submitted';
-$string['totaltomark']                = 'Total to mark';
+$string['totaltomark']          = 'Total to mark';
 $string['waiting']              = 'Pieces of work';
 $string['week']                 = 'week';
 $string['weeks']                = 'weeks';
+
+// Specific to modules
+
+// Forum
+$string['forummarkcomplete'] = 'Mark this discussion as done. It will reappear in the block if further items are posted.';

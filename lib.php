@@ -53,7 +53,7 @@ $teachers = '';
  *
  * @return string the cleaned text
  */
-function block_ajax_marking_clean_summary_text($text, $stripbr=true) {
+function block_ajax_marking_clean_tooltip_text($text, $stripbr=true) {
 
     if ($stripbr == true) {
             $text = strip_tags($text, '<strong>');
@@ -97,14 +97,14 @@ function block_ajax_marking_clean_name_text($text, $length=0) {
  * @param bool $discussion flag - is this a discussion in which case we need to say something different
  * @return string
  */
-function block_ajax_marking_make_time_summary($seconds, $discussion=false) {
+function block_ajax_marking_make_time_tooltip($seconds) {
     
     $weeksstr   = get_string('weeks', 'block_ajax_marking');
-    $weekstr    = get_string('week', 'block_ajax_marking');
-    $daysstr    = get_string('days', 'block_ajax_marking');
-    $daystr     = get_string('day', 'block_ajax_marking');
+    $weekstr    = get_string('week',  'block_ajax_marking');
+    $daysstr    = get_string('days',  'block_ajax_marking');
+    $daystr     = get_string('day',   'block_ajax_marking');
     $hoursstr   = get_string('hours', 'block_ajax_marking');
-    $hourstr    = get_string('hour', 'block_ajax_marking');
+    $hourstr    = get_string('hour',  'block_ajax_marking');
     // make the time bold unless its a discussion where there is already a lot of bolding
     $submitted = '';
     $ago = get_string('ago', 'block_ajax_marking');
@@ -505,13 +505,13 @@ function block_ajax_marking_assessment_groups_filter($submissions, $type, $asses
  * @param int $assessmentid the id number of the assessment
  * @return object a row from the config table of the DB
  */
-function block_ajax_marking_get_groups_settings($assessmenttype, $assessmentid) {
+function block_ajax_marking_get_groups_settings($assessmenttype, $assessmentid, $reset=false) {
     
     global $USER, $DB;
     
     static $groupconfig;
 
-    if (!$groupconfig) {
+    if (!$groupconfig || $reset) {
         // get all configuration options set by this user
         $sql = 'SELECT * FROM {block_ajax_marking} WHERE userid = :userid';
         $params = array('userid' => $USER->id);
@@ -628,13 +628,13 @@ function block_ajax_marking_can_show_submission($assessmenttype, $submission) {
  * @param int $memberid the student id to be searched for
  * @return bool
  */
-function block_ajax_marking_is_member_of_group($groups, $memberid) {
+function block_ajax_marking_is_member_of_group($groups, $memberid, $reset=false) {
     
     global $CFG, $DB, $USER;
     
     static $groupmembers;
     
-    if (!$groupmembers) {
+    if (!$groupmembers || $reset) {
         
         // TODO can we cache the course ids?
         list($coursesql, $courseparams) = block_ajax_marking_get_my_teacher_courses(true);
@@ -682,42 +682,44 @@ function block_ajax_marking_is_member_of_group($groups, $memberid) {
  * @param bool $dynamic should it be possible to expand the node?
  * @return void
  */
-function block_ajax_marking_make_submission_node($data) {
-
-    // transformations for specific parts of the data
-    $data['label'] = block_ajax_marking_add_icon('user').htmlentities($data['name'], ENT_QUOTES);
-    $data['icon']  = block_ajax_marking_add_icon('user');
-    $data['count'] = isset($data['count']) ? $data['count'] : 1;
-
-    // notes
-    // $submission_id needs underscore removed and is really userid of the student
-    // assessmentid is sometimes cmid
-    // $summary needs to become 'title'
-    // $time_modified needs to be 'time'
-    
-    // switching to JSON
-    $node = (object)$data;
-    return $node;
-    
-//
-//    $output = ',';
-//    $output .= '{';
+//function block_ajax_marking_make_submission_node($data) {
 //    
+//    $data = (array)$data;
+//
+//    // transformations for specific parts of the data
+//    //$data['label'] = block_ajax_marking_add_icon('user').htmlentities($data['name'], ENT_QUOTES);
+//    //$data['icon']  = block_ajax_marking_add_icon('user');
+//    //$data['count'] = isset($data['count']) ? $data['count'] : 1;
+//
+//    // notes
+//    // $submission_id needs underscore removed and is really userid of the student
+//    // assessmentid is sometimes cmid
+//    // $summary needs to become 'title'
+//    // $time_modified needs to be 'time'
 //    
+//    // switching to JSON
+//    $node = (object)$data;
+//    return $node;
+//    
+////
+////    $output = ',';
+////    $output .= '{';
+////    
+////    
+////
+////    $addcomma = false;
+////
+////    foreach ($data as $label => $value) {
+////        $output .= $addcomma ? ',' :'';
+////        $output .= '"'.$label.'":"'.$value.'"';
+////        $addcomma = true;
+////    }
+////
+////    $output .= '}';
+////
+////    return $output;
 //
-//    $addcomma = false;
-//
-//    foreach ($data as $label => $value) {
-//        $output .= $addcomma ? ',' :'';
-//        $output .= '"'.$label.'":"'.$value.'"';
-//        $addcomma = true;
-//    }
-//
-//    $output .= '}';
-//
-//    return $output;
-
-}
+//}
 
 /**
  * Makes a list of unique ids from an sql object containing submissions for many different
@@ -858,27 +860,19 @@ function block_ajax_marking_make_courseids_list($courses) {
  */
 function block_ajax_marking_make_assessment_node($assessment, $config=false) {
     
-    $node = new stdClass;
+    $node             = new stdClass;
+    $node->display    = new stdClass();
+    $node->returndata = new stdClass();
 
-    // cut it at 200 characters
-    $shortsum = substr($assessment->description, 0, 200);
-
-    if (strlen($shortsum) < strlen($assessment->description)) {
-        $shortsum .= '...';
-    }
     $length = ($config) ? false : 30;
-
-    $node->label               = block_ajax_marking_add_icon($assessment->modulename).
-                                 ($config) ? '' : "(<span class='AMB_count'>".$assessment->count.'</span>) '.
-                                 block_ajax_marking_clean_name_text($assessment->name, $length);
-    $node->name                = block_ajax_marking_clean_name_text($assessment->name, $length);
-    $node->callbackparamone    = $assessment->id;
-    $node->icon                = block_ajax_marking_add_icon($assessment->modulename);
-    $node->assessmentid        = $assessment->id;
-    $node->cmid                = $assessment->cmid;
-    $node->callbackfunction    = $assessment->callbackfunction;
-    $node->uniqueid            = $assessment->modulename.$assessment->id;
-    $node->modulename          = $assessment->modulename;
+    $node->display->name       = block_ajax_marking_clean_name_text($assessment->name, $length);
+//    $node->display->uniqueid   = $assessment->modulename.$assessment->id;
+    
+    //$node->returndata->callbackparamone    = $assessment->id;
+    $node->returndata->assessmentid        = $assessment->id;
+    $node->returndata->cmid                = $assessment->cmid;
+    $node->returndata->callbackfunction    = $assessment->callbackfunction;
+    $node->returndata->modulename          = $assessment->modulename;
 
     if ($config) {
         // make a tooltip showing current settings
@@ -899,22 +893,28 @@ function block_ajax_marking_make_assessment_node($assessment, $config=false) {
                     break;
 
                 case BLOCK_AJAX_MARKING_CONF_HIDE:
-                    $node->title .= get_string('hidethiscourse', 'block_ajax_marking');
+                    $node->display->title .= get_string('hidethiscourse', 'block_ajax_marking');
+                    break;
             }
 
         } else {
-            $node->title .= get_string('showthiscourse', 'block_ajax_marking');
+            $node->display->title .= get_string('showthiscourse', 'block_ajax_marking');
         }
 
-        // end tooltip bit
     } else {
-        $node->title = get_string('modulename', $assessment->modulename).': '.block_ajax_marking_clean_summary_text($shortsum);
+        // cut it at 200 characters
+        $shortsum = substr($assessment->description, 0, 200);
+
+        if (strlen($shortsum) < strlen($assessment->description)) {
+            $shortsum .= '...';
+        }
+    
+        $node->display->title = get_string('modulename', $assessment->modulename).': '.
+                                block_ajax_marking_clean_tooltip_text($shortsum);
     }
 
-    if ($assessment->count) {
-        $node->count = $assessment->count;
-    }
-
+    $node->display->count = $assessment->count ? $assessment->count : 1;
+    
     return $node;
 }
 
@@ -977,7 +977,7 @@ function block_ajax_marking_make_html_node($item) {
     global $CFG;
     
     $node = '<li class="AMB_html">
-                <a href="'.$item->link.'" title="'.block_ajax_marking_clean_name_text($item->description).'" >'.
+                <a href="'.$item->link.'" title="'.block_ajax_marking_clean_name_text($item->tooltip).'" >'.
                         block_ajax_marking_add_icon($item->modulename).'<strong>('.$item->count.')</strong> '.$item->name.
             '</a></li>';
     return $node;
@@ -1032,17 +1032,18 @@ function block_ajax_marking_teacherrole_sql() {
  * roles that were assigned at category level that would give someone grading permission in a course
  * 
  * @global type $DB
+ * @param bool $reset clear the cache?
  * @staticvar int $categorylevels
  * @return int
  */
-function block_ajax_marking_get_number_of_category_levels() {
+function block_ajax_marking_get_number_of_category_levels($reset=false) {
 
     global $DB;
 
     // cache this in case this is called twice during one request
     static $categorylevels;
 
-    if (isset($categorylevels)) {
+    if (isset($categorylevels) && !$reset) {
         return $categorylevels;
     }
 
@@ -1064,7 +1065,7 @@ function block_ajax_marking_get_number_of_category_levels() {
  *
  * @param bool $returnsql flag to determine whether we want to get the sql and params to use as a subquery for something else
  */
-function block_ajax_marking_get_my_teacher_courses($returnsql=false) {
+function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=false) {
 
     // NOTE could also use subquery without union
     global $DB, $USER;
@@ -1074,7 +1075,7 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false) {
     static $query = '';
     static $params = '';
     
-    if ($returnsql) {
+    if ($returnsql && !$reset) {
         
         if (!empty($query)) {
             return array($query, $params);
@@ -1082,7 +1083,7 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false) {
         
     } else {
         
-        if (!empty($courses)) {
+        if (!empty($courses) && !$reset) {
             return $courses;
         }
     }
@@ -1163,14 +1164,14 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false) {
  * @global type $CFG
  * @return array of objects keyed by modulename, each one being the module plugin for that name. Returns a reference. 
  */
-function &block_ajax_marking_get_module_classes() {
+function &block_ajax_marking_get_module_classes($reset=false) {
     
     global $DB, $CFG;
     
     // cache them so we don't waste them
     static $moduleclasses = array();
     
-    if ($moduleclasses) {
+    if ($moduleclasses && !$reset) {
         return $moduleclasses;
     }
 
@@ -1183,7 +1184,7 @@ function &block_ajax_marking_get_module_classes() {
 
     foreach ($enabledmods as $enabledmod) {
         
-        $file = "{$CFG->dirroot}/blocks/ajax_marking/modules/{$enabledmod}_grading.php";
+        $file = "{$CFG->dirroot}/blocks/ajax_marking/modules/{$enabledmod}/block_ajax_marking_{$enabledmod}.class.php";
         
         if (file_exists($file)) {
             require_once($file);
@@ -1194,4 +1195,70 @@ function &block_ajax_marking_get_module_classes() {
     
     return $moduleclasses;
     
+}
+
+/**
+ * Splits the node into display and returndata bits. Display will only involve certian things, so we
+ * can hardcode them to be shunted into where they belong. Anything else should be in returndata, 
+ * which will vary a lot, so we use that as the default.
+ * 
+ * @param object $node
+ * @return void
+ */
+function block_ajax_marking_format_node(&$node) {
+    
+    $node->display = new stdClass;
+    $node->returndata = new stdClass;
+    
+    // The things to go into display are fixed. Stuff for return data varies
+    $displayitems = array(
+            'name',
+            'count',
+            'summary',
+            'seconds',
+            'description',
+            'tooltip',
+            'style',
+            'firstname',
+            'lastname'
+    );
+ 
+    // loop through the rest of the object's properties moving them to the returndata bit
+    foreach ($node as $varname => $value) {
+
+        if ($varname != 'display' && $varname != 'returndata') {
+            
+            if (in_array($varname, $displayitems)) {
+                $node->display->$varname = $value;
+            } else {
+                $node->returndata->$varname = $value;
+            }
+            
+            unset($node->$varname);
+        }
+    }
+}
+
+/**
+ * Makes the url for the grading pop up, collapsing all the supplied parameters into GET 
+ * 
+ * @param array $params
+ * @return string 
+ */
+function block_ajax_marking_form_url($params=array()) {
+        
+    global $CFG;
+
+    $urlbits = array();
+
+    $url = $CFG->wwwroot.'/blocks/ajax_marking/actions/grading_popup.php?';
+
+    foreach ($params as $name => $value) {
+        $urlbits[] = $name.'='.$value;
+    }
+
+    $url .= implode('&', $urlbits);
+
+    return $url;
+
 }

@@ -44,58 +44,19 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
      * @param object $mainobject the parent object passed in by reference
      * @return void
      */
-    function __construct() {
+    public function __construct() {
+        
+        // call parent constructor with the same arguments
+        //call_user_func_array(array($this, 'parent::__construct'), func_get_args());
+        parent::__construct();
         
         $this->modulename           = 'workshop';
         $this->capability           = 'mod/workshop:editdimensions';
         $this->icon                 = 'mod/workshop/icon.gif';
         $this->callbackfunctions    = array();
         
-        // call parent constructor with the same arguments
-        call_user_func_array(array($this, 'parent::__construct'), func_get_args());
     }
   
-    /**
-     * Gets all the unmarked stuff for a course
-     *
-     * @param int $courseid the id number of the course
-     * @return array of results objects
-     */
-    function get_all_course_unmarked($courseid) {
-
-        global $CFG, $USER, $DB;
-
-        //list($usql, $params) = $DB->get_in_or_equal($studentids, SQL_PARAMS_NAMED);
-
-        $context = get_context_instance(CONTEXT_COURSE, $courseid);
-        list($studentsql, $params) = $this->get_sql_role_users($context);
-
-        $sql = "SELECT s.id as submissionid, s.authorid as userid, w.id, w.name, w.course,
-                       w.intro as description, c.id as cmid
-                  FROM ({workshop} w
-            INNER JOIN {course_modules} c
-                    ON w.id = c.instance)
-             LEFT JOIN {workshop_submissions} s
-                    ON s.workshopid = w.id
-             LEFT JOIN {workshop_assessments} a
-                    ON (s.id = a.submissionid)
-            INNER JOIN ({$studentsql}) stsql
-                    ON s.authorid = stsql.id
-                 WHERE (a.reviewerid != :userid
-                    OR (a.reviewerid = :userid2
-                   AND a.grade = -1))
-                   AND c.module = :moduleid
-                   AND c.visible = 1
-                   AND w.course = :courseid
-              ORDER BY w.id";
-        $params['userid']   = $USER->id;
-        $params['userid2']  = $USER->id;
-        $params['moduleid'] = $this->moduleid;
-        $params['courseid'] = $courseid;
-        $unmarked = $DB->get_records_sql($sql, $params);
-        return $unmarked;
-    }
-
     /**
      * Outputs the submission nodes. Note: deprecated in 2.0 as showing individual submissions to mark
      * seems less useful with the new model
@@ -162,7 +123,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
 
                 // sort out the time stuff
                 $seconds = (time() - $submission->timecreated);
-                $summary = block_ajax_marking_make_time_summary($seconds);
+                $summary = block_ajax_marking_make_time_tooltip($seconds);
 
                 // make the node
                 $output .= block_ajax_marking_make_submission_node(array(
@@ -198,7 +159,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
                    AND c.visible = 1
                    AND w.course $usql
               ORDER BY w.id";
-        $params['moduleid'] = $this->moduleid;
+        $params['moduleid'] = $this->get_module_id();
         $workshops = $DB->get_records_sql($sql, $params);
         $this->assessments = $workshops;
     }
@@ -228,9 +189,9 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         $moduletable = $this->get_sql_module_table();
         $submissiontable = $this->get_sql_submission_table();
         
-        $from =     "FROM {{$moduletable}} module
+        $from =     "FROM {{$moduletable}} moduletable
                 LEFT JOIN {{$submissiontable}} sub
-                       ON sub.workshopid = module.id
+                       ON sub.workshopid = moduletable.id
                 LEFT JOIN {workshop_assessments} a
                        ON (sub.id = a.submissionid) ";
         
@@ -257,96 +218,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
     protected function get_sql_submission_table() {
         return 'workshop_submissions';
     }
-    
-    /**
-     * Slightly neater than having a separate file for the js that we include is to have this as a 
-     * static function here. 
-     * 
-     * @return string the javascript to append to module.js.php
-     */
-    static function extra_javascript() {
-        // Get the IDE to do proper script highlighting
-        if(0) { ?><script><?php } 
-        
-        ?>
-            
-M.block_ajax_marking.workshop = (function() {
 
-    // TODO - did this cahnge work?
-    
-    
-    return {
-        
-        pop_up_arguments : function() {
-            return 'menubar=0,location=0,scrollbars,resizable,width=980,height=630';
-        },
-        
-        //M.block_ajax_marking.workshop_final.pop_up_post_data = function (node) {
-        //    return 'id='+node.data.aid+'&sid='+node.data.sid+'&redirect='+amVariables.wwwroot;
-        //}
-        
-        pop_up_closing_url : function () {
-            return '/mod/workshop/assess.php';
-        },
-        
-        pop_up_opening_url : function (clickednode) {
-            return '/mod/workshop/view.php?id='+clickednode.data.cmid;
-        },
-
-        extra_ajax_request_arguments : function () {
-            return '';
-        },
-        /**
-         * workshop pop up stuff
-         * function to add workshop onclick stuff and shut the pop up after its been graded.
-         * the pop -up goes to a redirect to display the grade, so we have to wait until
-         * then before closing it so that the grade is processed properly.
-         *
-         * note: this looks odd because there are 2 things that needs doing, one after the pop up loads
-         * (add onclicks)and one after it goes to its redirect (close window).it is easier to check for
-         * a fixed url (i.e. the redirect page) than to mess around with regex stuff to detect a dynamic
-         * url, so the else will be met first, followed by the if. The loop will keep running whilst the
-         * pop up is open, so this is not very elegant or efficient, but should not cause any problems
-         * unless the client is horribly slow. A better implementation will follow sometime soon.
-         */
-        alter_popup : function (clickednode) {
-        
-            var els ='';
-            // check that the frames are loaded - this can vary according to conditions
-            
-            if (typeof M.block_ajax_marking.popupholder.frames[0] != 'undefined') {
-            
-                //var currenturl = M.block_ajax_marking.popupholder.frames[0].location.href;
-               // var targeturl = amVariables.wwwroot+'/mod/workshop/assessments.php';
-                
-                if (currenturl != targeturl) {
-                    // this is the early stage, pop up has loaded and grading is occurring
-                    // annoyingly, the workshop module has not named its submit button, so we have to
-                    // get it using another method as the 11th input
-                    els = M.block_ajax_marking.popupholder.frames[0].document.getElementsByTagName('input');
-                    
-                    if (els.length == 11) {
-                        // TODO - did this change work?
-                        var functiontext = "return M.block_ajax_marking.markingtree.remove_node_from_tree("
-                                         + "'/mod/workshop/assessments.php', '"
-                                         + clickednode.data.uniqueid+"');";
-                        els[10]['onclick'] = new Function(functiontext);
-                        // els[10]["onclick"] = new Function("return M.block_ajax_marking.remove_node_from_tree('/mod/workshop/assessments.php', M.block_ajax_marking.main, '"+me+"', true);"); // IE
-                        
-                        // cancel timer loop
-                        window.clearInterval(M.block_ajax_marking.popuptimer);
-                    }
-                }
-            }
-        }
-    }
-})();            
-            
-        <?php
-        
-        // Get the IDE to do proper script highlighting
-        if(0) { ?></script><?php } 
-        
-    }
 
 }

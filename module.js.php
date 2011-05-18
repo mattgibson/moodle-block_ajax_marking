@@ -47,9 +47,8 @@ M.block_ajax_marking.popupholder = '';
 // this holds the timer that keeps trying to add the onclick stuff to the pop ups as the pop up loads
 M.block_ajax_marking.popuptimer = '';
 
-M.block_ajax_marking.ajaxurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/ajax.php';
-
-
+M.block_ajax_marking.ajaxnodesurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/ajax_nodes.php';
+M.block_ajax_marking.ajaxgradingurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/grading_popup.php';
 
 
 /**
@@ -65,41 +64,145 @@ M.block_ajax_marking.tree_base = function(treediv) {
 // make the base class into a subclass of the YUI treeview widget
 YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView);
 
+/**
+ * New unified build nodes function
+ */
+M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
+    
+    var newnode = '';
+    var nodedata = '';
+    var seconds = 0;
+    var iconstyle = '';
+    var numberofnodes = nodesarray.length;
+    
+    if (typeof(M.block_ajax_marking.parentnodeholder) !== 'object') {
+        M.block_ajax_marking.parentnodeholder = this.root;
+    }
+    
+    // cycle through the array and make the nodes
+    for (var m = 0; m < numberofnodes; m++) {
+        
+        nodedata = nodesarray[m];
+        
+        // Make the display data accessible to the node creation code
+        nodedata.label = nodedata.display.name;
+        nodedata.title = nodedata.display.tooltip;
+        
+        // Add a count unless we only have one thing and we're at the final node e.g. student name
+        if (nodedata.display.count > 1 || typeof(nodedata.returndata.callbackfunction) !== 'undefined') {
+            nodedata.label = '(<span class="AMB_count">'+nodedata.display.count+'</span>) '+nodedata.label;
+        } 
+        
+        newnode = new YAHOO.widget.TextNode(nodedata, M.block_ajax_marking.parentnodeholder, false);
+
+        // set the node to load data dynamically, unless it has not sent a callback i.e. it's a final node
+        if (typeof(nodedata.returndata.callbackfunction) !== 'undefined' && 
+            nodedata.returndata.callbackfunction !== false) {
+            
+            newnode.setDynamicLoad(this.request_node_data);
+        }
+        
+        // We assume that the modules have added any css they want to add in styles.php
+        newnode.labelStyle = 'block_ajax_marking_node_'+nodedata.display.style;
+        
+        // If the node has a time (of oldest submission) show urgency by adding a background colour
+        if (typeof(nodedata.display) !== 'undefined' && 
+            typeof(nodedata.display.seconds) !== 'undefined') {
+            
+            iconstyle = '';
+            
+            seconds = parseInt(nodedata.display.seconds, 10);
+            
+            if (seconds < 21600) {
+                // less than 6 hours
+                iconstyle = 'icon-user-one';
+
+            } else if (seconds < 43200) {
+                // less than 12 hours
+                iconstyle = 'icon-user-two';
+
+            } else if (seconds < 86400) {
+                // less than 24 hours
+                iconstyle = 'icon-user-three';
+
+            } else if (seconds < 172800) {
+                // less than 48 hours
+                iconstyle = 'icon-user-four';
+
+            } else if (seconds < 432000) {
+                // less than 5 days
+                iconstyle = 'icon-user-five';
+
+            } else if (seconds < 864000) {
+                // less than 10 days
+                iconstyle = 'icon-user-six';
+
+            } else if (seconds < 1209600) {
+                // less than 2 weeks
+                iconstyle = 'icon-user-seven';
+
+            } else {
+                // more than 2 weeks
+                iconstyle = 'icon-user-eight';
+            }
+
+            newnode.labelStyle = iconstyle;
+        }
+    }
+    
+    // finally, run the function that updates the original node and adds the children. Won't be there
+    // if we have just built the tree
+    if (typeof(M.block_ajax_marking.oncompletefunctionholder) === 'function') {
+        M.block_ajax_marking.oncompletefunctionholder();
+    } else { 
+        this.render();
+        this.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
+        //this.subscribe('clickEvent', M.block_ajax_marking.show_modal_grading_interface);
+    }
+
+    // the main tree will need the counts updated, but not the config tree
+    // TODO test this
+    //if (typeof(M.block_ajax_marking.parentnodeholder) === 'object' && 
+    //    typeof(M.block_ajax_marking.parentnodeholder.count) === 'integer') {
+    this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+    //}
+    
+}
 
 /**
  *
  * @param nodesarray
  */
-M.block_ajax_marking.tree_base.prototype.build_assessment_nodes = function(nodesarray) {
-
-    var tempnode = '';
-    
-    // cycle through the array and make the nodes
-    var nodeslength = nodesarray.length;
-    
-    for (var m = 0; m < nodeslength; m++) {
-
-        // use the object to create a new node
-        tempnode = new YAHOO.widget.TextNode(nodesarray[m], M.block_ajax_marking.parentnodeholder , false);
-
-        // set the node to load data dynamically, unless it has not sent a callback i.e. it's a final node
-        if ((!this.config) && 
-            typeof(nodesarray[m].callbackfunction) !== 'undefined' && 
-            nodesarray[m].callbackfunction !== false) {
-            
-           tempnode.setDynamicLoad(this.request_node_data);
-        }
-    }
-
-    // finally, run the function that updates the original node and adds the children
-    M.block_ajax_marking.oncompletefunctionholder();
-
-    // the main tree will need the counts updated
-    if (!this.config) {
-        this.update_parent_node(M.block_ajax_marking.parentnodeholder);
-    }
-
-};
+//M.block_ajax_marking.tree_base.prototype.build_assessment_nodes = function(nodesarray) {
+//
+//    var tempnode = '';
+//    
+//    // cycle through the array and make the nodes
+//    var nodeslength = nodesarray.length;
+//    
+//    for (var m = 0; m < nodeslength; m++) {
+//
+//        // use the object to create a new node
+//        tempnode = new YAHOO.widget.TextNode(nodesarray[m], M.block_ajax_marking.parentnodeholder , false);
+//
+//        // set the node to load data dynamically, unless it has not sent a callback i.e. it's a final node
+//        if ((!this.config) && 
+//            typeof(nodesarray[m].callbackfunction) !== 'undefined' && 
+//            nodesarray[m].callbackfunction !== false) {
+//            
+//           tempnode.setDynamicLoad(this.request_node_data);
+//        }
+//    }
+//
+//    // finally, run the function that updates the original node and adds the children
+//    M.block_ajax_marking.oncompletefunctionholder();
+//
+//    // the main tree will need the counts updated
+//    if (!this.config) {
+//        this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+//    }
+//
+//};
 
 /**
  * This function is called when a node is clicked (expanded) and makes the ajax request
@@ -114,40 +217,48 @@ M.block_ajax_marking.tree_base.prototype.request_node_data = function(clickednod
     M.block_ajax_marking.parentnodeholder = clickednode;
     M.block_ajax_marking.oncompletefunctionholder = callbackfunction;
     
-    // request data using AJAX
-    var postdata = 'callbackparamone='+clickednode.data.callbackparamone+
-                   '&callbackfunction='+clickednode.data.callbackfunction;
-               
-    // Send extra data if it's there
+    var postdata = [];
+    var varname = '';
 
-    // Some nodes e.g. quiz questions need 2 parameters to be sent
-    if (typeof(clickednode.data.callbackparamtwo) != 'undefined') {
-        postdata += '&callbackparamtwo='+clickednode.data.callbackparamtwo;
+    for (varname in clickednode.data.returndata) {
+        postdata.push(varname + '=' + clickednode.data.returndata[varname]);
     }
     
-    // Some nodes e.g. quiz questions need 2 parameters to be sent
-    if (typeof(clickednode.data.modulename) != 'undefined') {
-        postdata += '&modulename='+clickednode.data.modulename;
-    }
+    postdata = postdata.join('&');
     
-    // If a group has been clicked, we sent that too so the nodes can be filtered to only include those group members
-    if (typeof(clickednode.data.group) != 'undefined') {
-        postdata += '&group='+clickednode.data.group;
-    }
+    // request data using AJAX
+//    var postdata = 'callbackparamone='+clickednode.data.returndata.callbackparamone+
+//                   '&callbackfunction='+clickednode.data.returndata.callbackfunction;
+//               
+//    // Send extra data if it's there
+//
+//    // Some nodes e.g. quiz questions need 2 parameters to be sent
+//    if (typeof(clickednode.data.callbackparamtwo) != 'undefined') {
+//        postdata += '&callbackparamtwo='+clickednode.data.callbackparamtwo;
+//    }
+//    
+//    // Some nodes e.g. quiz questions need 2 parameters to be sent
+//    if (typeof(clickednode.data.modulename) != 'undefined') {
+//        postdata += '&modulename='+clickednode.data.modulename;
+//    }
+//    
+//    // If a group has been clicked, we sent that too so the nodes can be filtered to only include those group members
+//    if (typeof(clickednode.data.group) != 'undefined') {
+//        postdata += '&group='+clickednode.data.group;
+//    }
 
     // Allow modules to add extra arguments to the AJAX request if necessary
     //var callbackarray = clickednode.data.callbackfunction.split('_');
     // TODO eval is evil - can this work? not tried
     // var type_object = eval('M.block_ajax_marking.'+callbackarray[0]);
-    var callbackobject = M.block_ajax_marking[clickednode.data.modulename];
+//    var callbackobject = M.block_ajax_marking[clickednode.data.modulename];
     //var type_object = M.block_ajax_marking[typearray[0]];
 
-    
-    if ((typeof(callbackobject) != 'undefined') && (typeof(callbackobject.extra_ajax_request_arguments) != 'undefined')) {
-        postdata += callbackobject.extra_ajax_request_arguments(clickednode);
-    }
+//    if ((typeof(callbackobject) != 'undefined') && (typeof(callbackobject.extra_ajax_request_arguments) != 'undefined')) {
+//        postdata += callbackobject.extra_ajax_request_arguments(clickednode);
+//    }
  
-    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxurl, block_ajax_marking_callback, postdata);
+    YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl, block_ajax_marking_callback, postdata);
 };
 
 /**
@@ -185,7 +296,7 @@ M.block_ajax_marking.tree_base.prototype.update_parent_node = function(parentnod
             var i = 0;
             
             for (i = 0; i < nodechildrenlength; i++) {
-                childcount = parentnodetoupdate.children[i].data.count;
+                childcount = parentnodetoupdate.children[i].data.display.count;
                 runningtotal += parseInt(childcount, 10);
             }
     
@@ -207,231 +318,411 @@ M.block_ajax_marking.tree_base.prototype.update_parent_node = function(parentnod
  */
 M.block_ajax_marking.tree_base.prototype.update_node_count = function(newnode, newcount) {
 
-    var newlabel       = '(<span class="AMB_count">'+newcount+'</span>) '+newnode.data.name;
-    newnode.data.count = newcount;
+    var newlabel       = '(<span class="AMB_count">'+newcount+'</span>) '+newnode.data.display.name;
+    newnode.data.display.count = newcount;
     newnode.label      = newlabel;
+};
+
+/**
+ * 
+ */
+M.block_ajax_marking.treenodeonclick = function(oArgs) {
+
+    // refs save space
+    var node = oArgs.node;
+    var mbam = window.M.block_ajax_marking;
+
+    // we only need to do anything if the clicked node is one of
+    // the final ones with no children to fetch.
+    if (typeof(node.data.returndata.callbackfunction) !== 'undefined' 
+        && node.data.returndata.callbackfunction !== false) {
+        
+        return false;
+    }
+
+    // putting window.open into the switch statement causes it to fail in IE6.
+    // No idea why.
+//                    var timer_function = '';
+
+    // Load the correct javascript object from the files that have been included.
+    // The type attached to the node data should always start with the name of the module, so
+    // we extract that first and then use it to access the object of that
+    // name that was created when the page was built by the inclusion
+    // of all the module_grading.js files.
+//                    var typearray = node.data.ca.split('_');
+//                    var type = typearray[0];
+
+    var module_javascript = mbam[node.data.returndata.mod];
+
+    // Open a pop up with the url and arguments as specified in the module specific object
+    //var popupurl = M.cfg.wwwroot + module_javascript.pop_up_opening_url(node);
+    var popupurl = window.M.cfg.wwwroot + '/blocks/ajax_marking/actions/grading_popup.php?';
+
+    // using an array so we can join neatly with &.
+    var popupget = [];
+    
+    for (varname in node.data.returndata) {
+        
+        popupget.push(varname + '=' + node.data.returndata[varname]);
+    }
+    
+    // Add the index of the clicked node so we can remove it if the marking succeeds
+    popupget.push('node='+node.index);
+
+    if (popupget.length == 0) {
+        // TODO handle error here - there should always be parameters for the pop up, otherwise we stop.
+        return false;
+    }
+
+    popupurl += popupget.join('&');
+//    postdata = popupget.join('&');
+
+    // Get window size, etc
+    var popupargs = module_javascript.pop_up_arguments(node);
+    
+    // AJAX version
+//    M.block_ajax_marking.show_modal_grading_interface(postdata);
+
+    // Pop-up version
+    mbam.popupholder = window.open(popupurl, 'ajax_marking_popup', popupargs);
+    mbam.popupholder.focus();
+    
+    return false;
+};
+
+
+M.block_ajax_marking.configonclick = function(clickargumentsobject) {
+
+    var ajaxdata  = '';
+
+    // function to make checkboxes for each of the three main options
+    function make_box(value, id, label) {
+
+        try{
+            box = document.createElement('<input type="radio" name="showhide" />');
+        }catch(error){
+            box = document.createElement('input');
+        }
+        box.setAttribute('type','radio');
+        box.setAttribute('name','showhide');
+        box.value = value;
+        box.id    = id;
+
+        box.onclick = function() {
+            M.block_ajax_marking.request_config_checkbox_data(this);
+        };
+        formDiv.appendChild(box);
+
+        var boxText = document.createTextNode(label);
+        formDiv.appendChild(boxText);
+
+        var breaker = document.createElement('br');
+        formDiv.appendChild(breaker);
+    }
+
+    // remove group nodes from the previous item if they are there.
+    M.block_ajax_marking.remove_config_right_panel_contents();
+
+    var title = document.getElementById('configInstructions');
+    title.innerHTML = clickargumentsobject.node.data.icon+clickargumentsobject.node.data.name;
+
+
+    var formDiv = document.getElementById('configshowform');
+    // grey out the form before ajax call - it will be un-greyed later
+    formDiv.style.color = '#AAA';
+
+    // add hidden variables so they can be used for the later AJAX calls
+    // If it's a course, we send things a bit differently
+
+    var hiddeninput1   = document.createElement('input');
+    hiddeninput1.type  = 'hidden';
+    hiddeninput1.name  = 'course';
+    hiddeninput1.value = (clickargumentsobject.node.data.type == 'config_course') ? clickargumentsobject.node.data.id : clickargumentsobject.node.parent.data.id;
+    formDiv.appendChild(hiddeninput1);
+
+    var hidden2       = document.createElement('input');
+        hidden2.type  = 'hidden';
+        hidden2.name  = 'assessment';
+        hidden2.value = clickargumentsobject.node.data.id;
+    formDiv.appendChild(hidden2);
+
+    var hidden3   = document.createElement('input');
+        hidden3.type  = 'hidden';
+        hidden3.name  = 'assessmenttype';
+        hidden3.value = (clickargumentsobject.node.data.type == 'config_course') ? 'course' : clickargumentsobject.node.data.type;
+    formDiv.appendChild(hidden3);
+
+    // For non courses, add a default checkbox that will remove the record
+    if (clickargumentsobject.node.data.type != 'config_course') {
+        M.block_ajax_marking.make_box('default', 'config0', M.str.block_ajax_marking.coursedefault, formDiv);
+        // make the three main checkboxes, appending them to the form as we go along
+        M.block_ajax_marking.make_box('show',    'config1', M.str.block_ajax_marking.showthisassessment, formDiv);
+        M.block_ajax_marking.make_box('groups',  'config2', M.str.block_ajax_marking.showwithgroups, formDiv);
+        M.block_ajax_marking.make_box('hide',    'config3', M.str.block_ajax_marking.hidethisassessment, formDiv);
+
+    } else {
+        M.block_ajax_marking.make_box('show',    'config1', M.str.block_ajax_marking.showthiscourse, formDiv);
+        M.block_ajax_marking.make_box('groups',  'config2', M.str.block_ajax_marking.showwithgroups, formDiv);
+        M.block_ajax_marking.make_box('hide',    'config3', M.str.block_ajax_marking.hidethiscourse, formDiv);
+    }
+
+    // now, we need to find out what the current group mode is and display that box as checked.
+    if (clickargumentsobject.node.data.type !== 'config_course') {
+        ajaxdata += 'courseid='       +clickargumentsobject.node.parent.data.id;
+        ajaxdata += '&assessmenttype='+clickargumentsobject.node.data.type;
+        ajaxdata += '&assessmentid='  +clickargumentsobject.node.data.id;
+        ajaxdata += '&type=config_check';
+    } else {
+        ajaxdata += 'courseid='             +clickargumentsobject.node.data.id;
+        ajaxdata += '&assessmenttype=course';
+        ajaxdata += '&type=config_check';
+    }
+
+    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl, block_ajax_marking_callback, ajaxdata);
+
+    return true;
 };
 
 /**
  * Creates the initial nodes for both the main block tree or configuration tree.
  */
-M.block_ajax_marking.tree_base.prototype.build_course_nodes = function(nodesarray) {
-
-    var label = '';
-
-    // store the array of nodes length so that loops are slightly faster
-    var nodeslength = nodesarray.length;
-    
-    // if the array is empty, say that there is nothing to mark
-    if (nodeslength === 0) {
-
-        if (this.config) {
-            label = document.createTextNode(M.str.block_ajax_marking.nogradedassessments);
-        } else {
-            label = document.createTextNode(M.str.block_ajax_marking.nothingtomark);
-        }
-        message_div = document.createElement('div');
-        messagediv.appendChild(label);
-        this.div.appendChild(messagediv);
-        this.icon.removeAttribute('class', 'loaderimage');
-        this.icon.removeAttribute('className', 'loaderimage');
-        
-        if (!document.getElementById('block_ajax_marking_collapse')) {
-            M.block_ajax_marking.make_footer();
-        }
-
-    } else {
-        // there is a tree to be drawn
-        
-        //Remove any old nodes if this is a refresh
-        if (this.root.children.length > 0) {
-
-            this.removeChildren(this.root);
-            this.root.refresh();
-        }
-
-        // cycle through the array and make the nodes
-        for (var n=0; n<nodeslength; n++) {
-        	
-        	//only show the marking totals if its not a config tree
-            if (!this.config) { 
-                label = '('+nodesarray[n].count+') '+nodesarray[n].name;
-            } else {
-                label = nodesarray[n].name;
-            }
-
-            var tempnode = new YAHOO.widget.TextNode(nodesarray[n], this.root, false);
-
-            tempnode.labelStyle = 'icon-course';
-            tempnode.setDynamicLoad(this.request_node_data);
-        }
-
-        // now make the tree, add the total at the top and remove the loading icon
-        this.render();
-
-        // get rid of the loading icon - IE6 is rubbish so use 2 methods
-        this.icon.removeAttribute('class', 'loaderimage');
-        this.icon.removeAttribute('className', 'loaderimage');
-
-        // add onclick events
-        // Main tree option first:
-        if (!this.config) {
-
-            // Alter total count above tree
-            label = document.createTextNode(M.str.block_ajax_marking.totaltomark);
-            var total = document.getElementById('totalmessage');
-            M.block_ajax_marking.remove_all_child_nodes(total);
-            total.appendChild(label);
-            this.update_total_count();
-
-            // this function is the listener for the main tree. Event bubbling means that this
-            // will catch all node clicks
-            this.subscribe(
-                "clickEvent",
-                function(oArgs) {
-
-                    // ref saves space
-                    var node = oArgs.node;
-                    
-                    // we only need to do anything if the clicked node is one of
-                    // the final ones with no children to fetch.
-                    if (typeof(node.data.callbackfunction) !== 'undefined' && node.data.callbackfunction !== false) {
-                        return false;
-                    }
-
-                    // putting window.open into the switch statement causes it to fail in IE6.
-                    // No idea why.
-//                    var timer_function = '';
-                            
-                    // Load the correct javascript object from the files that have been included.
-                    // The type attached to the node data should always start with the name of the module, so
-                    // we extract that first and then use it to access the object of that
-                    // name that was created when the page was built by the inclusion
-                    // of all the module_grading.js files.
-//                    var typearray = node.data.ca.split('_');
-//                    var type = typearray[0];
-                    
-                    // TODO does this work?
-                    // it used to make a string then eval it
-                    var module_javascript = M.block_ajax_marking[node.data.modulename];
-
-                    // Open a pop up with the url and arguments as specified in the module specific object
-                    var popupurl = M.cfg.wwwroot+module_javascript.pop_up_opening_url(node);
-                    var popupargs = module_javascript.pop_up_arguments(node);
-
-                    M.block_ajax_marking.popupholder = window.open(popupurl, 'ajax_marking_popup', popupargs);
-
-                    M.block_ajax_marking.popupholder.focus();                 
-                    return false;
-                }
-            );
-            
-            // Make the footer divs if they don't exist
-            if (!document.getElementById('block_ajax_marking_collapse')) {
-                M.block_ajax_marking.make_footer();
-            }
-
-        } else {
-
-            // procedure for config tree nodes:
-            // This function is the listener for the config tree that makes the onclick stuff happen
-            this.subscribe(
-                'clickEvent',
-                function(clickargumentsobject) {
-
-                    var ajaxdata  = '';
-
-                    // function to make checkboxes for each of the three main options
-                    function make_box(value, id, label) {
-                        
-                        try{
-                            box = document.createElement('<input type="radio" name="showhide" />');
-                        }catch(error){
-                            box = document.createElement('input');
-                        }
-                        box.setAttribute('type','radio');
-                        box.setAttribute('name','showhide');
-                        box.value = value;
-                        box.id    = id;
-                        
-                        box.onclick = function() {
-                            M.block_ajax_marking.request_config_checkbox_data(this);
-                        };
-                        formDiv.appendChild(box);
-
-                        var boxText = document.createTextNode(label);
-                        formDiv.appendChild(boxText);
-
-                        var breaker = document.createElement('br');
-                        formDiv.appendChild(breaker);
-                    }
-
-                    // remove group nodes from the previous item if they are there.
-                    M.block_ajax_marking.remove_config_right_panel_contents();
-
-                    var title = document.getElementById('configInstructions');
-                    title.innerHTML = clickargumentsobject.node.data.icon+clickargumentsobject.node.data.name;
-
-
-                    var formDiv = document.getElementById('configshowform');
-                    // grey out the form before ajax call - it will be un-greyed later
-                    formDiv.style.color = '#AAA';
-
-                    // add hidden variables so they can be used for the later AJAX calls
-                    // If it's a course, we send things a bit differently
-
-                    var hiddeninput1   = document.createElement('input');
-                    hiddeninput1.type  = 'hidden';
-                    hiddeninput1.name  = 'course';
-                    hiddeninput1.value = (clickargumentsobject.node.data.type == 'config_course') ? clickargumentsobject.node.data.id : clickargumentsobject.node.parent.data.id;
-                    formDiv.appendChild(hiddeninput1);
-
-                    var hidden2       = document.createElement('input');
-                        hidden2.type  = 'hidden';
-                        hidden2.name  = 'assessment';
-                        hidden2.value = clickargumentsobject.node.data.id;
-                    formDiv.appendChild(hidden2);
-
-                    var hidden3   = document.createElement('input');
-                        hidden3.type  = 'hidden';
-                        hidden3.name  = 'assessmenttype';
-                        hidden3.value = (clickargumentsobject.node.data.type == 'config_course') ? 'course' : clickargumentsobject.node.data.type;
-                    formDiv.appendChild(hidden3);
-
-                    // For non courses, add a default checkbox that will remove the record
-                    if (clickargumentsobject.node.data.type != 'config_course') {
-                        M.block_ajax_marking.make_box('default', 'config0', M.str.block_ajax_marking.coursedefault, formDiv);
-                        // make the three main checkboxes, appending them to the form as we go along
-                        M.block_ajax_marking.make_box('show',    'config1', M.str.block_ajax_marking.showthisassessment, formDiv);
-                        M.block_ajax_marking.make_box('groups',  'config2', M.str.block_ajax_marking.showwithgroups, formDiv);
-                        M.block_ajax_marking.make_box('hide',    'config3', M.str.block_ajax_marking.hidethisassessment, formDiv);
-
-                    } else {
-                        M.block_ajax_marking.make_box('show',    'config1', M.str.block_ajax_marking.showthiscourse, formDiv);
-                        M.block_ajax_marking.make_box('groups',  'config2', M.str.block_ajax_marking.showwithgroups, formDiv);
-                        M.block_ajax_marking.make_box('hide',    'config3', M.str.block_ajax_marking.hidethiscourse, formDiv);
-                    }
-
-                    // now, we need to find out what the current group mode is and display that box as checked.
-                    if (clickargumentsobject.node.data.type !== 'config_course') {
-                        ajaxdata += 'courseid='       +clickargumentsobject.node.parent.data.id;
-                        ajaxdata += '&assessmenttype='+clickargumentsobject.node.data.type;
-                        ajaxdata += '&assessmentid='  +clickargumentsobject.node.data.id;
-                        ajaxdata += '&type=config_check';
-                    } else {
-                        ajaxdata += 'courseid='             +clickargumentsobject.node.data.id;
-                        ajaxdata += '&assessmenttype=course';
-                        ajaxdata += '&type=config_check';
-                    }
-                    
-                    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxurl, block_ajax_marking_callback, ajaxdata);
-
-                    return true;
-                }
-            );
-        }
-    }
-};
+//M.block_ajax_marking.tree_base.prototype.build_course_nodes = function(nodesarray) {
+//
+//    var label = '';
+//
+//    // store the array of nodes length so that loops are slightly faster
+//    var nodeslength = nodesarray.length;
+//    
+//    // if the array is empty, say that there is nothing to mark
+//    if (nodeslength === 0) {
+//
+//        if (this.config) {
+//            label = document.createTextNode(M.str.block_ajax_marking.nogradedassessments);
+//        } else {
+//            label = document.createTextNode(M.str.block_ajax_marking.nothingtomark);
+//        }
+//        message_div = document.createElement('div');
+//        messagediv.appendChild(label);
+//        this.div.appendChild(messagediv);
+//        this.icon.removeAttribute('class', 'loaderimage');
+//        this.icon.removeAttribute('className', 'loaderimage');
+//        
+//        if (!document.getElementById('block_ajax_marking_collapse')) {
+//            M.block_ajax_marking.make_footer();
+//        }
+//
+//    } else {
+//        // there is a tree to be drawn
+//        
+//        //Remove any old nodes if this is a refresh
+//        if (this.root.children.length > 0) {
+//
+//            this.removeChildren(this.root);
+//            this.root.refresh();
+//        }
+//
+//        // cycle through the array and make the nodes
+//        for (var n=0; n<nodeslength; n++) {
+//        	
+//        	//only show the marking totals if its not a config tree
+//            if (!this.config) { 
+//                label = '('+nodesarray[n].count+') '+nodesarray[n].name;
+//            } else {
+//                label = nodesarray[n].name;
+//            }
+//
+//            var tempnode = new YAHOO.widget.TextNode(nodesarray[n], this.root, false);
+//
+//            tempnode.labelStyle = 'icon-course';
+//            tempnode.setDynamicLoad(this.request_node_data);
+//        }
+//
+//        // now make the tree, add the total at the top and remove the loading icon
+//        this.render();
+//
+//        // get rid of the loading icon - IE6 is rubbish so use 2 methods
+////        this.icon.removeAttribute('class', 'loaderimage');
+////        this.icon.removeAttribute('className', 'loaderimage');
+//        
+//        YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
+//
+//        // add onclick events
+//        // Main tree option first:
+//        if (!this.config) {
+//
+//            // Alter total count above tree
+//            label = document.createTextNode(M.str.block_ajax_marking.totaltomark);
+//            var total = document.getElementById('totalmessage');
+//            M.block_ajax_marking.remove_all_child_nodes(total);
+//            total.appendChild(label);
+//            this.update_total_count();
+//
+//            // this function is the listener for the main tree. Event bubbling means that this
+//            // will catch all node clicks
+//            
+//            // M.block_ajax_marking.treenodeonclick
+//            
+//            this.subscribe(
+//                "clickEvent",
+//                function(oArgs) {
+//
+//                    // ref saves space
+//                    var node = oArgs.node;
+//                    
+//                    // we only need to do anything if the clicked node is one of
+//                    // the final ones with no children to fetch.
+//                    if (typeof(node.data.callbackfunction) !== 'undefined' && node.data.callbackfunction !== false) {
+//                        return false;
+//                    }
+//
+//                    // putting window.open into the switch statement causes it to fail in IE6.
+//                    // No idea why.
+////                    var timer_function = '';
+//                            
+//                    // Load the correct javascript object from the files that have been included.
+//                    // The type attached to the node data should always start with the name of the module, so
+//                    // we extract that first and then use it to access the object of that
+//                    // name that was created when the page was built by the inclusion
+//                    // of all the module_grading.js files.
+////                    var typearray = node.data.ca.split('_');
+////                    var type = typearray[0];
+//                    
+//                    // TODO does this work?
+//                    // it used to make a string then eval it
+//                    var module_javascript = M.block_ajax_marking[node.data.modulename];
+//
+//                    // Open a pop up with the url and arguments as specified in the module specific object
+//                    //var popupurl = M.cfg.wwwroot + module_javascript.pop_up_opening_url(node);
+//                    var popupurl = M.cfg.wwwroot + '/blocks/ajax_marking/actions/grading_popup.php?';
+//                    
+//                    // using an array so we can join neatly with &.
+//                    var popupget = [];
+//                    
+//                    for (varname in node.data.returndata) {
+//                        popupget.push(varname + '=' + node.data.returndata[varname]);
+//                    }
+//                    
+//                    if (popupget.length == 0) {
+//                        // handle error here - there should always be parameters for the pop up
+//                    }
+//                    
+//                    popupurl += popupget.join('&');
+//                    
+//                    var popupargs = module_javascript.pop_up_arguments(node);
+//
+//                    M.block_ajax_marking.popupholder = window.open(popupurl, 'ajax_marking_popup', popupargs);
+//
+//                    M.block_ajax_marking.popupholder.focus();                 
+//                    return false;
+//                }
+//            );
+//            
+//            // Make the footer divs if they don't exist
+//            if (!document.getElementById('block_ajax_marking_collapse')) {
+//                M.block_ajax_marking.make_footer();
+//            }
+//
+//        } else {
+//
+//            // procedure for config tree nodes:
+//            // This function is the listener for the config tree that makes the onclick stuff happen
+//            this.subscribe(
+//                'clickEvent',
+//                function(clickargumentsobject) {
+//
+//                    var ajaxdata  = '';
+//
+//                    // function to make checkboxes for each of the three main options
+//                    function make_box(value, id, label) {
+//                        
+//                        try{
+//                            box = document.createElement('<input type="radio" name="showhide" />');
+//                        }catch(error){
+//                            box = document.createElement('input');
+//                        }
+//                        box.setAttribute('type','radio');
+//                        box.setAttribute('name','showhide');
+//                        box.value = value;
+//                        box.id    = id;
+//                        
+//                        box.onclick = function() {
+//                            M.block_ajax_marking.request_config_checkbox_data(this);
+//                        };
+//                        formDiv.appendChild(box);
+//
+//                        var boxText = document.createTextNode(label);
+//                        formDiv.appendChild(boxText);
+//
+//                        var breaker = document.createElement('br');
+//                        formDiv.appendChild(breaker);
+//                    }
+//
+//                    // remove group nodes from the previous item if they are there.
+//                    M.block_ajax_marking.remove_config_right_panel_contents();
+//
+//                    var title = document.getElementById('configInstructions');
+//                    title.innerHTML = clickargumentsobject.node.data.icon+clickargumentsobject.node.data.name;
+//
+//
+//                    var formDiv = document.getElementById('configshowform');
+//                    // grey out the form before ajax call - it will be un-greyed later
+//                    formDiv.style.color = '#AAA';
+//
+//                    // add hidden variables so they can be used for the later AJAX calls
+//                    // If it's a course, we send things a bit differently
+//
+//                    var hiddeninput1   = document.createElement('input');
+//                    hiddeninput1.type  = 'hidden';
+//                    hiddeninput1.name  = 'course';
+//                    hiddeninput1.value = (clickargumentsobject.node.data.type == 'config_course') ? clickargumentsobject.node.data.id : clickargumentsobject.node.parent.data.id;
+//                    formDiv.appendChild(hiddeninput1);
+//
+//                    var hidden2       = document.createElement('input');
+//                        hidden2.type  = 'hidden';
+//                        hidden2.name  = 'assessment';
+//                        hidden2.value = clickargumentsobject.node.data.id;
+//                    formDiv.appendChild(hidden2);
+//
+//                    var hidden3   = document.createElement('input');
+//                        hidden3.type  = 'hidden';
+//                        hidden3.name  = 'assessmenttype';
+//                        hidden3.value = (clickargumentsobject.node.data.type == 'config_course') ? 'course' : clickargumentsobject.node.data.type;
+//                    formDiv.appendChild(hidden3);
+//
+//                    // For non courses, add a default checkbox that will remove the record
+//                    if (clickargumentsobject.node.data.type != 'config_course') {
+//                        M.block_ajax_marking.make_box('default', 'config0', M.str.block_ajax_marking.coursedefault, formDiv);
+//                        // make the three main checkboxes, appending them to the form as we go along
+//                        M.block_ajax_marking.make_box('show',    'config1', M.str.block_ajax_marking.showthisassessment, formDiv);
+//                        M.block_ajax_marking.make_box('groups',  'config2', M.str.block_ajax_marking.showwithgroups, formDiv);
+//                        M.block_ajax_marking.make_box('hide',    'config3', M.str.block_ajax_marking.hidethisassessment, formDiv);
+//
+//                    } else {
+//                        M.block_ajax_marking.make_box('show',    'config1', M.str.block_ajax_marking.showthiscourse, formDiv);
+//                        M.block_ajax_marking.make_box('groups',  'config2', M.str.block_ajax_marking.showwithgroups, formDiv);
+//                        M.block_ajax_marking.make_box('hide',    'config3', M.str.block_ajax_marking.hidethiscourse, formDiv);
+//                    }
+//
+//                    // now, we need to find out what the current group mode is and display that box as checked.
+//                    if (clickargumentsobject.node.data.type !== 'config_course') {
+//                        ajaxdata += 'courseid='       +clickargumentsobject.node.parent.data.id;
+//                        ajaxdata += '&assessmenttype='+clickargumentsobject.node.data.type;
+//                        ajaxdata += '&assessmentid='  +clickargumentsobject.node.data.id;
+//                        ajaxdata += '&type=config_check';
+//                    } else {
+//                        ajaxdata += 'courseid='             +clickargumentsobject.node.data.id;
+//                        ajaxdata += '&assessmenttype=course';
+//                        ajaxdata += '&type=config_check';
+//                    }
+//                    
+//                    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl, block_ajax_marking_callback, ajaxdata);
+//
+//                    return true;
+//                }
+//            );
+//        }
+//    }
+//};
 
 /**
  * Make the group nodes for an assessment
@@ -464,84 +755,6 @@ M.block_ajax_marking.tree_base.prototype.build_group_nodes = function(ajaxrespon
     M.block_ajax_marking.oncompletefunctionholder();
 };
 
-/**
-* Makes the submission nodes for each student with unmarked work. 
-* 
-* @param ajaxresponsearray Takes ajax data array as input
-* @retrun void
-*/
-M.block_ajax_marking.tree_base.prototype.build_submission_nodes = function(ajaxresponsearray) {
-
-    var tempnode = '';
-    var arraylength = ajaxresponsearray.length;
-    var uniqueid = '';
-    var seconds = 0;
-    
-    for (var k = 0; k < arraylength; k++) {
-
-        // set up time-submitted thing for tooltip. This is set to make the time match the
-        // browser's local timezone, but I can't find a way to use the user's specified timezone
-        // from $USER. Not sure if this really matters.
-        seconds = parseInt(ajaxresponsearray[k].seconds, 10);
-
-        // TODO is the comment below relevant?
-        // javascript likes to work in miliseconds, whereas moodle uses unix format (whole seconds)
-
-        // altered - does this work?
-        tempnode = new YAHOO.widget.TextNode(ajaxresponsearray[k], M.block_ajax_marking.parentnodeholder, false);
-
-        // the unique id lets this node in particular be removed later on once it's marked
-        //tempnode.data.uniqueid = uniqueid;
-
-        // apply a style according to how long since it was submitted
-
-        var iconstyle = '';
-        
-        if (seconds < 21600) {
-            // less than 6 hours
-            iconstyle = 'icon-user-one';
-            
-        } else if (seconds < 43200) {
-            // less than 12 hours
-            iconstyle = 'icon-user-two';
-            
-        } else if (seconds < 86400) {
-            // less than 24 hours
-            iconstyle = 'icon-user-three';
-            
-        } else if (seconds < 172800) {
-            // less than 48 hours
-            iconstyle = 'icon-user-four';
-            
-        } else if (seconds < 432000) {
-            // less than 5 days
-            iconstyle = 'icon-user-five';
-            
-        } else if (seconds < 864000) {
-            // less than 10 days
-            iconstyle = 'icon-user-six';
-            
-        } else if (seconds < 1209600) {
-            // less than 2 weeks
-            iconstyle = 'icon-user-seven';
-            
-        } else {
-            // more than 2 weeks
-            iconstyle = 'icon-user-eight';
-        }
-        
-        tempnode.labelStyle = iconstyle;
-    }
-    
-    // update all the counts on the various nodes
-    this.update_parent_node(M.block_ajax_marking.parentnodeholder);
-
-    // TODO is this really needed?
-    // finally, run the function that updates the original node and adds the children
-    M.block_ajax_marking.oncompletefunctionholder();
-    this.update_total_count();
-
-};
 
 /**
  * Builds the tree when the block is loaded, or refresh is clicked
@@ -549,11 +762,12 @@ M.block_ajax_marking.tree_base.prototype.build_submission_nodes = function(ajaxr
  * @return void
  */
 M.block_ajax_marking.tree_base.prototype.build_ajax_tree = function() {
-
-    this.icon.setAttribute('class', 'loaderimage');
-    this.icon.setAttribute('className', 'loaderimage');
     
-    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxurl, block_ajax_marking_callback, this.course_post_data);
+    // show that the ajax request has been initialised
+    YAHOO.util.Dom.addClass(this.icon, 'loaderimage');
+    
+    // send the ajax request
+    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl, block_ajax_marking_callback, this.course_post_data);
     
 };
 
@@ -570,7 +784,7 @@ M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
     var childrenlength = children.length;
 
     for (var i=0; i<childrenlength; i++) {
-        childcount = children[i].data.count;
+        childcount = children[i].data.display.count;
         totalcount += parseInt(childcount, 10);
     }
     
@@ -597,7 +811,7 @@ M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
 M.block_ajax_marking.tree_base.prototype.remove_node_from_tree = function(nodeuniqueid, windowurl) {
 
     /// get the node that was just marked and its parent node
-    var nodetoremove = this.getNodeByProperty("uniqueid", nodeuniqueid);
+    var nodetoremove = this.getNodeByProperty('index', nodeuniqueid);
 
     var parentnode = nodetoremove.parent;
     // remove the node that was just marked
@@ -612,10 +826,10 @@ M.block_ajax_marking.tree_base.prototype.remove_node_from_tree = function(nodeun
     this.update_total_count();
 
     // no need if there's no url as the pop up is self closing
-    if (windowurl !== undefined) {
-        var window_closer = "M.block_ajax_marking.popup_closing_timer('"+windowurl+"')";
-        setTimeout(window_closer, 500);
-    }
+//    if (windowurl !== undefined) {
+//        var window_closer = "M.block_ajax_marking.popup_closing_timer('"+windowurl+"')";
+//        setTimeout(window_closer, 500);
+//    }
 };
 
 /**
@@ -625,51 +839,37 @@ M.block_ajax_marking.tree_base.prototype.remove_node_from_tree = function(nodeun
  * @param o the ajax response object, passed automatically
  * @return void
  */
-M.block_ajax_marking.ajax_success_handler = function (o) {
+M.block_ajax_marking.ajax_success_handler = function(o) {
 
     var label = '';
 
     var mbam = M.block_ajax_marking;
     
-    // TODO make this so that it goes to YUI logger if in developer debug mode
-
-    /* uncomment for debugging output for the admin user
-
-    if (userid == 2) {
-        var checkDiv = document.getElementById("block_ajax_marking_refresh_button");
-        checkDiv.innerHTML = o.responseText;
-    }
-
-    */
+    var ajaxresponsearray = [];
+    
     try {
-        var ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
+        ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
     } catch (error) {
        // TODO - error handling code to prevent silent failure if data is mashed
     }
 
     // first object holds data about what kind of nodes we have so we can
     // fire the right function.
-    if (ajaxresponsearray != null) {
+    if (typeof(ajaxresponsearray) === 'object') {
         
-        var data = ajaxresponsearray['data'];
-        var nodes = ajaxresponsearray['nodes'];
-        
-//        mbam.markingtree['build_'+data.nodetype+'_nodes'](nodes);
-//        return;
-
         // TODO - these are inconsistent. Some refer to where the request
         // is triggered and some to what it creates.
-
-        switch (data.nodetype) {
+        
+        switch (ajaxresponsearray.data.payloadtype) {
 
             case 'config_main_tree':
 
-                mbam.configtree.build_course_nodes(nodes);
+                mbam.tree.build_course_nodes(ajaxresponsearray.nodes);
                 break;
 
             case 'config_course':
 
-                mbam.configtree.build_assessment_nodes(nodes);
+                mbam.tree.build_assessment_nodes(ajaxresponsearray.nodes);
                 break;
 
             case 'config_groups':
@@ -677,17 +877,17 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
                 // called when the groups settings have been updated.
 
                 // TODO - only change the select value, don't totally re build them
-                mbam.make_config_groups_list(nodes);
+                mbam.make_config_groups_list(ajaxresponsearray.nodes);
                 break;
 
             case 'config_set':
 
                 //just need to un-disable the radio button
 
-                if (nodes[0].value === false) {
+                if (ajaxresponsearray.nodes[0].value === false) {
                     label = document.createTextNode(mbam.variables.nogradedassessments);
-                    mbam.remove_all_child_nodes(mbam.configtree.status);
-                    mbam.configtree.status.appendChild(label);
+                    mbam.remove_all_child_nodes(mbam.tree.status);
+                    mbam.tree.status.appendChild(label);
                 } else {
                     mbam.enable_config_radio_buttons();
                 }
@@ -698,19 +898,19 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
                 // setting request)
 
                 // make the id of the checkbox div
-                var checkboxid = 'config'+nodes[0].value;
+                var checkboxid = 'config'+ajaxresponsearray.nodes[0].value;
 
                 // make the radio button on screen match the value in the database that was just 
                 // returned.
                 document.getElementById(checkboxid).checked = true;
                 
                 // if its set to 'display by groups', make the groups bit underneath
-                if (nodes[0].value == 2) {
+                if (ajaxresponsearray.nodes[0].value == 2) {
                     // remove the config bit leaving just the groups, which were tacked onto the
                     // end of the returned array
-                    nodes.shift();
+                    ajaxresponsearray.nodes.shift();
                     //make the groups bit
-                    mbam.make_config_groups_list(nodes);
+                    mbam.make_config_groups_list(ajaxresponsearray.nodes);
                 }
                 //allow the radio buttons to be clicked again
                 mbam.enable_config_radio_buttons();
@@ -718,24 +918,50 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
 
             case 'config_group_save':
 
-                if (nodes[0].value === false) {
-                    mbam.configtree.status.innerHTML = 'AJAX error';
+                if (ajaxresponsearray.nodes[0].value === false) {
+                    mbam.tree.status.innerHTML = 'AJAX error';
                 } else {
                     mbam.enable_config_radio_buttons();
                 }
 
                 break;
+                
+            case 'gradinginterface':
+                // We have gotten the grading form back. Need to add the HTML to the modal overlay
+                
+                
+                M.block_ajax_marking.gradinginterface.setHeader(''); 
+                M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content); 
+                
+                // Initialise any editors
+                // foreach editor in the div
+                
+                //M.editor_tinymce.init_editor(Y, editorid, options);
+               
+                // now we need to add an onclick handler for the submit button and cancel button
+            
+                break;
 
             default:
                 
-                mbam.markingtree['build_'+data.nodetype+'_nodes'](nodes);
-
-        }
+                if (ajaxresponsearray.nodes.length > 0) {
+                    mbam.tree.build_nodes(ajaxresponsearray.nodes);
+                } else {
+                    // No nodes returned. Do something
+                }
+                
+        } // end switch
+        
     } else {
         // TODO what if we get an empty response?
         // not this: infinite loop!
         //M.block_ajax_marking.refresh_tree(M.block_ajax_marking.markingtree);
     }
+    
+    // rebuild nodes and optionally add 'nothing to mark' if we have none left
+    M.block_ajax_marking.refresh_tree_after_changes(M.block_ajax_marking.tree);
+    
+    YAHOO.util.Dom.removeClass(M.block_ajax_marking.tree.icon, 'loaderimage');
 };
 
 /**
@@ -747,18 +973,23 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
  */
 M.block_ajax_marking.ajax_failure_handler = function(o) {
     
+    // transaction aborted
     if (o.tId == -1) {
-        M.block_ajax_marking.markingtree.div.innerHTML =  M.str.block_ajax_marking.collapseString;
+        // TODO what is this meant to do?
+        M.block_ajax_marking.tree.div.innerHTML =  M.str.block_ajax_marking.collapseString;
     }
     
+    // communication failure
     if (o.tId === 0) {
-        M.block_ajax_marking.markingtree.div.innerHTML = M.str.block_ajax_marking.connectfail;
-        YAHOO.util.Dom.removeClass(M.block_ajax_marking.markingtree.icon, 'loaderimage');
+        M.block_ajax_marking.tree.div.innerHTML = M.str.block_ajax_marking.connectfail;
+        //YAHOO.util.Dom.removeClass(M.block_ajax_marking.markingtree.icon, 'loaderimage');
         
         if (!document.getElementById('block_ajax_marking_collapse')) {
             M.block_ajax_marking.make_footer();
         }
     }
+    
+    YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
 };
 
 /**
@@ -767,59 +998,59 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
  *
  * @return void
  */
-M.block_ajax_marking.enable_config_radio_buttons = function() {
-    
-    var radio = document.getElementById('configshowform');
-    YAHOO.util.setStyle(radio, 'color', '#000');
-
-    var radiolength = radio.childNodes.length;
-
-    for (var h = 0; h < radiolength; h++) {
-        
-        if (radio.childNodes[h].name == 'showhide') {
-            YAHOO.util.Dom.setAttribute(radio.childNodes[h], 'disabled', false);
-        }
-    }
-    
-    var configgroupsdiv = document.getElementById('configgroupsdiv');
-    YAHOO.util.setStyle(configgroupsdiv, 'color', '#000');
-
-    for (var i = 0; i < configgroupsdiv.childNodes.length; i++) {
-        
-        if (configgroupsdiv.childNodes[i].type == 'checkbox') {
-            YAHOO.util.Dom.setAttribute(configgroupsdiv.childNodes[i], 'disabled', false);
-        }
-    }
-};
+//M.block_ajax_marking.enable_config_radio_buttons = function() {
+//    
+//    var radio = document.getElementById('configshowform');
+//    YAHOO.util.setStyle(radio, 'color', '#000');
+//
+//    var radiolength = radio.childNodes.length;
+//
+//    for (var h = 0; h < radiolength; h++) {
+//        
+//        if (radio.childNodes[h].name == 'showhide') {
+//            YAHOO.util.Dom.setAttribute(radio.childNodes[h], 'disabled', false);
+//        }
+//    }
+//    
+//    var configgroupsdiv = document.getElementById('configgroupsdiv');
+//    YAHOO.util.setStyle(configgroupsdiv, 'color', '#000');
+//
+//    for (var i = 0; i < configgroupsdiv.childNodes.length; i++) {
+//        
+//        if (configgroupsdiv.childNodes[i].type == 'checkbox') {
+//            YAHOO.util.Dom.setAttribute(configgroupsdiv.childNodes[i], 'disabled', false);
+//        }
+//    }
+//};
 
 /**
  * Makes one of the config checkboxes and attaches it to the form next to the config tree
  */
-M.block_ajax_marking.makeBox = function(value, id, label, formDiv) {
-
-    var box = '';
-
-    try{
-        box = document.createElement('<input type="radio" name="showhide" />');
-    }catch(error){
-        box = document.createElement('input');
-    }
-    box.setAttribute('type','radio');
-    box.setAttribute('name','showhide');
-    box.value = value;
-    box.id    = id;
-    box.onclick = function() {
-        M.block_ajax_marking.request_config_checkbox_data(this);
-    };
-    formDiv.appendChild(box);
-
-    var boxText = document.createTextNode(label);
-    formDiv.appendChild(boxText);
-
-    var breaker = document.createElement('br');
-    formDiv.appendChild(breaker);
-
-};
+//M.block_ajax_marking.makeBox = function(value, id, label, formDiv) {
+//
+//    var box = '';
+//
+//    try{
+//        box = document.createElement('<input type="radio" name="showhide" />');
+//    }catch(error){
+//        box = document.createElement('input');
+//    }
+//    box.setAttribute('type','radio');
+//    box.setAttribute('name','showhide');
+//    box.value = value;
+//    box.id    = id;
+//    box.onclick = function() {
+//        M.block_ajax_marking.request_config_checkbox_data(this);
+//    };
+//    formDiv.appendChild(box);
+//
+//    var boxText = document.createTextNode(label);
+//    formDiv.appendChild(boxText);
+//
+//    var breaker = document.createElement('br');
+//    formDiv.appendChild(breaker);
+//
+//};
 
 /**
  * This function disables the radio buttons when AJAX request is sent so that
@@ -827,30 +1058,30 @@ M.block_ajax_marking.makeBox = function(value, id, label, formDiv) {
  * 
  * @return void
  */
-M.block_ajax_marking.disable_config_radio_buttons = function() {
-
-    var radio = document.getElementById('configshowform');
-    YAHOO.util.setStyle(radio, 'color', '#aaa');
-    
-    var radiolength = radio.childNodes.length;
-    
-    for (var h = 0; h < radiolength; h++) {
-        
-        if (radio.childNodes[h].type == 'radio') {
-            YAHOO.util.Dom.setAttribute(radio.childNodes[h], 'disabled', true);
-        }
-    }
-    
-    var configgroupsdiv = document.getElementById('configgroupsdiv');
-    YAHOO.util.setStyle(configgroupsdiv, 'color', '#aaa');
-
-    for (var i = 0; i < configgroupsdiv.childNodes.length; i++) {
-        
-        if (configgroupsdiv.childNodes[i].type == 'checkbox') {
-            YAHOO.util.Dom.setAttribute(configgroupsdiv.childNodes[i], 'disabled', true);
-        }
-    }
-};
+//M.block_ajax_marking.disable_config_radio_buttons = function() {
+//
+//    var radio = document.getElementById('configshowform');
+//    YAHOO.util.setStyle(radio, 'color', '#aaa');
+//    
+//    var radiolength = radio.childNodes.length;
+//    
+//    for (var h = 0; h < radiolength; h++) {
+//        
+//        if (radio.childNodes[h].type == 'radio') {
+//            YAHOO.util.Dom.setAttribute(radio.childNodes[h], 'disabled', true);
+//        }
+//    }
+//    
+//    var configgroupsdiv = document.getElementById('configgroupsdiv');
+//    YAHOO.util.setStyle(configgroupsdiv, 'color', '#aaa');
+//
+//    for (var i = 0; i < configgroupsdiv.childNodes.length; i++) {
+//        
+//        if (configgroupsdiv.childNodes[i].type == 'checkbox') {
+//            YAHOO.util.Dom.setAttribute(configgroupsdiv.childNodes[i], 'disabled', true);
+//        }
+//    }
+//};
 
 /**
  * funtion to refresh all the nodes once the update operations have all been carried out by
@@ -860,6 +1091,8 @@ M.block_ajax_marking.disable_config_radio_buttons = function() {
  * @return void
  */
 M.block_ajax_marking.refresh_tree_after_changes = function(treeobject) {
+    
+    treeobject.render();
     
     treeobject.root.refresh();
 
@@ -885,8 +1118,8 @@ M.block_ajax_marking.refresh_tree_after_changes = function(treeobject) {
 M.block_ajax_marking.refresh_tree = function(treeobject) {
 
     // might be no nodes left after marking them all previously
-    if (M.block_ajax_marking.markingtree.root.nodesLength === 0) {
-        M.block_ajax_marking.markingtree.build_ajax_tree();
+    if (M.block_ajax_marking.tree.root.nodesLength === 0) {
+        M.block_ajax_marking.tree.build_ajax_tree();
     }
     
     treeobject.build_ajax_tree();
@@ -953,9 +1186,14 @@ M.block_ajax_marking.make_config_groups_list = function(data) {
     }
     
     // remove the ajax loader icon and re-enable the radio buttons
-    M.block_ajax_marking.configtree.icon.removeAttribute('class', 'loaderimage');
-    M.block_ajax_marking.configtree.icon.removeAttribute('className', 'loaderimage');
+    M.block_ajax_marking.tree.icon.removeAttribute('class', 'loaderimage');
+    M.block_ajax_marking.tree.icon.removeAttribute('className', 'loaderimage');
     M.block_ajax_marking.enable_config_radio_buttons();
+};
+
+M.block_ajax_marking.ajax_timeout_handler = function(o) {
+    // Do something sensible
+   
 };
 
 /**
@@ -1012,7 +1250,7 @@ M.block_ajax_marking.config_checkbox_onclick = function() {
                    +'&type=config_group_save&userid='+M.str.block_ajax_marking.userid
                    +'&showhide=2&groups='+groupids;
 
-    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxurl, block_ajax_marking_callback, postdata);
+    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl, block_ajax_marking_callback, postdata);
 };
 
 /**
@@ -1085,49 +1323,49 @@ M.block_ajax_marking.initialise_config_panel = function () {
  */
 M.block_ajax_marking.build_config_overlay = function() {
 
-    var yamb = M.block_ajax_marking;
+    var mbam = M.block_ajax_marking;
 
-    if (!yamb.configoverlaypanel) {
+    if (!mbam.configoverlaypanel) {
 
-        yamb.initialise_config_panel();
+        mbam.initialise_config_panel();
 
-        var settingsheadertext = yamb.variables.settingsheadertext+' '+yamb.variables.fullname;
-        yamb.configoverlaypanel.setHeader(settingsheadertext);
+        var settingsheadertext = mbam.variables.settingsheadertext+' '+mbam.variables.fullname;
+        mbam.configoverlaypanel.setHeader(settingsheadertext);
 
         // TODO use yui layout widget for this
         var bodytext = "<div id='configicon' class='block_ajax_marking_hidden'></div>"
         		     + "<div id='configstatus'></div>"
         		     + "<div id='configtree'></div>"
         		     + "<div id='configSettings'>"
-                         + "<div id='configInstructions'>"+yamb.variables.instructions+"</div>"
+                         + "<div id='configInstructions'>"+mbam.variables.instructions+"</div>"
                          + "<div id='configCheckboxes'>"
                          		+ "<form id='configshowform' name='configshowform'></form>"
                          + "</div>"
                          + "<div id='configgroupsdiv'></div>"
                      + "</div>";
 
-        yamb.configoverlaypanel.setBody(bodytext);
+        mbam.configoverlaypanel.setBody(bodytext);
 
-        yamb.configoverlaypanel.beforeHideEvent.subscribe(function() {
-            yamb.refresh_tree(yamb.markingtree);
+        mbam.configoverlaypanel.beforeHideEvent.subscribe(function() {
+            mbam.refresh_tree(mbam.tree);
         });
 
-        yamb.configoverlaypanel.render(document.body);
-        yamb.configoverlaypanel.show();
+        mbam.configoverlaypanel.render(document.body);
+        mbam.configoverlaypanel.show();
         
         // Now that the grey overlay is in place with all the divs ready, we build the config tree
-        if (typeof (yamb.configtree) != 'object') {
-            yamb.configtree = yamb.tree_factory('config');
-            yamb.configtree.build_ajax_tree();
+        if (typeof (mbam.tree) != 'object') {
+            mbam.tree = mbam.tree_factory('config');
+            mbam.tree.build_ajax_tree();
         }
         
-        YAHOO.util.Dom.addClass(yamb.configtree.icon, 'loaderimage');
+        YAHOO.util.Dom.addClass(mbam.tree.icon, 'loaderimage');
 
     } else {
         // It's all there from earlier, so just show it
-        yamb.configoverlaypanel.show();
-        yamb.remove_config_right_panel_contents();
-        yamb.refresh_tree(yamb.configtree);
+        mbam.configoverlaypanel.show();
+        mbam.remove_config_right_panel_contents();
+        mbam.refresh_tree(mbam.tree);
     }
 };
 
@@ -1200,7 +1438,7 @@ M.block_ajax_marking.request_config_checkbox_data = function(checkbox) {
     
     M.block_ajax_marking.disable_config_radio_buttons();
     
-    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxurl, block_ajax_marking_callback, postData);
+    YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl, block_ajax_marking_callback, postData);
 };
 
 /**
@@ -1245,7 +1483,7 @@ M.block_ajax_marking.make_footer = function () {
     var refreshbutton = new YAHOO.widget.Button({
             label     : M.str.block_ajax_marking.refresh,
             id        : 'block_ajax_marking_collapse',
-            onclick   : {fn: function() {M.block_ajax_marking.refresh_tree(M.block_ajax_marking.markingtree);}},
+            onclick   : {fn: function() {M.block_ajax_marking.refresh_tree(M.block_ajax_marking.tree);}},
             container : 'block_ajax_marking_refresh_button'});
 
 //    var configurebutton = new YAHOO.widget.Button({
@@ -1300,6 +1538,50 @@ M.block_ajax_marking.tree_factory = function (type) {
     return treeobject;
 };
 
+
+M.block_ajax_marking.show_modal_grading_interface = function(postdata) {
+    
+    // Make the overlay 
+    // Initialize the temporary Panel to display while waiting for external content to load 
+    if (typeof(M.block_ajax_marking.gradinginterface) === 'undefined') {
+                    
+        M.block_ajax_marking.gradinginterface =  
+            new YAHOO.widget.Panel('gradinginterface',   
+                { width:"600px",  
+                  fixedcenter:true,  
+                  close:true,  
+                  draggable:false,  
+                  zindex:4, 
+                  modal:true, 
+                  visible:false 
+                }  
+            ); 
+    }
+	 
+    // display it with a loading icon
+    M.block_ajax_marking.gradinginterface.setHeader("Loading, please wait..."); 
+	M.block_ajax_marking.gradinginterface.setBody('<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/images/ajax-loader.gif" />'); 
+	M.block_ajax_marking.gradinginterface.render(document.body); 
+    M.block_ajax_marking.gradinginterface.cfg.setProperty('visible', true);
+    // display it with a loading icon
+    
+    // send off the ajax request for it's contents
+//    var postdata = clickednode.data.returndata.join();
+    postdata += '&sesskey='+M.cfg.sesskey;
+
+    YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxgradingurl, block_ajax_marking_callback, postdata);
+    
+    // store the target url so we can use it for adding the ajax submit listener.
+    M.block_ajax_marking.gradingholder = postdata;
+    
+}
+
+M.block_ajax_marking.hide_modal_grading_interface = function(url) {
+    M.block_ajax_marking.gradinginterface.cfg.setProperty('visible', false);
+    
+}
+
+
 /**
  * Callback object for the AJAX call, which fires the correct function. Doesn't work when part 
  * of the main class. Don't know why - something to do with scope.
@@ -1311,6 +1593,7 @@ var  block_ajax_marking_callback = {
     cache    : false,
     success  : M.block_ajax_marking.ajax_success_handler,
     failure  : M.block_ajax_marking.ajax_failure_handler,
+    abort    : M.block_ajax_marking.ajax_timeout_handler,
     scope    : M.block_ajax_marking,
     // TODO: find out what this was for as the timeouts seem not to be working
     // argument : 1200,
@@ -1347,11 +1630,24 @@ M.block_ajax_marking.initialise = function() {
     }
     
     // the context menu needs this for the skin to show up, as do other bits
-    YAHOO.util.Dom.addClass(document.body, 'yui-skin-sam');
+    // YAHOO.util.Dom.addClass(document.body, 'yui-skin-sam');
     
-    M.block_ajax_marking.markingtree = M.block_ajax_marking.tree_factory('main');
+    // Make total message:
+    //label = document.createTextNode(M.str.block_ajax_marking.totaltomark+': ');
+    //var total = document.getElementById('totalmessage');
+    // M.block_ajax_marking.remove_all_child_nodes(total);
+    //total.appendChild(label);
+    
+    M.block_ajax_marking.tree = M.block_ajax_marking.tree_factory('main');
 
-    M.block_ajax_marking.markingtree.build_ajax_tree();
+    M.block_ajax_marking.tree.build_ajax_tree();
+    
+    // Make the 
+    
+    // Make the footer
+    if (!document.getElementById('block_ajax_marking_collapse')) {
+        M.block_ajax_marking.make_footer();
+    }
 }
 <?php
 // Get the IDE to do proper script highlighting
@@ -1371,23 +1667,24 @@ $moduledir = opendir(dirname(__FILE__).'/modules');
 if ($moduledir) {
     
     // We never instantiate the classes, but it complains if it can't find the base class
-    require_once(dirname(__FILE__).'/classes/module_base.class.php');
+    //require_once(dirname(__FILE__).'/classes/module_base.class.php');
     
     // Loop through the module files, including each one, then echoing the extra javascript from it
-    while (($modfile = readdir($moduledir)) !== false) {
+    while (($moddir = readdir($moduledir)) !== false) {
         
         // Ignore any that don't fit the pattern, like . and ..
-        if (preg_match('/([a-z]*)_grading.php$/', $modfile, $matches)) {
-            require_once(dirname(__FILE__).'/modules/'.$modfile);
+        if (preg_match('/^([a-z]*)$/', $moddir, $matches)) {
+            require_once(dirname(__FILE__).'/modules/'.$moddir.'/'.$moddir.'.js');
             
-            $modclassname = 'block_ajax_marking_'.$matches[1];
-            echo "\n\n// Including extra javascript for the ".$matches[1]." module\n\n";
-            echo $modclassname::extra_javascript();
+//            $modclassname = 'block_ajax_marking_'.$matches[1];
+//            echo "\n\n// Including extra javascript for the ".$matches[1]." module\n\n";
+//            echo $modclassname::extra_javascript();
         }
         
     }
     
     closedir($moduledir);
 }
+
 
 ?>

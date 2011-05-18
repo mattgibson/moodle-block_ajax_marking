@@ -89,21 +89,21 @@ class block_ajax_marking extends block_base {
             if ($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
 
                 // Add a style to hide the HTML list and prevent flicker
-                $s  = '<script type="text/javascript" defer="defer">';
-                $s .= '/* <![CDATA[ */ var styleElement = document.createElement("style");';
-                $s .= 'styleElement.type = "text/css";';
-                $s .= 'if (styleElement.styleSheet) {';
-                $s .=     'styleElement.styleSheet.cssText = "#block_ajax_marking_html_list { display: none; }";';
-                $s .= '} else {';
-                $s .=     'styleElement.appendChild(document.createTextNode("#block_ajax_marking_html_list {display: none;}"));';
-                $s .= '}';
-                $s .= 'document.getElementsByTagName("head")[0].appendChild(styleElement);';
-                $s .= '/* ]]> */</script>';
+                $s  = '<script type="text/javascript" defer="defer">'.
+                      '/* <![CDATA[ */ var styleElement = document.createElement("style");'.
+                      'styleElement.type = "text/css";'.
+                      'if (styleElement.styleSheet) {'.
+                          'styleElement.styleSheet.cssText = "#block_ajax_marking_html_list { display: none; }";'.
+                      '} else {'.
+                          'styleElement.appendChild(document.createTextNode("#block_ajax_marking_html_list {display: none;}"));'.
+                      '}'.
+                      'document.getElementsByTagName("head")[0].appendChild(styleElement);'.
+                      '/* ]]> */</script>';
 
                 $this->content->text .=  $s;
 
                 $variables  = array(
-                        'wwwroot'             => $CFG->wwwroot,
+                       // 'wwwroot'             => $CFG->wwwroot,
                         'totaltomark'         => get_string('totaltomark',         'block_ajax_marking'),
                         'userid'              => $USER->id,
                         'instructions'        => get_string('instructions',        'block_ajax_marking'),
@@ -127,7 +127,7 @@ class block_ajax_marking extends block_base {
                 $jsmodule = array(
                     'name'     => 'block_ajax_marking',
                     'fullpath' => '/blocks/ajax_marking/module.js.php',
-                    'requires' => array('yui2-treeview', 'yui2-button', 'yui2-connection', 'yui2-json'),
+                    'requires' => array('yui2-treeview', 'yui2-button', 'yui2-connection', 'yui2-json', 'yui2-container'),
                     'strings' => array(
                         array('totaltomark',         'block_ajax_marking'),
                         array('instructions',        'block_ajax_marking'),
@@ -175,12 +175,12 @@ class block_ajax_marking extends block_base {
                 // by javascript.
                 $this->content->text .= "
                     <div id='total'>
-                        <div id='totalmessage'></div>
+                        <div id='totalmessage'>".get_string('totaltomark', 'block_ajax_marking').": <span id='count'></span></div>
                         <div id='count'></div>
                         <div id='mainicon'></div>
                     </div>
                     <div id='status'></div>
-                    <div id='treediv' class='yui-skin-sam'></div>";
+                    <div id='treediv'></div>";
 
                 // Don't warn about javascript if the screenreader option is set - it was deliberate
                 if (!$USER->screenreader) {
@@ -194,6 +194,9 @@ class block_ajax_marking extends block_base {
 
                 //$PAGE->requires->js_init_call('M.block_ajax_marking.hide_html_list', null, true, $jsmodule);
                 $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true, $jsmodule);
+                
+                // Include the CSS from the modules.
+                $PAGE->requires->css('/blocks/ajax_marking/module_styles.php');
                 
                 // also need to add any js from individual modules, which the html list will
                 // have provided
@@ -243,4 +246,6 @@ class block_ajax_marking extends block_base {
         block_ajax_marking_update_modules();
 
     }
+    
+    
 }

@@ -26,42 +26,104 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-require_once(dirname(__FILE__) . '/../../../config.php');
+//define('AJAX_SCRIPT', true);
 
-$module = required_param('module', PARAM_ALPHA); // attempt id
-$uniqueid = required_param('uniqueid', PARAM_ALPHANUMEXT);
+require_once(dirname(__FILE__).'/../../../config.php');
+
+
+// Each popup request will have different stuff that we want to pass to $moduleobject->grading_popup()
+$params = array();
+// Use GET to discriminate between submitted form stuff and opening stuff.
+foreach ($_GET as $name => $value) {
+    $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
+}
+
+//TODO - doesn't work for form submit
+$mod  = required_param('mod',  PARAM_ALPHA);
+$cmid = required_param('cmid', PARAM_INT);
+$node = required_param('node', PARAM_INT);
+
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
-require_once("{$CFG->dirroot}/blocks/ajax_marking/modules/{$module}_grading.php");
+require_once($CFG->dirroot."/blocks/ajax_marking/modules/{$mod}/block_ajax_marking_{$mod}.class.php");
 
-$classname = 'block_ajax_marking_'.$module;
+$classname = 'block_ajax_marking_'.$mod;
 
-// stuff from /mod/quiz/comment.php - catch data if this is a self-submit
-if ($data = data_submitted() and confirm_sesskey()) {
+if (!class_exists($classname)) {
+    print_error('AJAX marking block does not support the '.$mod.' module');
+    die();
+}
+
+$moduleobject = new $classname;
+
+$coursemodule = $DB->get_record('course_modules', array('id' => $cmid));
+
+if (!$coursemodule) {
+    print_error('Bad coursemoduleid');
+    die();
+}
+
+require_login($coursemodule->course, false, $coursemodule);
+
+$context = get_context_instance(CONTEXT_MODULE, $cmid);
+
+if (!has_capability($moduleobject->capability, $context)) {
+    print_error('You do not have permission to grade submissions for this course module');
+    die();
+}
+
+// stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be processed
+$data = data_submitted();
+
+//if (0) {
+if ($data && confirm_sesskey()) {
 
     // make sure this includes require_login() in order to set page context properly
-    $error = $classname::process_data($data);
+    $error = $moduleobject->process_data($data, $params);
 
     // If success, notify and print a close button.
     if (!is_string($error)) {
-
-        $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', array('module' => $module));
+        
+        $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', array('module' => $mod));
         $PAGE->set_url($url);
         $PAGE->set_pagelayout('popup');
         
         echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
         
-        $PAGE->requires->js_function_call('window.opener.YAHOO.ajax_marking_block.markingtree.remove_node_from_tree',
-                                          array($uniqueid));
-        close_window(2, false);
+        $PAGE->requires->js_function_call('window.opener.M.block_ajax_marking.tree.remove_node_from_tree',
+                                          array($node));
+        close_window(1);
     }
 
-    // Otherwise, display the error and fall throug to re-display the form.
+    // Otherwise, display the error and fall through to re-display the form.
     echo $OUTPUT->notification($error);
 }
 
-$classname::grading_popup($uniqueid);
+// Get the pop up header etc ready. This allows us the separate the interface (form) from whether it's a pop up 
+// or an ajax operation.
+$url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
+//add_to_log($coursemodule->course, $params['mod'], 'AJAX Marking block grading popup', '/blocks/ajax_marking/actions/grading_popup.php'.$url->get_query_string(FALSE));
+$PAGE->set_url($url);
+$PAGE->set_context($context);
+$PAGE->set_pagelayout('popup');
+
+echo $OUTPUT->header();
+echo $moduleobject->grading_popup($params, $coursemodule);
+echo $OUTPUT->footer();
+
+
+// Make the grading interface via AJAX
+//$data = new stdClass();
+//$data->payloadtype = 'gradinginterface';
+//
+//// Problem here: the mforms echo by default.
+//$output = array('data' => $data, 'content' => $moduleobject->grading_popup($params, $coursemodule));
+//
+//echo json_encode($output);
+
+
+
 
 
 ?>
