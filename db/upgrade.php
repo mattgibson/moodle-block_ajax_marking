@@ -42,8 +42,17 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
 
     $dbman = $DB->get_manager();
 
-    // TODO untested 
-    if ($oldversion < 2010061801) {
+    // TODO make this only happen on the 2.0 upgrade 
+    // 1.9 latest version 2010101301
+    // actual pooint where the code was written: 2010061801 (2.0
+    // This should trigger on any verison of 1.9 now, provided 1.9 is not changed again.
+    // If people have already installed 2.0 and the upgrade didn't work...
+    // If they installed 2.0 and the upgrade did work?
+    
+    //$table = new xmldb_table('block_ajax_marking_groups');
+    
+    if ($oldversion < 2010101302) {
+//    if ($oldversion < 2010101302 || !$dbman->table_exists($table)) {
 
         // Define key useridkey (foreign) to be dropped from block_ajax_marking
         $table = new xmldb_table('block_ajax_marking');
@@ -57,47 +66,48 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         $table->add_field('id',       XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
         $table->add_field('configid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null);
         $table->add_field('groupid',  XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null);
-        $table->add_field('display',  XMLDB_TYPE_INTEGER, '1',  XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null);
+        $table->add_field('display',  XMLDB_TYPE_INTEGER, '1',  XMLDB_UNSIGNED, XMLDB_NOTNULL, null, 1, null);
 
         // Adding keys to table block_ajax_marking_groups
         $table->add_key('primary',     XMLDB_KEY_PRIMARY, array('id'));
         $table->add_key('configid-id', XMLDB_KEY_FOREIGN, array('configid'), 'block_ajax_marking', array('id'));
 
         // Launch create table for block_ajax_marking_groups
-        $dbman->create_table($table);
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        
+            // Transfer all groups stuff to the new table
+            $sql = "SELECT id, groups FROM {block_ajax_marking}";
+            $oldrecords = $DB->get_records_sql($sql);
 
-        // Transfer all groups stuff to the new table
+            foreach ($oldrecords as $record) {
 
-        $sql = "SELECT id, groups FROM {block_ajax_marking}";
-        $oldrecords = $DB->get_records_sql($sql);
+                // expand the csv groups from the groups column
+                if(!empty($record->groups)) {
+                    $groups = explode(' ', trim($record->groups));
 
-        foreach ($oldrecords as $record) {
-
-            // get the csv groups from the groups column
-            if(!empty($record->groups)) {
-                $groups = explode(' ', trim($record->groups));
-
-                foreach ($groups as $group) {
-                    $data = new stdClass;
-                    $data->groupid  = $group;
-                    $data->configid = $record->id;
-                    $DB->insert_record('block_ajax_marking_groups', $data);
+                    foreach ($groups as $group) {
+                        $data = new stdClass;
+                        $data->groupid  = $group;
+                        $data->configid = $record->id;
+                        $DB->insert_record('block_ajax_marking_groups', $data);
+                    }
                 }
             }
-        }
 
-        //Drop the groups column on the old table
-        
-        // Define field groups to be dropped from block_ajax_marking
-        $table = new xmldb_table('block_ajax_marking');
-        $field = new xmldb_field('groups');
+            //Drop the groups column on the old table
 
-        // Launch drop field groups
-        if ($dbman->field_exists($table, $field)) {
-            $dbman->drop_field($table, $field);   
+            // Define field groups to be dropped from block_ajax_marking
+            $table = new xmldb_table('block_ajax_marking');
+            $field = new xmldb_field('groups');
+
+            // Launch drop field groups
+            if ($dbman->field_exists($table, $field)) {
+                $dbman->drop_field($table, $field);   
+            }
         }
         
-        upgrade_block_savepoint(true, 2010061801, 'ajax_marking');
+        upgrade_block_savepoint(true, 2010101302, 'ajax_marking');
 
 
     }
@@ -128,6 +138,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
                 
         upgrade_block_savepoint(true, 2011040602, 'ajax_marking');
     }
+    
     
 
     return true;
