@@ -29,7 +29,10 @@ if (!defined('MOODLE_INTERNAL')) {
     die();
 }
 
+global $CFG;
+
 require_once($CFG->dirroot.'/blocks/ajax_marking/modules/assignment/block_ajax_marking_assignment_form.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 
 /**
  * Wrapper for the module_base class which adds the parts that deal with the assignment module.
@@ -81,24 +84,24 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      *
      * @return void
      */
-    function get_all_gradable_items($courseids) {
-
-        global $CFG, $DB;
-        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-
-        $sql = "SELECT a.id, a.name, a.intro as summary, a.course, c.id as cmid
-                  FROM {assignment} a
-            INNER JOIN {course_modules} c
-                    ON a.id = c.instance
-                 WHERE c.module = :moduleid
-                   AND c.visible = 1
-                   AND a.course $usql
-              ORDER BY a.id";
-        $params['moduleid'] = $this->get_module_id();
-        $assignments = $DB->get_records_sql($sql, $params);
-        $this->assessments = $assignments;
-
-    }
+//    function get_all_gradable_items($courseids) {
+//
+//        global $CFG, $DB;
+//        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+//
+//        $sql = "SELECT a.id, a.name, a.intro as summary, a.course, cm.id as cmid
+//                  FROM {assignment} a
+//            INNER JOIN {course_modules} cm
+//                    ON a.id = cm.instance
+//                 WHERE cm.module = :moduleid
+//                   AND cm.visible = 1
+//                   AND a.course $usql
+//              ORDER BY a.id";
+//        $params['moduleid'] = $this->get_module_id();
+//        $assignments = $DB->get_records_sql($sql, $params);
+//        $this->assessments = $assignments;
+//
+//    }
 
     /**
      * Makes a link for the pop up window so the work can be marked
@@ -110,13 +113,13 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         global $CFG;
         
-        $address = $CFG->wwwroot.'/mod/assignment/submissions.php?id='.$item->cmid;
+        $address = $CFG->wwwroot.'/mod/assignment/submissions.php?id='.$item->coiursemoduleid;
         return $address;
     }
     
-    protected function get_sql_submission_table() {
-        return 'assignment_submissions';
-    }
+//    protected function get_sql_submission_table() {
+//        return 'assignment_submissions';
+//    }
     
     
     /**
@@ -124,31 +127,29 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * 
      * @return array the select, join and where clauses, with the aliases for module and submission tables
      */
-    protected function get_sql_count() {
-        
-        global $DB;
-        
-        $moduletable = $this->get_sql_module_table();
-        $submissiontable = $this->get_sql_submission_table();
-        
-        $from =     "FROM {{$moduletable}} moduletable
-               INNER JOIN {{$submissiontable}} sub
-                       ON sub.assignment = moduletable.id ";
-               
-//        $subdatacompare = $DB->sql_compare_text($fieldname, $numchars=32);
-                       
-        $where =   "WHERE sub.timemarked < sub.timemodified
-                  AND NOT ((moduletable.resubmit = 0 
-                           AND sub.timemarked > 0)
-                       OR (".$DB->sql_compare_text('moduletable.assignmenttype')." = 'upload' 
-                           AND ".$DB->sql_compare_text('sub.data2')." != 'submitted')) ";
-        
-        
-        
-        $params = array();
-                       
-        return array($from, $where, $params);
-    }
+//    protected function get_sql_count() {
+//        
+//        global $DB;
+//        
+//        $moduletable = $this->get_sql_module_table();
+//        $submissiontable = $this->get_sql_submission_table();
+//        
+//        $from =     "FROM {{$moduletable}} moduletable
+//               INNER JOIN {{$submissiontable}} sub
+//                       ON sub.assignment = moduletable.id ";
+//               
+////        $subdatacompare = $DB->sql_compare_text($fieldname, $numchars=32);
+//                       
+//        $where =   "WHERE sub.timemarked < sub.timemodified
+//                  AND NOT ((moduletable.resubmit = 0 
+//                           AND sub.timemarked > 0)
+//                       OR (".$DB->sql_compare_text('moduletable.assignmenttype')." = 'upload' 
+//                           AND ".$DB->sql_compare_text('sub.data2')." != 'submitted')) ";
+//        
+//        $params = array();
+//                       
+//        return array($from, $where, $params);
+//    }
  
     
     /**
@@ -185,8 +186,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         }
         
         $course = $DB->get_record('course', array('id' => $assignment->course));
-        $coursemodule = $DB->get_record('course_modules', array('id' => $params['cmid']));
-        $context = get_context_instance(CONTEXT_MODULE, $params['cmid']);
+        $coursemodule = $DB->get_record('course_modules', array('id' => $params['coursemoduleid']));
+        $context = get_context_instance(CONTEXT_MODULE, $params['coursemoduleid']);
         
         // TODO more sanity and security checks
         $user = $DB->get_record('user', array('id' => $submission->userid));
@@ -329,7 +330,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         }
         
         // get DB records
-        $coursemodule = $DB->get_record('course_modules', array('id' => $params['cmid']));
+        $coursemodule = $DB->get_record('course_modules', array('id' => $params['coursemoduleid']));
         $assignment   = $DB->get_record('assignment', array('id' => $coursemodule->instance));
         $grading_info = grade_get_grades($coursemodule->course, 'mod', 'assignment', $assignment->id, $data->userid);
         $submission   = $DB->get_record('assignment_submissions', array('assignment' => $assignment->id, 
@@ -429,22 +430,87 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         }
 
         return true;
-        
     }
     
-    protected function get_sql_submissions_select($moduleid=null) {
+//    protected function get_sql_submissions_select($moduleid=null) {
+//        
+//        return array(
+//                'sub.id AS subid',
+//                '1 AS count',
+//                'moduletable.intro AS description',
+//                'sub.timemodified AS time',
+//                'sub.userid',
+//                'cm.id AS cmid',
+//                'u.firstname', 
+//                'u.lastname'
+//        );
+//    }
+
+    /**
+     * Returns a query object with the basics all set up to get assignment stuff
+     * 
+     * @global type $DB
+     * @return block_ajax_marking_query_base 
+     */
+    public function query_factory($callback = false) {
         
-        return array(
-                'sub.id AS subid',
-                '1 AS count',
-                'moduletable.intro AS description',
-                'sub.timemodified AS time',
-                'sub.userid',
-                'cm.id AS cmid',
-                'u.firstname', 
-                'u.lastname'
-        );
+        global $DB;
+        
+        $query = new block_ajax_marking_query_base($this);
+        
+        $query->set_userid_column('sub.userid');
+
+        $submissiontable = 'assignment_submissions';
+
+        $query->add_from(array(
+                'table' => 'assignment',
+                'alias' => 'moduletable',
+        ));
+
+        $query->add_from(array(
+                'join' => 'INNER JOIN',
+                'table' => $submissiontable,
+                'alias' => 'sub',
+                'on' => 'sub.assignment = moduletable.id'
+        ));
+
+        $query->add_where(array('type' => 'AND', 'condition' => 'sub.timemarked < sub.timemodified'));
+        $query->add_where(array('type' => 'AND', 'condition' => 
+                "NOT ( (moduletable.resubmit = 0 AND sub.timemarked > 0)
+                       OR (".$DB->sql_compare_text('moduletable.assignmenttype')." = 'upload' 
+                           AND ".$DB->sql_compare_text('sub.data2')." != 'submitted') )"));
+
+        return $query;
     }
+    
+    /**
+     * Add any tweaks needed to get the submissions to work
+     * 
+     * @param block_ajax_marking_query_base $query 
+     * @param string $type The main type  of query, i.e. the filter that is providing the SELECT
+     * @return void
+     */
+    public function alter_query_hook(block_ajax_marking_query_base $query, $type = false) {
+        
+        switch ($type) {
+            
+            case 'submissions':
+                // Add the extra select stuff
+                $query->add_select(array(
+                        'table' => 'user',
+                        'column' => 'firstname',
+                ));
+                $query->add_select(array(
+                        'table' => 'user',
+                        'column' => 'lastname',
+                ));
+                break;
 
-
+            default:
+                break;
+        }
+    }
+    
+    
+    
 }

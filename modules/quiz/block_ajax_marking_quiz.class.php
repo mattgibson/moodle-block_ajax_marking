@@ -30,6 +30,8 @@ if (!defined('MOODLE_INTERNAL')) {
     die();
 }
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
+
 // We only need this file for the constants. Doing this so that we don't have problems including the file from
 // module.js.php
 global $CFG;
@@ -74,12 +76,68 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         $this->capability           = 'mod/quiz:grade';
         $this->icon                 = 'mod/quiz/icon.gif';
         $this->callbackfunctions    = array(
-                'quiz_questions',
+                'questionid',
                 'submissions'
         );
-        
     }
-   
+    
+    /**
+     * This will alter a query to send back the stuff needed for quiz questions
+     * 
+     * @param int $questionid the id to filter by
+     * @param type $query 
+     */
+    public function apply_questionid_filter(block_ajax_marking_query_base $query, $questionid = 0) {
+        
+        if (!$questionid) {
+            
+            $selects = array(
+                array(
+                    'table' => 'question', 
+                    'column' => 'id',
+                    'alias' => 'questionid'),
+                array(
+                    'table' => 'sub', 
+                    'column' => 'id',
+                    'alias' => 'count',
+                    'function' => 'COUNT'),
+                array(
+                    'table' => 'moduletable', 
+                    'column' => 'id',
+                    'alias' => 'assessmentid'),
+                array(
+                    'table' => 'question', 
+                    'column' => 'name'),
+                array(
+                    'table' => 'question', 
+                    'column' => 'questiontext',
+                    'alias' => 'tooltip'),
+                array(
+                    'column' => "'submissions'",
+                    'alias' => 'callbackfunction'
+                    ),
+                // This is only needed to add the right callback function. 
+                array(
+                    'column' => "'".$query->get_modulename()."'",
+                    'alias' => 'modulename'
+                        
+                    )
+            );
+            
+            foreach ($selects as $select) {
+                $query->add_select($select);
+            }
+            
+        } else {
+            // Apply WHERE clause
+            $query->add_where(array(
+                    'type' => 'AND', 
+                    'condition' => 'question.id = :'.$query->prefix_param_name('questionid')));
+            $query->add_param('questionid', $questionid);
+        }
+    }
+
+
     /**
      * Gets all of the question attempts for the current quiz. Uses the group
      * filtering function to display groups first if that has been specified via
@@ -91,55 +149,55 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      * @param int $groupid The id of the group that may have been supplied with the ajax request
      * @return void
      */
-    function quiz_questions($params) {
-
-        global $CFG, $USER, $DB;
-        
-        $data = new stdClass;
-        $nodes = array();
-        $data->nodetype = 'assessment';
-
-        $query = $this->get_sql_query_base();
-        
-        array_push($query['select'],
-                'q.id', 
-                'COUNT(sub.id) AS count',
-                'q.name',
-                'q.questiontext AS tooltip', 
-                'qa.timemodified AS time' 
-        );
-
-        // Filter to include only questions from this quiz
-        $query['where'] .= "AND moduletable.id = :assessmentid ";
-        $query['params']['assessmentid'] = $params['assessmentid'];
-        
-        $query['groupby'] = ' q.id';
-
-        $questions = $this->execute_sql_query($query);
-
-        foreach ($questions as $question) {
-                
-                if (strlen($question->tooltip) < 100) {
-                    $question->tooltip = substr($question->tooltip, 0, 100).'...';
-                }
-                
-                $question->name        = block_ajax_marking_clean_name_text($question->name, 30);
-                $question->tooltip     = block_ajax_marking_clean_tooltip_text($question->tooltip);
-//                $question->uniqueid    = 'quiz'.$params['assessmentid'].'quiz_question'.$question->id;
-                
-                $question->questionid           = $question->id;
-                $question->assessmentid         = $params['assessmentid'];
-                // TODO make this dynamic
-                $question->callbackfunction     = 'submissions';
-                
-//                $question->uniqueid             = 'quiz'.$params['assessmentid'].'quiz_question'.$question->id;
-                $question->modulename           = $this->modulename;
-                
-                block_ajax_marking_format_node($question);
-        }
-        
-        return array($data, array_values($questions));
-    }
+//    function quiz_questions($params) {
+//
+//        global $CFG, $USER, $DB;
+//        
+//        $data = new stdClass;
+//        $nodes = array();
+//        $data->nodetype = 'assessment';
+//
+//        $query = $this->get_sql_query_base();
+//        
+//        array_push($query['select'],
+//                'q.id', 
+//                'COUNT(sub.id) AS count',
+//                'q.name',
+//                'q.questiontext AS tooltip', 
+//                'qa.timemodified AS time' 
+//        );
+//
+//        // Filter to include only questions from this quiz
+//        $query['where'] .= "AND moduletable.id = ".$this->prefix_param_name('assessmentid');
+//        $query['params']['assessmentid'] = $params['assessmentid'];
+//        
+//        $query['groupby'] = ' q.id';
+//
+//        $questions = $this->execute_sql_query($query);
+//
+//        foreach ($questions as $question) {
+//                
+//                if (strlen($question->tooltip) < 100) {
+//                    $question->tooltip = substr($question->tooltip, 0, 100).'...';
+//                }
+//                
+//                $question->name        = block_ajax_marking_clean_name_text($question->name, 30);
+//                $question->tooltip     = block_ajax_marking_clean_tooltip_text($question->tooltip);
+////                $question->uniqueid    = 'quiz'.$params['assessmentid'].'quiz_question'.$question->id;
+//                
+//                $question->questionid           = $question->id;
+//                $question->assessmentid         = $params['assessmentid'];
+//                // TODO make this dynamic
+//                $question->callbackfunction     = 'submissions';
+//                
+////                $question->uniqueid             = 'quiz'.$params['assessmentid'].'quiz_question'.$question->id;
+//                $question->modulename           = $this->modulename;
+//                
+//                block_ajax_marking_format_node($question);
+//        }
+//        
+//        return array($data, array_values($questions));
+//    }
     
     /**
      * Need attemptid and questionid for the pop up
@@ -147,47 +205,47 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      * @param type $moduleid
      * @return type 
      */
-    protected function get_sql_submissions_select($moduleid) {
-        
-        return array(
-                'sub.id AS subid',
-                'moduletable.intro AS description',
-                'qa.timefinish AS time',
-                'COUNT(DISTINCT sub.id) as count',
-                'qa.id as attemptid',
-                'qsess.questionid',
-                'u.firstname', 
-                'u.lastname'
-        );
-    }
+//    protected function get_sql_submissions_select($moduleid) {
+//        
+//        return array(
+//                'sub.id AS subid',
+//                'moduletable.intro AS description',
+//                'qa.timefinish AS time',
+//                'COUNT(DISTINCT sub.id) as count',
+//                'qa.id as attemptid',
+//                'qsess.questionid',
+//                'u.firstname', 
+//                'u.lastname'
+//        );
+//    }
     
     /**
      * See parent class for docs
      * 
      * @return string
      */
-    protected function get_sql_submissions_groupby() {
-        
-        $useridcolumn = $this->get_sql_userid_column();
-        
-        return "{$useridcolumn}, qsess.questionid";
-    }
+//    protected function get_sql_submissions_groupby() {
+//        
+//        $useridcolumn = $this->get_sql_userid_column();
+//        
+//        return "{$useridcolumn}, qsess.questionid";
+//    }
     
     /**
      * See parent class for docs
      * 
      * @return string
      */
-    protected function get_sql_submission_where() {
-        return 'AND qsess.questionid = :questionid ';
-    }
-    
-    protected function popup_variables() {
-        return array(
-                'attemptid',
-                'questionid'
-        );
-    }
+//    protected function get_sql_submission_where() {
+//        return 'AND qsess.questionid = :'.$this->prefix_param_name('questionid');
+//    }
+//    
+//    protected function popup_variables() {
+//        return array(
+//                'attemptid',
+//                'questionid'
+//        );
+//    }
     
 
     /**
@@ -195,30 +253,30 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      *
      * @return void
      */
-    function get_all_gradable_items($courseids) {
-
-        global $CFG, $DB;
-
-        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-
-        $sql = "SELECT qz.id, qz.course, qz.intro as summary, qz.name, c.id as cmid
-                  FROM {quiz} qz
-            INNER JOIN {course_modules} c
-                    ON qz.id = c.instance
-            INNER JOIN {quiz_question_instances} qqi
-                    ON qz.id = qqi.quiz
-            INNER JOIN {question} q
-                    ON qqi.question = q.id
-                 WHERE c.module = :moduleid
-                   AND c.visible = 1
-                   AND q.qtype = 'essay'
-                   AND qz.course $usql
-              ORDER BY qz.id";
-        $params['moduleid'] = $this->get_module_id();
-        $quizzes = $DB->get_records_sql($sql, $params);
-        $this->assessments = $quizzes;
-
-    }
+//    function get_all_gradable_items($courseids) {
+//
+//        global $CFG, $DB;
+//
+//        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+//
+//        $sql = "SELECT qz.id, qz.course, qz.intro as summary, qz.name, cm.id as cmid
+//                  FROM {quiz} qz
+//            INNER JOIN {course_modules} cm
+//                    ON qz.id = cm.instance
+//            INNER JOIN {quiz_question_instances} qqi
+//                    ON qz.id = qqi.quiz
+//            INNER JOIN {question} q
+//                    ON qqi.question = q.id
+//                 WHERE cm.module = :".$this->prefix_param_name('moduleid')."
+//                   AND cm.visible = 1
+//                   AND q.qtype = 'essay'
+//                   AND qz.course $usql
+//              ORDER BY qz.id";
+//        $params['moduleid'] = $this->get_module_id();
+//        $quizzes = $DB->get_records_sql($sql, $params);
+//        $this->assessments = $quizzes;
+//
+//    }
 
     /**
      * Makes an HTML link for the pop up to allow grading of a question
@@ -238,38 +296,38 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      * 
      * @return array the select, join and where clauses, with the aliases for module and submission tables
      */
-    function get_sql_count() {
-        
-        global $DB;
-        
-        $moduletable = $this->get_sql_module_table();
-        $submissiontable = $this->get_sql_submission_table();
-        
-        $from = "    FROM {{$moduletable}} moduletable
-               INNER JOIN {quiz_attempts} qa
-                       ON moduletable.id = qa.quiz
-               INNER JOIN {question_sessions} qsess
-                       ON qsess.attemptid = qa.uniqueid
-               INNER JOIN {{$submissiontable}} sub
-                       ON qsess.newest = sub.id
-               INNER JOIN {question} q
-                       ON qsess.questionid = q.id ";
-                       
-        $where = "  WHERE qa.timefinish > 0
-                      AND qa.preview = 0
-                      AND ".$DB->sql_compare_text('q.qtype')." = 'essay'
-                      AND sub.event NOT IN (".QUESTION_EVENTGRADE.", ".
-                                              QUESTION_EVENTCLOSEANDGRADE.", ".
-                                              QUESTION_EVENTMANUALGRADE.") ";
-        
-        $params = array();
-                        
-        return array($from, $where, $params);
-    }
+//    function get_sql_count() {
+//        
+//        global $DB;
+//        
+//        $moduletable = $this->get_sql_module_table();
+//        $submissiontable = $this->get_sql_submission_table();
+//        
+//        $from = "    FROM {{$moduletable}} moduletable
+//               INNER JOIN {quiz_attempts} qa
+//                       ON moduletable.id = qa.quiz
+//               INNER JOIN {question_sessions} qsess
+//                       ON qsess.attemptid = qa.uniqueid
+//               INNER JOIN {{$submissiontable}} sub
+//                       ON qsess.newest = sub.id
+//               INNER JOIN {question} q
+//                       ON qsess.questionid = q.id ";
+//                       
+//        $where = "  WHERE qa.timefinish > 0
+//                      AND qa.preview = 0
+//                      AND ".$DB->sql_compare_text('q.qtype')." = 'essay'
+//                      AND sub.event NOT IN (".QUESTION_EVENTGRADE.", ".
+//                                              QUESTION_EVENTCLOSEANDGRADE.", ".
+//                                              QUESTION_EVENTMANUALGRADE.") ";
+//        
+//        $params = array();
+//                        
+//        return array($from, $where, $params);
+//    }
     
-    protected function get_sql_submission_table() {
-        return 'question_states';
-    }
+//    protected function get_sql_submission_table() {
+//        return 'question_states';
+//    }
     
     protected function get_sql_userid_column() {
         return 'qa.userid';
@@ -420,6 +478,116 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         return $attemptobj->process_comment($data->questionid, $data->response['comment'],
                                             FORMAT_HTML, $data->response['grade']);
 
+    }
+    
+    /**
+     * Returns a query object with the basics all set up to get assignment stuff
+     * 
+     * @global type $DB
+     * @return block_ajax_marking_query_base 
+     */
+    public function query_factory($callback = false) {
+        
+        global $DB;
+        
+        $query = new block_ajax_marking_query_base($this);
+        $query->set_userid_column('quiz_attempts.userid');
+        
+        global $DB;
+        
+        $query->add_from(array(
+                'table' => $this->modulename,
+                'alias' => 'moduletable',
+        ));
+        $query->add_from(array(
+                'join'  => 'INNER JOIN',
+                'table' => 'quiz_attempts',
+                'on'    => 'moduletable.id = quiz_attempts.quiz'
+        ));
+        $query->add_from(array(
+                'join'  => 'INNER JOIN',
+                'table' => 'question_sessions',
+                'alias' => 'qsess',
+                'on'    => 'qsess.attemptid = quiz_attempts.uniqueid'
+        ));
+        $query->add_from(array(
+                'join'  => 'INNER JOIN',
+                'table' => 'question_states',
+                'alias' => 'sub',
+                'on'    => 'qsess.newest = sub.id'
+        ));
+        $query->add_from(array(
+                'join'  => 'INNER JOIN',
+                'table' => 'question',
+                'on'    => 'qsess.questionid = question.id'
+        ));
+        
+        $query->add_where(array('type' => 'AND', 'condition' => 'quiz_attempts.timefinish > 0'));
+        $query->add_where(array('type' => 'AND', 'condition' => 'quiz_attempts.preview = 0'));
+        $query->add_where(array('type' => 'AND', 'condition' => $DB->sql_compare_text('question.qtype')." = 'essay'"));
+        $query->add_where(array('type' => 'AND', 'condition' => "sub.event NOT IN (".QUESTION_EVENTGRADE.", ".
+                                                                                     QUESTION_EVENTCLOSEANDGRADE.", ".
+                                                                                     QUESTION_EVENTMANUALGRADE.") "));
+        return $query;     
+    }
+    
+    
+    /**
+     * Fixes up the query with module specific tweaks
+     * 
+     * @global moodle_database $DB
+     * @param block_ajax_marking_query_base $query 
+     * @return void
+     */
+    public function alter_query_hook(block_ajax_marking_query_base $query, $type = false) {
+        
+        global $DB;
+        
+        switch ($type) {
+            
+            case 'submissions':
+                
+                // Add the extra select stuff
+                $query->add_select(array(
+                        'table' => 'user',
+                        'column' => 'firstname',
+                ));
+                $query->add_select(array(
+                        'table' => 'user',
+                        'column' => 'lastname',
+                ));
+                $query->add_select(array(
+                        'function' => 'COUNT',
+                        'table'    => 'sub',
+                        'column'   => 'id',
+                        'alias'    => 'count'
+                ));
+                $query->add_select(array(
+                        'table'    => 'sub',
+                        'column'   => 'timestamp',
+                        'alias'    => 'time'
+                ));
+                $query->add_select(array(
+                        'table'    => 'quiz_attempts',
+                        'column'   => 'userid'
+                ));
+                $query->add_select(array(
+                        'table'    => 'quiz_attempts',
+                        'column'   => 'id',
+                        'alias'    => 'attemptid'
+                ));
+                $query->add_select(array(
+                        'table'    => 'question',
+                        'column'   => 'id',
+                        'alias'    => 'questionid'
+                ));
+
+                break;
+                
+            default:
+                break;
+        }
+        
     }
     
 

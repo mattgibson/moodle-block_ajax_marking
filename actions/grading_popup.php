@@ -39,8 +39,8 @@ foreach ($_GET as $name => $value) {
 }
 
 //TODO - doesn't work for form submit
-$mod  = required_param('mod',  PARAM_ALPHA);
-$cmid = required_param('cmid', PARAM_INT);
+$mod  = required_param('modulename',  PARAM_ALPHA);
+$cmid = required_param('coursemoduleid', PARAM_INT);
 $node = required_param('node', PARAM_INT);
 
 
@@ -108,8 +108,11 @@ $PAGE->set_url($url);
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('popup');
 
+// may involve a redirect if we don't want a form
+$content = $moduleobject->grading_popup($params, $coursemodule);
+
 echo $OUTPUT->header();
-echo $moduleobject->grading_popup($params, $coursemodule);
+echo $content;
 echo $OUTPUT->footer();
 
 

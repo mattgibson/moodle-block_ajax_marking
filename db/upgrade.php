@@ -139,6 +139,73 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         upgrade_block_savepoint(true, 2011040602, 'ajax_marking');
     }
     
+    // Alter table structure ready for coursemodule stuff
+    if ($oldversion < 2011052301) {
+
+        // Define field groups to be dropped from block_ajax_marking
+        $table = new xmldb_table('block_ajax_marking');
+        $field = new xmldb_field('groups');
+
+        // Conditionally launch drop field groups
+        if ($dbman->field_exists($table, $field)) {
+            $dbman->drop_field($table, $field);
+        }
+        
+        $field = new xmldb_field('courseid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, null, null, '0', 'userid');
+
+        // Conditionally launch add field courseid
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        
+        $field = new xmldb_field('coursemoduleid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, null, null, '0', 'courseid');
+
+        // Conditionally launch add field coursemoduleid
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+        
+        $field = new xmldb_field('showhide', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'assessmentid');
+
+        // Launch rename field showhide
+        $dbman->rename_field($table, $field, 'display');
+        
+
+        // ajax_marking savepoint reached
+        upgrade_block_savepoint(true, 2011052301, 'ajax_marking');
+    }
+    
+    // Put all coursemodule things into place so that data is n both places
+    if ($oldversion < 2011052303) {
+        
+        $modules = array(
+               // 'assignment', 
+                'forum', 
+                'quiz', 
+                'workshop', 
+                'journal'
+        );
+        
+        foreach ($modules as $module) {
+            
+            // Get current coursemodules and put their ids into place
+            $sql = "UPDATE {block_ajax_marking} b
+                INNER JOIN {course_modules} cm
+                        ON cm.instance = b.assessmentid
+                INNER JOIN {modules} mt
+                        ON (cm.module = mt.id AND ".$DB->sql_compare_text('mt.name')." = '{$module}')
+                       SET b.coursemoduleid = cm.id
+                     WHERE b.assessmenttype = '{$module}'
+                        ";
+                        
+            $DB->execute($sql);
+        }
+        
+        
+        // ajax_marking savepoint reached
+        upgrade_block_savepoint(true, 2011052303, 'ajax_marking');
+    }
+    
     
 
     return true;

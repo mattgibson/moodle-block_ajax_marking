@@ -30,6 +30,8 @@ if (!defined('MOODLE_INTERNAL')) {
     die();
 }
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
+
 /**
  * Provides functionality for grading of forum discussions
  */
@@ -55,14 +57,12 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         parent::__construct();
         
         // must be the same as the DB modulename
-        $this->modulename        = 'forum';
+        $this->modulename  = 'forum';
         $this->capability  = 'mod/forum:viewhiddentimedposts';
         $this->icon        = 'mod/forum/icon.gif';
         $this->callbackfunctions   = array(
                 'submissions'
         );
-        
-        
     }
 
    
@@ -85,7 +85,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         // role_assignment -> context -> cat1 -> coursecategory
         //                            -> cat1 -> coursecategory
-        //
 
         $categorylevels = block_ajax_marking_get_number_of_category_levels();
 
@@ -99,15 +98,14 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                            INNER JOIN {course_categories} cat1
                                    ON cx.instanceid = cat1.id ";
 
-        $selectwhere = array('c.category = cat1.id');
+        $selectwhere = array('course.category = cat1.id');
 
         for ($i = 2; $i <= $categorylevels; $i++) {
 
             $onebefore = $i - 1;
-
-            $select .=     "LEFT JOIN {course_categories} cat{$i}
+            $select .= "LEFT JOIN {course_categories} cat{$i}
                                    ON cat{$onebefore}.parent = cat{$i}.id ";
-            $selectwhere[] =         "c.category = cat{$i}.id";
+            $selectwhere[] =      "course.category = cat{$i}.id";
 
         }
 
@@ -124,19 +122,18 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                            ON ra.contextid = cx.id
                         WHERE cx.contextlevel = ".CONTEXT_COURSE." 
                           AND ra.userid = r.userid
-                          AND cx.instanceid = c.id
+                          AND cx.instanceid = course.id
                         ) ";
-
         return $select;
-
     }
     
     /**
      *
-     * @param type $forumid
+     * @global moodle_database $DB
+     * @param type $coursemoduleid
      * @param type $reset returns the forum type
      */
-    private function forum_is_eachuser($forumid) {
+    private function forum_is_eachuser($coursemoduleid) {
         
         global $DB;
         
@@ -144,7 +141,12 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
             return $this->iseachuser;
         }
         
-        $forumtype = $DB->get_field('forum', 'type', array('id' => $forumid));
+        $sql = "SELECT f.type 
+                  FROM {forum} f 
+            INNER JOIN {course_modules} c
+                    ON f.id = c.instance
+                 WHERE c.id = :coursemoduleid ";
+        $forumtype = $DB->get_field_sql($sql, array('coursemoduleid' => $coursemoduleid));
         
         $this->iseachuser = ($forumtype == 'eachuser') ? true : false;
         
@@ -156,9 +158,9 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * 
      * @return string
      */
-    protected function get_sql_submissions_unique_column() {
-        return 'd.id AS subid';
-    }
+//    protected function get_sql_submissions_unique_column() {
+//        return 'd.id AS subid';
+//    }
     
     /**
      * See parent class for docs
@@ -166,51 +168,51 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * @param int $forumid
      * @return array
      */
-    protected function get_sql_submissions_select($forumid) {
-        
-        
-        
-        $extras =  array(
-                //'d.id AS discussionid',
-                'd.id AS subid',
-                'COUNT(sub.id) AS count', // post count
-                'MIN(sub.modified) AS time', // oldest unrated post
-               // 'cm.id AS coursemoduleid',
-        );
-        
-        // normal forum needs discussion title as label, participant usernames as description
-        // eachuser needs username as title and discussion subject as description
-        if ($this->forum_is_eachuser($forumid)) {
-            array_push($extras, 'firstpost.subject AS description');
-        } else {
-            // TODO need a SELECT bit to get all userids of people in the discussion
-            array_push($extras, 'firstpost.subject AS label', 'firstpost.message AS description');
-        }
-        
-        return $extras;
-    }
+//    protected function get_sql_submissions_select($forumid) {
+//        
+//        
+//        
+//        $extras =  array(
+//                //'d.id AS discussionid',
+//                'discussions.id AS subid',
+//                'COUNT(sub.id) AS count', // post count
+//                'MIN(sub.modified) AS time', // oldest unrated post
+//               // 'cm.id AS coursemoduleid',
+//        );
+//        
+//        // normal forum needs discussion title as label, participant usernames as description
+//        // eachuser needs username as title and discussion subject as description
+//        if ($this->forum_is_eachuser($forumid)) {
+//            array_push($extras, 'firstpost.subject AS description');
+//        } else {
+//            // TODO need a SELECT bit to get all userids of people in the discussion
+//            array_push($extras, 'firstpost.subject AS label', 'firstpost.message AS description');
+//        }
+//        
+//        return $extras;
+//    }
     
     /**
      * See parent class for docs
      * 
      * @return string
      */
-    protected function get_sql_submissions_from() {
-
-        $submissionstable = $this->get_sql_submission_table();
-        
-        return "INNER JOIN {{$submissionstable}} firstpost 
-                        ON firstpost.id = d.firstpost ";
-    }
+//    protected function get_sql_submissions_from() {
+//
+//        $submissionstable = $this->get_sql_submission_table();
+//        
+//        return "INNER JOIN {{$submissionstable}} firstpost 
+//                        ON firstpost.id = discussions.firstpost ";
+//    }
     
     /**
      * See parent class for docs
      * 
      * @return string
      */
-    protected function get_sql_submissions_groupby() {
-        return 'd.id';
-    }
+//    protected function get_sql_submissions_groupby() {
+//        return 'd.id';
+//    }
     
     /**
      * See parent class for docs
@@ -238,7 +240,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * @return string
      */
     protected function get_sql_userid_column() {
-        return 'd.userid';
+        return 'discussions.userid';
     }
 
     /**
@@ -248,25 +250,25 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      *
      * @return void
      */
-    function get_all_gradable_items($courseids) {
-
-        global $CFG, $DB;
-
-        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-
-        $sql = "SELECT f.id, f.course, f.intro as summary, f.name, f.type, c.id as cmid
-                  FROM {forum} f
-            INNER JOIN {course_modules} c
-                    ON f.id = c.instance
-                 WHERE c.module = :moduleid
-                   AND c.visible = 1
-                   AND f.course $usql
-                   AND f.assessed > 0
-              ORDER BY f.id";
-        $params['moduleid'] = $this->get_module_id();
-        $forums = $DB->get_records_sql($sql, $params);
-        $this->assessments = $forums;
-    }
+//    function get_all_gradable_items($courseids) {
+//
+//        global $CFG, $DB;
+//
+//        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+//
+//        $sql = "SELECT f.id, f.course, f.intro as summary, f.name, f.type, cm.id as cmid
+//                  FROM {forum} f
+//            INNER JOIN {course_modules} cm
+//                    ON f.id = cm.instance
+//                 WHERE cm.module = :".$this->prefix_param_name('moduleid')."
+//                   AND cm.visible = 1
+//                   AND f.course $usql
+//                   AND f.assessed > 0
+//              ORDER BY f.id";
+//        $params['moduleid'] = $this->get_module_id();
+//        $forums = $DB->get_records_sql($sql, $params);
+//        $this->assessments = $forums;
+//    }
 
     /**
      * Returns a HTML link allowing a student's work to be marked
@@ -286,56 +288,56 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * 
      * @return array the select, join and where clauses, params array, and the aliases for module and submission tables
      */
-    function get_sql_count() {
-        
-        global $USER, $DB;
-        
-        $submissiontable = $this->get_sql_submission_table();
-        
-        $teachersql = $this->get_teacher_sql();
-        $moduletable = $this->get_sql_module_table();
-        
-        $from =     "FROM {{$submissiontable}} sub
-                LEFT JOIN {rating} r
-                       ON sub.id = r.itemid
-               INNER JOIN {forum_discussions} d
-                       ON sub.discussion = d.id
-               INNER JOIN {{$moduletable}} moduletable
-                       ON d.forum = moduletable.id ";
-        
-               //$DB->sql_compare_text('q.qtype')
-               
-        // TODO assuming here that we only want to rate the first post of an eachuser.
-        // is it even possible to have other posts?
-        $where =   "WHERE sub.userid <> :userid
-                      AND moduletable.assessed > 0
-                      AND ( ( ( r.userid <> :userid2) 
-                                AND {$teachersql})
-                              OR r.userid IS NULL)
-                            AND ( ( .".$DB->sql_compare_text('moduletable.type')." != 'eachuser') 
-                                  OR ( ".$DB->sql_compare_text('moduletable.type')." = 'eachuser' 
-                                       AND sub.id = d.firstpost))
-                       
-                      AND ( (moduletable.assesstimestart = 0) 
-                         OR (sub.created >= moduletable.assesstimestart) ) 
-                      AND ( (moduletable.assesstimefinish = 0) 
-                         OR (sub.created <= moduletable.assesstimefinish) ) ";
-                      
-        $params = array(
-                'userid' => $USER->id, 
-                'userid2' => $USER->id);
-        
-        return array($from, $where, $params);
-    }
+//    function get_sql_count() {
+//        
+//        global $USER, $DB;
+//        
+//        $submissiontable = $this->get_sql_submission_table();
+//        
+//        $teachersql = $this->get_teacher_sql();
+//        $moduletable = $this->get_sql_module_table();
+//        
+//        $from =     "FROM {{$submissiontable}} sub
+//                LEFT JOIN {rating} r
+//                       ON sub.id = r.itemid
+//               INNER JOIN {forum_discussions} discussions
+//                       ON sub.discussion = discussions.id
+//               INNER JOIN {{$moduletable}} moduletable
+//                       ON discussions.forum = moduletable.id ";
+//        
+//               //$DB->sql_compare_text('q.qtype')
+//               
+//        // TODO assuming here that we only want to rate the first post of an eachuser.
+//        // is it even possible to have other posts?
+//        $where =   "WHERE sub.userid <> :forumuserid1
+//                      AND moduletable.assessed > 0
+//                      AND ( ( ( r.userid <> :forumuserid2)
+//                                AND {$teachersql})
+//                              OR r.userid IS NULL)
+//                            AND ( ( .".$DB->sql_compare_text('moduletable.type')." != 'eachuser') 
+//                                  OR ( ".$DB->sql_compare_text('moduletable.type')." = 'eachuser' 
+//                                       AND sub.id = discussions.firstpost))
+//                       
+//                      AND ( (moduletable.assesstimestart = 0) 
+//                         OR (sub.created >= moduletable.assesstimestart) ) 
+//                      AND ( (moduletable.assesstimefinish = 0) 
+//                         OR (sub.created <= moduletable.assesstimefinish) ) ";
+//                      
+//        $params = array(
+//                'forumuserid1' => $USER->id, 
+//                'forumuserid2' => $USER->id);
+//        
+//        return array($from, $where, $params);
+//    }
     
     /**
      * See parent class for docs
      * 
      * @return string
      */
-    protected function get_sql_submission_table() {
-        return 'forum_posts';
-    }  
+//    protected function get_sql_submission_table() {
+//        return 'forum_posts';
+//    }  
      
     /**
      * Makes the pop up contents for the grading interface
@@ -368,7 +370,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         
         // security - cmid is used to check context permissions earlier on, so it must match when derived 
         // from the discussion
-        if (!($cm->id == $params['cmid'])) {
+        if (!($cm->id == $params['coursemoduleid'])) {
             print_error('Bad params!');
             return false;
         }
@@ -511,6 +513,194 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     public function process_data($data) {
         
         // Validate everything
+        
+    }
+    
+    
+    /**
+     * Returns a query object with the basics all set up to get assignment stuff
+     * 
+     * @global type $DB
+     * @return block_ajax_marking_query_base 
+     */
+    public function query_factory($callback = false) {
+        
+        global $DB, $USER;
+        
+        $query = new block_ajax_marking_query_base($this);
+        $teachersql = $this->get_teacher_sql();
+        $query->set_userid_column('sub.userid');
+        
+        // TODO this is broken - I think multiple ratings per post will make multiple submissions appear.
+        // Ought to be NOT EXISTS(). OR will it be OK as it disregards the rows with other users?
+               
+        $query->add_from(array(
+                'table' => 'forum_posts',
+                'alias' => 'sub',
+        ));
+        
+        $query->add_from(array(
+                'join' => 'LEFT JOIN',
+                'table' => 'rating',
+                'alias' => 'r',
+                'on' => 'sub.id = r.itemid'
+        ));
+        
+        $query->add_from(array(
+                'join' => 'INNER JOIN',
+                'table' => 'forum_discussions',
+                'alias' => 'discussions',
+                'on' => 'sub.discussion = discussions.id'
+        ));
+        
+        $query->add_from(array(
+                'join' => 'INNER JOIN',
+                'table' => $this->modulename,
+                'alias' => 'moduletable',
+                'on' => 'discussions.forum = moduletable.id'
+        ));
+        
+                                
+        $query->add_where(array('type' => 'AND', 'condition' => 'sub.userid <> :'.$query->prefix_param_name('userid')));
+        $query->add_where(array('type' => 'AND', 'condition' => 'moduletable.assessed > 0'));
+        $query->add_where(array('type' => 'AND', 'condition' => '( ( ( r.userid <> :'.$query->prefix_param_name('userid2').") 
+                                    AND {$teachersql})
+                                  OR r.userid IS NULL)
+                                AND ( ( ".$DB->sql_compare_text('moduletable.type')." != 'eachuser') 
+                                      OR ( ".$DB->sql_compare_text('moduletable.type')." = 'eachuser' 
+                                           AND sub.id = discussions.firstpost))"));
+        $query->add_where(array('type' => 'AND', 'condition' => '( (moduletable.assesstimestart = 0) 
+                             OR (sub.created >= moduletable.assesstimestart) ) '));
+        $query->add_where(array('type' => 'AND', 'condition' => '( (moduletable.assesstimefinish = 0) 
+                             OR (sub.created <= moduletable.assesstimefinish) )'));
+        
+        $query->add_param('userid', $USER->id);
+        $query->add_param('userid2', $USER->id);
+        
+        return $query;
+        
+    }
+    
+    /**
+     * Fixes up the query with module specific tweaks
+     * 
+     * @global moodle_database $DB
+     * @param block_ajax_marking_query_base $query 
+     * @return void
+     */
+    public function alter_query_hook(block_ajax_marking_query_base $query, $type = false) {
+        
+        global $DB;
+        
+        switch ($type) {
+            
+            case 'submissions':
+                // This will be derived form the coursemoduleid, but how to get it cleanly?
+                // The query will know, but not easy to get it out. Might have been prefixed.
+                // TODO pass this properly somehow
+                $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
+
+                $forumid = $DB->get_field('course_modules', 'instance', array('id' => $coursemoduleid));
+
+                // Add the extra select stuff
+                // TODO will this overwrite at the same spot if I don't prefix it?
+                $select = array(
+                        'table' => 'discussions',
+                        'column' => 'id',
+                        'alias' => 'subid'
+                );
+                $query->add_select($select, true, true);
+                // This will overwrite the existing count
+                $query->add_select(array(
+                        'function' => 'COUNT',
+                        'table' => 'sub',
+                        'column' => 'id',
+                        'alias' => 'count'
+                ));
+                $query->add_select(array(
+                        'function' => 'MIN',
+                        'table'    => 'sub',
+                        'column'   => 'modified',
+                        'alias'    => 'time'
+                ));
+
+
+                // normal forum needs discussion title as label, participant usernames as description
+                // eachuser needs username as title and discussion subject as description
+                if ($this->forum_is_eachuser($coursemoduleid)) {
+                    $query->add_select(array(
+                            'table' => 'firstpost',
+                            'column' => 'subject',
+                            'alias' => 'description'
+                    ));
+                } else {
+                    // TODO need a SELECT bit to get all userids of people in the discussion
+                    $query->add_select(array(
+                            'table' => 'firstpost',
+                            'column' => 'subject',
+                            'alias' => 'label'
+                    ));
+                    $query->add_select(array(
+                            'table' => 'firstpost',
+                            'column' => 'message',
+                            'alias' => 'description'
+                    ));
+                }
+                
+                // We need to remove the sub.userid bit as we are otherwise going to get one row for each 
+                // userid
+                $query->remove_select('userid');
+                
+
+                $query->add_from(array(
+                        'join' => 'INNER JOIN',
+                        'table' => 'forum_posts',
+                        'alias' => 'firstpost',
+                        'on' => 'firstpost.id = discussions.firstpost'
+                ));
+                break;
+                
+                default:
+                    break;
+            }
+        
+    }
+    
+    /**
+     * Sometimes there will need to be extra processing of the nodes that is specific to this module
+     * e.g. the title to be displayed for submissions needs to be formatted with firstname and lastname
+     * in the way that makes sense for the user's chosen language.
+     * 
+     * This function provides a default that can be overidden by the subclasses.
+     * 
+     * @param array $nodes Array of objects
+     * @param string $nodetype the name of the filter that provides the SELECT statements for the query
+     * @param array $filters as sent via $_POST
+     * @return array of objects - the altered nodes
+     */
+    public function postprocess_nodes_hook($nodes, $filters) {
+        
+        foreach ($nodes as &$node) {
+        
+            switch ($filters['callbackfunction']) {
+                
+                case 'submissions':
+                    $node->mod = $this->get_module_name();
+                    
+                    if ($this->forum_is_eachuser($filters['coursemoduleid'])) {
+                        $node->name = fullname($node);
+                    } else {
+                        $node->name = $node->label;
+                    }
+//                    unset($node->label);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        
+        return $nodes;
         
     }
 

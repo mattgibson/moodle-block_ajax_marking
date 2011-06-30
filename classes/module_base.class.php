@@ -104,13 +104,13 @@ abstract class block_ajax_marking_module_base {
      * 
      * @return string
      */
-    abstract protected function get_sql_submission_table();
+//    abstract protected function get_sql_submission_table();
     
     /**
      * This will provide the sql to count the number of student submissions. It is added to to make 
      * the queries for each set of nodes
      */
-    abstract protected function get_sql_count();
+//    abstract protected function get_sql_count();
   
     
     /**
@@ -118,9 +118,9 @@ abstract class block_ajax_marking_module_base {
      * 
      * @return string
      */
-    protected function get_sql_module_table() {
-        return $this->modulename;
-    }
+//    protected function get_sql_module_table() {
+//        return $this->modulename;
+//    }
     
     /**
      * This returns the column name in the submissions table that holds the userid. It varies according 
@@ -140,17 +140,17 @@ abstract class block_ajax_marking_module_base {
      * @param array $query
      * @return array of objects
      */
-    protected function execute_sql_query($query) {
-        
-        global $DB;
-        
-        $query['select'] = 'SELECT '.implode(', ', $query['select']).' ';
-        $query['groupby'] = $query['groupby'] ? 'GROUP BY '.$query['groupby'] : '';
-        
-        $querystring = $query['select'].$query['from'].$query['where'].$query['groupby'];
-        
-        return $DB->get_records_sql($querystring, $query['params']);
-    }
+//    protected function execute_sql_query($query) {
+//        
+//        global $DB;
+//        
+//        $query['select'] = 'SELECT '.implode(', ', $query['select']).' ';
+//        $query['groupby'] = $query['groupby'] ? 'GROUP BY '.$query['groupby'] : '';
+//        
+//        $querystring = $query['select'].$query['from'].$query['where'].$query['groupby'];
+//        
+//        return $DB->get_records_sql($querystring, $query['params']);
+//    }
     
     /**
      * Returns the name of this module as used in the DB
@@ -162,6 +162,16 @@ abstract class block_ajax_marking_module_base {
     }
     
     /**
+     * Getter function for the capability allowing this module's submissions to be graded
+     * 
+     * @return string
+     */
+    public function get_capability() {
+        return $this->capability;
+    }
+
+
+    /**
      * This counts how many unmarked assessments of a particular type are waiting for a particular
      * course. It is called from the courses() function when the top level nodes are built
      *
@@ -169,26 +179,27 @@ abstract class block_ajax_marking_module_base {
      * @param array $studentids array of students who are enrolled in the course we are counting submissions for
      * @return int the number of unmarked assessments
      */
-    public function course_count($courseid) {
-        
-        if (!isset($this->coursetotals)) {
-            
-            $query = $this->get_sql_query_base();
-            
-            $query['select'][] = 'moduletable.course AS courseid';
-            $query['select'][] = 'COUNT(sub.id) AS count';
-            $query['groupby'] = "moduletable.course";
-            
-            $this->coursetotals = $this->execute_sql_query($query);
-        }
-        
-        if (!isset($this->coursetotals[$courseid])) {
-            //error_log($courseid.' missing from '.$this->modulename);
-        } else {
-            return $this->coursetotals[$courseid]->count;
-        }
-    }
+//    public function course_count($courseid) {
+//        
+//        if (!isset($this->coursetotals)) {
+//            
+//            $query = $this->get_sql_query_base();
+//            
+//            $query['select'][] = 'moduletable.course AS courseid';
+//            $query['select'][] = 'COUNT(sub.id) AS count';
+//            $query['groupby'] = "moduletable.course";
+//            
+//            $this->coursetotals = $this->execute_sql_query($query);
+//        }
+//        
+//        if (!isset($this->coursetotals[$courseid])) {
+//            //error_log($courseid.' missing from '.$this->modulename);
+//        } else {
+//            return $this->coursetotals[$courseid]->count;
+//        }
+//    }
     
+    //dead
     /**
      * This will return a fragment of SQL that will check whether a user has permission to grade a particular
      * assessment item. It is of the get_in_or_equals() type and needs to be compared to coursemoduleids.
@@ -196,71 +207,77 @@ abstract class block_ajax_marking_module_base {
      * 
      * @return array The sql and params
      */
-    protected function get_sql_permission_denied() {
-        
-        return array('IS NOT NULL ', array());
-        
-        global $DB;
-        
-        // Get coursemoduleids for all items of this type in all courses as one query
-        // TODO what if there are none at all?
-        
-        // There will be courses, or we would not be here
-        $courses = block_ajax_marking_get_my_teacher_courses();
-        
-        list($coursesql, $params) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
-        
-        $sql = "SELECT id 
-                  FROM {course_modules}
-                 WHERE course {$coursesql}
-                   AND module = :moduleid ";
-        $params['moduleid'] = $this->get_module_id();
-                   
-        $coursemoduleids = $DB->get_records_sql($sql, $params);
-        
-        // Get all contexts (will cache them)
-        $contexts = get_context_instance(CONTEXT_MODULE, array_keys($coursemoduleids));
-        
-        // Use has_capability to loop through them finding out which are blocked. Unset all that we have
-        // parmission to grade, leaving just those we are not allowed (smaller list)
-        foreach ($contexts as $key => $context) {
-            
-            if (has_capability($this->capability, $context)) {
-                unset($contexts[$key]);
-            }
-        }
-        
-        $returnsql = '';
-        $returnparams = array();
-        
-        // return a get_in_or_equals with NOT IN if there are any, or empty strings if there arent.
-        if (!empty($contexts)) {
-            list($returnsql, $returnparams) = $DB->get_in_or_equal(array_keys($contexts), SQL_PARAMS_NAMED, 'context0000', false);
-        }
-        
-        return array($returnsql, $returnparams);
-        
-    }
+//    protected function get_sql_permission_denied() {
+//        
+//        global $DB;
+//        
+//        // Get coursemoduleids for all items of this type in all courses as one query
+//        // TODO what if there are none at all?
+//        
+//        // There will be courses, or we would not be here
+//        $courses = block_ajax_marking_get_my_teacher_courses();
+//        
+//        list($coursesql, $params) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
+//        
+//        // Get all coursemodules the current user could potentially access. 
+//        // TODO this may return literally millions for a whole site admin. Change it to the one that's 
+//        // limited by explicit category and course permissions
+//        $sql = "SELECT id 
+//                  FROM {course_modules}
+//                 WHERE course {$coursesql}
+//                   AND module = :moduleid ";
+//        $params['moduleid'] = $this->get_module_id();
+//                   
+//        $coursemoduleids = $DB->get_records_sql($sql, $params);
+//        
+//        // Get all contexts (will cache them)
+//        $contexts = get_context_instance(CONTEXT_MODULE, array_keys($coursemoduleids));
+//        
+//        // Use has_capability to loop through them finding out which are blocked. Unset all that we have
+//        // parmission to grade, leaving just those we are not allowed (smaller list)
+//        foreach ($contexts as $key => $context) {
+//            
+//            if (has_capability($this->capability, $context)) {
+//                unset($contexts[$key]);
+//            }
+//        }
+//        
+//        $returnsql = '';
+//        $returnparams = array();
+//        
+//        // return a get_in_or_equals with NOT IN if there are any, or empty strings if there arent.
+//        if (!empty($contexts)) {
+//            list($returnsql, $returnparams) = $DB->get_in_or_equal(array_keys($contexts), SQL_PARAMS_NAMED, 'context0000', false);
+//        }
+//        
+//        return array($returnsql, $returnparams);
+//        
+//    }
     
-    private function get_sql_groups_subquery($configalias) {
-        
-        $submissiontablealias = $this->get_sql_submission_table();
-        $useridfield = $this->get_sql_userid_column();
-        
-        // TODO this doesn't check for a matching config id
-        $groupsql = " EXISTS (SELECT 1 
-                                FROM {groups_members} gm
-                          INNER JOIN {groups} g
-                                  ON gm.groupid = g.id 
-                          INNER JOIN {block_ajax_marking_groups} gs
-                                  ON g.id = gs.groupid
-                               WHERE gm.userid = {$useridfield}
-                                 AND g.courseid = moduletable.course
-                                 AND gs.configid = {$configalias}.id) ";
-                                 
-        return $groupsql;                         
-        
-    }
+    //dead
+    /**
+     * Provides an EXISTS(xxx) subquery that tells us whether there is a group with user x in it
+     * 
+     * @param string $configalias this is the alias of the config table in the SQL
+     * @return string SQL fragment 
+     */
+//    private function get_sql_groups_subquery($configalias) {
+//        
+//        $submissiontablealias = $this->get_sql_submission_table();
+//        $useridfield = $this->get_sql_userid_column();
+//        
+//        $groupsql = " EXISTS (SELECT 1 
+//                                FROM {groups_members} gm
+//                          INNER JOIN {groups} g
+//                                  ON gm.groupid = g.id 
+//                          INNER JOIN {block_ajax_marking_groups} gs
+//                                  ON g.id = gs.groupid
+//                               WHERE gm.userid = {$useridfield}
+//                                 AND gs.configid = {$configalias}.id) ";
+//                                 
+//        return $groupsql;                         
+//        
+//    }
     
     /**
      * We need to check whether the assessment can be displayed (the user may have hidden it).
@@ -270,61 +287,63 @@ abstract class block_ajax_marking_module_base {
      * @param string $submissiontablealias the SQL alias for the submission table e.g. 's' 
      * @return array of 2 strings with the join and where parts in that order
      */
-    protected function get_sql_display_settings() {
-        
-        // TODO this should use coursemoduleid
-        // TODO needs testing
-        
-        // New plan. 
-        // Check for coursemodule leve stuff
-        // EXISTS (SELECT 1 
-        //           FROM {block_ajax_marking} bama
-        //          WHERE {$assessmenttablealias}.id = bama.assessmentid 
-        //            AND bama.assessmenttype = '{$this->modulename})
-        
-        // OR EXISTS(SELECT 1 
-        //           FROM )
-        
-        
-        // bama = block ajax marking assessment
-        // bamc = block ajax marking course
-        // gmc  = groups members courses
-        
-        $join = "LEFT JOIN {block_ajax_marking} bama
-                        ON (moduletable.id = bama.assessmentid AND bama.assessmenttype = '{$this->modulename}')
-                 
-                 LEFT JOIN {block_ajax_marking} bamc
-                        ON (moduletable.course = bamc.assessmentid AND bamc.assessmenttype = 'course') 
-                 ";
-                        
-        // either no settings, or definitely display
-        // TODO doesn't work without proper join table for groups
-                            
-        // student might be a member of several groups. As long as one group is in the settings table, it's ok.
-        // TODO is this more or less efficient than doing an inner join to a subquery?
-                        
-        // where starts with the course defaults in case we find no assessment preference
-        // Hopefully short circuit evaluation will makes this efficient.
-        $groupsubquery = $this->get_sql_groups_subquery('bamc');
-        
-        $where = " AND (( ( bama.showhide IS NULL 
-                            OR bama.showhide = ".BLOCK_AJAX_MARKING_CONF_DEFAULT."
-                          ) AND ( 
-                            bamc.showhide IS NULL 
-                            OR bamc.showhide = ".BLOCK_AJAX_MARKING_CONF_SHOW."
-                            OR (bamc.showhide = ".BLOCK_AJAX_MARKING_CONF_GROUPS. " AND {$groupsubquery})
-                          )
-                        ) ";
+//    protected function get_sql_display_settings() {
+//        
+//        // TODO this should use coursemoduleid
+//        // TODO needs testing
+//        
+//        // New plan. 
+//        // Check for coursemodule level stuff
+//        // EXISTS (SELECT 1 
+//        //           FROM {block_ajax_marking} bama
+//        //          WHERE {$assessmenttablealias}.id = bama.assessmentid 
+//        //            AND bama.assessmenttype = '{$this->modulename})
+//        
+//        // OR EXISTS(SELECT 1 
+//        //           FROM )
+//        
+//        
+//        // bama = block ajax marking assessment 
+//        // bamc = block ajax marking course
+//        // gmc  = groups members courses
+//        
+//        $join = "LEFT JOIN {block_ajax_marking} bama
+//                        ON cm.id = bama.coursemoduleid
+//                 
+//                 LEFT JOIN {block_ajax_marking} bamc
+//                        ON (moduletable.course = bamc.courseid) 
+//                 ";
+//                        
+//        // either no settings, or definitely display
+//        // TODO doesn't work without proper join table for groups
+//                            
+//        // student might be a member of several groups. As long as one group is in the settings table, it's ok.
+//        // TODO is this more or less efficient than doing an inner join to a subquery?
+//                        
+//        // where starts with the course defaults in case we find no assessment preference
+//        // Hopefully short circuit evaluation will makes this efficient.
+//        $groupsubquery = $this->get_sql_groups_subquery('bamc'); // EXISTS ([user in relevant group])
+//        
+//        $where = " AND (( ( bama.display IS NULL 
+//                            OR bama.display = ".BLOCK_AJAX_MARKING_CONF_DEFAULT."
+//                          ) AND ( 
+//                            bamc.display IS NULL 
+//                            OR bamc.display = ".BLOCK_AJAX_MARKING_CONF_SHOW."
+//                            OR (bamc.display = ".BLOCK_AJAX_MARKING_CONF_GROUPS. " AND {$groupsubquery})
+//                          )
+//                        ) ";
+//
+//        
+//        $groupsubquery = $this->get_sql_groups_subquery('bama');
+//        
+//        $where .= " OR bama.display = ".BLOCK_AJAX_MARKING_CONF_SHOW.
+//                  " OR (bama.display = ".BLOCK_AJAX_MARKING_CONF_GROUPS. " AND {$groupsubquery})) ";
+//        
+//        return array($join, $where);
+//        
+//    }
+    
 
-        // now we look at the assessment options
-        $groupsubquery = $this->get_sql_groups_subquery('bama');
-        
-        $where .= " OR bama.showhide = ".BLOCK_AJAX_MARKING_CONF_SHOW.
-                  " OR (bama.showhide = ".BLOCK_AJAX_MARKING_CONF_GROUPS. " AND {$groupsubquery})) ";
-        
-        return array($join, $where);
-        
-    }
 
     /**
      * This function will check through all of the assessments of a particular type (depends on
@@ -342,11 +361,12 @@ abstract class block_ajax_marking_module_base {
         array_push($query['select'],
                 'moduletable.id',
                 'COUNT(sub.id) AS count',
-                'COALESCE(bama.showhide, bamc.showhide, 1) AS showhide',
-                'cm.id AS cmid', 
-                'moduletable.name', 
+                'COALESCE(bama.display, bamc.display, 1) AS display',
+                'cm.id AS cmid',
+                'moduletable.name',
                 'moduletable.intro AS tooltip'
         );
+        
         // The group by moduletable.id clause means that we have to do another self join to get the other
         // columns from the module table, otherwise we get duplicates
         $query['where'] .= "AND moduletable.course = :courseid ";
@@ -362,7 +382,7 @@ abstract class block_ajax_marking_module_base {
             // if there are only two levels, there will only need to be dynamic load if there are groups to display
             if (count($this->callbackfunctions === 0)) {
 
-                if ($assessment->showhide == BLOCK_AJAX_MARKING_CONF_GROUPS) {
+                if ($assessment->display == BLOCK_AJAX_MARKING_CONF_GROUPS) {
                     $assessment->callbackfunction = 'groups';
                 } else {
                     // will be 'submission' in most cases. Make it non dynamic if there are no further callbacks listed
@@ -483,44 +503,44 @@ abstract class block_ajax_marking_module_base {
      * @param object $context the context object we want to get users for
      * @param bool $parent should we look in higher contexts too?
      */
-    protected function get_sql_role_users($context, $parent=true, $paramtype=SQL_PARAMS_NAMED) {
-
-        global $CFG, $DB;
-
-        $parentcontexts = '';
-        $parentcontextssql = '';
-        // need an empty one for array_merge() later
-        $parentcontextsparams = array();
-
-        $parentcontexts = substr($context->path, 1); // kill leading slash
-        $parentcontexts = explode('/', $parentcontexts);
-
-        if ($parentcontexts !== '') {
-            list($parentcontextssql, $parentcontextsparams) = $DB->get_in_or_equal($parentcontexts, $paramtype, 'parentcontext9000');
-        }
-
-        // get the roles that are specified as graded in site config settings. Will sometimes be here,
-        // sometimes not depending on ajax call
-        
-        // TODO does this work?
-        $student_roles = $CFG->gradebookroles;
-
-        // start this set of params at a later point to avoid collisions
-        list($studentrolesql, $studentroleparams) = $DB->get_in_or_equal($student_roles, $paramtype, 'param0900');
-
-        $sql = " SELECT DISTINCT(u.id)
-                   FROM {role_assignments} ra
-                   JOIN {user} u
-                     ON u.id = ra.userid
-                   JOIN {role} r
-                     ON ra.roleid = r.id
-                  WHERE ra.contextid {$parentcontextssql}
-                    AND ra.roleid {$studentrolesql}";
-
-        $data = array($sql, $parentcontextsparams + $studentroleparams);
-        return $data;
-
-    }
+//    protected function get_sql_role_users($context, $parent=true, $paramtype=SQL_PARAMS_NAMED) {
+//
+//        global $CFG, $DB;
+//
+//        $parentcontexts = '';
+//        $parentcontextssql = '';
+//        // need an empty one for array_merge() later
+//        $parentcontextsparams = array();
+//
+//        $parentcontexts = substr($context->path, 1); // kill leading slash
+//        $parentcontexts = explode('/', $parentcontexts);
+//
+//        if ($parentcontexts !== '') {
+//            list($parentcontextssql, $parentcontextsparams) = $DB->get_in_or_equal($parentcontexts, $paramtype, 'parentcontext9000');
+//        }
+//
+//        // get the roles that are specified as graded in site config settings. Will sometimes be here,
+//        // sometimes not depending on ajax call
+//        
+//        // TODO does this work?
+//        $student_roles = $CFG->gradebookroles;
+//
+//        // start this set of params at a later point to avoid collisions
+//        list($studentrolesql, $studentroleparams) = $DB->get_in_or_equal($student_roles, $paramtype, 'param0900');
+//
+//        $sql = " SELECT DISTINCT(u.id)
+//                   FROM {role_assignments} ra
+//                   JOIN {user} u
+//                     ON u.id = ra.userid
+//                   JOIN {role} r
+//                     ON ra.roleid = r.id
+//                  WHERE ra.contextid {$parentcontextssql}
+//                    AND ra.roleid {$studentrolesql}";
+//
+//        $data = array($sql, $parentcontextsparams + $studentroleparams);
+//        return $data;
+//
+//    }
 
     /**
      * Returns an SQL snippet that will tell us whether a student is enrolled in this course
@@ -530,39 +550,41 @@ abstract class block_ajax_marking_module_base {
      * @param string $moduletable the thing that contains the courseid e.g. a.course
      * @return array The join and where strings, with params. (Where starts with 'AND)
      */
-    protected function get_sql_enrolled_students() {
-        
-        global $DB, $CFG, $USER;
-        
-        $usercolumn = $this->get_sql_userid_column();
-
-        // TODO Hopefully, this will be an empty string when none are enabled
-        if ($CFG->enrol_plugins_enabled) {
-            // returns list of english names of enrolment plugins
-            list($enabledsql, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED);
-        } else {
-            // no enabled enrolment plugins
-            $enabledsql = "= :never";
-            $params = array('never'=> -1);
-        }
-
-        $join = " INNER JOIN {user_enrolments} ue 
-                          ON ue.userid = {$usercolumn} 
-                  INNER JOIN {enrol} e 
-                          ON (e.id = ue.enrolid) ";
-        $where = "       AND e.courseid = moduletable.course
-                         AND {$usercolumn} != :currentuser
-                         AND e.enrol {$enabledsql} ";
-                         
-        $params['currentuser'] = $USER->id;
-        
-        // uncomment to disable (for testing)
-        // $join = '';
-        // $where = '';
-        // $params = array();
-                        
-        return array($join, $where, $params);
-    }
+//    protected function get_sql_enrolled_students() {
+//        
+//        global $DB, $CFG, $USER;
+//        
+//        $usercolumn = $this->get_sql_userid_column();
+//
+//        // TODO Hopefully, this will be an empty string when none are enabled
+//        if ($CFG->enrol_plugins_enabled) {
+//            // returns list of english names of enrolment plugins
+//            list($enabledsql, $params) = $DB->get_in_or_equal(explode(',', $CFG->enrol_plugins_enabled), SQL_PARAMS_NAMED);
+//        } else {
+//            // no enabled enrolment plugins
+//            $enabledsql = "= :never";
+//            $params = array('never'=> -1);
+//        }
+//
+//        $join = " INNER JOIN {user_enrolments} ue 
+//                          ON ue.userid = {$usercolumn} 
+//                  INNER JOIN {enrol} e 
+//                          ON (e.id = ue.enrolid) ";
+//        $where = "       AND e.courseid = moduletable.course
+//                         AND {$usercolumn} != :currentuser
+//                         AND e.enrol {$enabledsql} ";
+//                         
+//        $params['currentuser'] = $USER->id;
+//        
+//        // uncomment to disable (for testing)
+//        // $join = '';
+//        // $where = '';
+//        // $params = array();
+//                        
+//        return array($join, $where, $params);
+//    }
+    
+    
     
     /**
      * All modules have a common need to hide work which has been submitted to items that are now hidden.
@@ -570,37 +592,38 @@ abstract class block_ajax_marking_module_base {
      * 
      * @return array The join string, where string and params array. Note, where starts with 'AND'
      */
-    protected function get_sql_visible() {
-        
-        list($permissionsql, $params) = $this->get_sql_permission_denied();
-        
-        $join = "INNER JOIN {course_modules} cm
-                         ON cm.instance = moduletable.id 
-                 INNER JOIN {course} c 
-                         ON c.id = moduletable.course ";
-
-        $where = "AND cm.id {$permissionsql}
-                  AND cm.module = :moduleid 
-                  AND cm.visible = 1
-                  AND c.visible = 1 ";
-        
-        $params['moduleid'] = $this->get_module_id();
-        
-        // uncomment to disable (for testing)
-        // $join = '';
-        // $where = '';
-        // $params = array();
-        
-        return array($join, $where, $params);
-        
-    }
+//    protected function get_sql_visible() {
+//        
+//        list($permissionsql, $params) = $this->get_sql_permission_denied();
+//        
+//        $join = "INNER JOIN {course_modules} cm
+//                         ON cm.instance = moduletable.id 
+//                 INNER JOIN {course} course
+//                         ON course.id = moduletable.course ";
+//
+//        $where = "AND cm.id {$permissionsql}
+//                  AND cm.module = :moduleid 
+//                  AND cm.visible = 1
+//                  AND course.visible = 1 ";
+//        
+//        $params['moduleid'] = $this->get_module_id();
+//        
+//        // uncomment to disable (for testing)
+//        // $join = '';
+//        // $where = '';
+//        // $params = array();
+//        
+//        return array($join, $where, $params);
+//        
+//    }
+    
 
     /**
      * Find the id of this module in the DB. It may vary from site to site
      *
      * @return int the id of the module in the DB
      */
-    protected function get_module_id($reset=false) {
+    public function get_module_id($reset=false) {
         
         global $DB;
 
@@ -668,7 +691,6 @@ abstract class block_ajax_marking_module_base {
                 $PAGE->requires->js($moddirectoryfile);
             }
         }
-        
     }
     
     /**
@@ -682,48 +704,48 @@ abstract class block_ajax_marking_module_base {
      * @param string $extragroup
      * @return array of objects
      */
-    public function get_sql_query_base() {
-        
-        global $DB;
-        
-        $query = array(
-                'select' => array(),
-                'from' => '',
-                'where' => '',
-                'groupby' => '',
-                'params' => array()
-        );
-        
-        // These fragments define common filters, which apply to all queries.
-        list($countfrom, $countwhere, $countparams)       = $this->get_sql_count();
-        list($displayjoin, $displaywhere)                 = $this->get_sql_display_settings();
-        list($enroljoin, $enrolwhere, $enrolparams)       = $this->get_sql_enrolled_students();
-        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_sql_visible();
-        
-        $query['from'] = $countfrom.
-                         $displayjoin.
-                         $enroljoin.
-                         $visiblejoin;
-                       
-        $query['where'] = $countwhere.
-                          $displaywhere.
-                          $enrolwhere.
-                          $visiblewhere;
-                
-        $query['params'] = array_merge($countparams, $enrolparams, $visibleparams);
-        
-        return $query;
-        
-    }
+//    public function get_sql_query_base() {
+//        
+//        global $DB;
+//        
+//        $query = array(
+//                'select' => array(),
+//                'from' => '',
+//                'where' => '',
+//                'groupby' => '',
+//                'params' => array()
+//        );
+//        
+//        // These fragments define common filters, which apply to all queries.
+//        list($countfrom, $countwhere, $countparams)       = $this->get_sql_count();
+//        list($displayjoin, $displaywhere)                 = $this->get_sql_display_settings();
+//        list($enroljoin, $enrolwhere, $enrolparams)       = $this->get_sql_enrolled_students();
+//        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_sql_visible();
+//        
+//        $query['from'] = $countfrom.
+//                         $enroljoin.
+//                         $visiblejoin.
+//                         $displayjoin;
+//                       
+//        $query['where'] = $countwhere.
+//                          $displaywhere.
+//                          $enrolwhere.
+//                          $visiblewhere;
+//                
+//        $query['params'] = array_merge($countparams, $enrolparams, $visibleparams);
+//        
+//        return $query;
+//        
+//    }
     
     /**
      * Which column needs to be first in the SQL query for submissions? The default is here, but 
      * modules can override it if they need to e.g. if they need to aggregate submissions like for
      * the forum module
      */
-    protected function get_sql_submissions_unique_column() {
-        return 'sub.id AS subid';
-    }
+//    protected function get_sql_submissions_unique_column() {
+//        return 'sub.id AS subid';
+//    }
     
     /**
      * Makes the submissions nodes.
@@ -732,81 +754,81 @@ abstract class block_ajax_marking_module_base {
      * @param array $params Whatever came back via Ajax
      * @return array - data and nodes
      */
-    public function submissions($params) {
-        
-        global $DB;
-        
-        $data = new stdClass;
-        $data->nodetype = 'submission';
-        $nodes = array();
-        
-        $query = $this->get_sql_query_base();
-        
-        $usercolumnalias   = $this->get_sql_userid_column();
-        $uniquecolumn      = $this->get_sql_submissions_unique_column();
-        $extramoduleselect = $this->get_sql_submissions_select($params['assessmentid']);
-
-        array_push($query['select'],
-                //$uniquecolumn, // -forum differs. normally sub.id
-                //"{$usercolumnalias} AS userid",
-                //'moduletable.id AS assessmentid',
-                'cm.id AS cmid'
-                //'u.firstname', 
-                //'u.lastname'
-        );
-        
-        // Some modules will need extra stuff depending on how their links work.
-        $query['select'] = array_merge($extramoduleselect, $query['select']);
-                
-        $query['from'] .= $this->get_sql_submissions_from().' ';       
-        $query['from'] .= "INNER JOIN {user} u
-                                   ON u.id = {$usercolumnalias} ";
-        
-        $query['where'] .= 'AND moduletable.id = :assessmentid ';
-        $query['where'] .= $this->get_sql_submission_where();
-        
-        foreach ($params as $paramname => $paramvalue) {
-            $query['params'][$paramname] = $paramvalue;
-        }
-        
-        // If we are following from a group node, filter by groupid too. Other params will be dealt with
-        // by the submissions code.
-        if (isset($params['groupid'])) {
-            
-            $query['from'] .= "INNER JOIN {groups_members} gm 
-                                       ON gm.userid = {$usercolumnalias} ";
-                                       
-            $query['where'] .= "AND gm.groupid = :groupid ";
-            
-            $query['params']['groupid'] = $params['groupid'];
-        }
-        
-        $query['groupby'] = $this->get_sql_submissions_groupby();
-        
-        $submissions = $this->execute_sql_query($query);
-
-        foreach ($submissions as $uniquecolumnid => &$submission) {
-            
-            $submission->seconds  = (time() - $submission->time);
-            unset($submission->time);
-            $submission->tooltip  = block_ajax_marking_make_time_tooltip($submission->seconds);
-            
-//            $submission->uniqueid = $this->get_module_name().'-submission-'.$uniquecolumnid;
-//            // uniqueid needs to include something unique for each level of filters. Could be duplicates otherwise
-//            foreach ($params as $paramname => $paramvalue) {
-//                $submission->uniqueid .= '-'.$paramname.'-'.$paramvalue;
-//            }
-            
-            $submission->name           = $this->submission_title($submission, $params['assessmentid']);
-            $submission->mod            = $this->modulename; // needed to get mod js in client
-            
-            block_ajax_marking_format_node($submission);
-            
-        }
-        
-        // use array_values to re-key the array so that json_encode() makes an array, not an object
-        return array($data, array_values($submissions));
-    }
+//    public function submissions($params) {
+//        
+//        global $DB;
+//        
+//        $data = new stdClass;
+//        $data->nodetype = 'submission';
+//        $nodes = array();
+//        
+//        $query = $this->get_sql_query_base();
+//        
+//        $usercolumnalias   = $this->get_sql_userid_column();
+//        $uniquecolumn      = $this->get_sql_submissions_unique_column();
+//        $extramoduleselect = $this->get_sql_submissions_select($params['assessmentid']);
+//
+//        array_push($query['select'],
+//                //$uniquecolumn, // -forum differs. normally sub.id
+//                //"{$usercolumnalias} AS userid",
+//                //'moduletable.id AS assessmentid',
+//                'cm.id AS cmid'
+//                //'u.firstname', 
+//                //'u.lastname'
+//        );
+//        
+//        // Some modules will need extra stuff depending on how their links work.
+//        $query['select'] = array_merge($extramoduleselect, $query['select']);
+//                
+//        $query['from'] .= $this->get_sql_submissions_from().' ';       
+//        $query['from'] .= "INNER JOIN {user} u
+//                                   ON u.id = {$usercolumnalias} ";
+//        
+//        $query['where'] .= 'AND moduletable.id = :assessmentid ';
+//        $query['where'] .= $this->get_sql_submission_where();
+//        
+//        foreach ($params as $paramname => $paramvalue) {
+//            $query['params'][$paramname] = $paramvalue;
+//        }
+//        
+//        // If we are following from a group node, filter by groupid too. Other params will be dealt with
+//        // by the submissions code.
+//        if (isset($params['groupid'])) {
+//            
+//            $query['from'] .= "INNER JOIN {groups_members} gm 
+//                                       ON gm.userid = {$usercolumnalias} ";
+//                                       
+//            $query['where'] .= "AND gm.groupid = :groupid ";
+//            
+//            $query['params']['groupid'] = $params['groupid'];
+//        }
+//        
+//        $query['groupby'] = $this->get_sql_submissions_groupby();
+//        
+//        $submissions = $this->execute_sql_query($query);
+//
+//        foreach ($submissions as $uniquecolumnid => &$submission) {
+//            
+//            $submission->seconds  = (time() - $submission->time);
+//            unset($submission->time);
+//            $submission->tooltip  = block_ajax_marking_make_time_tooltip($submission->seconds);
+//            
+////            $submission->uniqueid = $this->get_module_name().'-submission-'.$uniquecolumnid;
+////            // uniqueid needs to include something unique for each level of filters. Could be duplicates otherwise
+////            foreach ($params as $paramname => $paramvalue) {
+////                $submission->uniqueid .= '-'.$paramname.'-'.$paramvalue;
+////            }
+//            
+//            $submission->name           = $this->submission_title($submission, $params['assessmentid']);
+//            $submission->mod            = $this->modulename; // needed to get mod js in client
+//            
+//            block_ajax_marking_format_node($submission);
+//            
+//        }
+//        
+//        // use array_values to re-key the array so that json_encode() makes an array, not an object
+//        return array($data, array_values($submissions));
+//    }
     
     /**
      * Add any extra stuff that we need in order to construct the link for the submission pop up. 
@@ -814,25 +836,25 @@ abstract class block_ajax_marking_module_base {
      * 
      * @return array must include description and timemodified
      */
-    protected function get_sql_submissions_select($moduleid=null) {
-        
-        return array(
-                '1 AS count',
-                'moduletable.intro AS description',
-                'sub.timemodified AS time',
-                'sub.userid',
-                'cm.id AS coursemoduleid'
-        );
-    }
+//    protected function get_sql_submissions_select($moduleid=null) {
+//        
+//        return array(
+//                '1 AS count',
+//                'moduletable.intro AS description',
+//                'sub.timemodified AS time',
+//                'sub.userid',
+//                'cm.id AS coursemoduleid'
+//        );
+//    }
     
     /**
      * Any extra table joins needed for the submissions query. This is the default which can be overridden.
      * 
      * @return string
      */
-    protected function get_sql_submissions_from() {
-        return '';
-    }
+//    protected function get_sql_submissions_from() {
+//        return '';
+//    }
     
     /**
      * Any extra where clauses that are needed to filter the submissions stuff.  This is the default 
@@ -840,18 +862,18 @@ abstract class block_ajax_marking_module_base {
      * 
      * @return string
      */
-    protected function get_sql_submission_where() {
-        return '';
-    }
+//    protected function get_sql_submission_where() {
+//        return '';
+//    }
     
     /**
      * Any group by clauses which the submissions stuff needs. This is the default which can be overridden.
      * 
      * @return string
      */
-    protected function get_sql_submissions_groupby() {
-        return '';
-    }
+//    protected function get_sql_submissions_groupby() {
+//        return '';
+//    }
     
     /**
      * The submissions nodes may be aggregating actual work so that it is easier to view/grade e.g.
@@ -874,28 +896,91 @@ abstract class block_ajax_marking_module_base {
      * 
      * @return array
      */
-    protected function popup_variables() {
-        return array();
-    }
+//    protected function popup_variables() {
+//        return array();
+//    }
     
     /**
      * Find what the next set of nodes will be called.
+     * 
+     * @param string $current What the last requested nodes were. Returns the first on the list if not supplied
+     * @return string|bool
      */
-    protected function get_next_callback($current=false) {
+    public function get_next_callback($current=false) {
+        
+        $firstitem = reset($this->callbackfunctions);
         
         if (!$current) {
-            return $this->callbackfunctions[0];
+            return $firstitem;
         }
         
-        // get array key of the current one
-        // array_keys() ?
+        foreach ($this->callbackfunctions as $key => $value) {
+            
+            if ($next) {
+                return $value;
+            }
+            
+            if ($key == $current) {
+                $next = true;
+            }
+        }
         
-        // add one
-        
-        // get the new one
+        return false;
     }
     
-  
+    /**
+     * Returns a query object that has been set up to retrieve all unmarked submissions for this teacher
+     * and this (subclassed) module
+     * 
+     * @return block_ajax_marking_query_base
+     */
+    abstract public function query_factory($callback = false);
+    
+    /**
+     * Hook to allow subclasses to add specific selects and joins to the query. This is important as
+     * getting the grading interface to pop up needs certain data
+     * 
+     * @param block_ajax_marking_query_base $query 
+     * @return void
+     */
+    public function alter_query_hook(block_ajax_marking_query_base $query, $groupby = false) {
+        
+    }
+    
+    /**
+     * Sometimes there will need to be extra processing of the nodes that is specific to this module
+     * e.g. the title to be displayed for submissions needs to be formatted with firstname and lastname
+     * in the way that makes sense for the user's chosen language.
+     * 
+     * This function provides a default that can be overidden by the subclasses.
+     * 
+     * @param array $nodes Array of objects
+     * @param string $nodetype the name of the filter that provides the SELECT statements for the query
+     * @param array $filters as sent via $_POST
+     * @return array of objects - the altered nodes
+     */
+    public function postprocess_nodes_hook($nodes, $filters) {
+        
+        foreach ($nodes as &$node) {
+        
+            switch ($filters['callbackfunction']) {
+                
+                case 'submissions':
+                    $node->mod = $this->get_module_name();
+                    // Sort out the firstname/lastname thing
+                    $node->name = fullname($node);
+                    unset($node->firstname, $node->lastname);
+
+                    break;
+
+                default:
+                    break;
+            }
+        }
+        
+        return $nodes;
+        
+    }
 
 }
 

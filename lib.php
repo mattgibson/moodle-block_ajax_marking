@@ -143,7 +143,7 @@ function block_ajax_marking_make_config_data() {
     $this->data->userid         = $USER->id;
     $this->data->assessmenttype = $this->assessmenttype;
     $this->data->assessmentid   = $this->assessmentid;
-    $this->data->showhide       = $this->showhide;
+    $this->data->display        = $this->display;
 }
 
 /**
@@ -343,11 +343,11 @@ function block_ajax_marking_assessment_groups_filter($submissions, $type, $asses
         } else {
             // use the course settings
 
-            if ($coursesettings->showhide == BLOCK_AJAX_MARKING_CONF_SHOW) {
+            if ($coursesettings->display == BLOCK_AJAX_MARKING_CONF_SHOW) {
                 return true;
             }
             // perhaps it is set to hidden
-            if ($coursesettings->showhide == BLOCK_AJAX_MARKING_CONF_HIDE) {
+            if ($coursesettings->display == BLOCK_AJAX_MARKING_CONF_HIDE) {
                 return false;
             }
 
@@ -358,11 +358,11 @@ function block_ajax_marking_assessment_groups_filter($submissions, $type, $asses
 
     } else {
         // maybe its set to show all
-        if ($assessmentsettings->showhide == BLOCK_AJAX_MARKING_CONF_SHOW) {
+        if ($assessmentsettings->display == BLOCK_AJAX_MARKING_CONF_SHOW) {
             return true;
         }
         // perhaps it is set to hidden
-        if ($assessmentsettings->showhide == BLOCK_AJAX_MARKING_CONF_HIDE) {
+        if ($assessmentsettings->display == BLOCK_AJAX_MARKING_CONF_HIDE) {
             return false;
         }
 
@@ -551,7 +551,7 @@ function block_ajax_marking_check_assessment_display_settings($assessmenttype, $
 
     if ($assessmentsettings) {
 
-        if ($assessmentsettings->showhide == BLOCK_AJAX_MARKING_CONF_HIDE) {
+        if ($assessmentsettings->display == BLOCK_AJAX_MARKING_CONF_HIDE) {
             return false;
         } else {
             return true;
@@ -559,7 +559,7 @@ function block_ajax_marking_check_assessment_display_settings($assessmenttype, $
 
     } else if ($coursesettings) {
         // if there was no settings object for the item, check for a course level default
-        if ($coursesettings->showhide == BLOCK_AJAX_MARKING_CONF_HIDE) {
+        if ($coursesettings->display == BLOCK_AJAX_MARKING_CONF_HIDE) {
             return false;
         } else {
             return true;
@@ -590,8 +590,8 @@ function block_ajax_marking_can_show_submission($assessmenttype, $submission) {
     // 3. the settings say 'show'
 
     if ($assessmentsettings) {
-        $displaywithoutgroups = ($assessmentsettings->showhide == BLOCK_AJAX_MARKING_CONF_SHOW);
-        $displaywithgroups    = ($assessmentsettings->showhide == BLOCK_AJAX_MARKING_CONF_GROUPS);
+        $displaywithoutgroups = ($assessmentsettings->display == BLOCK_AJAX_MARKING_CONF_SHOW);
+        $displaywithgroups    = ($assessmentsettings->display == BLOCK_AJAX_MARKING_CONF_GROUPS);
         $intherightgroup      = block_ajax_marking_is_member_of_group($assessmentsettings->groups, $submission->userid);
 
         if ($displaywithoutgroups || ($displaywithgroups && $intherightgroup)) {
@@ -601,9 +601,9 @@ function block_ajax_marking_can_show_submission($assessmenttype, $submission) {
     } else {
         // check at course level for a default
         if ($coursesettings) {
-            $displaywithgroups    = ($coursesettings->showhide == BLOCK_AJAX_MARKING_CONF_GROUPS);
+            $displaywithgroups    = ($coursesettings->display == BLOCK_AJAX_MARKING_CONF_GROUPS);
             $intherightgroup      = block_ajax_marking_is_member_of_group($coursesettings->groups, $submission->userid);
-            $displaywithoutgroups = ($coursesettings->showhide == BLOCK_AJAX_MARKING_CONF_SHOW);
+            $displaywithoutgroups = ($coursesettings->display == BLOCK_AJAX_MARKING_CONF_SHOW);
 
             if ($displaywithoutgroups || ($displaywithgroups && $intherightgroup)) {
                 return true;
@@ -880,9 +880,9 @@ function block_ajax_marking_make_assessment_node($assessment, $config=false) {
 
         $node->title = get_string('currentsettings', 'block_ajax_marking').': ';
 
-        if (isset($course_settings->showhide)) {
+        if (isset($course_settings->display)) {
 
-            switch ($course_settings->showhide) {
+            switch ($course_settings->display) {
 
                 case BLOCK_AJAX_MARKING_CONF_SHOW:
                     $node->title .= get_string('showthiscourse', 'block_ajax_marking');
@@ -1064,6 +1064,7 @@ function block_ajax_marking_get_number_of_category_levels($reset=false) {
  * enrol_get_my_courses(), which would prevent teachers from being assigned at category level
  *
  * @param bool $returnsql flag to determine whether we want to get the sql and params to use as a subquery for something else
+ * @return aray of courses keyed by courseid
  */
 function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=false) {
 
@@ -1090,7 +1091,7 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
     
     list($rolesql, $roleparams) = block_ajax_marking_teacherrole_sql();
 
-    $fieldssql = 'DISTINCT(c.id)';
+    $fieldssql = 'DISTINCT(course.id)';
     // Only get extra columns back if we are returning the actual results. Subqueries won't need it.
     $fieldssql .= $returnsql ? '' : ', fullname, shortname';
 
@@ -1098,12 +1099,12 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
 
     // all directly assigned roles
     $select = "SELECT {$fieldssql}
-                 FROM {course} c
+                 FROM {course} course
            INNER JOIN {context} cx
-                   ON cx.instanceid = c.id
+                   ON cx.instanceid = course.id
            INNER JOIN {role_assignments} ra
                    ON ra.contextid = cx.id
-                WHERE c.visible = 1
+                WHERE course.visible = 1
                   AND cx.contextlevel = ?
                   AND ra.userid = ?
                   AND ra.roleid {$rolesql} ";
@@ -1114,12 +1115,12 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
     $select .= " UNION
 
                SELECT {$fieldssql}
-                 FROM {course} c
+                 FROM {course} course
 
             LEFT JOIN {course_categories} cat1
-                   ON c.category = cat1.id ";
+                   ON course.category = cat1.id ";
 
-    $where =   "WHERE c.visible = 1
+    $where =   "WHERE course.visible = 1
                   AND EXISTS (SELECT 1
                                   FROM {context} cx
                             INNER JOIN {role_assignments} ra
@@ -1212,15 +1213,16 @@ function block_ajax_marking_format_node(&$node) {
     
     // The things to go into display are fixed. Stuff for return data varies
     $displayitems = array(
-            'name',
             'count',
-            'summary',
-            'seconds',
             'description',
-            'tooltip',
-            'style',
             'firstname',
-            'lastname'
+            'lastname',
+            'name',
+            'seconds',
+            'style',
+            'summary',
+            'tooltip',
+            'time'
     );
  
     // loop through the rest of the object's properties moving them to the returndata bit
@@ -1262,3 +1264,6 @@ function block_ajax_marking_form_url($params=array()) {
     return $url;
 
 }
+
+
+

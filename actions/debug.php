@@ -17,7 +17,8 @@
 
 
 /**
- * This will get the dynamic CSS rules from each of the module plugins
+ * This provides a simple interface to investigate what comes back from the AJAX calls without
+ * having to constantly reload the page
  *
  * @package    block
  * @subpackage ajax_marking
@@ -26,33 +27,29 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// make the class files happy
-define('MOODLE_INTERNAL', true); 
-
-// include all the files in the modules directory
-$directory = opendir(dirname(__FILE__).'/modules');
-
-if ($directory) {
-    
-    require_once(dirname(__FILE__).'/classes/module_base.class.php');
-    
-    while (($modulefile = readdir($directory)) !== false) {
-        
-        if ($modulefile == '.' || $modulefile == '..') {
-            continue;
-        }
-        
-        $filepath = dirname(__FILE__).'/modules/'.$modulefile.'/block_ajax_marking_'.$modulefile.'.class.php';
-        
-        require_once($filepath);
-        
-        $modulename = substr($modulefile, 0, -4);  //remove '.php'
-        $classname = 'block_ajax_marking_'.$modulename;
-        call_user_func($classname.'::print_css');
-    }
-    
-    closedir($directory);
-}
+// standard login to the front page. Redirect to login.php if not authenticated, then bounce back
 
 
-?>
+// Present a form with a text box for the file name and another for the query string
+echo html_writer::start_tag('form');
+
+
+echo html_writer::empty_tag('imput', array('type' => 'submit', 'name' => 'Submit'));
+
+echo html_writer::end_tag('form');
+
+// Add a submit button
+
+// Add a div to hold the results
+
+// Add JS to intercept the submit thing and construct the AJAX request
+
+// Add JS to catch the returned AJAX data and put line breaks and indents in
+
+// Add JS to put the data into the innerhtml of the display div
+
+
+
+
+
+

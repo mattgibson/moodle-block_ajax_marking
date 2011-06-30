@@ -30,6 +30,8 @@ if (!defined('MOODLE_INTERNAL')) {
     die();
 }
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
+
 /**
  * Provides marking functions for the journal module
  *
@@ -65,25 +67,25 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
      *
      * @return void
      */
-    function get_all_gradable_items($courseids) {
-
-        global $CFG, $DB;
-
-        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-
-        $sql = "SELECT j.id, j.intro as summary, j.name, j.course, c.id as cmid
-                  FROM {journal} j
-            INNER JOIN {course_modules} c
-                    ON j.id = c.instance
-                 WHERE c.module = :moduleid
-                   AND c.visible = 1
-                   AND j.assessed <> 0
-                   AND j.course $usql";
-        $params['moduleid'] = $this->get_module_id();
-
-        $journals = $DB->get_records_sql($sql, $params);
-        $this->assessments = $journals;
-    }
+//    function get_all_gradable_items($courseids) {
+//
+//        global $CFG, $DB;
+//
+//        list($usql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+//
+//        $sql = "SELECT j.id, j.intro as summary, j.name, j.course, cm.id as cmid
+//                  FROM {journal} j
+//            INNER JOIN {course_modules} cm
+//                    ON j.id = cm.instance
+//                 WHERE cm.module = :".$this->prefix_param_name('moduleid')."
+//                   AND cm.visible = 1
+//                   AND j.assessed <> 0
+//                   AND j.course {$usql}";
+//        $params['moduleid'] = $this->get_module_id();
+//
+//        $journals = $DB->get_records_sql($sql, $params);
+//        $this->assessments = $journals;
+//    }
 
     /**
      * this will never actually lead to submissions, but will only be called if there are group
@@ -116,16 +118,16 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
                     ON s.userid = u.id
             INNER JOIN {journal} j
                     ON je.journal = j.id
-            INNER JOIN {course_modules} c
-                    ON j.id = c.instance
+            INNER JOIN {course_modules} cm
+                    ON j.id = cm.instance
             INNER JOIN ({$studentsql}) stsql
                     ON je.userid = stsql.id
-                 WHERE c.module = :moduleid
-                   AND c.visible = 1
+                 WHERE cm.module = :".$this->prefix_param_name('moduleid')."
+                   AND cm.visible = 1
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
                    AND je.userid $usql
-                   AND j.id = :journalid";
+                   AND j.id = :".$this->prefix_param_name('journalid');
         $params['moduleid'] = $this->get_module_id();
         $params['journalid'] = $journal->id;
         $submissions = $DB->get_records_sql($sql, $params);
@@ -151,6 +153,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
     function make_html_link($item) {
 
         global $CFG;
+        
         $address = $CFG->wwwroot.'/mod/journal/report.php?id='.$item->cmid;
         return $address;
     }
@@ -160,27 +163,57 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
      * 
      * @return array the select, join and where clauses, with the aliases for module and submission tables
      */
-    function get_sql_count() {
-        
-        $moduletable = $this->get_sql_module_table();
-        $submissionstable = $this->get_sql_submission_table();
-        
-        $from =     "FROM {{$submissionstable}} moduletable
-               INNER JOIN {{$moduletable}} sub
-                       ON sub.journal = moduletable.id ";
-                       
-        $where =   "WHERE moduletable.assessed <> 0
-                      AND sub.modified > sub.timemarked ";
-        
-        $params = array();
-                       
-        return array($from, $where, $params);
-    }
+//    function get_sql_count() {
+//        
+//        $moduletable = $this->get_sql_module_table();
+//        $submissionstable = $this->get_sql_submission_table();
+//        
+//        $from =     "FROM {{$submissionstable}} moduletable
+//               INNER JOIN {{$moduletable}} sub
+//                       ON sub.journal = moduletable.id ";
+//                       
+//        $where =   "WHERE moduletable.assessed <> 0
+//                      AND sub.modified > sub.timemarked ";
+//        
+//        $params = array();
+//                       
+//        return array($from, $where, $params);
+//    }
     
-    protected function get_sql_submission_table() {
-        return 'journal_entries';
-    }
+//    protected function get_sql_submission_table() {
+//        return 'journal_entries';
+//    }
     
  
+    /**
+     * Returns a query object with the basics all set up to get assignment stuff
+     * 
+     * @global type $DB
+     * @return block_ajax_marking_query_base 
+     */
+    public function query_factory($callback = false) {
+        
+        global $DB;
+        
+        $query = new block_ajax_marking_query_base($this);
+        $query->set_userid_column('sub.userid');
+        
+        $query->add_from(array(
+                'table' => $this->modulename,
+                'alias' => 'moduletable',
+        ));
+        
+        $query->add_from(array(
+                'join' => 'INNER JOIN',
+                'table' => 'journal_entries',
+                'alias' => 'sub',
+                'on' => 'sub.journal = moduletable.id'
+        ));
+        
+        $query->add_where(array('type' => 'AND', 'condition' => 'moduletable.assessed <> 0'));
+        $query->add_where(array('type' => 'AND', 'condition' => 'sub.modified > sub.timemarked'));
+        
+        return $query;
+    }
 
 }

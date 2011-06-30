@@ -33,6 +33,7 @@ require_login(0, false);
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/output.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_factory.class.php');
 
 // For unit tests to work
 global $CFG, $USER, $DB;
@@ -44,6 +45,7 @@ $PAGE->set_context(get_context_instance(CONTEXT_SYSTEM));
 // required_param() means hard-coding them. 
 $params = array();
 
+// Need to get the filters in the right order so that the query recieves them in the right order
 foreach ($_POST as $name => $value) {
     $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
 }
@@ -63,6 +65,7 @@ $nodes  = array();
 // 'config_main_tree'. Type is also returned, where it refers to the node(s) that will be created,
 // which then gets sent back to this function when that node is clicked.
 switch ($params['callbackfunction']) {
+//switch (reset(array_keys($params))) {
 
     // generate the list of courses when the tree is first prepared. Currently either makes
     // a config tree or a main tree
@@ -75,142 +78,57 @@ switch ($params['callbackfunction']) {
 
         $data->payloadtype = 'course';
         $data->callbackfunction = 'course';
-
-        // iterate through each course, checking permisions, counting relevant assignment
-        // submissions and adding the course to the JSON output if any appear
-        $courses = block_ajax_marking_get_my_teacher_courses();
-
-        foreach ($courses as $course) {
-
-            // set course assessments counter to 0
-            $coursecount = 0;
-
-            // loop through each module, getting a count for this course id from each one.
-            foreach ($moduleclasses as $moduleclass) {
-                $coursecount += $moduleclass->course_count($course->id);
-            }
-
-            // TO DO: need to check in future for who has been assigned to mark them (new
-            // groups stuff) in 1.9
-
-            if ($coursecount > 0 || $config) {
-
-                // there are some assessments, or its a config tree, so we include the
-                // course always.
-
-                $node             = new stdClass;
-                $node->returndata = new stdClass;
-                $node->display    = new stdClass;
-
-                // name is there to allow labels to be reconstructed with a new count after
-                // marked nodes are removed
-                $node->display->name                  = block_ajax_marking_clean_name_text($course->shortname, 0);
-                $node->display->tooltip               = block_ajax_marking_clean_name_text($course->fullname);
-                $node->display->count                 = $coursecount;
-                $node->display->style                 = 'course';
-
-                $node->returndata->courseid           = $course->id;
-                $node->returndata->callbackfunction   = 'course';
-
-                $nodes[] = $node;
-
-            }
+        
+        $filters = array('courseid' => '');
+        $nodes = block_ajax_marking_query_factory::get_query($filters);
+        foreach ($nodes as &$node) {
+            $node->callbackfunction   = 'course';
+            $node->style              = 'course';
+            block_ajax_marking_format_node($node);
         }
-        //end JSON object
 
         break;
-
-//    case 'config_main_tree':
-//
-//        // Makes the course list for the configuration tree. No need to count anything, just
-//        // make the nodes. Might be possible to collapse it into the main one with some IF
-//        // statements.
-//
-//        $config = true;
-//
-//        $data->nodetype = 'course';
-////        $data->callbackfunction = 'course';
-//
-//        $output = '[{"callbackfunction":"config_main_tree"}';
-//
-//        $courses = block_ajax_marking_get_my_teacher_courses();
-//
-//        foreach ($courses as $course) {
-//            // iterate through each course, checking permisions, counting assignments and
-//            // adding the course to the JSON output if anything is there that can be graded
-//            $coursecount = 0;
-//
-//            foreach ($moduleclasses as $moduleclass) {
-//                $coursecount += $moduleclass->count_course_assessment_nodes($course->id);
-//            }
-//
-//            if ($coursecount > 0) {
-//
-//                $course_settings = block_ajax_marking_get_groups_settings('course', $course->id);
-//
-//                $output .= ',';
-//                $output .= '{';
-//
-//                $output .= '"id":"'.$course->id.'",';
-//                $output .= '"callbackfunction":"config_course",';
-//                $output .= '"title":"';
-//                $output .= get_string('currentsettings', 'block_ajax_marking').': ';
-//
-//                // add the current settings to the tooltip
-//                if (isset($course_settings->showhide)) {
-//
-//                    switch ($course_settings->showhide) {
-//
-//                        case BLOCK_AJAX_MARKING_CONF_SHOW:
-//                            $output .= get_string('showthiscourse', 'block_ajax_marking');
-//                            break;
-//
-//                        case BLOCK_AJAX_MARKING_CONF_GROUPS:
-//                            $output .= get_string('showwithgroups', 'block_ajax_marking');
-//                            break;
-//
-//                        case BLOCK_AJAX_MARKING_CONF_HIDE:
-//                            $output .= get_string('hidethiscourse', 'block_ajax_marking');
-//
-//                    }
-//                } else {
-//                    $output .= get_string('showthiscourse', 'block_ajax_marking');
-//                }
-//
-//                $output .= '",';
-//                $output .= '"name":"'  .block_ajax_marking_clean_name_text($course->fullname).'",';
-//                // to be used for the title
-//                $output .= '"icon":"'  .block_ajax_marking_add_icon('course').'",';
-//                $output .= '"label":"' .block_ajax_marking_add_icon('course');
-//                $output .= block_ajax_marking_clean_name_text($course->fullname).'",';
-//                $output .= '"count":"' .$coursecount.'"';
-//
-//                $output .= '}';
-//
-//            }
-//        }
-//        
-//        $output .= ']';
-//
-//        break;
 
     case 'course':
 
         $data->payloadtype = 'assessment';
+        
+        $filters = array(
+                'coursemoduleid' => '',
+                'courseid' => $params['courseid']);
+        $nodes = block_ajax_marking_query_factory::get_query($filters);
 
-        $nodes = array();
-
-        foreach ($moduleclasses as $moduleclass) {
-
-            $assessments = $moduleclass->module_nodes($params['courseid']);
-
-            foreach ($assessments as $assessment) {
-//                $nodes[] = block_ajax_marking_make_assessment_node($assessment);
-                block_ajax_marking_format_node($assessment);
+        foreach ($nodes as &$node) {
+            // We need to say whether or not there are groups (JS can handle this if flagged?) and what comes next
+            if ($node->display == BLOCK_AJAX_MARKING_CONF_GROUPS) {
+                $node->callbackfunction = 'groups';
+            } else {
+                // will be 'submission' in most cases. Make it non dynamic if there are no further callbacks listed
+                // by the module
+                
+                // Temporary fix before this is transferred to JS management
+                $node->callbackfunction = $moduleclasses[$node->modulename]->get_next_callback();
+                
+//                $node->callbackfunction = isset($this->callbackfunctions[0]) ? $this->callbackfunctions[0] : false;
             }
-            
-            $nodes = array_merge($nodes, $assessments);
+            block_ajax_marking_format_node($node);
         }
+        
+        
+        
+//        $nodes = array();
+//
+//        foreach ($moduleclasses as $moduleclass) {
+//
+//            $assessments = $moduleclass->module_nodes($params['courseid']);
+//
+//            foreach ($assessments as $assessment) {
+////                $nodes[] = block_ajax_marking_make_assessment_node($assessment);
+//                block_ajax_marking_format_node($assessment);
+//            }
+//            
+//            $nodes = array_merge($nodes, $assessments);
+//        }
 
         break;
 
@@ -261,7 +179,7 @@ switch ($params['callbackfunction']) {
 //        $output = '[{"callbackfunction":"config_set"}';
 //
 //        // if the settings have been put back to default, destroy the existing record
-//        if ($showhide == AMB_CONF_DEFAULT) {
+//        if ($show == AMB_CONF_DEFAULT) {
 //            //TODO need to check these variables are not empty
 //            $conditions = array(
 //                    'assessmenttype' => $assessmenttype,
@@ -307,9 +225,9 @@ switch ($params['callbackfunction']) {
 //        if ($assessmentid) {
 //
 //            if ($assessment_settings) {
-//                $output .= ',{"value":"'.$assessment_settings->showhide.'"}';
+//                $output .= ',{"value":"'.$assessment_settings->show.'"}';
 //
-//                if ($assessment_settings->showhide == 2) {
+//                if ($assessment_settings->show == 2) {
 //                    $output .= block_ajax_marking_make_config_groups_radio_buttons($courseid,
 //                                                            $assessmenttype,
 //                                                            $assessmentid);
@@ -322,9 +240,9 @@ switch ($params['callbackfunction']) {
 //        } else {
 //            // Procedure for courses
 //            if ($course_settings) {
-//                $output .= ',{"value":"'.$course_settings->showhide.'"}';
+//                $output .= ',{"value":"'.$course_settings->show.'"}';
 //
-//                if ($course_settings->showhide == 2) {
+//                if ($course_settings->show == 2) {
 //                    $output .= block_ajax_marking_make_config_groups_radio_buttons($courseid, 'course');
 //                }
 //            } else {
@@ -358,31 +276,49 @@ switch ($params['callbackfunction']) {
 //        break;
 
     default:
+        
+        // Need to make sure they are in the right order here
+//        $params[] = '';
+//        $callbackfunction = $params['callbackfunction'];
+//        unset($params['callbackfunction']);
+        
+        $data->payloadtype = $params['callbackfunction'];
+        
+        $nodes = block_ajax_marking_query_factory::get_query($params);
+        
+        foreach ($nodes as &$node) {
+            block_ajax_marking_format_node($node);
+        }
 
         // If we're here, it's specific to one of the added modules.
-        if (isset($params['modulename'], $params['callbackfunction'])) {
-            
-            $modulename       = $params['modulename'];
-            $callbackfunction = $params['callbackfunction'];
-            
-            if (method_exists($moduleclasses[$modulename], $callbackfunction)) {
-                
-                // Only pass parameters used for filtering to the callbackfunction
-                unset($params['modulename']);
-                unset($params['callbackfunction']);
-                
-                list($data, $nodes) = call_user_func_array(array($moduleclasses[$modulename], $callbackfunction), array($params));
-                
-            } else {
-                // TODO catch error here
-            }
-        } else {
-            // TODO catch error here   
-        }
+//        if (isset($params['modulename'], $params['callbackfunction'])) {
+//            
+//            $modulename       = $params['modulename'];
+//            $callbackfunction = $params['callbackfunction'];
+//            
+//            if (method_exists($moduleclasses[$modulename], $callbackfunction)) {
+//                
+//                // Only pass parameters used for filtering to the callbackfunction. They will need to be in the correct order!
+//                unset($params['modulename']);
+//                unset($params['callbackfunction']);
+//                
+//                list($data, $nodes) = call_user_func_array(array($moduleclasses[$modulename], $callbackfunction), array($params));
+//                
+//            } else {
+//                // TODO catch error here
+//            }
+//        } else {
+//            // TODO catch error here   
+//        }
 
         break;
 }
 
+
+
+// reindex array so we pick it up in js as an array and can find the length. Associative arrays
+// with strings for keys are automatically sent as objects
+$nodes = array_values($nodes);
 $output = array('data' => $data, 'nodes' => $nodes);
     
 // return the output to the client

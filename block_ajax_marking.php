@@ -78,11 +78,11 @@ class block_ajax_marking extends block_base {
 
             // make the non-ajax list whatever happens. Then allow the AJAX tree to usurp it if
             // necessary
-            require_once($CFG->dirroot.'/blocks/ajax_marking/actions/html_list.php');
-            
-            $this->content->text .= '<div id="block_ajax_marking_html_list">';
-            $this->content->text .= $htmllist;
-            $this->content->text .= '</div>';
+//            require_once($CFG->dirroot.'/blocks/ajax_marking/actions/html_list.php');
+//            
+//            $this->content->text .= '<div id="block_ajax_marking_html_list">';
+//            $this->content->text .= $htmllist;
+//            $this->content->text .= '</div>';
             $this->content->footer = '';
 
             // Build the AJAX stuff on top of the plain HTML list
@@ -196,7 +196,7 @@ class block_ajax_marking extends block_base {
                 $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true, $jsmodule);
                 
                 // Include the CSS from the modules.
-                $PAGE->requires->css('/blocks/ajax_marking/module_styles.php');
+                //$PAGE->requires->css('/blocks/ajax_marking/module_styles.php');
                 
                 // also need to add any js from individual modules, which the html list will
                 // have provided

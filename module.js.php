@@ -66,17 +66,23 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView);
 
 /**
  * New unified build nodes function
+ * 
+ * @param array nodesarray
  */
 M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
     
     var newnode = '';
     var nodedata = '';
     var seconds = 0;
+    // TODO what if server time and browser time are mismatche?
+    var currenttime = Math.round((new Date()).getTime() / 1000); // current unix time
     var iconstyle = '';
     var numberofnodes = nodesarray.length;
     
-    if (typeof(M.block_ajax_marking.parentnodeholder) !== 'object') {
-        M.block_ajax_marking.parentnodeholder = this.root;
+    var holdertype = typeof(M.block_ajax_marking.parentnodeholder);
+    
+    if (holdertype !== 'object') {
+        M.block_ajax_marking.parentnodeholder = this.getRoot();
     }
     
     // cycle through the array and make the nodes
@@ -107,11 +113,11 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         
         // If the node has a time (of oldest submission) show urgency by adding a background colour
         if (typeof(nodedata.display) !== 'undefined' && 
-            typeof(nodedata.display.seconds) !== 'undefined') {
+            typeof(nodedata.display.time) !== 'undefined') {
             
             iconstyle = '';
             
-            seconds = parseInt(nodedata.display.seconds, 10);
+            seconds = currenttime - parseInt(nodedata.display.time, 10);
             
             if (seconds < 21600) {
                 // less than 6 hours
@@ -219,10 +225,12 @@ M.block_ajax_marking.tree_base.prototype.request_node_data = function(clickednod
     
     var postdata = [];
     var varname = '';
+    
+    postdata = M.block_ajax_marking.getreturndata(clickednode);
 
-    for (varname in clickednode.data.returndata) {
-        postdata.push(varname + '=' + clickednode.data.returndata[varname]);
-    }
+//    for (varname in clickednode.data.returndata) {
+//        postdata.push(varname + '=' + clickednode.data.returndata[varname]);
+//    }
     
     postdata = postdata.join('&');
     
@@ -352,7 +360,7 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
 //                    var typearray = node.data.ca.split('_');
 //                    var type = typearray[0];
 
-    var module_javascript = mbam[node.data.returndata.mod];
+    var module_javascript = mbam[node.data.returndata.modulename];
 
     // Open a pop up with the url and arguments as specified in the module specific object
     //var popupurl = M.cfg.wwwroot + module_javascript.pop_up_opening_url(node);
@@ -390,6 +398,38 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
     return false;
 };
 
+/**
+ * Rcursive function to get the return data from this node and all its parents in the right order
+ * 
+ * @param object node
+ * @param bool main This tells us whether to return the callbackfunction or not
+ */
+M.block_ajax_marking.getreturndata = function(node) {
+    
+    var returndata = [];
+    
+    // The callback function is the GROUP BY for the next set of nodes, so this comes first
+    returndata.push('callbackfunction='+node.data.returndata.callbackfunction);
+    
+    var nextparentnode = node;
+    
+    while (!nextparentnode.isRoot()) {
+        // Add the other item
+        for (varname in nextparentnode.data.returndata) {
+            // Add all the non-callbackfunction stuff
+            if (varname != 'callbackfunction' && nextparentnode.data.returndata[varname] != '') {
+                returndata.push(varname + '=' + nextparentnode.data.returndata[varname]); 
+            }      
+
+        }
+        
+        nextparentnode = nextparentnode.parent;
+        
+    }
+    
+    return returndata;
+}
+
 
 M.block_ajax_marking.configonclick = function(clickargumentsobject) {
 
@@ -399,12 +439,12 @@ M.block_ajax_marking.configonclick = function(clickargumentsobject) {
     function make_box(value, id, label) {
 
         try{
-            box = document.createElement('<input type="radio" name="showhide" />');
+            box = document.createElement('<input type="radio" name="display" />');
         }catch(error){
             box = document.createElement('input');
         }
         box.setAttribute('type','radio');
-        box.setAttribute('name','showhide');
+        box.setAttribute('name','display');
         box.value = value;
         box.id    = id;
 
@@ -456,12 +496,12 @@ M.block_ajax_marking.configonclick = function(clickargumentsobject) {
     if (clickargumentsobject.node.data.type != 'config_course') {
         M.block_ajax_marking.make_box('default', 'config0', M.str.block_ajax_marking.coursedefault, formDiv);
         // make the three main checkboxes, appending them to the form as we go along
-        M.block_ajax_marking.make_box('show',    'config1', M.str.block_ajax_marking.showthisassessment, formDiv);
+        M.block_ajax_marking.make_box('display',    'config1', M.str.block_ajax_marking.showthisassessment, formDiv);
         M.block_ajax_marking.make_box('groups',  'config2', M.str.block_ajax_marking.showwithgroups, formDiv);
         M.block_ajax_marking.make_box('hide',    'config3', M.str.block_ajax_marking.hidethisassessment, formDiv);
 
     } else {
-        M.block_ajax_marking.make_box('show',    'config1', M.str.block_ajax_marking.showthiscourse, formDiv);
+        M.block_ajax_marking.make_box('display',    'config1', M.str.block_ajax_marking.showthiscourse, formDiv);
         M.block_ajax_marking.make_box('groups',  'config2', M.str.block_ajax_marking.showwithgroups, formDiv);
         M.block_ajax_marking.make_box('hide',    'config3', M.str.block_ajax_marking.hidethiscourse, formDiv);
     }
@@ -636,12 +676,12 @@ M.block_ajax_marking.configonclick = function(clickargumentsobject) {
 //                    function make_box(value, id, label) {
 //                        
 //                        try{
-//                            box = document.createElement('<input type="radio" name="showhide" />');
+//                            box = document.createElement('<input type="radio" name="show" />');
 //                        }catch(error){
 //                            box = document.createElement('input');
 //                        }
 //                        box.setAttribute('type','radio');
-//                        box.setAttribute('name','showhide');
+//                        box.setAttribute('name','show');
 //                        box.value = value;
 //                        box.id    = id;
 //                        
@@ -842,121 +882,119 @@ M.block_ajax_marking.tree_base.prototype.remove_node_from_tree = function(nodeun
 M.block_ajax_marking.ajax_success_handler = function(o) {
 
     var label = '';
-
     var mbam = M.block_ajax_marking;
-    
-    var ajaxresponsearray = [];
     
     try {
         ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
     } catch (error) {
-       // TODO - error handling code to prevent silent failure if data is mashed
+        // add an empty array of nodes so we trigger all the update and cleanup stuff
+        // TODO - error handling code to prevent silent failure if data is mashed
     }
 
     // first object holds data about what kind of nodes we have so we can
     // fire the right function.
+    var nodesarray = [];
+    var payload = 'default';
     if (typeof(ajaxresponsearray) === 'object') {
-        
-        // TODO - these are inconsistent. Some refer to where the request
-        // is triggered and some to what it creates.
-        
-        switch (ajaxresponsearray.data.payloadtype) {
-
-            case 'config_main_tree':
-
-                mbam.tree.build_course_nodes(ajaxresponsearray.nodes);
-                break;
-
-            case 'config_course':
-
-                mbam.tree.build_assessment_nodes(ajaxresponsearray.nodes);
-                break;
-
-            case 'config_groups':
-
-                // called when the groups settings have been updated.
-
-                // TODO - only change the select value, don't totally re build them
-                mbam.make_config_groups_list(ajaxresponsearray.nodes);
-                break;
-
-            case 'config_set':
-
-                //just need to un-disable the radio button
-
-                if (ajaxresponsearray.nodes[0].value === false) {
-                    label = document.createTextNode(mbam.variables.nogradedassessments);
-                    mbam.remove_all_child_nodes(mbam.tree.status);
-                    mbam.tree.status.appendChild(label);
-                } else {
-                    mbam.enable_config_radio_buttons();
-                }
-                break;
-
-            case 'config_check':
-                // called when any data about config comes back after a request (not a data
-                // setting request)
-
-                // make the id of the checkbox div
-                var checkboxid = 'config'+ajaxresponsearray.nodes[0].value;
-
-                // make the radio button on screen match the value in the database that was just 
-                // returned.
-                document.getElementById(checkboxid).checked = true;
-                
-                // if its set to 'display by groups', make the groups bit underneath
-                if (ajaxresponsearray.nodes[0].value == 2) {
-                    // remove the config bit leaving just the groups, which were tacked onto the
-                    // end of the returned array
-                    ajaxresponsearray.nodes.shift();
-                    //make the groups bit
-                    mbam.make_config_groups_list(ajaxresponsearray.nodes);
-                }
-                //allow the radio buttons to be clicked again
-                mbam.enable_config_radio_buttons();
-                break;
-
-            case 'config_group_save':
-
-                if (ajaxresponsearray.nodes[0].value === false) {
-                    mbam.tree.status.innerHTML = 'AJAX error';
-                } else {
-                    mbam.enable_config_radio_buttons();
-                }
-
-                break;
-                
-            case 'gradinginterface':
-                // We have gotten the grading form back. Need to add the HTML to the modal overlay
-                
-                
-                M.block_ajax_marking.gradinginterface.setHeader(''); 
-                M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content); 
-                
-                // Initialise any editors
-                // foreach editor in the div
-                
-                //M.editor_tinymce.init_editor(Y, editorid, options);
-               
-                // now we need to add an onclick handler for the submit button and cancel button
-            
-                break;
-
-            default:
-                
-                if (ajaxresponsearray.nodes.length > 0) {
-                    mbam.tree.build_nodes(ajaxresponsearray.nodes);
-                } else {
-                    // No nodes returned. Do something
-                }
-                
-        } // end switch
-        
-    } else {
-        // TODO what if we get an empty response?
-        // not this: infinite loop!
-        //M.block_ajax_marking.refresh_tree(M.block_ajax_marking.markingtree);
+        payload = ajaxresponsearray.data.payloadtype;
+        nodesarray = ajaxresponsearray.nodes
     }
+        
+    // TODO - these are inconsistent. Some refer to where the request
+    // is triggered and some to what it creates.
+
+    switch (payload) {
+
+        case 'config_main_tree':
+
+            mbam.tree.build_course_nodes(nodesarray);
+            break;
+
+        case 'config_course':
+
+            mbam.tree.build_assessment_nodes(nodesarray);
+            break;
+
+        case 'config_groups':
+
+            // called when the groups settings have been updated.
+
+            // TODO - only change the select value, don't totally re build them
+            mbam.make_config_groups_list(nodesarray);
+            break;
+
+        case 'config_set':
+
+            //just need to un-disable the radio button
+
+            if (ajaxresponsearray.nodes[0].value === false) {
+                label = document.createTextNode(mbam.variables.nogradedassessments);
+                mbam.remove_all_child_nodes(mbam.tree.status);
+                mbam.tree.status.appendChild(label);
+            } else {
+                mbam.enable_config_radio_buttons();
+            }
+            break;
+
+        case 'config_check':
+            // called when any data about config comes back after a request (not a data
+            // setting request)
+
+            // make the id of the checkbox div
+            var checkboxid = 'config'+nodesarray[0].value;
+
+            // make the radio button on screen match the value in the database that was just 
+            // returned.
+            document.getElementById(checkboxid).checked = true;
+
+            // if its set to 'display by groups', make the groups bit underneath
+            if (ajaxresponsearray.nodes[0].value == 2) {
+                // remove the config bit leaving just the groups, which were tacked onto the
+                // end of the returned array
+                ajaxresponsearray.nodes.shift();
+                //make the groups bit
+                mbam.make_config_groups_list(nodesarray);
+            }
+            //allow the radio buttons to be clicked again
+            mbam.enable_config_radio_buttons();
+            break;
+
+        case 'config_group_save':
+
+            if (ajaxresponsearray.nodes[0].value === false) {
+                mbam.tree.status.innerHTML = 'AJAX error';
+            } else {
+                mbam.enable_config_radio_buttons();
+            }
+
+            break;
+
+        case 'gradinginterface':
+            // We have gotten the grading form back. Need to add the HTML to the modal overlay
+
+
+            M.block_ajax_marking.gradinginterface.setHeader(''); 
+            M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content); 
+
+            // Initialise any editors
+            // foreach editor in the div
+
+            //M.editor_tinymce.init_editor(Y, editorid, options);
+
+            // now we need to add an onclick handler for the submit button and cancel button
+
+            break;
+
+        default:
+
+           // if (ajaxresponsearray.nodes.length > 0) {
+            mbam.tree.build_nodes(ajaxresponsearray.nodes);
+            //} else {
+                // No nodes returned. Do something
+            //}
+
+    } // end switch
+        
     
     // rebuild nodes and optionally add 'nothing to mark' if we have none left
     M.block_ajax_marking.refresh_tree_after_changes(M.block_ajax_marking.tree);
@@ -1007,7 +1045,7 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
 //
 //    for (var h = 0; h < radiolength; h++) {
 //        
-//        if (radio.childNodes[h].name == 'showhide') {
+//        if (radio.childNodes[h].name == 'show') {
 //            YAHOO.util.Dom.setAttribute(radio.childNodes[h], 'disabled', false);
 //        }
 //    }
@@ -1031,12 +1069,12 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
 //    var box = '';
 //
 //    try{
-//        box = document.createElement('<input type="radio" name="showhide" />');
+//        box = document.createElement('<input type="radio" name="show" />');
 //    }catch(error){
 //        box = document.createElement('input');
 //    }
 //    box.setAttribute('type','radio');
-//    box.setAttribute('name','showhide');
+//    box.setAttribute('name','show');
 //    box.value = value;
 //    box.id    = id;
 //    box.onclick = function() {
@@ -1103,9 +1141,9 @@ M.block_ajax_marking.refresh_tree_after_changes = function(treeobject) {
         M.block_ajax_marking.remove_all_child_nodes(document.getElementById("count"));
         
         //TODO this bit used to be only for the workshop - is it OK all the time, or even needed?
-        M.block_ajax_marking.remove_all_child_nodes(treeobject.div);
+        //M.block_ajax_marking.remove_all_child_nodes(treeobject.div);
         
-        treeobject.div.appendChild(document.createTextNode(M.str.block_ajax_marking.nothingtomark));
+        //treeobject.div.appendChild(document.createTextNode(M.str.block_ajax_marking.nothingtomark));
     }
 };
 
@@ -1118,11 +1156,24 @@ M.block_ajax_marking.refresh_tree_after_changes = function(treeobject) {
 M.block_ajax_marking.refresh_tree = function(treeobject) {
 
     // might be no nodes left after marking them all previously
-    if (M.block_ajax_marking.tree.root.nodesLength === 0) {
-        M.block_ajax_marking.tree.build_ajax_tree();
+    // TODO hard coded to one tree
+//    if (M.block_ajax_marking.tree.root.nodesLength === 0) {
+//        M.block_ajax_marking.tree.build_ajax_tree();
+//    }
+
+    // Get rid of the existing tree nodes first, but don't rerender to avoid flicker
+    var rootnode = treeobject.getRoot();
+    var numberofnodes = rootnode.children.length;
+    for (var i = 0; i < numberofnodes; i++) {
+        treeobject.removeNode(rootnode.children[0], true);
     }
     
+    // Reload the data for the root node. We keep the tree object intect rather than destroying
+    // and recreating in order to improve responsiveness.
+    M.block_ajax_marking.parentnodeholder = rootnode;
+    M.block_ajax_marking.oncompletefunctionholder = 'rootnode.loadcomplete';
     treeobject.build_ajax_tree();
+    
 };
 
 /**
@@ -1158,7 +1209,7 @@ M.block_ajax_marking.make_config_groups_list = function(data) {
         var checkbox = '';
         
         try {
-            checkbox = document.createElement('<input type="checkbox" name="showhide" />');
+            checkbox = document.createElement('<input type="checkbox" name="display" />');
         } catch(err) {
             checkbox = document.createElement('input');
         }
@@ -1248,7 +1299,7 @@ M.block_ajax_marking.config_checkbox_onclick = function() {
 
     var postdata = 'id='+course+'&assessmenttype='+assessmentType+'&assessmentid='+assessment
                    +'&type=config_group_save&userid='+M.str.block_ajax_marking.userid
-                   +'&showhide=2&groups='+groupids;
+                   +'&display=2&groups='+groupids;
 
     var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl, block_ajax_marking_callback, postdata);
 };
@@ -1369,7 +1420,7 @@ M.block_ajax_marking.build_config_overlay = function() {
     }
 };
 
-M.block_ajax_marking.config_checkbox_ = function(showHide) {
+M.block_ajax_marking.config_checkbox_ = function(show) {
 
 
 };
@@ -1385,7 +1436,7 @@ M.block_ajax_marking.request_config_checkbox_data = function(checkbox) {
 
     //TODO did these changes work?
     
-    var showHide = '';
+    var show = '';
 
     var form = document.getElementById('configshowform');
     
@@ -1394,22 +1445,22 @@ M.block_ajax_marking.request_config_checkbox_data = function(checkbox) {
 
         case 'default':
 
-            showHide = 0;
+            display = 0;
             break;
 
         case 'show':
 
-            showHide = 1;
+            display = 1;
             break;
             
         case 'groups':
             
-            showHide = 2;
+            display = 2;
             break;
             
         case 'hide':
         
-            showHide = 3;
+            display = 3;
             break; 
     }
 
@@ -1421,17 +1472,17 @@ M.block_ajax_marking.request_config_checkbox_data = function(checkbox) {
     var postData   = 'userid='+M.str.block_ajax_marking.userid;
         postData  += '&assessmenttype='+form.elements['assessmenttype'].value;
         postData  += '&assessmentid='+form.elements['assessment'].value;
-        postData  += '&showhide='+showHide;
+        postData  += '&display='+display;
     
     var nongroupvalues = '0 1 3';
     
-    if (nongroupvalues.search(showHide) == -1) {
-        // submit showhide value and do groups stuff
+    if (nongroupvalues.search(show) == -1) {
+        // submit show value and do groups stuff
         postData  += '&id='+form.elements['course'].value;
         postData  += '&type=config_groups';
         
     } else {
-        // just submit the new showhide value
+        // just submit the new show value
         postData += '&id='+form.elements['assessment'].value;
         postData += '&type=config_set';
     }
@@ -1464,10 +1515,9 @@ M.block_ajax_marking.remove_config_right_panel_contents = function() {
 M.block_ajax_marking.remove_all_child_nodes = function (parentnode) {
     
     if (parentnode.hasChildNodes()) {
-        
-        while (parentnode.hasChildNodes()) {
-            parentnode.removeChild(parentnode.firstChild);
-        }
+        while (parentnode.childNodes.length >= 1) {
+            parentnode.removeChild(parentnode.firstChild);       
+        } 
     }
 };
 
