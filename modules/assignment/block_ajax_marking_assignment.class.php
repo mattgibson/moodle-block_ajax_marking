@@ -71,11 +71,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $this->modulename           = 'assignment';  // must be the same as the DB modulename
         $this->capability           = 'mod/assignment:grade';
         $this->icon                 = 'mod/assignment/icon.gif';
-        // what nodes, if any come after the course and assessment ones for this module?
-        $this->callbackfunctions    = array(
-                'submissions'
-        );
-        
     }
 
      /**
@@ -161,6 +156,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * @global type $OUTPUT
      * @global type $USER
      * @param array $params From $_GET
+     * @param object $coursemodule The coursemodule object that the user has been authenticated against
      */
     public function grading_popup($params, $coursemodule) {
         
@@ -172,22 +168,17 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         //$coursemodule = $DB->get_record('course_modules', array('id' => $params['cmid']));
         // use coursemodule->instance so that we have checked permissions properly
         $assignment = $DB->get_record('assignment', array('id' => $coursemodule->instance));
-        $submission = $DB->get_record('assignment_submissions', array('id' => $params['subid']));
+        $submission = $DB->get_record('assignment_submissions', array('assignment' => $coursemodule->instance, 
+                                                                      'userid' => $params['userid']));
         
         if (!$submission) {
-            print_error('Bad submission id');
+            print_error('No submission for this user');
             return;
         }
         
-        // Security: submission should be from the same coursemodule we checked capabilities for
-        if (!($submission->assignment == $assignment->id)) {
-            print_error('Submission does not match the supplied coursemodule');
-            return;
-        }
-        
-        $course = $DB->get_record('course', array('id' => $assignment->course));
-        $coursemodule = $DB->get_record('course_modules', array('id' => $params['coursemoduleid']));
-        $context = get_context_instance(CONTEXT_MODULE, $params['coursemoduleid']);
+        $course         = $DB->get_record('course', array('id' => $assignment->course));
+        $coursemodule   = $DB->get_record('course_modules', array('id' => $coursemodule->id));
+        $context        = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
         
         // TODO more sanity and security checks
         $user = $DB->get_record('user', array('id' => $submission->userid));
@@ -432,20 +423,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         return true;
     }
     
-//    protected function get_sql_submissions_select($moduleid=null) {
-//        
-//        return array(
-//                'sub.id AS subid',
-//                '1 AS count',
-//                'moduletable.intro AS description',
-//                'sub.timemodified AS time',
-//                'sub.userid',
-//                'cm.id AS cmid',
-//                'u.firstname', 
-//                'u.lastname'
-//        );
-//    }
-
     /**
      * Returns a query object with the basics all set up to get assignment stuff
      * 
@@ -457,10 +434,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         global $DB;
         
         $query = new block_ajax_marking_query_base($this);
-        
         $query->set_userid_column('sub.userid');
-
-        $submissiontable = 'assignment_submissions';
 
         $query->add_from(array(
                 'table' => 'assignment',
@@ -469,7 +443,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         $query->add_from(array(
                 'join' => 'INNER JOIN',
-                'table' => $submissiontable,
+                'table' => 'assignment_submissions',
                 'alias' => 'sub',
                 'on' => 'sub.assignment = moduletable.id'
         ));
@@ -483,31 +457,62 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         return $query;
     }
     
-    /**
-     * Add any tweaks needed to get the submissions to work
-     * 
-     * @param block_ajax_marking_query_base $query 
-     * @param string $type The main type  of query, i.e. the filter that is providing the SELECT
-     * @return void
-     */
-    public function alter_query_hook(block_ajax_marking_query_base $query, $type = false) {
+    
+    
+    public function apply_userid_filter(block_ajax_marking_query_base $query, $userid) {
         
-        switch ($type) {
-            
-            case 'submissions':
-                // Add the extra select stuff
-                $query->add_select(array(
-                        'table' => 'user',
-                        'column' => 'firstname',
-                ));
-                $query->add_select(array(
-                        'table' => 'user',
-                        'column' => 'lastname',
-                ));
-                break;
+        if (!$userid) { // display submissions - final nodes
+        
+            $data = new stdClass;
+            $data->nodetype = 'submission';
 
-            default:
-                break;
+//            $usercolumnalias   = $query->get_userid_column();
+
+            $selects = array(
+                array(
+                    'table' => 'sub', 
+                    'column' => 'id',
+                    'alias' => 'subid'),
+                array(
+                    'table' => 'user',
+                    'column' => 'firstname'),
+                array(
+                    'table' => 'user',
+                    'column' => 'lastname'),
+                array( // Count in case we have user as something other than the last node
+                    'function' => 'COUNT',
+                    'table'    => 'sub',
+                    'column'   => 'id',
+                    'alias'    => 'count'),
+                array(
+                    'table' => 'sub', 
+                    'column' => 'timemodified',
+                    'alias' => 'time'),
+                array(
+                    'table' => 'sub', 
+                    'column' => 'userid'),
+                    // This is only needed to add the right callback function. 
+                array(
+                    'column' => "'".$this->modulename."'",
+                    'alias' => 'modulename'
+                    )
+            );
+            
+            foreach ($selects as $select) {
+                $query->add_select($select);
+            }
+            
+            $query->add_from(array(
+                    'join' => 'INNER JOIN',
+                    'table' => 'user',
+                    'on' => 'user.id = sub.userid'));
+            
+        } else {
+            // Not sure we'll ever need this, but just in case...
+            $query->add_where(array(
+                    'type' => 'AND', 
+                    'condition' => 'sub.id = :'.$query->prefix_param_name('submissionid')));
+            $query->add_param('submissionid', $userid);
         }
     }
     

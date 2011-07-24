@@ -191,7 +191,7 @@
   width: 100%;
   margin: 0px;
 }
-#configtree {
+/*#configtree {
   float: left;
   width: 220px;
   height: 480px;
@@ -200,7 +200,7 @@
   overflow-y: scroll;
   font:10pt tahoma;
   background-color: transparent;
-}
+}*/
 #configSettings {
   float:left;
   width:190px;
@@ -276,4 +276,7 @@ span.ygtvlabel {
 
 #page-blocks-ajax_marking-actions-grading_popup #page-content #region-main .region-content {
     padding: 0 10px;
+}
+#treetabs {
+    clear: both;
 }

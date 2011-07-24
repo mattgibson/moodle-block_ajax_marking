@@ -30,6 +30,28 @@ M.block_ajax_marking.forum = (function() {
         
         pop_up_arguments : function () {
             return 'menubar=0,location=0,scrollbars,resizable,width=780,height=630'; 
+        },
+        
+        /**
+         * Handles any module specific overrides for the trees
+         */ 
+        nextnodetype : function(defaultnexttype) {
+            
+            switch (defaultnexttype) {
+                
+                case 'coursemoduleid':
+                    return 'discussionid';
+                    break;
+                    
+                case 'discussionid':
+                    return false;
+                    break;
+                    
+                default:
+                    return null; // should never happen
+                
+            }
+            
         }
 
     };

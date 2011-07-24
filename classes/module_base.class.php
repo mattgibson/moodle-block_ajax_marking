@@ -82,14 +82,6 @@ abstract class block_ajax_marking_module_base {
      */
     protected $coursetotals = null;
     
-    /**
-     * Hold an array of callbacks in order, starting from whatever comes after the assessment node.
-     * If empty, this means there are no further nodes (2 levels e.g. workshop) and if there are more,
-     * get_next_callback() will pick them up as needed
-     * 
-     * @var array
-     */
-    protected $callbackfunctions = array();
     
     /**
      * Constructor. Overridden by all subclasses.
@@ -377,33 +369,16 @@ abstract class block_ajax_marking_module_base {
   
         foreach ($modulecounts as &$assessment) {
             
-            // Send the callback function with the nodes so that when they are clicked on, they will 
-            // request the right sort of data to be returned
-            // if there are only two levels, there will only need to be dynamic load if there are groups to display
-            if (count($this->callbackfunctions === 0)) {
 
-                if ($assessment->display == BLOCK_AJAX_MARKING_CONF_GROUPS) {
-                    $assessment->callbackfunction = 'groups';
-                } else {
-                    // will be 'submission' in most cases. Make it non dynamic if there are no further callbacks listed
-                    // by the module
-                    $assessment->callbackfunction = isset($this->callbackfunctions[0]) ? $this->callbackfunctions[0] : false;
-                }
-            }
-
-            $assessment->modulename  = $this->modulename;
-            
-            $assessment->name       = block_ajax_marking_clean_name_text($assessment->name, 30);
-//            $assessment->uniqueid   = $assessment->modulename.'-assessment-'.$assessment->id;
-            
-            $assessment->assessmentid = $assessment->id;
+            $assessment->modulename    = $this->modulename;
+            $assessment->name          = block_ajax_marking_clean_name_text($assessment->name, 30);
+            $assessment->assessmentid  = $assessment->id;
             unset($assessment->id);
             
-            $assessment->tooltip = (strlen($assessment->tooltip) > 100) ? substr($assessment->tooltip, 0, 100).'...' : $assessment->tooltip;
+//            $assessment->tooltip = (strlen($assessment->tooltip) > 100) ? substr($assessment->tooltip, 0, 100).'...' : $assessment->tooltip;
             $assessment->tooltip = get_string('modulename', $assessment->modulename).': '.
                                    block_ajax_marking_clean_tooltip_text($assessment->tooltip);
             $assessment->style = 'course';
-            
             
         }
         
@@ -447,31 +422,31 @@ abstract class block_ajax_marking_module_base {
      * @param string $modulename e.g. forum
      * @return void
      */
-    public function config_assessment_nodes($course, $modulename) {
-
-        $this->get_all_gradable_items();
-
-        if ($this->assessments) {
-
-            foreach ($this->assessments as $assessment) {
-
-                $context = get_context_instance(CONTEXT_MODULE, $assessment->cmid);
-
-                if (!$this->permission_to_grade($assessment)) {
-                    continue;
-                }
-
-                if ($assessment->course == $course) {
-                    $assessment->type = $this->modulename;
-                    // TODO - alter SQL so that this line is not needed.
-                    $assessment->description = $assessment->summary;
-                    $assessment->dynamic = false;
-                    $assessment->count = false;
-                    return block_ajax_marking_make_assessment_node($assessment, true);
-                }
-            }
-        }
-    }
+//    public function config_assessment_nodes($course, $modulename) {
+//
+//        $this->get_all_gradable_items();
+//
+//        if ($this->assessments) {
+//
+//            foreach ($this->assessments as $assessment) {
+//
+//                $context = get_context_instance(CONTEXT_MODULE, $assessment->cmid);
+//
+//                if (!$this->permission_to_grade($assessment)) {
+//                    continue;
+//                }
+//
+//                if ($assessment->course == $course) {
+//                    $assessment->type = $this->modulename;
+//                    // TODO - alter SQL so that this line is not needed.
+//                    $assessment->description = $assessment->summary;
+//                    $assessment->dynamic = false;
+//                    $assessment->count = false;
+//                    return block_ajax_marking_make_assessment_node($assessment, true);
+//                }
+//            }
+//        }
+//    }
 
     /**
      * This is to allow the ajax call to be sent to the correct function. When the
@@ -891,44 +866,6 @@ abstract class block_ajax_marking_module_base {
     }
     
     /**
-     * Names of any variables that need to be sent back with the pop up request. All of 
-     * these should be coming from SQL
-     * 
-     * @return array
-     */
-//    protected function popup_variables() {
-//        return array();
-//    }
-    
-    /**
-     * Find what the next set of nodes will be called.
-     * 
-     * @param string $current What the last requested nodes were. Returns the first on the list if not supplied
-     * @return string|bool
-     */
-    public function get_next_callback($current=false) {
-        
-        $firstitem = reset($this->callbackfunctions);
-        
-        if (!$current) {
-            return $firstitem;
-        }
-        
-        foreach ($this->callbackfunctions as $key => $value) {
-            
-            if ($next) {
-                return $value;
-            }
-            
-            if ($key == $current) {
-                $next = true;
-            }
-        }
-        
-        return false;
-    }
-    
-    /**
      * Returns a query object that has been set up to retrieve all unmarked submissions for this teacher
      * and this (subclassed) module
      * 
@@ -963,9 +900,9 @@ abstract class block_ajax_marking_module_base {
         
         foreach ($nodes as &$node) {
         
-            switch ($filters['callbackfunction']) {
+            switch ($filters['nextnodefilter']) {
                 
-                case 'submissions':
+                case 'userid':
                     $node->mod = $this->get_module_name();
                     // Sort out the firstname/lastname thing
                     $node->name = fullname($node);

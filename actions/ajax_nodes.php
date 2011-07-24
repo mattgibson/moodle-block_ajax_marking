@@ -29,14 +29,15 @@
 define('AJAX_SCRIPT', true);
 
 require_once(dirname(__FILE__).'/../../../config.php');
+
+// For unit tests to work
+global $CFG, $PAGE;
+
 require_login(0, false);
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/output.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_factory.class.php');
-
-// For unit tests to work
-global $CFG, $USER, $DB;
 
 // TODO might be in a course
 $PAGE->set_context(get_context_instance(CONTEXT_SYSTEM));
@@ -50,70 +51,78 @@ foreach ($_POST as $name => $value) {
     $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
 }
 
-if (!isset($params['callbackfunction'])) {
-    print_error('No callback function specified');
+if (!isset($params['nextnodefilter'])) {
+    print_error('No filter specified for next set of nodes');
     die();
 }
 
-// TODO this is not needed for config stuff
-$moduleclasses = block_ajax_marking_get_module_classes();
+$nodes = block_ajax_marking_query_factory::get_query($params);
+foreach ($nodes as &$node) {
+    block_ajax_marking_format_node($node, $params['nextnodefilter']);
+}
 
-$data   = new stdClass;
-$nodes  = array();
+// reindex array so we pick it up in js as an array and can find the length. Associative arrays
+// with strings for keys are automatically sent as objects
+$nodes = array_values($nodes);
+echo json_encode(array('nodes' => $nodes));
+
+
+
+// Old stuff:
 
 // The type here refers to what was clicked, or sets up the tree in the case of 'main' and
 // 'config_main_tree'. Type is also returned, where it refers to the node(s) that will be created,
 // which then gets sent back to this function when that node is clicked.
-switch ($params['callbackfunction']) {
+//switch ($params['nextnodefilter']) {
 //switch (reset(array_keys($params))) {
 
     // generate the list of courses when the tree is first prepared. Currently either makes
     // a config tree or a main tree
-    case 'main':
+//    case 'courseid':
+//
+//        // admins will have a problem as they will see all the courses on the entire site.
+//        // However, they may want this (CONTRIB-1017)
+//        // TODO - this has big issues around language. role names will not be the same in
+//        // different translations.
+//
+////        $data->payloadtype = 'nodes';
+//        //$data->callbackfunction = 'course';
+//        
+//        //$filters = array('courseid' => '');
+//        $nodes = block_ajax_marking_query_factory::get_query($params);
+//        foreach ($nodes as &$node) {
+//            //$node->callbackfunction   = 'course';
+//            $node->style              = 'course';
+//            block_ajax_marking_format_node($node);
+//        }
+//
+//        break;
 
-        // admins will have a problem as they will see all the courses on the entire site.
-        // However, they may want this (CONTRIB-1017)
-        // TODO - this has big issues around language. role names will not be the same in
-        // different translations.
-
-        $data->payloadtype = 'course';
-        $data->callbackfunction = 'course';
-        
-        $filters = array('courseid' => '');
-        $nodes = block_ajax_marking_query_factory::get_query($filters);
-        foreach ($nodes as &$node) {
-            $node->callbackfunction   = 'course';
-            $node->style              = 'course';
-            block_ajax_marking_format_node($node);
-        }
-
-        break;
-
-    case 'course':
-
-        $data->payloadtype = 'assessment';
-        
-        $filters = array(
-                'coursemoduleid' => '',
-                'courseid' => $params['courseid']);
-        $nodes = block_ajax_marking_query_factory::get_query($filters);
-
-        foreach ($nodes as &$node) {
-            // We need to say whether or not there are groups (JS can handle this if flagged?) and what comes next
-            if ($node->display == BLOCK_AJAX_MARKING_CONF_GROUPS) {
-                $node->callbackfunction = 'groups';
-            } else {
-                // will be 'submission' in most cases. Make it non dynamic if there are no further callbacks listed
-                // by the module
-                
-                // Temporary fix before this is transferred to JS management
-                $node->callbackfunction = $moduleclasses[$node->modulename]->get_next_callback();
-                
-//                $node->callbackfunction = isset($this->callbackfunctions[0]) ? $this->callbackfunctions[0] : false;
-            }
-            block_ajax_marking_format_node($node);
-        }
-        
+//    case 'coursemoduleid':
+//
+////        $data->payloadtype = 'nodes';
+//        
+////        $filters = array(
+////                'coursemoduleid' => '',
+////                'courseid' => $params['courseid']);
+//        $nodes = block_ajax_marking_query_factory::get_query($params);
+//
+//        foreach ($nodes as &$node) {
+//            // We need to say whether or not there are groups (JS can handle this if flagged?) and what comes next
+////            if ($node->display == BLOCK_AJAX_MARKING_CONF_GROUPS) {
+////               // $node->callbackfunction = 'groups';
+////            } else {
+////                // will be 'submission' in most cases. Make it non dynamic if there are no further callbacks listed
+////                // by the module
+////                
+////                // Temporary fix before this is transferred to JS management
+////                //$node->callbackfunction = $moduleclasses[$node->modulename]->get_next_callback();
+////                
+//////                $node->callbackfunction = isset($this->callbackfunctions[0]) ? $this->callbackfunctions[0] : false;
+////            }
+//            block_ajax_marking_format_node($node);
+//        }
+//        
         
         
 //        $nodes = array();
@@ -130,7 +139,7 @@ switch ($params['callbackfunction']) {
 //            $nodes = array_merge($nodes, $assessments);
 //        }
 
-        break;
+//        break;
 
 //    case 'config_course':
 //        $course = $DB->get_record('course', array('id' => $courseid));
@@ -275,20 +284,20 @@ switch ($params['callbackfunction']) {
 //
 //        break;
 
-    default:
+//    default:
         
         // Need to make sure they are in the right order here
 //        $params[] = '';
 //        $callbackfunction = $params['callbackfunction'];
 //        unset($params['callbackfunction']);
         
-        $data->payloadtype = $params['callbackfunction'];
+//        $data->payloadtype = $params['callbackfunction'];
         
-        $nodes = block_ajax_marking_query_factory::get_query($params);
-        
-        foreach ($nodes as &$node) {
-            block_ajax_marking_format_node($node);
-        }
+//        $nodes = block_ajax_marking_query_factory::get_query($params);
+//        
+//        foreach ($nodes as &$node) {
+//            block_ajax_marking_format_node($node);
+//        }
 
         // If we're here, it's specific to one of the added modules.
 //        if (isset($params['modulename'], $params['callbackfunction'])) {
@@ -311,15 +320,8 @@ switch ($params['callbackfunction']) {
 //            // TODO catch error here   
 //        }
 
-        break;
-}
+//        break;
+//}
 
 
 
-// reindex array so we pick it up in js as an array and can find the length. Associative arrays
-// with strings for keys are automatically sent as objects
-$nodes = array_values($nodes);
-$output = array('data' => $data, 'nodes' => $nodes);
-    
-// return the output to the client
-echo json_encode($output);

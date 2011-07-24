@@ -55,7 +55,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         $this->modulename           = 'workshop';
         $this->capability           = 'mod/workshop:editdimensions';
         $this->icon                 = 'mod/workshop/icon.gif';
-        $this->callbackfunctions    = array();
         
     }
   

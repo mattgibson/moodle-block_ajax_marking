@@ -31,7 +31,6 @@
  */
 class block_ajax_marking_query_factory {
     
-    
    /**
      * This is to build whatever query is needed in order to return the requested nodes. It may be necessary
      * to compose this query from quite a few different pieces. Without filters, this should return all 
@@ -99,10 +98,10 @@ class block_ajax_marking_query_factory {
             // 'assessment', 'course'
             $groupby = false;
             foreach ($filters as $name => $value) {
-                if ($name == 'callbackfunction') {
+                if ($name == 'nextnodefilter') {
                     $filterfunctionname = 'apply_'.$value.'_filter';
                     $groupby = $value;
-                    // The callback function is in the form 'callbackfunction => 'functionname'. We want to pass the name
+                    // The new filter is in the form 'nextnodefilter => 'functionname'. We want to pass the name
                     // in with an empty value, so we rearrange it here.
                     $value = false;
                 } else {
@@ -271,10 +270,6 @@ class block_ajax_marking_query_factory {
                     'table' => 'moduletable', 
                     'column' => 'intro',
                     'alias' => 'tooltip'),
-                array(
-                    'column' => "'submissions'", // TODO - not dynamic
-                    'alias' => 'callbackfunction'
-                    ),
                 // This is only needed to add the right callback function. 
                 array(
                     'column' => "'".$query->get_modulename()."'",
@@ -326,101 +321,67 @@ class block_ajax_marking_query_factory {
     }
     
 
-    public function apply_submissions_filter(block_ajax_marking_query_base $query, $submissionid) {
-        
-        if (!$submissionid) {
-        
-            $data = new stdClass;
-            $data->nodetype = 'submission';
-
-            $usercolumnalias   = $query->get_userid_column();
-//            $uniquecolumn      = $this->get_sql_submissions_unique_column();
-//            $extramoduleselect = $this->get_sql_submissions_select($params['assessmentid']);
-
-            $selects = array(
-                array(
-                    'table' => 'sub', 
-                    'column' => 'id',
-                    'alias' => 'subid'),
-                array(
-                    'table' => 'cm', 
-                    'column' => 'id',
-                    'alias' => 'coursemoduleid'),
-                array(
-                    'column' => 1,
-                    'alias' => 'count'),
-                array(
-                    'table' => 'moduletable', 
-                    'column' => 'intro',
-                    'alias' => 'description'),
-                array(
-                    'table' => 'sub', 
-                    'column' => 'timemodified',
-                    'alias' => 'time'),
-                array(
-                    'table' => 'sub', 
-                    'column' => 'userid'),
-                    // This is only needed to add the right callback function. 
-                array(
-                    'column' => "'".$query->get_modulename()."'",
-                    'alias' => 'modulename'
-                    )
-            );
-            
-            foreach ($selects as $select) {
-                $query->add_select($select);
-            }
-            
-//            $query->add_where(array(
-//                    'type' => 'AND',
-//                    'condition' => 'moduletable.id = :assessmentid'
+//    public function apply_userid_filter(block_ajax_marking_query_base $query, $userid) {
+//        
+//        if (!$userid) { // display submissions - final nodes
+//        
+//            $data = new stdClass;
+//            $data->nodetype = 'submission';
+//
+//            $usercolumnalias   = $query->get_userid_column();
+////            $uniquecolumn      = $this->get_sql_submissions_unique_column();
+////            $extramoduleselect = $this->get_sql_submissions_select($params['assessmentid']);
+//
+//            $selects = array(
+//                array(
+//                    'table' => 'sub', 
+//                    'column' => 'id',
+//                    'alias' => 'subid'),
+////                array(
+////                    'table' => 'cm', 
+////                    'column' => 'id',
+////                    'alias' => 'coursemoduleid'),
+//                array( // Count in case we have user as something other than the last node
+//                    'function' => 'COUNT',
+//                    'table'    => 'sub',
+//                    'column'   => 'id',
+//                    'alias'    => 'count'),
+////                array(
+////                    'table' => 'moduletable', 
+////                    'column' => 'intro',
+////                    'alias' => 'description'),
+//                array(
+//                    'table' => 'sub', 
+//                    'column' => 'timemodified',
+//                    'alias' => 'time'),
+//                array(
+//                    'table' => 'sub', 
+//                    'column' => 'userid'),
+//                    // This is only needed to add the right callback function. 
+//                array(
+//                    'column' => "'".$query->get_modulename()."'",
+//                    'alias' => 'modulename'
+//                    )
+//            );
+//            
+//            foreach ($selects as $select) {
+//                $query->add_select($select);
+//            }
+//            
+//            $query->add_from(array(
+//                    'join' => 'INNER JOIN',
+//                    'table' => 'user',
+//                    'on' => 'user.id = '.$usercolumnalias
 //            ));
-            
-            $query->add_from(array(
-                    'join' => 'INNER JOIN',
-                    'table' => 'user',
-                    'on' => 'user.id = '.$usercolumnalias
-            ));
-            
-            // Some modules will need extra stuff depending on how their links work.
-        
-            
-            
-
-//            $query['from'] .= $this->get_sql_submissions_from().' ';       
-//            $query['from'] .= "INNER JOIN {user} u
-//                                       ON u.id = {$usercolumnalias} ";
-
-//            $query['where'] .= 'AND moduletable.id = :assessmentid ';
-//            $query['where'] .= $this->get_sql_submission_where();
-
-//            foreach ($params as $paramname => $paramvalue) {
-//                $query['params'][$paramname] = $paramvalue;
-//            }
-
-            // If we are following from a group node, filter by groupid too. Other params will be dealt with
-            // by the submissions code.
-//            if (isset($params['groupid'])) {
-//
-//                $query['from'] .= "INNER JOIN {groups_members} gm 
-//                                           ON gm.userid = {$usercolumnalias} ";
-//
-//                $query['where'] .= "AND gm.groupid = :groupid ";
-//
-//                $query['params']['groupid'] = $params['groupid'];
-//            }
-
-//            $query['groupby'] = $this->get_sql_submissions_groupby();
-
-
-        } else {
-            // Not sure we'll ever need this, but just in case...
-            $query->add_where(array(
-                    'type' => 'AND', 
-                    'condition' => 'sub.id = :'.$query->prefix_param_name('submissionid')));
-            $query->add_param('submissionid', $coursemoduleid);
-        }
-    }
+//            
+//        } else {
+//            // Not sure we'll ever need this, but just in case...
+//            $query->add_where(array(
+//                    'type' => 'AND', 
+//                    'condition' => 'sub.id = :'.$query->prefix_param_name('submissionid')));
+//            $query->add_param('submissionid', $userid);
+//        }
+//    }
     
     
     /**
@@ -431,47 +392,6 @@ class block_ajax_marking_query_factory {
      * @return void
      */
     protected function apply_sql_display_settings($query) {
-        
-        // TODO this should use coursemoduleid
-        // TODO needs testing
-        
-        // New plan. 
-        // Check for coursemodule level stuff
-        // EXISTS (SELECT 1 
-        //           FROM {block_ajax_marking} bama
-        //          WHERE {$assessmenttablealias}.id = bama.assessmentid 
-        //            AND bama.assessmenttype = '{$this->modulename})
-        
-        // OR EXISTS(SELECT 1 
-        //           FROM )
-        
-        
-        // bama = block ajax marking assessment 
-        // bamc = block ajax marking course
-        // gmc  = groups members courses
-        
-//        $join = "LEFT JOIN {block_ajax_marking} bama
-//                        ON cm.id = bama.coursemoduleid
-                 
-//                 LEFT JOIN {block_ajax_marking} bamc
-//                        ON (moduletable.course = bamc.courseid) 
-//                 ";
-        
-//        $subquery = '(SELECT COALESCE(itemdisplay.display, coursedisplay.display, 1)
-//                        FROM {block_ajax_marking} itemdisplay
-//                  INNER JOIN {coursemodules} cm
-//                          ON itemdisplay.coursemodule = cm.id
-//                   LEFT JOIN {block_ajax_marking} coursedisplay
-//                          ON coursedisplay.)';
-//        
-//        $query->add_from(array(
-//                'join' => 'LEFT JOIN',
-//                'table' => $subquery,
-//                'alias' => 'displaysetting',
-//                'on' => 'cm.id = displaysetting.coursemoduleid'
-//        ));
-        
-        
         
         $query->add_from(array(
                 'join' => 'LEFT JOIN',
@@ -524,11 +444,6 @@ class block_ajax_marking_query_factory {
                                     ) 
                                  )"));
 
-        
-        
-        
-        
-        
     }
     
     /**

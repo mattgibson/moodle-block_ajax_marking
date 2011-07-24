@@ -75,10 +75,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         $this->modulename           = 'quiz';
         $this->capability           = 'mod/quiz:grade';
         $this->icon                 = 'mod/quiz/icon.gif';
-        $this->callbackfunctions    = array(
-                'questionid',
-                'submissions'
-        );
     }
     
     /**
@@ -112,10 +108,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                     'table' => 'question', 
                     'column' => 'questiontext',
                     'alias' => 'tooltip'),
-                array(
-                    'column' => "'submissions'",
-                    'alias' => 'callbackfunction'
-                    ),
                 // This is only needed to add the right callback function. 
                 array(
                     'column' => "'".$query->get_modulename()."'",
@@ -338,30 +330,46 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      * text-entry box next to each other (the feedback bit is a separate pop-up), we have to make
      * a custom form to allow grading to happen. It is based on code from /mod/quiz/reviewquestion.php
      *
+     * @global moodle_database $DB
      * @param array $params all of the stuff sent with the node click e.g. questionid
+     * @param object $coursemodule 
      * @return string the HTML page
      */
-    public function grading_popup($params) {
+    public function grading_popup($params, $coursemodule) {
 
         global $CFG, $PAGE, $OUTPUT, $COURSE, $USER, $DB;
 
         require_once($CFG->dirroot.'/mod/quiz/locallib.php');
+        
+        // TODO the quiz allows multiple attempts. We need to distinguish between them. Can we have more
+        // than one attempt open at once? If not, we can just get the most recent.
+        $sql = 'SELECT id 
+                  FROM {quiz_attempts} qa1
+                 WHERE qa1.userid =:userid
+                   AND qa1.quiz = :quizid
+                   AND qa1.attempt = (SELECT MAX(attempt) 
+                                    FROM {quiz_attempts} qa2
+                                   WHERE qa2.userid =:userid2
+                                     AND qa2.quiz = :quizid2)';
+        
+        $attempt = $DB->get_record_sql($sql, array('quizid' => $coursemodule->instance,
+                                                   'userid' => $params['userid'],
+                                                   'quizid2' => $coursemodule->instance,
+                                                   'userid2' => $params['userid']));
 
-        if (!isset($params['attemptid'], $params['questionid'])) {
-            die('Missing required params');
+        if (!$attempt) {
+            die('Could not retrieve quiz attempt');
         }
         
-        $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php',
-                              array('mod'=>'quiz',
-                                    'attemptid'=>$params['attemptid'],
-                                    'questionid'=>$params['questionid']));
+        //TODO feed in all dynamic variables here
+        $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
         $PAGE->set_url($url);
 
-        $attemptobj = quiz_attempt::create($params['attemptid']);
+        $attemptobj = quiz_attempt::create($attempt->id);
 
         // Create an object to manage all the other (non-roles) access rules.
-        $accessmanager = $attemptobj->get_access_manager(time());
-        $options = $attemptobj->get_review_options();
+//        $accessmanager = $attemptobj->get_access_manager(time());
+//        $options = $attemptobj->get_review_options();
 
         // Load the questions and states.
         $questionids = array($params['questionid']);
@@ -531,65 +539,68 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         return $query;     
     }
     
-    
     /**
-     * Fixes up the query with module specific tweaks
+     * Applies the module-specifi stuff for the user nodes
      * 
-     * @global moodle_database $DB
-     * @param block_ajax_marking_query_base $query 
+     * @param block_ajax_marking_query_base $query
+     * @param type $userid 
      * @return void
      */
-    public function alter_query_hook(block_ajax_marking_query_base $query, $type = false) {
+    public function apply_userid_filter(block_ajax_marking_query_base $query, $userid) {
         
-        global $DB;
+        if (!$userid) { 
         
-        switch ($type) {
-            
-            case 'submissions':
-                
-                // Add the extra select stuff
-                $query->add_select(array(
-                        'table' => 'user',
-                        'column' => 'firstname',
-                ));
-                $query->add_select(array(
-                        'table' => 'user',
-                        'column' => 'lastname',
-                ));
-                $query->add_select(array(
-                        'function' => 'COUNT',
-                        'table'    => 'sub',
-                        'column'   => 'id',
-                        'alias'    => 'count'
-                ));
-                $query->add_select(array(
-                        'table'    => 'sub',
-                        'column'   => 'timestamp',
-                        'alias'    => 'time'
-                ));
-                $query->add_select(array(
-                        'table'    => 'quiz_attempts',
-                        'column'   => 'userid'
-                ));
-                $query->add_select(array(
-                        'table'    => 'quiz_attempts',
-                        'column'   => 'id',
-                        'alias'    => 'attemptid'
-                ));
-                $query->add_select(array(
-                        'table'    => 'question',
-                        'column'   => 'id',
-                        'alias'    => 'questionid'
-                ));
+            $data = new stdClass;
+            $data->nodetype = 'submission';
 
-                break;
-                
-            default:
-                break;
+            $selects = array(
+                array(
+                    'table'    => 'sub', 
+                    'column'   => 'id',
+                    'alias'    => 'subid'),
+                array(
+                    'table'    => 'user',
+                    'column'   => 'firstname'),
+                array(
+                    'table'    => 'user',
+                    'column'   => 'lastname'),
+                array( // Count in case we have user as something other than the last node
+                    'function' => 'COUNT',
+                    'table'    => 'sub',
+                    'column'   => 'id',
+                    'alias'    => 'count'),
+                array(
+                    'table'    => 'sub',
+                    'column'   => 'timestamp',
+                    'alias'    => 'time'),
+                array(
+                    'table'    => 'quiz_attempts',
+                    'column'   => 'userid'),
+                    // This is only needed to add the right callback function. 
+                array(
+                    'column'   => "'".$this->modulename."'",
+                    'alias'    => 'modulename'
+                    )
+            );
+            
+            foreach ($selects as $select) {
+                $query->add_select($select);
+            }
+            
+            $query->add_from(array(
+                    'join'  => 'INNER JOIN',
+                    'table' => 'user',
+                    'on'    => 'user.id = quiz_attempts.userid'
+            ));
+            
+        } else {
+            // Applies if users are not the final nodes
+            $query->add_where(array(
+                    'type' => 'AND', 
+                    'condition' => 'sub.id = :'.$query->prefix_param_name('submissionid')));
+            $query->add_param('submissionid', $userid);
         }
-        
     }
-    
 
 }
 

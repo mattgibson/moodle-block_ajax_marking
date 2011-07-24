@@ -858,65 +858,65 @@ function block_ajax_marking_make_courseids_list($courses) {
  * @param bool $config flag - are we doing the config tree?
  * @return void
  */
-function block_ajax_marking_make_assessment_node($assessment, $config=false) {
-    
-    $node             = new stdClass;
-    $node->display    = new stdClass();
-    $node->returndata = new stdClass();
-
-    $length = ($config) ? false : 30;
-    $node->display->name       = block_ajax_marking_clean_name_text($assessment->name, $length);
-//    $node->display->uniqueid   = $assessment->modulename.$assessment->id;
-    
-    //$node->returndata->callbackparamone    = $assessment->id;
-    $node->returndata->assessmentid        = $assessment->id;
-    $node->returndata->cmid                = $assessment->cmid;
-    $node->returndata->callbackfunction    = $assessment->callbackfunction;
-    $node->returndata->modulename          = $assessment->modulename;
-
-    if ($config) {
-        // make a tooltip showing current settings
-        $course_settings = block_ajax_marking_get_groups_settings('course', $assessment->course);
-
-        $node->title = get_string('currentsettings', 'block_ajax_marking').': ';
-
-        if (isset($course_settings->display)) {
-
-            switch ($course_settings->display) {
-
-                case BLOCK_AJAX_MARKING_CONF_SHOW:
-                    $node->title .= get_string('showthiscourse', 'block_ajax_marking');
-                    break;
-
-                case  BLOCK_AJAX_MARKING_CONF_GROUPS:
-                    $node->title .= get_string('showwithgroups', 'block_ajax_marking');
-                    break;
-
-                case BLOCK_AJAX_MARKING_CONF_HIDE:
-                    $node->display->title .= get_string('hidethiscourse', 'block_ajax_marking');
-                    break;
-            }
-
-        } else {
-            $node->display->title .= get_string('showthiscourse', 'block_ajax_marking');
-        }
-
-    } else {
-        // cut it at 200 characters
-        $shortsum = substr($assessment->description, 0, 200);
-
-        if (strlen($shortsum) < strlen($assessment->description)) {
-            $shortsum .= '...';
-        }
-    
-        $node->display->title = get_string('modulename', $assessment->modulename).': '.
-                                block_ajax_marking_clean_tooltip_text($shortsum);
-    }
-
-    $node->display->count = $assessment->count ? $assessment->count : 1;
-    
-    return $node;
-}
+//function block_ajax_marking_make_assessment_node($assessment, $config=false) {
+//    
+//    $node             = new stdClass;
+//    $node->display    = new stdClass();
+//    $node->returndata = new stdClass();
+//
+//    $length = ($config) ? false : 30;
+//    $node->display->name       = block_ajax_marking_clean_name_text($assessment->name, $length);
+////    $node->display->uniqueid   = $assessment->modulename.$assessment->id;
+//    
+//    //$node->returndata->callbackparamone    = $assessment->id;
+//    $node->returndata->assessmentid        = $assessment->id;
+//    $node->returndata->cmid                = $assessment->cmid;
+//    $node->returndata->callbackfunction    = $assessment->callbackfunction;
+//    $node->returndata->modulename          = $assessment->modulename;
+//
+//    if ($config) {
+//        // make a tooltip showing current settings
+//        $course_settings = block_ajax_marking_get_groups_settings('course', $assessment->course);
+//
+//        $node->title = get_string('currentsettings', 'block_ajax_marking').': ';
+//
+//        if (isset($course_settings->display)) {
+//
+//            switch ($course_settings->display) {
+//
+//                case BLOCK_AJAX_MARKING_CONF_SHOW:
+//                    $node->title .= get_string('showthiscourse', 'block_ajax_marking');
+//                    break;
+//
+//                case  BLOCK_AJAX_MARKING_CONF_GROUPS:
+//                    $node->title .= get_string('showwithgroups', 'block_ajax_marking');
+//                    break;
+//
+//                case BLOCK_AJAX_MARKING_CONF_HIDE:
+//                    $node->display->title .= get_string('hidethiscourse', 'block_ajax_marking');
+//                    break;
+//            }
+//
+//        } else {
+//            $node->display->title .= get_string('showthiscourse', 'block_ajax_marking');
+//        }
+//
+//    } else {
+//        // cut it at 200 characters
+//        $shortsum = substr($assessment->description, 0, 200);
+//
+//        if (strlen($shortsum) < strlen($assessment->description)) {
+//            $shortsum .= '...';
+//        }
+//    
+//        $node->display->title = get_string('modulename', $assessment->modulename).': '.
+//                                block_ajax_marking_clean_tooltip_text($shortsum);
+//    }
+//
+//    $node->display->count = $assessment->count ? $assessment->count : 1;
+//    
+//    return $node;
+//}
 
 /**
  * It turned out to be impossible to add icons reliably
@@ -1204,12 +1204,14 @@ function &block_ajax_marking_get_module_classes($reset=false) {
  * which will vary a lot, so we use that as the default.
  * 
  * @param object $node
+ * @param string $nextnodefilter name of the current filter
  * @return void
  */
-function block_ajax_marking_format_node(&$node) {
+function block_ajax_marking_format_node(&$node, $nextnodefilter) {
     
-    $node->display = new stdClass;
+    $node->display    = new stdClass;
     $node->returndata = new stdClass;
+    $node->popupstuff = new stdClass;
     
     // The things to go into display are fixed. Stuff for return data varies
     $displayitems = array(
@@ -1217,6 +1219,7 @@ function block_ajax_marking_format_node(&$node) {
             'description',
             'firstname',
             'lastname',
+            'modulename',
             'name',
             'seconds',
             'style',
@@ -1228,12 +1231,14 @@ function block_ajax_marking_format_node(&$node) {
     // loop through the rest of the object's properties moving them to the returndata bit
     foreach ($node as $varname => $value) {
 
-        if ($varname != 'display' && $varname != 'returndata') {
+        if ($varname !== 'display' && $varname !== 'returndata' && $varname !== 'popupstuff') {
             
             if (in_array($varname, $displayitems)) {
                 $node->display->$varname = $value;
-            } else {
+            } else if ($varname == $nextnodefilter) {
                 $node->returndata->$varname = $value;
+            } else {
+                $node->popupstuff->$varname = $value;
             }
             
             unset($node->$varname);

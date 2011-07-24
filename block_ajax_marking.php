@@ -89,45 +89,49 @@ class block_ajax_marking extends block_base {
             if ($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
 
                 // Add a style to hide the HTML list and prevent flicker
-                $s  = '<script type="text/javascript" defer="defer">'.
-                      '/* <![CDATA[ */ var styleElement = document.createElement("style");'.
-                      'styleElement.type = "text/css";'.
-                      'if (styleElement.styleSheet) {'.
-                          'styleElement.styleSheet.cssText = "#block_ajax_marking_html_list { display: none; }";'.
-                      '} else {'.
-                          'styleElement.appendChild(document.createTextNode("#block_ajax_marking_html_list {display: none;}"));'.
-                      '}'.
-                      'document.getElementsByTagName("head")[0].appendChild(styleElement);'.
-                      '/* ]]> */</script>';
+                $s  = '<script type="text/javascript" defer="defer">
+                      /* <![CDATA[ */ 
+                      var styleElement = document.createElement("style");
+                      styleElement.type = "text/css";
+                      if (styleElement.styleSheet) {
+                          styleElement.styleSheet.cssText = "#block_ajax_marking_html_list { display: none; } " +
+                                                            "#treetabs { display: none; } ";
+                      } else {
+                          styleElement.appendChild(document.createTextNode("#block_ajax_marking_html_list {display: none;}"));
+                          styleElement.appendChild(document.createTextNode("#treetabs {display: none;}"));
+                      }
+                      document.getElementsByTagName("head")[0].appendChild(styleElement);
+                      /* ]]> */</script>';
 
                 $this->content->text .=  $s;
 
-                $variables  = array(
-                       // 'wwwroot'             => $CFG->wwwroot,
-                        'totaltomark'         => get_string('totaltomark',         'block_ajax_marking'),
-                        'userid'              => $USER->id,
-                        'instructions'        => get_string('instructions',        'block_ajax_marking'),
-                        'nogradedassessments' => get_string('nogradedassessments', 'block_ajax_marking'),
-                        'nothingtomark'       => get_string('nothingtomark',       'block_ajax_marking'),
-                        'refresh'             => get_string('refresh',             'block_ajax_marking'),
-                        'configure'           => get_string('configure',           'block_ajax_marking'),
-                        'connectfail'         => get_string('connectfail',         'block_ajax_marking'),
-                        'nogroups'            => get_string('nogroups',            'block_ajax_marking'),
-                        'settingsheadertext'  => get_string('settingsheadertext',  'block_ajax_marking'),
-                        'fullname'            => fullname($USER),
-                        'showthisassessment'  => get_string('showthisassessment',  'block_ajax_marking'),
-                        'showthiscourse'      => get_string('showthiscourse',      'block_ajax_marking'),
-                        'showwithgroups'      => get_string('showwithgroups',      'block_ajax_marking'),
-                        'hidethisassessment'  => get_string('hidethisassessment',  'block_ajax_marking'),
-                        'hidethiscourse'      => get_string('hidethiscourse',      'block_ajax_marking'),
-                        'coursedefault'       => get_string('coursedefault',       'block_ajax_marking'),
-                        'debuglevel'          => $CFG->debug
-                );
+//                $variables  = array(
+//                       // 'wwwroot'             => $CFG->wwwroot,
+//                        'totaltomark'         => get_string('totaltomark',         'block_ajax_marking'),
+//                        'userid'              => $USER->id,
+//                        'instructions'        => get_string('instructions',        'block_ajax_marking'),
+//                        'nogradedassessments' => get_string('nogradedassessments', 'block_ajax_marking'),
+//                        'nothingtomark'       => get_string('nothingtomark',       'block_ajax_marking'),
+//                        'refresh'             => get_string('refresh',             'block_ajax_marking'),
+//                        'configure'           => get_string('configure',           'block_ajax_marking'),
+//                        'connectfail'         => get_string('connectfail',         'block_ajax_marking'),
+//                        'nogroups'            => get_string('nogroups',            'block_ajax_marking'),
+//                        'settingsheadertext'  => get_string('settingsheadertext',  'block_ajax_marking'),
+//                        'fullname'            => fullname($USER),
+//                        'showthisassessment'  => get_string('showthisassessment',  'block_ajax_marking'),
+//                        'showthiscourse'      => get_string('showthiscourse',      'block_ajax_marking'),
+//                        'showwithgroups'      => get_string('showwithgroups',      'block_ajax_marking'),
+//                        'hidethisassessment'  => get_string('hidethisassessment',  'block_ajax_marking'),
+//                        'hidethiscourse'      => get_string('hidethiscourse',      'block_ajax_marking'),
+//                        'coursedefault'       => get_string('coursedefault',       'block_ajax_marking'),
+//                        'debuglevel'          => $CFG->debug
+//                );
                 
+                // Set up the javascript module, with any data that the JS will need
                 $jsmodule = array(
                     'name'     => 'block_ajax_marking',
                     'fullpath' => '/blocks/ajax_marking/module.js.php',
-                    'requires' => array('yui2-treeview', 'yui2-button', 'yui2-connection', 'yui2-json', 'yui2-container'),
+                    'requires' => array('yui2-treeview', 'yui2-button', 'yui2-connection', 'yui2-json', 'yui2-container', 'tabview'),
                     'strings' => array(
                         array('totaltomark',         'block_ajax_marking'),
                         array('instructions',        'block_ajax_marking'),
@@ -135,80 +139,85 @@ class block_ajax_marking extends block_base {
                         array('nothingtomark',       'block_ajax_marking'),
                         array('refresh',             'block_ajax_marking'),
                         array('configure',           'block_ajax_marking'),
-                        array('connectfail',       'block_ajax_marking'),
-                        array('nogroups',       'block_ajax_marking'),
-                        array('settingsheadertext',       'block_ajax_marking'),
-                        array('showthisassessment',       'block_ajax_marking'),
-                        array('showthiscourse',       'block_ajax_marking'),
-                        array('showwithgroups',       'block_ajax_marking'),
-                        array('hidethisassessment',       'block_ajax_marking'),
-                        array('hidethiscourse',       'block_ajax_marking'),
+                        array('connectfail',         'block_ajax_marking'),
+                        array('nogroups',            'block_ajax_marking'),
+                        array('settingsheadertext',  'block_ajax_marking'),
+                        array('showthisassessment',  'block_ajax_marking'),
+                        array('showthiscourse',      'block_ajax_marking'),
+                        array('showwithgroups',      'block_ajax_marking'),
+                        array('hidethisassessment',  'block_ajax_marking'),
+                        array('hidethiscourse',      'block_ajax_marking'),
                         array('coursedefault',       'block_ajax_marking'),
-                        array('hidethiscourse',       'block_ajax_marking'),
+                        array('hidethiscourse',      'block_ajax_marking')
                     )
                 );
 
-                $jsvariables  = "M.block_ajax_marking.variables = [];
-                        var YAV = M.block_ajax_marking.variables;
-                        YAV['wwwroot']             = '".$CFG->wwwroot."';
-                        YAV['totaltomark']         = '".get_string('totaltomark',         'block_ajax_marking')."';
-                        YAV['userid']              = '".$USER->id."';
-                        YAV['instructions']        = '".get_string('instructions',        'block_ajax_marking')."';
-                        YAV['nogradedassessments'] = '".get_string('nogradedassessments', 'block_ajax_marking')."';
-                        YAV['nothingtomark']       = '".get_string('nothingtomark',       'block_ajax_marking')."';
-                        YAV['refresh']             = '".get_string('refresh',             'block_ajax_marking')."';
-                        YAV['configure']           = '".get_string('configure',           'block_ajax_marking')."';
-                        YAV['connectfail']         = '".get_string('connectfail',         'block_ajax_marking')."';
-                        YAV['nogroups']            = '".get_string('nogroups',            'block_ajax_marking')."';
-                        YAV['settingsheadertext']  = '".get_string('settingsheadertext',  'block_ajax_marking')."';
-                        YAV['fullname']            = '".fullname($USER)."';
-                        YAV['showthisassessment']  = '".get_string('showthisassessment',  'block_ajax_marking')."';
-                        YAV['showthiscourse']      = '".get_string('showthiscourse',      'block_ajax_marking')."';
-                        YAV['showwithgroups']      = '".get_string('showwithgroups',      'block_ajax_marking')."';
-                        YAV['hidethisassessment']  = '".get_string('hidethisassessment',  'block_ajax_marking')."';
-                        YAV['hidethiscourse']      = '".get_string('hidethiscourse',      'block_ajax_marking')."';
-                        YAV['coursedefault']       = '".get_string('coursedefault',       'block_ajax_marking')."';
-                        YAV['debuglevel']          = '".$CFG->debug."';
-                ";
+//                $jsvariables  = "M.block_ajax_marking.variables = [];
+//                        var YAV = M.block_ajax_marking.variables;
+//                        YAV['wwwroot']             = '".$CFG->wwwroot."';
+//                        YAV['totaltomark']         = '".get_string('totaltomark',         'block_ajax_marking')."';
+//                        YAV['userid']              = '".$USER->id."';
+//                        YAV['instructions']        = '".get_string('instructions',        'block_ajax_marking')."';
+//                        YAV['nogradedassessments'] = '".get_string('nogradedassessments', 'block_ajax_marking')."';
+//                        YAV['nothingtomark']       = '".get_string('nothingtomark',       'block_ajax_marking')."';
+//                        YAV['refresh']             = '".get_string('refresh',             'block_ajax_marking')."';
+//                        YAV['configure']           = '".get_string('configure',           'block_ajax_marking')."';
+//                        YAV['connectfail']         = '".get_string('connectfail',         'block_ajax_marking')."';
+//                        YAV['nogroups']            = '".get_string('nogroups',            'block_ajax_marking')."';
+//                        YAV['settingsheadertext']  = '".get_string('settingsheadertext',  'block_ajax_marking')."';
+//                        YAV['fullname']            = '".fullname($USER)."';
+//                        YAV['showthisassessment']  = '".get_string('showthisassessment',  'block_ajax_marking')."';
+//                        YAV['showthiscourse']      = '".get_string('showthiscourse',      'block_ajax_marking')."';
+//                        YAV['showwithgroups']      = '".get_string('showwithgroups',      'block_ajax_marking')."';
+//                        YAV['hidethisassessment']  = '".get_string('hidethisassessment',  'block_ajax_marking')."';
+//                        YAV['hidethiscourse']      = '".get_string('hidethiscourse',      'block_ajax_marking')."';
+//                        YAV['coursedefault']       = '".get_string('coursedefault',       'block_ajax_marking')."';
+//                        YAV['debuglevel']          = '".$CFG->debug."';
+//                ";
 
-                // for integrating the block_marking stuff, this stuff (divs) should all be created
-                // by javascript.
-                $this->content->text .= "
-                    <div id='total'>
-                        <div id='totalmessage'>".get_string('totaltomark', 'block_ajax_marking').": <span id='count'></span></div>
-                        <div id='count'></div>
-                        <div id='mainicon'></div>
+                // Add the basic HTML for the rest of the stuff to fit into
+                $this->content->text .= '
+                    <div id="block_ajax_marking_top_bar">
+                        <div id="total">
+                            <div id="totalmessage">'.get_string('totaltomark', 'block_ajax_marking').': <span id="count"></span></div>
+                            <div id="count"></div>
+                            <div id="mainicon"></div>
+                        </div>
+                        <div id="status"></div>
                     </div>
-                    <div id='status'></div>
-                    <div id='treediv'></div>";
+                    <div id="treetabs">
+                        <ul>
+                            <li><a href="#coursestree">Courses</a></li>
+                            <li><a href="#groupstree">Groups</a></li>
+                            <li><a href="#configtree">Config</a></li>
+                        </ul>
+                        <div>
+                            <div id="coursestree">course tree goes here</div>
+                            <div id="groupstree">group tree will go here</div>
+                            <div id="configtree">Settings stuff will go here</div>
+                        </div>
+                    </div>';
+                $this->content->footer .= '<div id="block_ajax_marking_refresh_button"></div>
+                                           <div id="block_ajax_marking_configure_button"></div>';
 
                 // Don't warn about javascript if the screenreader option is set - it was deliberate
                 if (!$USER->screenreader) {
-                    $this->content->text .= '<noscript><p>AJAX marking block prefers javascript, ';
-                    $this->content->text .= 'but you have it turned off.</p></noscript>';
+                    $this->content->text .= '<noscript><p>'.get_string('nojavascript', 'block_ajax_marking').'</p></noscript>';
                 }
 
 //                if ($CFG->debug == DEBUG_DEVELOPER) {
 //                    $PAGE->requires->yui2_lib('logger');
 //                }
 
-                //$PAGE->requires->js_init_call('M.block_ajax_marking.hide_html_list', null, true, $jsmodule);
+                // Set things going
                 $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true, $jsmodule);
-                
-                // Include the CSS from the modules.
-                //$PAGE->requires->css('/blocks/ajax_marking/module_styles.php');
-                
-                // also need to add any js from individual modules, which the html list will
-                // have provided
-
-                $this->content->footer .= '<div id="block_ajax_marking_refresh_button"></div><div id="block_ajax_marking_configure_button"></div>';
 
             }
 
         } else {
             // no grading permissions in any courses - don't display the block (student). Exception for
-            // when the block is just installed and editing is on. Might look broken otherwise.
-            if ($PAGE->user_is_editing()) {
+            // when the block is just installed and the user can edit. Might look broken otherwise.
+            if (has_capability('moodle/course:manageactivities', $PAGE->context)) { 
                 $this->content->text .= get_string('nogradedassessments', 'block_ajax_marking');
                 $this->content->footer = '';
             } else {
@@ -236,16 +245,16 @@ class block_ajax_marking extends block_base {
      *
      * @return void
      */
-    function after_install() {
-
-        echo 'after install';
-
-        global $CFG;
-
-        include_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
-        block_ajax_marking_update_modules();
-
-    }
+//    function after_install() {
+//
+//        echo 'after install';
+//
+//        global $CFG;
+//
+//        include_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
+//        //block_ajax_marking_update_modules();
+//
+//    }
     
     
 }

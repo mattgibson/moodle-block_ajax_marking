@@ -55,7 +55,6 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
         // How many nodes in total when fully expanded (no groups)?
         // function to trigger for the third level nodes (might be different if there are four
         $this->icon        = 'mod/journal/icon.gif';
-        $this->callbackfunctions   = array();
         
         // call parent constructor with the same arguments
         call_user_func_array(array($this, 'parent::__construct'), func_get_args());

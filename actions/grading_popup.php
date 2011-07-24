@@ -33,45 +33,42 @@ require_once(dirname(__FILE__).'/../../../config.php');
 
 // Each popup request will have different stuff that we want to pass to $moduleobject->grading_popup()
 $params = array();
-// Use GET to discriminate between submitted form stuff and opening stuff.
+// Use GET to discriminate between submitted form stuff and url stuff. optional_param() doesn't.
 foreach ($_GET as $name => $value) {
     $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
 }
 
-//TODO - doesn't work for form submit
-$mod  = required_param('modulename',  PARAM_ALPHA);
 $cmid = required_param('coursemoduleid', PARAM_INT);
 $node = required_param('node', PARAM_INT);
 
-
-require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
-require_once($CFG->dirroot."/blocks/ajax_marking/modules/{$mod}/block_ajax_marking_{$mod}.class.php");
-
-$classname = 'block_ajax_marking_'.$mod;
-
-if (!class_exists($classname)) {
-    print_error('AJAX marking block does not support the '.$mod.' module');
-    die();
-}
-
-$moduleobject = new $classname;
-
 $coursemodule = $DB->get_record('course_modules', array('id' => $cmid));
+$modname = $DB->get_field('modules', 'name', array('id' => $coursemodule->module));
 
+//permissions checks
 if (!$coursemodule) {
     print_error('Bad coursemoduleid');
     die();
 }
-
-require_login($coursemodule->course, false, $coursemodule);
-
+require_login($coursemodule->course, false, $coursemodule);  
 $context = get_context_instance(CONTEXT_MODULE, $cmid);
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
+require_once($CFG->dirroot."/blocks/ajax_marking/modules/{$modname}/block_ajax_marking_{$modname}.class.php");
+
+$classname = 'block_ajax_marking_'.$modname;
+if (!class_exists($classname)) {
+    print_error('AJAX marking block does not support the '.$modname.' module');
+    die();
+}
+$moduleobject = new $classname;
 if (!has_capability($moduleobject->capability, $context)) {
     print_error('You do not have permission to grade submissions for this course module');
     die();
 }
+
+
+
 
 // stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be processed
 $data = data_submitted();
@@ -85,7 +82,7 @@ if ($data && confirm_sesskey()) {
     // If success, notify and print a close button.
     if (!is_string($error)) {
         
-        $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', array('module' => $mod));
+        $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', array('module' => $modname));
         $PAGE->set_url($url);
         $PAGE->set_pagelayout('popup');
         
