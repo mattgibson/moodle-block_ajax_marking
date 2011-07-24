@@ -1170,20 +1170,20 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
 * @param treeobject the YUI treeview object to refresh (config or main)
 * @return void
 */
-M.block_ajax_marking.tree_base.prototype.refresh_tree = function(treeobject) {
+M.block_ajax_marking.tree_base.prototype.refresh_tree = function() {
 
     // Get rid of the existing tree nodes first, but don't re-render to avoid flicker
-    var rootnode = treeobject.getRoot();
+    var rootnode = this.getRoot();
     var numberofnodes = rootnode.children.length;
     for (var i = 0; i < numberofnodes; i++) {
-        treeobject.removeNode(rootnode.children[0], true);
+        this.removeNode(rootnode.children[0], true);
     }
     
     // Reload the data for the root node. We keep the tree object intect rather than destroying
     // and recreating in order to improve responsiveness.
     M.block_ajax_marking.parentnodeholder = rootnode;
     M.block_ajax_marking.oncompletefunctionholder = 'rootnode.loadcomplete';
-    treeobject.initialise_tree();
+    this.initialise_tree();
     
 };
 
@@ -1544,7 +1544,7 @@ M.block_ajax_marking.make_footer = function () {
     var refreshbutton = new YAHOO.widget.Button({
             label     : M.str.block_ajax_marking.refresh,
             id        : 'block_ajax_marking_collapse',
-            onclick   : {fn: function() {M.block_ajax_marking.treerefresh_tree();}},
+            onclick   : {fn: function() {M.block_ajax_marking.tree.refresh_tree();}},
             container : 'block_ajax_marking_refresh_button'});
 
 //    var configurebutton = new YAHOO.widget.Button({

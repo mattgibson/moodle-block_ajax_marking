@@ -105,28 +105,6 @@ class block_ajax_marking extends block_base {
 
                 $this->content->text .=  $s;
 
-//                $variables  = array(
-//                       // 'wwwroot'             => $CFG->wwwroot,
-//                        'totaltomark'         => get_string('totaltomark',         'block_ajax_marking'),
-//                        'userid'              => $USER->id,
-//                        'instructions'        => get_string('instructions',        'block_ajax_marking'),
-//                        'nogradedassessments' => get_string('nogradedassessments', 'block_ajax_marking'),
-//                        'nothingtomark'       => get_string('nothingtomark',       'block_ajax_marking'),
-//                        'refresh'             => get_string('refresh',             'block_ajax_marking'),
-//                        'configure'           => get_string('configure',           'block_ajax_marking'),
-//                        'connectfail'         => get_string('connectfail',         'block_ajax_marking'),
-//                        'nogroups'            => get_string('nogroups',            'block_ajax_marking'),
-//                        'settingsheadertext'  => get_string('settingsheadertext',  'block_ajax_marking'),
-//                        'fullname'            => fullname($USER),
-//                        'showthisassessment'  => get_string('showthisassessment',  'block_ajax_marking'),
-//                        'showthiscourse'      => get_string('showthiscourse',      'block_ajax_marking'),
-//                        'showwithgroups'      => get_string('showwithgroups',      'block_ajax_marking'),
-//                        'hidethisassessment'  => get_string('hidethisassessment',  'block_ajax_marking'),
-//                        'hidethiscourse'      => get_string('hidethiscourse',      'block_ajax_marking'),
-//                        'coursedefault'       => get_string('coursedefault',       'block_ajax_marking'),
-//                        'debuglevel'          => $CFG->debug
-//                );
-                
                 // Set up the javascript module, with any data that the JS will need
                 $jsmodule = array(
                     'name'     => 'block_ajax_marking',
@@ -152,29 +130,6 @@ class block_ajax_marking extends block_base {
                     )
                 );
 
-//                $jsvariables  = "M.block_ajax_marking.variables = [];
-//                        var YAV = M.block_ajax_marking.variables;
-//                        YAV['wwwroot']             = '".$CFG->wwwroot."';
-//                        YAV['totaltomark']         = '".get_string('totaltomark',         'block_ajax_marking')."';
-//                        YAV['userid']              = '".$USER->id."';
-//                        YAV['instructions']        = '".get_string('instructions',        'block_ajax_marking')."';
-//                        YAV['nogradedassessments'] = '".get_string('nogradedassessments', 'block_ajax_marking')."';
-//                        YAV['nothingtomark']       = '".get_string('nothingtomark',       'block_ajax_marking')."';
-//                        YAV['refresh']             = '".get_string('refresh',             'block_ajax_marking')."';
-//                        YAV['configure']           = '".get_string('configure',           'block_ajax_marking')."';
-//                        YAV['connectfail']         = '".get_string('connectfail',         'block_ajax_marking')."';
-//                        YAV['nogroups']            = '".get_string('nogroups',            'block_ajax_marking')."';
-//                        YAV['settingsheadertext']  = '".get_string('settingsheadertext',  'block_ajax_marking')."';
-//                        YAV['fullname']            = '".fullname($USER)."';
-//                        YAV['showthisassessment']  = '".get_string('showthisassessment',  'block_ajax_marking')."';
-//                        YAV['showthiscourse']      = '".get_string('showthiscourse',      'block_ajax_marking')."';
-//                        YAV['showwithgroups']      = '".get_string('showwithgroups',      'block_ajax_marking')."';
-//                        YAV['hidethisassessment']  = '".get_string('hidethisassessment',  'block_ajax_marking')."';
-//                        YAV['hidethiscourse']      = '".get_string('hidethiscourse',      'block_ajax_marking')."';
-//                        YAV['coursedefault']       = '".get_string('coursedefault',       'block_ajax_marking')."';
-//                        YAV['debuglevel']          = '".$CFG->debug."';
-//                ";
-
                 // Add the basic HTML for the rest of the stuff to fit into
                 $this->content->text .= '
                     <div id="block_ajax_marking_top_bar">
@@ -193,8 +148,8 @@ class block_ajax_marking extends block_base {
                         </ul>
                         <div>
                             <div id="coursestree">course tree goes here</div>
-                            <div id="groupstree">group tree will go here</div>
-                            <div id="configtree">Settings stuff will go here</div>
+                            <div id="groupstree">Still in beta for 2.0 - groups tree will go here once done</div>
+                            <div id="configtree">Still in beta for 2.0 - settings stuff will go here once done</div>
                         </div>
                     </div>';
                 $this->content->footer .= '<div id="block_ajax_marking_refresh_button"></div>
