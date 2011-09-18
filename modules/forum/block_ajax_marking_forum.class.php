@@ -57,7 +57,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         parent::__construct();
         
         // must be the same as the DB modulename
-        $this->modulename  = 'forum';
+        $this->modulename  = $this->moduletable = 'forum';
         $this->capability  = 'mod/forum:viewhiddentimedposts';
         $this->icon        = 'mod/forum/icon.gif';
     }
@@ -445,11 +445,14 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     public function postprocess_nodes_hook($nodes, $filters) {
         
         foreach ($nodes as &$node) {
+            
+            // just so we know (for styling and accessing js in the client)
+            $node->modulename = $this->modulename;
         
             switch ($filters['nextnodefilter']) {
                 
                 case 'discussionid':
-                    $node->mod = $this->get_module_name();
+//                    $node->mod = $this->get_module_name();
                     
                     if ($this->forum_is_eachuser($filters['coursemoduleid'])) {
                         $node->name = fullname($node);
@@ -471,40 +474,22 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * @param int $questionid the id to filter by
      * @param type $query 
      */
-    public function apply_discussionid_filter(block_ajax_marking_query_base $query, $discussionid = 0) {
+    public function apply_discussionid_filter(block_ajax_marking_query_base $query, $discussionid = 0, $outerquery = false) {
         
-        if (!$discussionid) {
-            
-            $selects = array(
-                array(
-                    'table' => 'discussions', 
-                    'column' => 'id',
-                    'alias' => 'discussionid'),
-                array(
-                    'table' => 'cm', 
-                    'column' => 'id',
-                    'alias' => 'coursemoduleid'),
-                array(
-                    'table' => 'sub', 
-                    'column' => 'id',
-                    'alias' => 'count',
-                    'function' => 'COUNT'),
-                array(
-                    'function' => 'MIN',
-                    'table'    => 'sub',
-                    'column'   => 'modified',
-                    'alias'    => 'time'),
-                    // This is only needed to add the right callback function. 
-                array(
-                    'column' => "'".$this->modulename."'",
-                    'alias' => 'modulename'
-                    )
-            );
-            
-            foreach ($selects as $select) {
-                $query->add_select($select);
-            }
-            
+        // If we have an id, then discussion is an ancestor node. We are filtering the bits that do the counting
+        // in the inner query here
+        if ($discussionid) {
+            $query->add_where(array(
+                    'type' => 'AND', 
+                    'condition' => 'discussion.id = :'.$query->prefix_param_name('discussionid')));
+            $query->add_param('discussionid', $discussionid);
+            return;
+        }
+        
+        // If we get this far, the current node type is this filter. If we are in the outerquery, we want to 
+        // join to the table that provides the display details.
+        if ($outerquery) {
+         
             // This will be derived form the coursemoduleid, but how to get it cleanly?
             // The query will know, but not easy to get it out. Might have been prefixed.
             // TODO pass this properly somehow
@@ -533,19 +518,43 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
             $query->add_from(array(
                     'join' => 'INNER JOIN',
+                    'table' => 'forum_discussions',
+                    'alias' => 'outerdiscussions',
+                    'on' => 'combinedmodulesubquery.id = outerdiscussions.id'
+            ));
+
+            $query->add_from(array(
+                    'join' => 'INNER JOIN',
                     'table' => 'forum_posts',
                     'alias' => 'firstpost',
-                    'on' => 'firstpost.id = discussions.firstpost'
+                    'on' => 'firstpost.id = outerdiscussions.firstpost'
             ));
             
         } else {
-            // Apply WHERE clause
-            $query->add_where(array(
-                    'type' => 'AND', 
-                    'condition' => 'discussion.id = :'.$query->prefix_param_name('discussionid')));
-            $query->add_param('discussionid', $discussionid);
+            // We are in the inner counting bit where module stuff is.
+            $selects = array(
+                array(
+                    'table' => 'discussions', 
+                    'column' => 'id',
+                    'alias' => 'discussionid'),
+                array(
+                    'table' => 'sub', 
+                    'column' => 'id',
+                    'alias' => 'count',
+                    'function' => 'COUNT',
+                    'distinct' => true),
+                // This is only needed to add the right callback function. 
+                array(
+                    'column' => "'".$query->get_modulename()."'",
+                    'alias' => 'modulename'
+                    ));
+            foreach ($selects as $select) {
+                $query->add_select($select);
+            }
         }
-    }
+
+    } 
+    
 
 
 }

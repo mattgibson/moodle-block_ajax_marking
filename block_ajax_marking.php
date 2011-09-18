@@ -65,7 +65,7 @@ class block_ajax_marking extends block_base {
             return $this->content;
         }
         
-        global $CFG, $USER, $DB, $PAGE;
+        global $CFG, $USER, $DB, $PAGE, $OUTPUT;
 
         require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 
@@ -132,25 +132,23 @@ class block_ajax_marking extends block_base {
 
                 // Add the basic HTML for the rest of the stuff to fit into
                 $this->content->text .= '
+                    <div id="block_ajax_marking_hidden">
+                        <div id="coursestabsicons">
+                            <div>
+                                <img src="'.$OUTPUT->pix_url('c/course').'" alt="" />
+                            </div>
+                        </div>
+                    </div>
                     <div id="block_ajax_marking_top_bar">
                         <div id="total">
-                            <div id="totalmessage">'.get_string('totaltomark', 'block_ajax_marking').': <span id="count"></span></div>
-                            <div id="count"></div>
+                            <div id="totalmessage">
+                                '.get_string('totaltomark', 'block_ajax_marking').': <span id="count"></span>
+                            </div>
                             <div id="mainicon"></div>
                         </div>
                         <div id="status"></div>
                     </div>
                     <div id="treetabs">
-                        <ul>
-                            <li><a href="#coursestree">Courses</a></li>
-                            <li><a href="#groupstree">Groups</a></li>
-                            <li><a href="#configtree">Config</a></li>
-                        </ul>
-                        <div>
-                            <div id="coursestree">course tree goes here</div>
-                            <div id="groupstree">Still in beta for 2.0 - groups tree will go here once done</div>
-                            <div id="configtree">Still in beta for 2.0 - settings stuff will go here once done</div>
-                        </div>
                     </div>';
                 $this->content->footer .= '<div id="block_ajax_marking_refresh_button"></div>
                                            <div id="block_ajax_marking_configure_button"></div>';
@@ -166,7 +164,6 @@ class block_ajax_marking extends block_base {
 
                 // Set things going
                 $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true, $jsmodule);
-
             }
 
         } else {
@@ -179,7 +176,6 @@ class block_ajax_marking extends block_base {
                 // this will stop the other functions like has_content() from running all the way through this again
                 $this->content = false;
             }
-
         }
         
         return $this->content;
@@ -195,21 +191,6 @@ class block_ajax_marking extends block_base {
         return false;
     }
 
-    /**
-     * Runs the check for plugins after the first install.
-     *
-     * @return void
-     */
-//    function after_install() {
-//
-//        echo 'after install';
-//
-//        global $CFG;
-//
-//        include_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
-//        //block_ajax_marking_update_modules();
-//
-//    }
     
     
 }

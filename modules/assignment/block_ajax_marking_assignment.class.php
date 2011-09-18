@@ -65,10 +65,9 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     public function __construct() {
         
         // call parent constructor with the same arguments (keep for 2.1 - PHP 5.3 needed
-        //call_user_func_array(array($this, 'parent::__construct'), func_get_args());
         parent::__construct();
         
-        $this->modulename           = 'assignment';  // must be the same as the DB modulename
+        $this->modulename           = $this->moduletable = 'assignment';  // must be the same as the DB modulename
         $this->capability           = 'mod/assignment:grade';
         $this->icon                 = 'mod/assignment/icon.gif';
     }
@@ -104,48 +103,13 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * @param object $item a submission object
      * @return string
      */
-    function make_html_link($item) {
+    public function make_html_link($item) {
 
         global $CFG;
         
         $address = $CFG->wwwroot.'/mod/assignment/submissions.php?id='.$item->coiursemoduleid;
         return $address;
     }
-    
-//    protected function get_sql_submission_table() {
-//        return 'assignment_submissions';
-//    }
-    
-    
-    /**
-     * See superclass for details
-     * 
-     * @return array the select, join and where clauses, with the aliases for module and submission tables
-     */
-//    protected function get_sql_count() {
-//        
-//        global $DB;
-//        
-//        $moduletable = $this->get_sql_module_table();
-//        $submissiontable = $this->get_sql_submission_table();
-//        
-//        $from =     "FROM {{$moduletable}} moduletable
-//               INNER JOIN {{$submissiontable}} sub
-//                       ON sub.assignment = moduletable.id ";
-//               
-////        $subdatacompare = $DB->sql_compare_text($fieldname, $numchars=32);
-//                       
-//        $where =   "WHERE sub.timemarked < sub.timemodified
-//                  AND NOT ((moduletable.resubmit = 0 
-//                           AND sub.timemarked > 0)
-//                       OR (".$DB->sql_compare_text('moduletable.assignmenttype')." = 'upload' 
-//                           AND ".$DB->sql_compare_text('sub.data2')." != 'submitted')) ";
-//        
-//        $params = array();
-//                       
-//        return array($from, $where, $params);
-//    }
- 
     
     /**
      * Makes the grading interface for the pop up
@@ -245,27 +209,10 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // Here, we start to make a specific HTML display, rather than just getting data
 
         $submitform = new mod_assignment_grading_form(block_ajax_marking_form_url($params), $mformdata);
-//        $submitform = new block_ajax_marking_assignment_form(block_ajax_marking_form_url($params), $mformdata);
-
-//         if (!$display) {
-//            $ret_data = new stdClass();
-//            $ret_data->mform = $submitform;
-//            $ret_data->fileui_options = $mformdata->fileui_options;
-//            return $ret_data;
-//        }
-
-//        if ($submitform->is_cancelled()) {
-//            redirect('submissions.php?id='.$this->cm->id);
-//        }
-
         $submitform->set_data($mformdata);
 
         $PAGE->set_title($course->fullname . ': ' .get_string('feedback', 'assignment').' - '.fullname($user, true));
         $PAGE->set_heading($course->fullname);
-//        $PAGE->navbar->add(get_string('submissions', 'assignment'), new moodle_url('/mod/assignment/submissions.php', array('id' => $details['coursemoduleid'])));
-//        $PAGE->navbar->add(fullname($user, true));
-
-//        echo $OUTPUT->header();
         $output .= $OUTPUT->heading(get_string('feedback', 'assignment').': '.fullname($user, true));
 
         // display mform here...
@@ -279,7 +226,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         }
 
         return $output;
-        
     }
     
     /**
@@ -291,11 +237,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     public function process_data($data, $params) {
         
         // from $assignmentinstance->process_feedback():
-        //
-        global $CFG, $USER, $DB, $PAGE;
         
-//        $submitform = new mod_assignment_grading_form();
-//        $data = $submitform->get_data();
+        global $CFG, $USER, $DB, $PAGE;
         
         if (!$data || !$params) {      // No incoming data?
             return 'No incoming data';
@@ -459,62 +402,73 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     
     
     
-    public function apply_userid_filter(block_ajax_marking_query_base $query, $userid) {
+    public function apply_userid_filter(block_ajax_marking_query_base $query, $userid = false, $outerquery = false) {
         
-        if (!$userid) { // display submissions - final nodes
+        if ($userid) {
+            // Not sure we'll ever need this, but just in case...
+            $query->add_where(array(
+                    'type' => 'AND', 
+                    'condition' => 'sub.userid = :'.$query->prefix_param_name('submissionid')));
+            $query->add_param('submissionid', $userid);
+            return;
+        }
         
-            $data = new stdClass;
-            $data->nodetype = 'submission';
+        if ($outerquery) { // Need to join to get the display stuff
 
-//            $usercolumnalias   = $query->get_userid_column();
+            $selects = array(
+//                array(
+//                    'table' => 'sub', 
+//                    'column' => 'id',
+//                    'alias' => 'subid'),
+                array(
+                    'table' => 'usertable',
+                    'column' => 'firstname'),
+                array(
+                    'table' => 'usertable',
+                    'column' => 'lastname'),
+                
+//                array(
+//                    'table' => 'sub', 
+//                    'column' => 'timemodified',
+//                    'alias' => 'time'),
+//                array(
+//                    'table' => 'sub', 
+//                    'column' => 'userid'),
+                    // This is only needed to add the right callback function. 
+            );
 
+            foreach ($selects as $select) {
+                $query->add_select($select);
+            }
+
+            $query->add_from(array(
+                    'join' => 'INNER JOIN',
+                    'table' => 'user',
+                    'alias' => 'usertable',
+                    'on' => 'usertable.id = combinedmodulesubquery.id'));
+        } else {
+            // We just want the counting stuff for the inner query
             $selects = array(
                 array(
                     'table' => 'sub', 
-                    'column' => 'id',
-                    'alias' => 'subid'),
-                array(
-                    'table' => 'user',
-                    'column' => 'firstname'),
-                array(
-                    'table' => 'user',
-                    'column' => 'lastname'),
+                    'column' => 'userid'),
                 array( // Count in case we have user as something other than the last node
                     'function' => 'COUNT',
                     'table'    => 'sub',
                     'column'   => 'id',
-                    'alias'    => 'count'),
+                    'alias'    => 'count',
+                    'distinct' => true),
+                // This is only needed to add the right callback function. 
                 array(
-                    'table' => 'sub', 
-                    'column' => 'timemodified',
-                    'alias' => 'time'),
-                array(
-                    'table' => 'sub', 
-                    'column' => 'userid'),
-                    // This is only needed to add the right callback function. 
-                array(
-                    'column' => "'".$this->modulename."'",
+                    'column' => "'".$query->get_modulename()."'",
                     'alias' => 'modulename'
-                    )
-            );
-            
+                    ));
             foreach ($selects as $select) {
                 $query->add_select($select);
             }
-            
-            $query->add_from(array(
-                    'join' => 'INNER JOIN',
-                    'table' => 'user',
-                    'on' => 'user.id = sub.userid'));
-            
-        } else {
-            // Not sure we'll ever need this, but just in case...
-            $query->add_where(array(
-                    'type' => 'AND', 
-                    'condition' => 'sub.id = :'.$query->prefix_param_name('submissionid')));
-            $query->add_param('submissionid', $userid);
         }
-    }
+
+    } 
     
     
     

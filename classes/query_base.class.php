@@ -57,12 +57,11 @@ class block_ajax_marking_query_base {
      */
     private $moduleobject;
     
-    
     /**
      * Constructor
      * @param block_ajax_marking_query_base $moduleobject
      */
-    public function __construct($moduleobject) {
+    public function __construct($moduleobject = false) {
         $this->moduleobject = $moduleobject;
     }
     
@@ -79,29 +78,35 @@ class block_ajax_marking_query_base {
         $selectarray = array();
         
         foreach ($this->select as $select) {
-            
-            // Doing it all as one so we don't destroy $select before trying to use more bits of it
-            // later on e.g. deriving GROUP BY
-            if ($union) {
-                $selectstring = (isset($select['function']) ?' SUM(' : ''). // We need to add them, all as they've already been counted
-                                (isset($select['distinct']) ? 'DISTINCT ' : '').
-                                'unionquery.'.(isset($select['alias']) ? $select['alias'] : $select['column']).
-                                (isset($select['function']) ? ')' : '').
-                                (isset($select['alias']) ? ' AS '.$select['alias'] : '');
+            $selectstring = '';
+            // 'column' will not be set if this is COALESCE. We have an associative array of table=>column pairs
+            if (isset($select['function']) && STRTOUPPER($select['function']) === 'COALESCE') {
+                $tablesarray = array();
+                foreach ($select['table'] as $tab => $col) {
+                    $tablesarray[] = $tab.'.'.$col;
+                }
+                $selectstring .= implode(', ', $tablesarray);
             } else {
-                $selectstring = (isset($select['function']) ? strtoupper($select['function']).'( ' : '').
-                                (isset($select['distinct']) ? 'DISTINCT ' : '').
-                                (isset($select['table']) ? $select['table'].'.' : '').
-                                $select['column'].' '.
-                                (isset($select['function']) ? ') ' : '').
-                                (isset($select['alias']) ? ' AS '.$select['alias'].' ' : '');
+                $selectstring = isset($select['column']) ? $select['column'] : '';
+                if (isset($select['table'])) {
+                    $selectstring = $select['table'].'.'.$selectstring;
+                }
             }
-                             
+            if (isset($select['distinct'])) {
+                $selectstring = 'DISTINCT '.$selectstring;
+            }
+            if (isset($select['function'])) {
+                $selectstring = ' '.$select['function'].'('.$selectstring.') ';
+            }
+            if (isset($select['alias'])) {
+                $selectstring .= ' AS '.$select['alias'];
+            }
+            
             $selectarray[] = $selectstring;
             
         }
         
-        return 'SELECT '.implode(', ', $selectarray).' ';
+        return 'SELECT '.implode(", \n", $selectarray).' ';
     }
     
     /**
@@ -114,7 +119,6 @@ class block_ajax_marking_query_base {
         unset($this->select[$alias]);
     }
 
-
     /**
      * Returns the SQL fragment for the join tables
      * 
@@ -125,13 +129,40 @@ class block_ajax_marking_query_base {
         $fromarray = array();
         
         foreach ($this->from as $from) {
-            $fromarray[] = (isset($from['join']) ? ' '.$from['join'].' ' : '').
-                           ' {'.$from['table'].'} '.
-                           (isset($from['alias']) ? ' '.$from['alias'].' ' : ' '.$from['table']). // without an alias the prefix messes it up
-                           (isset($from['join']) ? ' ON '.$from['on'].' ' : '');
+            
+            
+            if ($from['table'] instanceof block_ajax_marking_query_base) { //allow for recursion
+                $fromstring = '('.$from['table']->to_string().')';
+            } else if (isset($from['subquery'])) {
+                $fromstring = '('.$from['table'].')';
+            } else {
+                $fromstring = '{'.$from['table'].'}';
+            }
+            if (isset($from['join'])) {
+                $fromstring = $from['join'].' '.$fromstring;
+            }
+            if (isset ($from['alias'])) {
+                $fromstring .= ' '.$from['alias'];
+            } else {
+                $fromstring .= ' '.$from['table'];
+            }
+            if (isset($from['join'])) {
+                if (isset($from['on'])) {
+                    $fromstring .= ' ON '.$from['on'];
+                } else {
+                    throw new coding_exception('No on bit specified for query join');
+                }
+            }
+            
+            $fromarray[] = $fromstring;
+            
+//            $fromarray[] = (isset($from['join']) ? ' '.$from['join'].' ' : '').
+//                           ' {'.$from['table'].'} '.
+//                           (isset($from['alias']) ? ' '.$from['alias'].' ' : ' '.$from['table']). // without an alias the prefix messes it up
+//                           (isset($from['join']) ? ' ON '.$from['on'].' ' : '');
         }
         
-        return ' FROM '.implode(' ', $fromarray).' ';
+        return "\n\n FROM ".implode(" \n", $fromarray).' ';
     }
     
     /**
@@ -152,7 +183,7 @@ class block_ajax_marking_query_base {
         }
         
         if ($wherearray) {
-            return ' WHERE '.implode(' ', $wherearray).' ';
+            return "\n\n WHERE ".implode(" \n", $wherearray).' ';
         } else {
             return '';
         }
@@ -168,37 +199,21 @@ class block_ajax_marking_query_base {
         
         $groupby = array();
         
-        if ($this->has_select_aggregate()) {
+        if ($this->has_select_aggregate()) { // Can't miss out any of the things or Oracle will be unhappy
             
             foreach ($this->select as $alias => $column) {
                 // if the column is not a MAX, COUNT, etc, add it to the groupby
-                if (!isset($column['function'])) {
-                    
-                    if ($union) {
-                        $groupby[] = 'unionquery.'.(isset($column['alias']) ? $column['alias'] : $column['column']);
-                    } else {
-                        // some won't have a column e.g. 'COALESCE()', which just need the alias
-                        $groupby[] = (isset($column['table']) ? $column['table'].'.' : '').$column['column'];
-                    }
+                if (!isset($column['function']) && $column['column'] !== '*') {
+                    $groupby[] = (isset($column['table']) ? $column['table'].'.' : '').$column['column'];
                 }
             }
             if ($groupby) {
-                return ' GROUP BY '.implode(', ', $groupby).' ';
+                return "\n\n GROUP BY ".implode(', ', $groupby).' ';
             } else {
                 return '';
             }
         } else {
-            // just group by the unique id
-            if ($this->select) {
-                $firstcolumn = reset($this->select);
-                if ($union) {
-                    return ' GROUP BY unionquery.'.$firstcolumn['column'].' ';
-                } else {
-                    return ' GROUP BY '.$firstcolumn['table'].'.'.$firstcolumn['column'].' ';
-                }
-            } else {
-                return '';
-            }
+            return '';
         }
     }
     
@@ -210,7 +225,7 @@ class block_ajax_marking_query_base {
     protected function get_orderby() {
         
         if ($this->orderby) {
-            return ' ORDER BY '.implode(', ', $this->orderby).' ';
+            return "\n\n ORDER BY ".implode(', ', $this->orderby).' ';
         } else {
             return '';
         }
@@ -240,8 +255,14 @@ class block_ajax_marking_query_base {
     public function add_select(array $column, $prefix = false, $replace = false) {
         
         $requiredkeys = array('function', 'table', 'column', 'alias', 'distinct');
-        
         $key = isset($column['alias']) ? $column['alias'] : $column['column'];
+        
+        if (isset($select['function']) && STRTOUPPER($select['function']) === 'COALESCE') {
+            // COALESCE takes an array of tables and columns to add together
+            if (!is_array($column['table'])) {
+                throw new invalid_parameter_exception('add_select() called with COALESCE function and non-array list of tables');
+            }
+        }
         
         if (is_array($column) && (array_diff(array_keys($column), $requiredkeys) === array())) {
             if ($prefix) { // put it at the start
@@ -258,27 +279,28 @@ class block_ajax_marking_query_base {
             }
             
         } else {
-            print_error('Wrong array items specified for new SELECT column');
+            throw new coding_exception('Wrong array items specified for new SELECT column');
         }
     }
     
     /**
      * This will add a join table.
      * 
-     * Issues:
-     * - what if it's a subquery?
-     * 
      * @param array $table containing 'join', 'table', 'alias', 'on'
      * @return void
      */
     public function add_from(array $table) {
         
-        $requiredkeys = array('join', 'table', 'alias', 'on');
+        if (!is_array($table)) {
+            throw new invalid_parameter_exception($table);
+        }
         
-        if (is_array($table) && (array_diff(array_keys($table), $requiredkeys) === array())) {
+        $requiredkeys = array('join', 'table', 'alias', 'on', 'subquery');
+        
+        if (array_diff(array_keys($table), $requiredkeys) === array()) {
             $this->from[] = $table;
         } else {
-            print_error('Wrong array items specified for new FROM table');
+            throw new coding_exception('Wrong array items specified for new FROM table', array_keys($table));
         }
     }
 
@@ -301,7 +323,7 @@ class block_ajax_marking_query_base {
         if (is_array($clause) && (array_diff(array_keys($clause), $requiredkeys) === array())) {
             $this->where[] = $clause;
         } else {
-            print_error('Wrong array items specified for new WHERE clause');
+            throw new coding_exception('Wrong array items specified for new WHERE clause');
         }
     }
     
@@ -335,8 +357,17 @@ class block_ajax_marking_query_base {
         $this->params[$key] = $value;
     }
     
+    /**
+     * Avoid naming collisions when using similar subqueries
+     * 
+     * @param type $name
+     * @return type 
+     */
     public function prefix_param_name($name) {
-        return $this->moduleobject->modulename.'xx'.$name;
+        if ($this->moduleobject) {
+            return $this->moduleobject->modulename.'xx'.$name;
+        }
+        return 'mainqueryxx'.$name;
     }
     
     /**
@@ -345,7 +376,10 @@ class block_ajax_marking_query_base {
      * @return string
      */
     public function get_modulename() {
-        return $this->moduleobject->modulename;
+        if ($this->moduleobject) {
+            return $this->moduleobject->modulename;
+        }
+        throw new coding_exception('Trying to get a modulename from a query with no module');
     }
     
     /**
@@ -354,7 +388,10 @@ class block_ajax_marking_query_base {
      * @return string
      */
     public function get_module_id() {
-        return $this->moduleobject->get_module_id();
+        if ($this->moduleobject) {
+            return $this->moduleobject->get_module_id();
+        }
+        throw new coding_exception('Trying to get a module id from a query with no module');
     }
     
     /**
@@ -366,7 +403,11 @@ class block_ajax_marking_query_base {
      * @return void
      */
     public function add_params(array $params, $prefix = true) {
-        // TODO throw error if same keys.
+        // TODO throw error if same keys as existing ones are fed in.
+        $dupes = array_intersect_key($params, $this->params);
+        if ($dupes) {
+            throw new coding_exception('Duplicate keys when adding query params', $dupes);
+        }
         
         // Avoid collisions by prefixing all key names unless otherwise specified
         if ($prefix) {
@@ -381,14 +422,18 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Will check to see if any of the select clauses have aggregates
+     * Will check to see if any of the select clauses have aggregates. Needed to know if GROUP BY is necesary.
      * 
      * @return bool
      */
     protected function has_select_aggregate() {
         
+        // We don't want to have a GROUP BY if it's a COALESCE function, otherwise
+        // Oracle complains
+        $nogroupbyfunctions = array('COALESCE');
+        
         foreach ($this->select as $select) {
-            if (isset($select['function'])) {
+            if (isset($select['function']) && !in_array($select['function'], $nogroupbyfunctions)) {
                 return true;
             }
         }
@@ -396,30 +441,11 @@ class block_ajax_marking_query_base {
     }
     
     /**
-     * Get all the bits and join them together, then return a query ready to use
+     * Get all the bits and join them together, then return a query ready to use in $DB->get_records()
      * 
      * @return array query string, then params 
      */
     public function to_string() {
-        
-        // Add all the standard filters?
-//        list($countfrom, $countwhere, $countparams)       = $this->get_sql_count();
-//        list($displayjoin, $displaywhere)                 = $this->get_sql_display_settings();
-//        list($enroljoin, $enrolwhere, $enrolparams)       = $this->get_sql_enrolled_students();
-//        list($visiblejoin, $visiblewhere, $visibleparams) = $this->get_sql_visible();
-//        
-//        $query['from'] = $countfrom.
-//                         $enroljoin.
-//                         $visiblejoin.
-//                         $displayjoin;
-//                       
-//        $query['where'] = $countwhere.
-//                          $displaywhere.
-//                          $enrolwhere.
-//                          $visiblewhere;
-//                
-//        $query['params'] = array_merge($countparams, $enrolparams, $visibleparams);
-        
         
         // Stick it all together
         $query = $this->get_select().
@@ -429,7 +455,6 @@ class block_ajax_marking_query_base {
                  $this->get_orderby();
         
         return $query;
-        
     }
     
     /**
@@ -450,21 +475,26 @@ class block_ajax_marking_query_base {
         $this->useridcolumn = $column;
     }
     
+    /**
+     * Geter function for the associated module's capability so we can check for permissions
+     * 
+     * @return string 
+     */
     public function get_capability() {
-        return $this->moduleobject->get_capability();
+        if ($this->moduleobject) {
+            return $this->moduleobject->get_capability();
+        }
+        throw new coding_exception('Trying to get a capability from a query with no module');
     }
 
-        /**
+    /**
      * Returns the name of the userid column of the submissions table. Currently either userid or authorid.
-     * This first method entirely relies on one column being defined with 'userid' as the alias
+     * This is so that other components of the SQL query can reference the userid
      * 
      * @return string table.column
      */
     public function get_userid_column() {
-        // possibly too ambitious as the selects are defined
-//        return $this->select['userid']['table'].'.'.$this->select['userid']['column'];
-        
-        return $this->useridcolumn;
+        return $this->useridcolumn ? $this->useridcolumn : false;
     }
 
     /**
@@ -478,22 +508,6 @@ class block_ajax_marking_query_base {
         return $DB->get_records_sql($this->to_string(), $this->get_params());
     }
     
-    
-    
-    /**
-     * Prepares the query with the stuff it always needs
-     * 
-     * @return void
-     */
-//    public function apply_standard_filters() {
-//        $this->apply_sql_enrolled_students($this);
-//        $this->apply_sql_visible($this);
-//        $this->apply_sql_display_settings($this);
-//        $this->apply_sql_owncourses($this);
-//    }
-    
-    
-    
     /**
      * Provides an EXISTS(xxx) subquery that tells us whether there is a group with user x in it
      * 
@@ -502,7 +516,6 @@ class block_ajax_marking_query_base {
      */
     private function get_sql_groups_subquery($configalias) {
         
-//        $submissiontablealias = $this->get_sql_submission_table();
         $useridfield = $this->get_userid_column();
         
         $groupsql = " EXISTS (SELECT 1 
@@ -519,13 +532,45 @@ class block_ajax_marking_query_base {
     }
     
     /**
-     * Looks to the parent module to make any specific changes
+     * Looks to the associated module to make any specific changes
      * 
      * @return void
      */
     public function alter_query_hook($groupby = false) {
         $this->moduleobject->alter_query_hook($this, $groupby);
     }
+    
+    /**
+     * This is not used for output, but just converts the parametrised query to one that can be copy/pasted
+     * into an SQL GUI in order to debug SQL errors
+     * 
+     * @param string $query
+     * @param array $params
+     * @global type $CFG 
+     * @return string
+     */
+    public function debuggable_query() {
+        
+        global $CFG;
+        
+        $query = $this->to_string();
+        $params = $this->get_params();
+        
+        // Substitute all the {tablename} bits
+        $query = preg_replace('/\{/', $CFG->prefix, $query);
+        $query = preg_replace('/}/', '', $query);
+        
+        // Now put all the params in place
+        foreach ($params as $name => $value) {
+            $pattern = '/:'.$name.'/';
+            $replacevalue = (is_numeric($value) ? $value : "'".$value."'");
+            $query = preg_replace($pattern, $replacevalue, $query);
+        }
+        
+        return $query;
+    }
+    
+    
 
 }
 

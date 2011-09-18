@@ -1133,7 +1133,7 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
     // loop adding extra join tables. $categorylevels = 2 means we only need one level of categories (which
     // we already have with the first left join above) so we start from 2 and only add anything if
     // there are 3 levels or more
-    // TODO does this cope with no hierarchy at all?
+    // TODO does this cope with no hierarchy at all? This would mean $categoryleveles = 1
     $categorylevels = block_ajax_marking_get_number_of_category_levels();
 
     for ($i = 2; $i <= $categorylevels; $i++) {
@@ -1144,6 +1144,7 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
 
         $where .= "OR cx.instanceid = cat{$i}.id ";
     }
+    
 
     $query = $select.$where.'))';
 
@@ -1184,6 +1185,10 @@ function &block_ajax_marking_get_module_classes($reset=false) {
     $enabledmods = array_keys($enabledmods);
 
     foreach ($enabledmods as $enabledmod) {
+        
+        if ($enabledmod === 'journal') { // just until it's fixed
+            continue;
+        }
         
         $file = "{$CFG->dirroot}/blocks/ajax_marking/modules/{$enabledmod}/block_ajax_marking_{$enabledmod}.class.php";
         

@@ -17,7 +17,7 @@
 
 
 /**
- * Provides all CSS styles for the AJAX MArking block
+ * Provides all CSS styles for the AJAX Marking block
  *
  * @package    block
  * @subpackage ajax_marking
@@ -115,7 +115,6 @@
   float: left;
   padding-bottom: 2px;
   margin-left: 3px;
-  visibility: collapse;
 }
 .loaderimage {
   background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
@@ -272,11 +271,23 @@ span.ygtvlabel {
     height:22px;
     background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
 }
-
+#block_ajax_marking_hidden {
+    display: none;
+}
 
 #page-blocks-ajax_marking-actions-grading_popup #page-content #region-main .region-content {
     padding: 0 10px;
 }
 #treetabs {
     clear: both;
+}
+#coursestreetab {
+    background-image: url([[pix:core|c/course]]);
+    background-repeat: no-repeat;
+    background-position: 50%;
+    width: 35px;
+    height: 25px;
+    position: absolute;
+    float: left;
+    z-index: 100;
 }
