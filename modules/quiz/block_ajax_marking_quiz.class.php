@@ -394,7 +394,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         // We could be looking at multiple attempts and/or multiple questions
         // Assume we have a user/quiz combo to get us here. We may have attemptid or questionid too
         
-        // gets all attempts with unmarked questions. We may or may not have a questionid 
+        // Get all attempts with unmarked questions. We may or may not have a questionid 
         list($usql, $sqlparams) = $DB->get_in_or_equal($this->get_manually_graded_qtypes(), SQL_PARAMS_NAMED);
         $sqlparams['quizid'] = $coursemodule->instance;
         $sqlparams['userid'] = $params['userid'];
@@ -415,7 +415,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                                QUESTION_EVENTMANUALGRADE.") 
       ORDER BY id ";
            
-        $attempts = $DB->get_records_sql($sql, $sqlparams);
+        $quizattempts = $DB->get_records_sql($sql, $sqlparams);
         
         // for reference
 //        $query->add_from(array(
@@ -453,7 +453,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 //                                                   'quizid2' => $coursemodule->instance,
 //                                                   'userid2' => $params['userid']));
 
-        if (!$attempts) {
+        if (!$quizattempts) {
             die('Could not retrieve quiz attempt');
         }
         
@@ -468,9 +468,12 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                     'action' => block_ajax_marking_form_url());
         echo html_writer::start_tag('form', $formattributes);
         
-        foreach ($attempts as $attempt) {
-
-            $attemptobj = quiz_attempt::create($attempt->id);
+        // Each attempt may have multiple question attempts
+        foreach ($quizattempts as $quizattempt) {
+            
+            // N.B. Using the proper quiz functions in an attempt to make this more robust against future
+            // changes
+            $quizattemptobj = quiz_attempt::create($quizattempt->id);
 
             // Load the questions and states.
             // If we have a questionid, use it to limit what we display. If not, we want all questions
@@ -478,8 +481,8 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             // marked ones.
             if (isset($params['questionid'])) {
                 $questionids = array($params['questionid']);
-                $attemptobj->load_questions($questionids);
-                $attemptobj->load_question_states($questionids);
+                $quizattemptobj->load_questions($questionids);
+                $quizattemptobj->load_question_states($questionids);
             } else {
                 // complication: could be a random question
                 $sqlparams[] = $coursemodule->instance;
@@ -502,44 +505,34 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             }
             
             // Log this review.
-            add_to_log($attemptobj->get_courseid(), 'quiz', 'review', 'reviewquestion.php?attempt=' .
-                    $attemptobj->get_attemptid() . '&question=' . $params['questionid'] ,
-                    $attemptobj->get_quizid(), $attemptobj->get_cmid());
+            add_to_log($quizattemptobj->get_courseid(), 'quiz', 'review', 'reviewquestion.php?attempt=' .
+                    $quizattemptobj->get_attemptid() . '&question=' . $params['questionid'] ,
+                    $quizattemptobj->get_quizid(), $quizattemptobj->get_cmid());
 
             // Print infobox
             $rows = array();
 
             // User picture and name.
-            if ($attemptobj->get_userid() <> $USER->id) {
+            if ($quizattemptobj->get_userid() <> $USER->id) {
                 // Print user picture and name
-                $student = $DB->get_record('user', array('id' => $attemptobj->get_userid()));
-                $picture = $OUTPUT->user_picture($student, array('courseid'=>$attemptobj->get_courseid()));
+                $student = $DB->get_record('user', array('id' => $quizattemptobj->get_userid()));
+                $picture = $OUTPUT->user_picture($student, array('courseid'=>$quizattemptobj->get_courseid()));
                 $rows[] = '<tr><th scope="row" class="cell">' . $picture . '</th><td class="cell"><a href="' .
-                        $CFG->wwwroot . '/user/view.php?id=' . $student->id . '&amp;course=' . $attemptobj->get_courseid() . '">' .
+                        $CFG->wwwroot . '/user/view.php?id=' . $student->id . '&amp;course=' . $quizattemptobj->get_courseid() . '">' .
                         fullname($student, true) . '</a></td></tr>';
             }
 
             // Quiz name.
             $rows[] = '<tr><th scope="row" class="cell">' . get_string('modulename', 'quiz') .
-                    '</th><td class="cell">' . format_string($attemptobj->get_quiz_name()) . '</td></tr>';
+                    '</th><td class="cell">' . format_string($quizattemptobj->get_quiz_name()) . '</td></tr>';
 
             // Question name.
             $rows[] = '<tr><th scope="row" class="cell">' . get_string('question', 'quiz') .
                     '</th><td class="cell">' . format_string(
-                    $attemptobj->get_question($params['questionid'])->name) . '</td></tr>';
-
-            // Other attempts at the quiz.
-            // TODO does this work?
-//            if ($attemptobj->has_capability('mod/quiz:viewreports')) {
-//                $attemptlist = $attemptobj->links_to_other_attempts($baseurl);
-//                if ($attemptlist) {
-//                    $rows[] = '<tr><th scope="row" class="cell">' . get_string('attempts', 'quiz') .
-//                            '</th><td class="cell">' . $attemptlist . '</td></tr>';
-//                }
-//            }
+                    $quizattemptobj->get_question($params['questionid'])->name) . '</td></tr>';
 
             // Timestamp of this action.
-            $timestamp = $attemptobj->get_question_state($params['questionid'])->timestamp;
+            $timestamp = $quizattemptobj->get_question_state($params['questionid'])->timestamp;
             if ($timestamp) {
                 $rows[] = '<tr><th scope="row" class="cell">' . get_string('completedon', 'quiz') .
                         '</th><td class="cell">' . userdate($timestamp) . '</td></tr>';
@@ -552,15 +545,15 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             }
             // Work out the base URL of this page. Should probably be different
             $baseurl = $CFG->wwwroot . '/mod/quiz/reviewquestion.php?attempt=' .
-                    $attemptobj->get_attemptid() . '&amp;question=' . $params['questionid'];
+                    $quizattemptobj->get_attemptid() . '&amp;question=' . $params['questionid'];
             
-            // Now make the actual markup
-            $attemptobj->print_question($params['questionid'], false, $baseurl);
-            
+            // Now make the actual markup to show one question plus commenting/grading stuff
+            $quizattemptobj->print_question($params['questionid'], false, $baseurl);
             echo html_writer::start_tag('div');
-            $attemptobj->question_print_comment_fields($params['questionid'], 'response');
+            // The prefix with attemptid in it allows us to save the details for separate attempts properly
+            $quizattemptobj->question_print_comment_fields($params['questionid'], 'response-'.$quizattemptobj->get_attemptid());
             echo html_writer::empty_tag('input', array('type' => 'submit', 'value' => 'Save'));
-            echo html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'attemptid', 'value' => $attempt->id));
+            echo html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'attemptid', 'value' => $quizattempt->id));
             foreach ($params as $name => $value) {
                 echo html_writer::empty_tag('input', array('type' => 'hidden', 'name' => $name, 'value' => $value));
             }
@@ -586,25 +579,51 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
     public function process_data($data) {
 
         global $CFG;
+        
+        // Need to separate the different responses from each other so we can loop through them for each question
+        
+        // Put responses into an array of arrays
+        // attemptid1
+        // -- comment
+        // -- grade
+        // attemptid2
+        // -comment
+        // -- grade
+        // etc
+        
+        // then loop through them.
+        
+        // $data->prefix-1
+        // [comment]
+        // [grade]
+        // $data->prefix-2
+        
+        // Loop over the data object's properties looking for ones that start with the correct prefix.
+        // A bit awkward, but this is how the quiz does it
+        $responses = array();
+        foreach ((array)$data as $key => $item) {
+            preg_match('/^(response)-(\d+)/', $item, $matches);
+            if ($matches[1] == 'response') {
+                $responses[$matches[2]] = $item; // uses attemptid as the key
+            }
+        }
 
         require_once($CFG->dirroot.'/mod/quiz/locallib.php');
 
-        // TODO get these into form stuff
-//        $attemptid = required_param('attempt', PARAM_INT); // attempt id
-//        $questionid = required_param('question', PARAM_INT);
-        $attemptobj = quiz_attempt::create($data->attemptid);
+        foreach($responses as $attemptid => $response) {
+        
+            $attemptobj = quiz_attempt::create($attemptid);
 
-        // permissions check
-//        require_login($attemptobj->get_courseid(), false, $attemptobj->get_cm());
-//        $attemptobj->require_capability('mod/quiz:grade');
+            // load question details
+            $questionids = array($data->questionid);
+            $attemptobj->load_questions($questionids);
+            $attemptobj->load_question_states($questionids);
 
-        // load question details
-        $questionids = array($data->questionid);
-        $attemptobj->load_questions($questionids);
-        $attemptobj->load_question_states($questionids);
-
-        return $attemptobj->process_comment($data->questionid, $data->response['comment'],
-                                            FORMAT_HTML, $data->response['grade']);
+            $result = $attemptobj->process_comment($data->questionid, $data->response['comment'],
+                                                FORMAT_HTML, $data->response['grade']);
+            
+            // TODO notify any errors
+        }
 
     }
     
