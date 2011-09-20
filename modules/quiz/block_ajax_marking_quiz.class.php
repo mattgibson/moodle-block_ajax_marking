@@ -394,7 +394,8 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         // We could be looking at multiple attempts and/or multiple questions
         // Assume we have a user/quiz combo to get us here. We may have attemptid or questionid too
         
-        // Get all attempts with unmarked questions. We may or may not have a questionid 
+        // Get all attempts with unmarked questions. We may or may not have a questionid, but this comes
+        // later so we can use the quiz's internal functions
         list($usql, $sqlparams) = $DB->get_in_or_equal($this->get_manually_graded_qtypes(), SQL_PARAMS_NAMED);
         $sqlparams['quizid'] = $coursemodule->instance;
         $sqlparams['userid'] = $params['userid'];
@@ -413,7 +414,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
            AND question_states.event NOT IN (".QUESTION_EVENTGRADE.", ".
                                                QUESTION_EVENTCLOSEANDGRADE.", ".
                                                QUESTION_EVENTMANUALGRADE.") 
-      ORDER BY id ";
+      ORDER BY question_states.timestamp DESC ";
            
         $quizattempts = $DB->get_records_sql($sql, $sqlparams);
         
@@ -468,7 +469,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                     'action' => block_ajax_marking_form_url());
         echo html_writer::start_tag('form', $formattributes);
         
-        // Each attempt may have multiple question attempts
+        // Each attempt may have multiple question attempts.
         foreach ($quizattempts as $quizattempt) {
             
             // N.B. Using the proper quiz functions in an attempt to make this more robust against future
@@ -480,27 +481,31 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             // that need grading. Not all questions overall, as that would include automatically
             // marked ones.
             if (isset($params['questionid'])) {
+                // This can't be random as the tree explicitly looks for essay question states
                 $questionids = array($params['questionid']);
                 $quizattemptobj->load_questions($questionids);
                 $quizattemptobj->load_question_states($questionids);
             } else {
-                // complication: could be a random question
+                // Output whatever there is (no questionid from the tree so we show the whole attempt)
+                // complication: could be random questions. We only want it if it's a random essay
+                // TODO will be used for multiple loops, so move it higher up, dependent on questionid
+                // exisitng
                 $sqlparams[] = $coursemodule->instance;
                 $sql = "SELECT q.id
                           FROM {question} q,
                     INNER JOIN {quiz_question_instances} qqi
                          WHERE qqi.question = q.id 
                            AND qqi.quiz = ?";
-                $questionidss = $DB->get_records_sql($sql, $sqlparams);
+                $questionids = $DB->get_records_sql($sql, $sqlparams);
                 $gradeableqs = quiz_report_load_questions($quiz);
                 $questionsinuse = implode(',', array_keys($gradeableqs));
-                foreach ($gradeableqs as $qid => $question){
-                    if (!$QTYPES[$question->qtype]->is_question_manual_graded($question, $questionsinuse)){
+                foreach ($gradeableqs as $qid => $question) {
+                    // unfortunatley, random questions say 'yes' on the next line.
+                    // TODO make random non-essay questions go away.
+                    if (!$QTYPES[$question->qtype]->is_question_manual_graded($question, $questionsinuse)) {
                         unset($gradeableqs[$qid]);
                     }
                 }
-                
-                
                 $questionids = '';
             }
             
@@ -602,15 +607,26 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         // A bit awkward, but this is how the quiz does it
         $responses = array();
         foreach ((array)$data as $key => $item) {
-            preg_match('/^(response)-(\d+)/', $item, $matches);
-            if ($matches[1] == 'response') {
-                $responses[$matches[2]] = $item; // uses attemptid as the key
+            preg_match('/^(response)-(\d+)/', $key, $matches);
+            if (isset($matches[1]) && $matches[1] == 'response') {
+                if (isset($matches[2])) {
+                    $responses[$matches[2]] = $item; // uses attemptid as the key
+                }
             }
         }
 
         require_once($CFG->dirroot.'/mod/quiz/locallib.php');
 
         foreach($responses as $attemptid => $response) {
+            
+            // We can have a grade with no comment, but a comment with no grade is probably an accident
+            // TODO return the incomplete form with an error so it can be fixed
+            if (empty($response['grade'])) {
+                if (empty($response['comment'])) {
+                    continue; 
+                }
+                $response['grade'] = 0;
+            }
         
             $attemptobj = quiz_attempt::create($attemptid);
 
@@ -619,8 +635,10 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             $attemptobj->load_questions($questionids);
             $attemptobj->load_question_states($questionids);
 
-            $result = $attemptobj->process_comment($data->questionid, $data->response['comment'],
-                                                FORMAT_HTML, $data->response['grade']);
+            $result = $attemptobj->process_comment($data->questionid, $response['comment'],
+                                                   FORMAT_HTML, $response['grade']);
+            
+            // Need to update the question state
             
             // TODO notify any errors
         }
