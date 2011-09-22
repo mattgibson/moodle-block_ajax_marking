@@ -417,43 +417,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
       ORDER BY question_states.timestamp DESC ";
            
         $quizattempts = $DB->get_records_sql($sql, $sqlparams);
-        
-        // for reference
-//        $query->add_from(array(
-//                'join'  => 'INNER JOIN',
-//                'table' => 'question_sessions',
-//                'alias' => 'qsess',
-//                'on'    => 'qsess.attemptid = quiz_attempts.uniqueid'
-//        ));
-//        $query->add_from(array(
-//                'join'  => 'INNER JOIN',
-//                'table' => 'question_states',
-//                'alias' => 'sub',
-//                'on'    => 'qsess.newest = sub.id'
-//        ));
-//        $query->add_from(array(
-//                'join'  => 'INNER JOIN',
-//                'table' => 'question',
-//                'on'    => 'qsess.questionid = question.id'
-//        ));
-        
-        
-        
-        // old - just the most recent
-//        $sql = 'SELECT id 
-//                  FROM {quiz_attempts} qa1
-//                 WHERE qa1.userid =:userid
-//                   AND qa1.quiz = :quizid
-//                   AND qa1.attempt = (SELECT MAX(attempt) 
-//                                    FROM {quiz_attempts} qa2
-//                                   WHERE qa2.userid =:userid2
-//                                     AND qa2.quiz = :quizid2)';
-//        
-//        $attempt = $DB->get_record_sql($sql, array('quizid' => $coursemodule->instance,
-//                                                   'userid' => $params['userid'],
-//                                                   'quizid2' => $coursemodule->instance,
-//                                                   'userid2' => $params['userid']));
-
         if (!$quizattempts) {
             die('Could not retrieve quiz attempt');
         }
