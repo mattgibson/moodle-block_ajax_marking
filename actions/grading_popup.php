@@ -88,7 +88,7 @@ if ($data && confirm_sesskey()) {
         
         echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
         
-        $PAGE->requires->js_function_call('window.opener.M.block_ajax_marking.tree.remove_node_from_tree',
+        $PAGE->requires->js_function_call('window.opener.M.block_ajax_marking.remove_node_from_current_tab',
                                           array($node));
         close_window(1);
     }

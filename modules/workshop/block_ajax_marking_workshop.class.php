@@ -31,6 +31,7 @@ if (!defined('MOODLE_INTERNAL')) {
 }
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
+require_once($CFG->dirroot.'/mod/workshop/locallib.php'); // for constants
 
 /**
  * Provides marking funcionality for the workshop module
@@ -52,7 +53,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         //call_user_func_array(array($this, 'parent::__construct'), func_get_args());
         parent::__construct();
         
-        $this->modulename           = 'workshop';
+        $this->modulename           = $this->moduletable = 'workshop';
         $this->capability           = 'mod/workshop:editdimensions';
         $this->icon                 = 'mod/workshop/icon.gif';
         
@@ -251,11 +252,21 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
                 'on' => 'sub.id = a.submissionid'
         ));
         
+        // Assumes that we want to see stuff that has not been assessed yet. Perhaps we still want
+        // this but also ones where we have not reviewed the assessments?
         $query->add_where(array(
                 'type' => 'AND', 
                 'condition' => '(a.reviewerid != :'.$query->prefix_param_name('userid').'
                                    OR (a.reviewerid = :'.$query->prefix_param_name('userid2').'
                                        AND a.grade = -1))'));
+        $query->add_where(array(
+            'type' => 'AND', 
+            'condition' => 'moduletable.phase < '.workshop::PHASE_CLOSED
+            ));
+        
+        // Do we want to only see stuff when the workshop has been put into a later phase?
+        // If it has, a teacher will have done this manually and will know about the grading work.
+        // Unless there are two teachers.
         
         $query->add_param('userid', $USER->id); 
         $query->add_param('userid2', $USER->id);
@@ -325,6 +336,77 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         
         //http://moodle20dev.localhost:8888/mod/workshop/view.php?id=573
         
+    }
+    
+    /**
+     * Applies the module-specifi stuff for the user nodes
+     * 
+     * @param block_ajax_marking_query_base $query
+     * @param type $userid 
+     * @return void
+     */
+    public function apply_userid_filter(block_ajax_marking_query_base $query, $userid = 0, $outerquery = false) {
+        
+        if ($userid) {
+            // Applies if users are not the final nodes
+            $query->add_where(array(
+                    'type' => 'AND', 
+                    'condition' => 'sub.authorid = :'.$query->prefix_param_name('submissionid')));
+            $query->add_param('submissionid', $userid);
+            return;
+        }
+        
+        if ($outerquery) { 
+        
+            $selects = array(
+                
+                array(
+                    'table'    => 'usertable',
+                    'column'   => 'firstname'),
+                array(
+                    'table'    => 'usertable',
+                    'column'   => 'lastname')
+                
+//                array(
+//                    'table'    => 'sub',
+//                    'column'   => 'timestamp',
+//                    'alias'    => 'time'),
+//                array(
+//                    'table'    => 'quiz_attempts',
+//                    'column'   => 'userid'),
+                    // This is only needed to add the right callback function. 
+            );
+            
+            foreach ($selects as $select) {
+                $query->add_select($select);
+            }
+            
+            $query->add_from(array(
+                    'join'  => 'INNER JOIN',
+                    'table' => 'user',
+                    'alias' => 'usertable',
+                    'on'    => 'usertable.id = combinedmodulesubquery.id'
+            ));
+            
+        } else {
+            $selects = array(
+                array(
+                    'table'    => 'sub', 
+                    'column'   => 'authorid'),
+                array( // Count in case we have user as something other than the last node
+                    'function' => 'COUNT',
+                    'table'    => 'sub',
+                    'column'   => 'id',
+                    'alias'    => 'count'),
+                // This is only needed to add the right callback function. 
+                array(
+                    'column' => "'".$query->get_modulename()."'",
+                    'alias' => 'modulename'
+                    ));
+            foreach ($selects as $select) {
+                $query->add_select($select);
+            }
+        }
     }
 
 }

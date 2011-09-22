@@ -32,6 +32,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 /**
  * Standard upgrade function run every time the block's version number changes
  *
+ * @global moodle_database $DB
  * @param int $oldversion the current version of the installed block
  * @return bool
  */
@@ -186,22 +187,38 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
                 'journal'
         );
         
+        // Switch the table to using coursemodule id instead of modulename + instance id in different columns.
+        // Allows for cleaner joins.
+        // TODO test the upgrade
         foreach ($modules as $module) {
-            
+            // Oracle doesn't like this :(
             // Get current coursemodules and put their ids into place
-            $sql = "UPDATE {block_ajax_marking} b
+//            $sql = "UPDATE {block_ajax_marking} b
+//                INNER JOIN {course_modules} cm
+//                        ON cm.instance = b.assessmentid
+//                INNER JOIN {modules} mt
+//                        ON (cm.module = mt.id AND ".$DB->sql_compare_text('mt.name')." = '{$module}')
+//                       SET b.coursemoduleid = cm.id
+//                     WHERE b.assessmenttype = '{$module}'
+//                        ";
+//            $DB->execute($sql);
+            // Get all current coursemodules and put their ids into place
+            $sql = "SELECT b.id, cm.id AS cmid
+                      FROM {block_ajax_marking} b
                 INNER JOIN {course_modules} cm
                         ON cm.instance = b.assessmentid
-                INNER JOIN {modules} mt
-                        ON (cm.module = mt.id AND ".$DB->sql_compare_text('mt.name')." = '{$module}')
-                       SET b.coursemoduleid = cm.id
+                INNER JOIN {modules} mod
+                        ON (cm.module = mod.id AND ".$DB->sql_compare_text('mod.name')." = '{$module}')
                      WHERE b.assessmenttype = '{$module}'
                         ";
-                        
-            $DB->execute($sql);
+            $modids = $DB->execute($sql);
+            
+            foreach ($modids as $modid) {
+                $row->id = $modid->id;
+                $row->coursemoduleid = $modid->cmid;
+                $DB->update_record('block_ajax_marking', $row);
+            }
         }
-        
-        
         // ajax_marking savepoint reached
         upgrade_block_savepoint(true, 2011052303, 'ajax_marking');
     }

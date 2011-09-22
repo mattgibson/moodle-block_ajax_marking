@@ -49,7 +49,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
     function __construct() {
         
         // must be the same as the DB modulename
-        $this->modulename        = 'journal';
+        $this->modulename        = $this->moduletable = 'journal';
         // doesn't seem to be a journal capability :s
         $this->capability  = 'mod/assignment:grade';
         // How many nodes in total when fully expanded (no groups)?

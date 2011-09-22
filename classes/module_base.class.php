@@ -82,12 +82,20 @@ abstract class block_ajax_marking_module_base {
      */
     protected $coursetotals = null;
     
+    /**
+     * Name of the table that this module stores it's instances in. Needed so that we can join to it 
+     * from apply_coursemoduleid_filter(). At the moment it will always be the same as $modulename, but
+     * could conceivably vary.
+     * 
+     * @var string 
+     */
+    protected $moduletable;
     
     /**
      * Constructor. Overridden by all subclasses.
      */
     public function __construct() {
-        //$this->moduleid = $this->get_module_id();
+        
     }
     
     /**
@@ -346,44 +354,44 @@ abstract class block_ajax_marking_module_base {
      * @param bool $html Are we making a HTML list?
      * @return mixed array or void depending on the html type
      */
-    public function module_nodes($courseid) {
-        
-        $query = $this->get_sql_query_base();
-        
-        array_push($query['select'],
-                'moduletable.id',
-                'COUNT(sub.id) AS count',
-                'COALESCE(bama.display, bamc.display, 1) AS display',
-                'cm.id AS cmid',
-                'moduletable.name',
-                'moduletable.intro AS tooltip'
-        );
-        
-        // The group by moduletable.id clause means that we have to do another self join to get the other
-        // columns from the module table, otherwise we get duplicates
-        $query['where'] .= "AND moduletable.course = :courseid ";
-        $query['groupby'] .= "moduletable.id ";
-        $query['params']['courseid'] = $courseid;
-        
-        $modulecounts = $this->execute_sql_query($query);
-  
-        foreach ($modulecounts as &$assessment) {
-            
-
-            $assessment->modulename    = $this->modulename;
-            $assessment->name          = block_ajax_marking_clean_name_text($assessment->name, 30);
-            $assessment->assessmentid  = $assessment->id;
-            unset($assessment->id);
-            
-//            $assessment->tooltip = (strlen($assessment->tooltip) > 100) ? substr($assessment->tooltip, 0, 100).'...' : $assessment->tooltip;
-            $assessment->tooltip = get_string('modulename', $assessment->modulename).': '.
-                                   block_ajax_marking_clean_tooltip_text($assessment->tooltip);
-            $assessment->style = 'course';
-            
-        }
-        
-        return $modulecounts;
-    }
+//    public function module_nodes($courseid) {
+//        
+//        $query = $this->get_sql_query_base();
+//        
+//        array_push($query['select'],
+//                'moduletable.id',
+//                'COUNT(sub.id) AS count',
+//                'COALESCE(bama.display, bamc.display, 1) AS display',
+//                'cm.id AS cmid',
+//                'moduletable.name',
+//                'moduletable.intro AS tooltip'
+//        );
+//        
+//        // The group by moduletable.id clause means that we have to do another self join to get the other
+//        // columns from the module table, otherwise we get duplicates
+//        $query['where'] .= "AND moduletable.course = :courseid ";
+//        $query['groupby'] .= "moduletable.id ";
+//        $query['params']['courseid'] = $courseid;
+//        
+//        $modulecounts = $this->execute_sql_query($query);
+//  
+//        foreach ($modulecounts as &$assessment) {
+//            
+//
+//            $assessment->modulename    = $this->modulename;
+//            $assessment->name          = block_ajax_marking_clean_name_text($assessment->name, 30);
+//            $assessment->assessmentid  = $assessment->id;
+//            unset($assessment->id);
+//            
+////            $assessment->tooltip = (strlen($assessment->tooltip) > 100) ? substr($assessment->tooltip, 0, 100).'...' : $assessment->tooltip;
+//            $assessment->tooltip = get_string('modulename', $assessment->modulename).': '.
+//                                   block_ajax_marking_clean_tooltip_text($assessment->tooltip);
+//            $assessment->style = 'course';
+//            
+//        }
+//        
+//        return $modulecounts;
+//    }
 
     /**
      * This counts the assessments that a course has available. Called when the config tree is built.
@@ -899,11 +907,14 @@ abstract class block_ajax_marking_module_base {
     public function postprocess_nodes_hook($nodes, $filters) {
         
         foreach ($nodes as &$node) {
+            
+            // just so we know (for styling and accessing js in the client)
+            $node->modulename = $this->modulename;
         
             switch ($filters['nextnodefilter']) {
                 
                 case 'userid':
-                    $node->mod = $this->get_module_name();
+//                    $node->mod = $this->get_module_name();
                     // Sort out the firstname/lastname thing
                     $node->name = fullname($node);
                     unset($node->firstname, $node->lastname);
@@ -917,6 +928,127 @@ abstract class block_ajax_marking_module_base {
         
         return $nodes;
         
+    }
+    
+//    /**
+//     * Applies the filter needed for course nodes or their descendants
+//     * 
+//     * @param block_ajax_marking_query_base $query 
+//     * @param int $courseid Optional. Will apply SELECT and GROUP BY for nodes if missing
+//     * @param bool $union If we are glueing many module queries together, we will need to 
+//     *                    run a wrapper query that will select from the UNIONed subquery
+//     * @return void|string
+//     */
+//    private static function apply_courseid_filter($query, $courseid = 0, $union = false) {
+//        
+//        $selects = array(
+//                array(
+//                    'table' => 'moduletable', 
+//                    'column' => 'course',
+//                    'alias' => 'courseid'),
+//                array(
+//                    'table' => 'sub', 
+//                    'column' => 'id',
+//                    'alias' => 'count',
+//                    'function' => 'COUNT'),
+//                array(
+//                    'table' => 'course', 
+//                    'column' => 'shortname',
+//                    'alias' => 'name'),
+//                array(
+//                    'table' => 'course', 
+//                    'column' => 'fullname',
+//                    'alias' => 'tooltip')
+//        );
+//        
+//        if (!$courseid) {
+//            // Apply SELECT clauses for course nodes
+//            if (!$union) {
+//                foreach ($selects as $select) {
+//                    $query->add_select($select);
+//                }
+//            } else { // we need to select just the aliases
+//                $selectstring = '';
+//                foreach ($selects as $select) {
+//                    $selectstring .= isset($select['function']) ? $select['function'].'(' : '';
+//                    $selectstring .= 'unionquery.'.$select['alias'];
+//                    $selectstring .= isset($select['function']) ? ')' : '';
+//                }
+//            }
+//
+//        } else {
+//            // Apply WHERE clause
+//            $query->add_where(array('type' => 'AND', 'condition' => 'moduletable.course = :'.$query->prefix_param_name('courseid')));
+//            $query->add_param('courseid', $courseid);
+//            
+//        }
+//        
+//    }
+//    
+//    
+//    /**
+//     * Applies the filter needed for assessment nodes or their descendants
+//     * 
+//     * @param block_ajax_marking_query_base $query 
+//     * @param int $coursemoduleid optional. Will apply SELECT and GROUP BY for nodes if missing
+//     * @return void
+//     */
+//    private static function apply_coursemoduleid_filter($query, $coursemoduleid = 0) {
+//        
+//        if (!$coursemoduleid) {
+//            
+//            // Same order as the next query will need them 
+//            $selects = array(
+//                array(
+//                    'table' => 'cm', 
+//                    'column' => 'id',
+//                    'alias' => 'coursemoduleid'),
+//                array(
+//                    'table' => 'sub', 
+//                    'column' => 'id',
+//                    'alias' => 'count',
+//                    'function' => 'COUNT'),
+//                array(
+//                    'column' => 'COALESCE(bama.display, bamc.display, 1)',
+//                    'alias' => 'display'),
+//                array(
+//                    'table' => 'moduletable', 
+//                    'column' => 'id',
+//                    'alias' => 'assessmentid'),
+//                array(
+//                    'table' => 'moduletable', 
+//                    'column' => 'name'),
+//                array(
+//                    'table' => 'moduletable', 
+//                    'column' => 'intro',
+//                    'alias' => 'tooltip'),
+//                // This is only needed to add the right callback function. 
+//                array(
+//                    'column' => "'".$query->get_modulename()."'",
+//                    'alias' => 'modulename'
+//                    )
+//            );
+//            
+//            foreach ($selects as $select) {
+//                $query->add_select($select);
+//            }
+//            
+//        } else {
+//            // Apply WHERE clause
+//            $query->add_where(array(
+//                    'type' => 'AND', 
+//                    'condition' => 'cm.id = :'.$query->prefix_param_name('coursemoduleid')));
+//            $query->add_param('coursemoduleid', $coursemoduleid);
+//            
+//        }
+//    }
+    
+    /**
+     * Getter for the module 
+     * @return string
+     */
+    public function get_module_table() {
+        return $this->moduletable;
     }
 
 }

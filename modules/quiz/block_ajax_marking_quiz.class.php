@@ -72,7 +72,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         parent::__construct();
         
         // must be the same as the DB modulename
-        $this->modulename           = 'quiz';
+        $this->modulename = $this->moduletable = 'quiz';
         $this->capability           = 'mod/quiz:grade';
         $this->icon                 = 'mod/quiz/icon.gif';
     }
@@ -83,10 +83,43 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      * @param int $questionid the id to filter by
      * @param type $query 
      */
-    public function apply_questionid_filter(block_ajax_marking_query_base $query, $questionid = 0) {
+    public function apply_questionid_filter(block_ajax_marking_query_base $query, $questionid = 0, $outerquery = false) {
         
-        if (!$questionid) {
+        if ($questionid) {
+            // Apply WHERE clause
+            $query->add_where(array(
+                    'type' => 'AND', 
+                    'condition' => 'question.id = :'.$query->prefix_param_name('questionid')));
+            $query->add_param('questionid', $questionid);
+            return;
+        }
+        
+        if ($outerquery) {
             
+            $query->add_from(array(
+                    'join' => 'INNER JOIN',
+                    'table' => 'question',
+                    'on' => 'question.id = combinedmodulesubquery.id'));
+            $selects = array(
+                
+//                array(
+//                    'table' => 'moduletable', 
+//                    'column' => 'id',
+//                    'alias' => 'assessmentid'),
+                array(
+                    'table' => 'question', 
+                    'column' => 'name'),
+                array(
+                    'table' => 'question', 
+                    'column' => 'questiontext',
+                    'alias' => 'tooltip'),
+               
+            );
+
+            foreach ($selects as $select) {
+                $query->add_select($select);
+            }
+        } else {
             $selects = array(
                 array(
                     'table' => 'question', 
@@ -96,37 +129,20 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                     'table' => 'sub', 
                     'column' => 'id',
                     'alias' => 'count',
-                    'function' => 'COUNT'),
-                array(
-                    'table' => 'moduletable', 
-                    'column' => 'id',
-                    'alias' => 'assessmentid'),
-                array(
-                    'table' => 'question', 
-                    'column' => 'name'),
-                array(
-                    'table' => 'question', 
-                    'column' => 'questiontext',
-                    'alias' => 'tooltip'),
-                // This is only needed to add the right callback function. 
+                    'function' => 'COUNT',
+                    'distinct' => true),
+                 // This is only needed to add the right callback function. 
                 array(
                     'column' => "'".$query->get_modulename()."'",
                     'alias' => 'modulename'
-                        
                     )
-            );
+                );
             
             foreach ($selects as $select) {
                 $query->add_select($select);
             }
-            
-        } else {
-            // Apply WHERE clause
-            $query->add_where(array(
-                    'type' => 'AND', 
-                    'condition' => 'question.id = :'.$query->prefix_param_name('questionid')));
-            $query->add_param('questionid', $questionid);
         }
+            
     }
 
 
@@ -324,6 +340,31 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
     protected function get_sql_userid_column() {
         return 'qa.userid';
     }
+    
+    /**
+     * Allows us to take account of potentially non-standard manually graded question types.
+     * Need to make sure that nowhere uses hard coded reference to essay type and that the grading interface
+     * works for them.
+     * 
+     * This includes random ones. Not sure if that's bad.
+     * 
+     * @global type $QTYPES 
+     * @return array of names
+     */
+    protected function get_manually_graded_qtypes() {
+        
+        global $QTYPES;
+        
+        $manualqtypes = array();
+        
+        foreach ($QTYPES as $qtype) {
+             if ($qtype->is_manual_graded()) {
+                $manualqtypes[] = $qtype->name();
+            }
+        }
+        
+        return $manualqtypes;
+    }
 
     /**
      * To make up for the fact that in 2.0 there is no screen with both quiz question and feedback
@@ -341,114 +382,154 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 
         require_once($CFG->dirroot.'/mod/quiz/locallib.php');
         
+        // need a list of manually graded question types
+        
         // TODO the quiz allows multiple attempts. We need to distinguish between them. Can we have more
         // than one attempt open at once? If not, we can just get the most recent.
-        $sql = 'SELECT id 
-                  FROM {quiz_attempts} qa1
-                 WHERE qa1.userid =:userid
-                   AND qa1.quiz = :quizid
-                   AND qa1.attempt = (SELECT MAX(attempt) 
-                                    FROM {quiz_attempts} qa2
-                                   WHERE qa2.userid =:userid2
-                                     AND qa2.quiz = :quizid2)';
+        // TODO - we need to make sure that there are unmarked things, not just an attempt. Maybe an
+        // earlier attempt has been marked.
         
-        $attempt = $DB->get_record_sql($sql, array('quizid' => $coursemodule->instance,
-                                                   'userid' => $params['userid'],
-                                                   'quizid2' => $coursemodule->instance,
-                                                   'userid2' => $params['userid']));
-
-        if (!$attempt) {
+        // TODO what params do we get here?
+        
+        // We could be looking at multiple attempts and/or multiple questions
+        // Assume we have a user/quiz combo to get us here. We may have attemptid or questionid too
+        
+        // Get all attempts with unmarked questions. We may or may not have a questionid, but this comes
+        // later so we can use the quiz's internal functions
+        list($usql, $sqlparams) = $DB->get_in_or_equal($this->get_manually_graded_qtypes(), SQL_PARAMS_NAMED);
+        $sqlparams['quizid'] = $coursemodule->instance;
+        $sqlparams['userid'] = $params['userid'];
+        $sql = "
+        SELECT DISTINCT(quiz_atttempts.id) AS id
+          FROM {quiz_attempts} quiz_atttempts
+    INNER JOIN {question_sessions} question_sessions
+            ON question_sessions.attemptid = quiz_atttempts.id
+    INNER JOIN {question_states} question_states
+            ON question_sessions.newest = question_states.id
+    INNER JOIN {question} question
+            ON question.id = question_sessions.questionid
+         WHERE quiz_atttempts.userid = :userid 
+           AND quiz_atttempts.quiz = :quizid
+           AND question.qtype {$usql}
+           AND question_states.event NOT IN (".QUESTION_EVENTGRADE.", ".
+                                               QUESTION_EVENTCLOSEANDGRADE.", ".
+                                               QUESTION_EVENTMANUALGRADE.") 
+      ORDER BY question_states.timestamp DESC ";
+           
+        $quizattempts = $DB->get_records_sql($sql, $sqlparams);
+        if (!$quizattempts) {
             die('Could not retrieve quiz attempt');
         }
         
         //TODO feed in all dynamic variables here
         $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
         $PAGE->set_url($url);
-
-        $attemptobj = quiz_attempt::create($attempt->id);
-
-        // Create an object to manage all the other (non-roles) access rules.
-//        $accessmanager = $attemptobj->get_access_manager(time());
-//        $options = $attemptobj->get_review_options();
-
-        // Load the questions and states.
-        $questionids = array($params['questionid']);
-        $attemptobj->load_questions($questionids);
-        $attemptobj->load_question_states($questionids);
-
-        // Work out the base URL of this page.
-        $baseurl = $CFG->wwwroot . '/mod/quiz/reviewquestion.php?attempt=' .
-                $attemptobj->get_attemptid() . '&amp;question=' . $params['questionid'];
-
-        // Log this review.
-        add_to_log($attemptobj->get_courseid(), 'quiz', 'review', 'reviewquestion.php?attempt=' .
-                $attemptobj->get_attemptid() . '&question=' . $params['questionid'] ,
-                $attemptobj->get_quizid(), $attemptobj->get_cmid());
-
-        // Print infobox
-        $rows = array();
-
-        // User picture and name.
-        if ($attemptobj->get_userid() <> $USER->id) {
-            // Print user picture and name
-            $student = $DB->get_record('user', array('id' => $attemptobj->get_userid()));
-            $picture = $OUTPUT->user_picture($student, array('courseid'=>$attemptobj->get_courseid()));
-            $rows[] = '<tr><th scope="row" class="cell">' . $picture . '</th><td class="cell"><a href="' .
-                    $CFG->wwwroot . '/user/view.php?id=' . $student->id . '&amp;course=' . $attemptobj->get_courseid() . '">' .
-                    fullname($student, true) . '</a></td></tr>';
-        }
-
-        // Quiz name.
-        $rows[] = '<tr><th scope="row" class="cell">' . get_string('modulename', 'quiz') .
-                '</th><td class="cell">' . format_string($attemptobj->get_quiz_name()) . '</td></tr>';
-
-        // Question name.
-        $rows[] = '<tr><th scope="row" class="cell">' . get_string('question', 'quiz') .
-                '</th><td class="cell">' . format_string(
-                $attemptobj->get_question($params['questionid'])->name) . '</td></tr>';
-
-        // Other attempts at the quiz.
-        // TODO does this work?
-        if ($attemptobj->has_capability('mod/quiz:viewreports')) {
-            $attemptlist = $attemptobj->links_to_other_attempts($baseurl);
-            if ($attemptlist) {
-                $rows[] = '<tr><th scope="row" class="cell">' . get_string('attempts', 'quiz') .
-                        '</th><td class="cell">' . $attemptlist . '</td></tr>';
-            }
-        }
-
-        // Timestamp of this action.
-        $timestamp = $attemptobj->get_question_state($params['questionid'])->timestamp;
-        if ($timestamp) {
-            $rows[] = '<tr><th scope="row" class="cell">' . get_string('completedon', 'quiz') .
-                    '</th><td class="cell">' . userdate($timestamp) . '</td></tr>';
-        }
-
-        // Now output the summary table, if there are any rows to be shown.
-        if (!empty($rows)) {
-            echo '<table class="generaltable generalbox quizreviewsummary"><tbody>', "\n";
-            echo implode("\n", $rows);
-            echo "\n</tbody></table>\n";
-        }
-
-        $attemptobj->print_question($params['questionid'], false, $baseurl);
-
+        
         $formattributes = array(
-                'method' => 'post',
-                'class'  => 'mform',
-                'id'     => 'manualgradingform',
-                'action' => block_ajax_marking_form_url());
+                    'method' => 'post',
+                    'class'  => 'mform',
+                    'id'     => 'manualgradingform',
+                    'action' => block_ajax_marking_form_url());
         echo html_writer::start_tag('form', $formattributes);
-        echo html_writer::start_tag('div');
-        $attemptobj->question_print_comment_fields($params['questionid'], 'response');
-        echo html_writer::empty_tag('input', array('type' => 'submit', 'value' => 'Save'));
         
-        foreach ($params as $name => $value) {
-            echo html_writer::empty_tag('input', array('type' => 'hidden', 'name' => $name, 'value' => $value));
+        // Each attempt may have multiple question attempts.
+        foreach ($quizattempts as $quizattempt) {
+            
+            // N.B. Using the proper quiz functions in an attempt to make this more robust against future
+            // changes
+            $quizattemptobj = quiz_attempt::create($quizattempt->id);
+
+            // Load the questions and states.
+            // If we have a questionid, use it to limit what we display. If not, we want all questions
+            // that need grading. Not all questions overall, as that would include automatically
+            // marked ones.
+            if (isset($params['questionid'])) {
+                // This can't be random as the tree explicitly looks for essay question states
+                $questionids = array($params['questionid']);
+                $quizattemptobj->load_questions($questionids);
+                $quizattemptobj->load_question_states($questionids);
+            } else {
+                // Output whatever there is (no questionid from the tree so we show the whole attempt)
+                // complication: could be random questions. We only want it if it's a random essay
+                // TODO will be used for multiple loops, so move it higher up, dependent on questionid
+                // exisitng
+                $sqlparams[] = $coursemodule->instance;
+                $sql = "SELECT q.id
+                          FROM {question} q,
+                    INNER JOIN {quiz_question_instances} qqi
+                         WHERE qqi.question = q.id 
+                           AND qqi.quiz = ?";
+                $questionids = $DB->get_records_sql($sql, $sqlparams);
+                $gradeableqs = quiz_report_load_questions($quiz);
+                $questionsinuse = implode(',', array_keys($gradeableqs));
+                foreach ($gradeableqs as $qid => $question) {
+                    // unfortunatley, random questions say 'yes' on the next line.
+                    // TODO make random non-essay questions go away.
+                    if (!$QTYPES[$question->qtype]->is_question_manual_graded($question, $questionsinuse)) {
+                        unset($gradeableqs[$qid]);
+                    }
+                }
+                $questionids = '';
+            }
+            
+            // Log this review.
+            add_to_log($quizattemptobj->get_courseid(), 'quiz', 'review', 'reviewquestion.php?attempt=' .
+                    $quizattemptobj->get_attemptid() . '&question=' . $params['questionid'] ,
+                    $quizattemptobj->get_quizid(), $quizattemptobj->get_cmid());
+
+            // Print infobox
+            $rows = array();
+
+            // User picture and name.
+            if ($quizattemptobj->get_userid() <> $USER->id) {
+                // Print user picture and name
+                $student = $DB->get_record('user', array('id' => $quizattemptobj->get_userid()));
+                $picture = $OUTPUT->user_picture($student, array('courseid'=>$quizattemptobj->get_courseid()));
+                $rows[] = '<tr><th scope="row" class="cell">' . $picture . '</th><td class="cell"><a href="' .
+                        $CFG->wwwroot . '/user/view.php?id=' . $student->id . '&amp;course=' . $quizattemptobj->get_courseid() . '">' .
+                        fullname($student, true) . '</a></td></tr>';
+            }
+
+            // Quiz name.
+            $rows[] = '<tr><th scope="row" class="cell">' . get_string('modulename', 'quiz') .
+                    '</th><td class="cell">' . format_string($quizattemptobj->get_quiz_name()) . '</td></tr>';
+
+            // Question name.
+            $rows[] = '<tr><th scope="row" class="cell">' . get_string('question', 'quiz') .
+                    '</th><td class="cell">' . format_string(
+                    $quizattemptobj->get_question($params['questionid'])->name) . '</td></tr>';
+
+            // Timestamp of this action.
+            $timestamp = $quizattemptobj->get_question_state($params['questionid'])->timestamp;
+            if ($timestamp) {
+                $rows[] = '<tr><th scope="row" class="cell">' . get_string('completedon', 'quiz') .
+                        '</th><td class="cell">' . userdate($timestamp) . '</td></tr>';
+            }
+            // Now output the summary table, if there are any rows to be shown.
+            if (!empty($rows)) {
+                echo '<table class="generaltable generalbox quizreviewsummary"><tbody>', "\n";
+                echo implode("\n", $rows);
+                echo "\n</tbody></table>\n";
+            }
+            // Work out the base URL of this page. Should probably be different
+            $baseurl = $CFG->wwwroot . '/mod/quiz/reviewquestion.php?attempt=' .
+                    $quizattemptobj->get_attemptid() . '&amp;question=' . $params['questionid'];
+            
+            // Now make the actual markup to show one question plus commenting/grading stuff
+            $quizattemptobj->print_question($params['questionid'], false, $baseurl);
+            echo html_writer::start_tag('div');
+            // The prefix with attemptid in it allows us to save the details for separate attempts properly
+            $quizattemptobj->question_print_comment_fields($params['questionid'], 'response-'.$quizattemptobj->get_attemptid());
+            echo html_writer::empty_tag('input', array('type' => 'submit', 'value' => 'Save'));
+            echo html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'attemptid', 'value' => $quizattempt->id));
+            foreach ($params as $name => $value) {
+                echo html_writer::empty_tag('input', array('type' => 'hidden', 'name' => $name, 'value' => $value));
+            }
+            echo html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
+            echo html_writer::end_tag('div');
+        
         }
         
-        echo html_writer::empty_tag('input', array('type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()));
-        echo html_writer::end_tag('div');
         echo html_writer::end_tag('form');
 
 //        $feedbackform = new block_ajax_marking_quiz_form(block_ajax_marking_form_url($params), $attemptobj);
@@ -466,25 +547,64 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
     public function process_data($data) {
 
         global $CFG;
+        
+        // Need to separate the different responses from each other so we can loop through them for each question
+        
+        // Put responses into an array of arrays
+        // attemptid1
+        // -- comment
+        // -- grade
+        // attemptid2
+        // -comment
+        // -- grade
+        // etc
+        
+        // then loop through them.
+        
+        // $data->prefix-1
+        // [comment]
+        // [grade]
+        // $data->prefix-2
+        
+        // Loop over the data object's properties looking for ones that start with the correct prefix.
+        // A bit awkward, but this is how the quiz does it
+        $responses = array();
+        foreach ((array)$data as $key => $item) {
+            preg_match('/^(response)-(\d+)/', $key, $matches);
+            if (isset($matches[1]) && $matches[1] == 'response') {
+                if (isset($matches[2])) {
+                    $responses[$matches[2]] = $item; // uses attemptid as the key
+                }
+            }
+        }
 
         require_once($CFG->dirroot.'/mod/quiz/locallib.php');
 
-        // TODO get these into form stuff
-//        $attemptid = required_param('attempt', PARAM_INT); // attempt id
-//        $questionid = required_param('question', PARAM_INT);
-        $attemptobj = quiz_attempt::create($data->attemptid);
+        foreach($responses as $attemptid => $response) {
+            
+            // We can have a grade with no comment, but a comment with no grade is probably an accident
+            // TODO return the incomplete form with an error so it can be fixed
+            if (empty($response['grade'])) {
+                if (empty($response['comment'])) {
+                    continue; 
+                }
+                $response['grade'] = 0;
+            }
+        
+            $attemptobj = quiz_attempt::create($attemptid);
 
-        // permissions check
-//        require_login($attemptobj->get_courseid(), false, $attemptobj->get_cm());
-//        $attemptobj->require_capability('mod/quiz:grade');
+            // load question details
+            $questionids = array($data->questionid);
+            $attemptobj->load_questions($questionids);
+            $attemptobj->load_question_states($questionids);
 
-        // load question details
-        $questionids = array($data->questionid);
-        $attemptobj->load_questions($questionids);
-        $attemptobj->load_question_states($questionids);
-
-        return $attemptobj->process_comment($data->questionid, $data->response['comment'],
-                                            FORMAT_HTML, $data->response['grade']);
+            $result = $attemptobj->process_comment($data->questionid, $response['comment'],
+                                                   FORMAT_HTML, $response['grade']);
+            
+            // Need to update the question state
+            
+            // TODO notify any errors
+        }
 
     }
     
@@ -546,41 +666,36 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      * @param type $userid 
      * @return void
      */
-    public function apply_userid_filter(block_ajax_marking_query_base $query, $userid) {
+    public function apply_userid_filter(block_ajax_marking_query_base $query, $userid = 0, $outerquery = false) {
         
-        if (!$userid) { 
+        if ($userid) {
+            // Applies if users are not the final nodes
+            $query->add_where(array(
+                    'type' => 'AND', 
+                    'condition' => 'quiz_attempts.userid = :'.$query->prefix_param_name('submissionid')));
+            $query->add_param('submissionid', $userid);
+            return;
+        }
         
-            $data = new stdClass;
-            $data->nodetype = 'submission';
-
+        if ($outerquery) { 
+        
             $selects = array(
+                
                 array(
-                    'table'    => 'sub', 
-                    'column'   => 'id',
-                    'alias'    => 'subid'),
-                array(
-                    'table'    => 'user',
+                    'table'    => 'usertable',
                     'column'   => 'firstname'),
                 array(
-                    'table'    => 'user',
-                    'column'   => 'lastname'),
-                array( // Count in case we have user as something other than the last node
-                    'function' => 'COUNT',
-                    'table'    => 'sub',
-                    'column'   => 'id',
-                    'alias'    => 'count'),
-                array(
-                    'table'    => 'sub',
-                    'column'   => 'timestamp',
-                    'alias'    => 'time'),
-                array(
-                    'table'    => 'quiz_attempts',
-                    'column'   => 'userid'),
+                    'table'    => 'usertable',
+                    'column'   => 'lastname')
+                
+//                array(
+//                    'table'    => 'sub',
+//                    'column'   => 'timestamp',
+//                    'alias'    => 'time'),
+//                array(
+//                    'table'    => 'quiz_attempts',
+//                    'column'   => 'userid'),
                     // This is only needed to add the right callback function. 
-                array(
-                    'column'   => "'".$this->modulename."'",
-                    'alias'    => 'modulename'
-                    )
             );
             
             foreach ($selects as $select) {
@@ -590,15 +705,28 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             $query->add_from(array(
                     'join'  => 'INNER JOIN',
                     'table' => 'user',
-                    'on'    => 'user.id = quiz_attempts.userid'
+                    'alias' => 'usertable',
+                    'on'    => 'usertable.id = combinedmodulesubquery.id'
             ));
             
         } else {
-            // Applies if users are not the final nodes
-            $query->add_where(array(
-                    'type' => 'AND', 
-                    'condition' => 'sub.id = :'.$query->prefix_param_name('submissionid')));
-            $query->add_param('submissionid', $userid);
+            $selects = array(
+                array(
+                    'table'    => 'quiz_attempts', 
+                    'column'   => 'userid'),
+                array( // Count in case we have user as something other than the last node
+                    'function' => 'COUNT',
+                    'table'    => 'sub',
+                    'column'   => 'id',
+                    'alias'    => 'count'),
+                // This is only needed to add the right callback function. 
+                array(
+                    'column' => "'".$query->get_modulename()."'",
+                    'alias' => 'modulename'
+                    ));
+            foreach ($selects as $select) {
+                $query->add_select($select);
+            }
         }
     }
 

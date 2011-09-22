@@ -27,11 +27,6 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
  
-
-
-
- 
-//YAHOO.namespace('ajax_marking_block');
 M.block_ajax_marking = {};
 
 // used to deterine whether to log everything to console
@@ -65,6 +60,39 @@ M.block_ajax_marking.tree_base = function(treediv) {
 YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView);
 
 /**
+ * Constructor for the courses tree
+ */
+M.block_ajax_marking.courses_tree = function() {
+    this.initial_nodes_data = 'nextnodefilter=courseid';
+    M.block_ajax_marking.tree_base.superclass.constructor.call(this, 'coursestree');
+};
+
+// make the courses tree into a subclass of the base class
+YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_base);
+
+/**
+ * Constructor for the groups tree
+ */
+M.block_ajax_marking.cohorts_tree = function() {
+    this.initial_nodes_data = 'nextnodefilter=cohortid';
+    M.block_ajax_marking.tree_base.superclass.constructor.call(this, 'cohortstree');
+};
+
+// make the groups tree into a subclass of the base class
+YAHOO.lang.extend(M.block_ajax_marking.cohorts_tree, M.block_ajax_marking.tree_base);
+
+/**
+ * Constructor for the groups tree
+ */
+M.block_ajax_marking.users_tree = function() {
+    this.initial_nodes_data = 'nextnodefilter=userid';
+    M.block_ajax_marking.tree_base.superclass.constructor.call(this, 'usersstree');
+};
+
+// make the groups tree into a subclass of the base class
+YAHOO.lang.extend(M.block_ajax_marking.users_tree, M.block_ajax_marking.tree_base);
+
+/**
  * Used by the factory method to set any specific overrides for this tree from the module plugins.
  * e.g. instead of coursemodule node (quiz) -> quiz submissions, we can have coursemodule node (quiz) 
  * -> quiz questions -> quiz submissions
@@ -72,14 +100,14 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView);
  * @param string modulename
  * @param object override in the form of name : value pairs, both strings.
  */
-M.block_ajax_marking.tree_base.prototype.setmoduleoverride = function(modulename, override) {
-    
-    if (typeof(this.moduleoverrides) === 'undefined') {
-        this.moduleoverrides = [];
-    }
-    
-    this.moduleoverrides[modulename] = override;
-}
+//M.block_ajax_marking.tree_base.prototype.setmoduleoverride = function(modulename, override) {
+//    
+//    if (typeof(this.moduleoverrides) === 'undefined') {
+//        this.moduleoverrides = [];
+//    }
+//    
+//    this.moduleoverrides[modulename] = override;
+//}
 
 /**
  * New unified build nodes function
@@ -187,15 +215,18 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         }
     }
     
+    this.render();
     // finally, run the function that updates the original node and adds the children. Won't be there
     // if we have just built the tree
     if (typeof(M.block_ajax_marking.oncompletefunctionholder) === 'function') {
+        // Take care - this will be executed in the wrong scope if not careful. it needs this to be the
+        // tree
         M.block_ajax_marking.oncompletefunctionholder();
-    } else { 
-        this.render();
+    }  
+        
         this.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
         //this.subscribe('clickEvent', M.block_ajax_marking.show_modal_grading_interface);
-    }
+    //}
 
     // the main tree will need the counts updated, but not the config tree
     // TODO test this
@@ -302,15 +333,9 @@ M.block_ajax_marking.tree_base.prototype.update_parent_node = function(parentnod
         this.render();
         // update the tree's HTML after child nodes are added
         parentnodetoupdate.refresh();
-
-        if (nodecount > 0) {
-            document.getElementById('totalmessage').style.visibility = 'visible';
-            document.getElementById('count').innerHTML = nodecount.toString();
-        } else {
-            // hide the count
-            document.getElementById('totalmessage').style.visibility = 'collapse';
-            M.block_ajax_marking.remove_all_child_nodes(document.getElementById('count'));
-        }
+        
+        this.totalcount = nodecount;
+        document.getElementById('count').innerHTML = nodecount.toString();
         
     } else { // not the root, so update, then recurse
 
@@ -350,9 +375,6 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
         return false;
     }
     
-//    // TODO how to get a reference to the tree?
-//    var newcallback = tree.nextnodetype(node);
-
     // Get window size, etc
     var popupurl = window.M.cfg.wwwroot + '/blocks/ajax_marking/actions/grading_popup.php?';
     var modulejavascript = mbam[node.data.display.modulename];
@@ -362,24 +384,6 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
     var nodefilters = M.block_ajax_marking.getnodefilters(node);
     nodefilters.push('node='+node.index);
     popupurl += nodefilters.join('&');
-    
-    
-
-    // Open a pop up with the url and arguments as specified in the module specific object
-    // var popupurl = M.cfg.wwwroot + module_javascript.pop_up_opening_url(node);
-//    var popupurl = window.M.cfg.wwwroot + '/blocks/ajax_marking/actions/grading_popup.php?';
-//    var popupget = []; // using an array so we can join neatly with &.
-//    for (var varname in node.data.popupstuff) {
-//        popupget.push(varname + '=' + node.data.popupstuff[varname]);
-//    }
-//    if (popupget.length == 0) {
-//        // TODO handle error here - there should always be parameters for the pop up, otherwise we stop.
-//        return false;
-//    }
-//    popupget.push('node='+node.index); // Add the index of the clicked node so we can remove it if the marking succeeds
-//    popupurl += popupget.join('&');
-
-    
     
     // AJAX version
 //    M.block_ajax_marking.show_modal_grading_interface(postdata);
@@ -790,43 +794,50 @@ M.block_ajax_marking.getnodefilters = function(node) {
  * 
  * @return void
  */
-M.block_ajax_marking.tree_base.prototype.initialise_tree = function() {
+M.block_ajax_marking.tree_base.prototype.initialise = function() {
+    
+    // Get rid of the existing tree nodes first (if there are any), but don't re-render to avoid flicker
+    var rootnode = this.getRoot();
+    this.removeChildren(rootnode);
+    this.render();
+    
+    // Reload the data for the root node. We keep the tree object intect rather than destroying
+    // and recreating in order to improve responsiveness.
+    M.block_ajax_marking.parentnodeholder = rootnode;
+    // If we don't do this, then after refresh, we get it trying to run the oncomplete thing from
+    // the last node that was expanded.
+    M.block_ajax_marking.oncompletefunctionholder = null;
     
     // show that the ajax request has been initialised
-    YAHOO.util.Dom.addClass(this.icon, 'loaderimage');
+    YAHOO.util.Dom.addClass(document.getElementById('mainicon'), 'loaderimage');
     
     // send the ajax request
-    var request = YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl, block_ajax_marking_callback, this.course_post_data);
+    YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl, block_ajax_marking_callback, this.initial_nodes_data);
     
 };
 
 /**
-* function to update the total marking count by a specified number and display it
+* function to recalculate the total marking count by totalling the node counts of the tree
 * 
 * @return void
 */
-M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
+M.block_ajax_marking.tree_base.prototype.recalculate_total_count = function() {
 
-    var totalcount = 0;
-    var childcount = 0;
+    this.totalcount = 0;
     var children = this.getRoot().children;
     var childrenlength = children.length;
 
-    for (var i=0; i<childrenlength; i++) {
-        childcount = children[i].data.display.count;
-        totalcount += parseInt(childcount, 10);
-    }
-    
-    if (totalcount > 0) {
-        document.getElementById('totalmessage').style.visibility = 'visible';
-        document.getElementById('count').innerHTML = totalcount.toString();
-        
-    } else {
-        // hide the count
-        document.getElementById('totalmessage').style.visibility = 'collapse';
-        M.block_ajax_marking.remove_all_child_nodes(document.getElementById('count'));
+    for (var i = 0; i < childrenlength; i++) {
+        this.totalcount += parseInt(children[i].data.display.count, 10);
     }
 };
+
+/**
+ * Makes it so that the total count displays the count of this tree
+ */
+M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
+    document.getElementById('count').innerHTML = this.totalcount.toString();
+}
 
 /**
  * This is to control what node the tree asks for next when a user clicks on a node
@@ -835,7 +846,51 @@ M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
  * @param string modulename can be false or undefined if not there
  * @return string|bool false if nothing
  */
-M.block_ajax_marking.tree_base.prototype.nextnodetype = function(currentfilter, modulename) {
+M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilter, modulename) {
+    
+    var nextnodefilter = false; // if nothing else is found, make the node into a final one with no children
+
+    // Courses tree
+    switch (currentfilter) {
+        
+        case 'cohortid':
+            return 'coursemoduleid';
+            
+        case 'userid': // the submissions nodes in the course tree
+            return false;
+            
+        case 'coursemoduleid': 
+            nextnodefilter = 'userid';
+            // fall through because we need to offer the option to alter things after coursemoduleid.
+            
+        default:
+            // any special nodes that came back from a module addition
+            
+            // what module do we have? Stored as currentnode.data.display.modulename
+            // possibly we may not have any javascript?
+            if (typeof(modulename) === 'string') {
+                if (typeof(M.block_ajax_marking[modulename]) === 'object') {
+                    var modulejavascript = M.block_ajax_marking[modulename];
+                    if (typeof(modulejavascript.nextnodetype) === 'function') {
+                         nextnodefilter = modulejavascript.nextnodetype(currentfilter); 
+                    }
+                }
+            }
+        
+    }
+    
+    return nextnodefilter;
+    
+}
+
+/**
+ * This is to control what node the tree asks for next when a user clicks on a node
+ * 
+ * @param string currentfilter
+ * @param string modulename can be false or undefined if not there
+ * @return string|bool false if nothing
+ */
+M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilter, modulename) {
     
 //    if (typeof(currentfilter) === 'undefined') {
 //        return 'courseid'; // default for the root node
@@ -910,7 +965,7 @@ M.block_ajax_marking.tree_base.prototype.nextnodetype = function(currentfilter, 
 * @param nodeuniqueid The id of the node to remove
 * @return void
 */
-M.block_ajax_marking.tree_base.prototype.remove_node_from_tree = function(nodeuniqueid) {
+M.block_ajax_marking.tree_base.prototype.remove_node = function(nodeuniqueid) {
     var nodetoremove = this.getNodeByProperty('index', nodeuniqueid);
     var parentnode = nodetoremove.parent;
     this.removeNode(nodetoremove, true);
@@ -1018,11 +1073,13 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
         M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content); 
     } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
 
-        mbam.tree.build_nodes(ajaxresponsearray.nodes);
+//        mbam.trees.current.build_nodes(ajaxresponsearray.nodes);
+//        var currenttab = M.block_ajax_marking.tabview.get('selection');
+        M.block_ajax_marking.get_current_tab().displaywidget.build_nodes(ajaxresponsearray.nodes);
 
     } 
     
-    YAHOO.util.Dom.removeClass(M.block_ajax_marking.tree.icon, 'loaderimage');
+    YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
 };
 
 /**
@@ -1037,12 +1094,12 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
     // transaction aborted
     if (o.tId == -1) {
         // TODO what is this meant to do?
-        M.block_ajax_marking.tree.div.innerHTML =  M.str.block_ajax_marking.collapseString;
+        document.getElementById('status').innerHTML =  M.str.block_ajax_marking.collapseString;
     }
     
     // communication failure
     if (o.tId === 0) {
-        M.block_ajax_marking.tree.div.innerHTML = M.str.block_ajax_marking.connectfail;
+        document.getElementById('status').innerHTML = M.str.block_ajax_marking.connectfail;
         //YAHOO.util.Dom.removeClass(M.block_ajax_marking.markingtree.icon, 'loaderimage');
         
         if (!document.getElementById('block_ajax_marking_collapse')) {
@@ -1170,22 +1227,22 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
 * @param treeobject the YUI treeview object to refresh (config or main)
 * @return void
 */
-M.block_ajax_marking.tree_base.prototype.refresh_tree = function() {
-
-    // Get rid of the existing tree nodes first, but don't re-render to avoid flicker
-    var rootnode = this.getRoot();
-    var numberofnodes = rootnode.children.length;
-    for (var i = 0; i < numberofnodes; i++) {
-        this.removeNode(rootnode.children[0], true);
-    }
-    
-    // Reload the data for the root node. We keep the tree object intect rather than destroying
-    // and recreating in order to improve responsiveness.
-    M.block_ajax_marking.parentnodeholder = rootnode;
-    M.block_ajax_marking.oncompletefunctionholder = 'rootnode.loadcomplete';
-    this.initialise_tree();
-    
-};
+//M.block_ajax_marking.tree_base.prototype.refresh_tree = function() {
+//
+//    // Get rid of the existing tree nodes first, but don't re-render to avoid flicker
+//    var rootnode = this.getRoot();
+//    var numberofnodes = rootnode.children.length;
+//    for (var i = 0; i < numberofnodes; i++) {
+//        this.removeNode(rootnode.children[0], true);
+//    }
+//    
+//    // Reload the data for the root node. We keep the tree object intect rather than destroying
+//    // and recreating in order to improve responsiveness.
+//    M.block_ajax_marking.parentnodeholder = rootnode;
+//    M.block_ajax_marking.oncompletefunctionholder = 'rootnode.loadcomplete';
+//    this.initialise();
+//    
+//};
 
 /**
  * Makes a list of groups as checkboxes and appends them to the config div next to the config
@@ -1544,17 +1601,11 @@ M.block_ajax_marking.make_footer = function () {
     var refreshbutton = new YAHOO.widget.Button({
             label     : M.str.block_ajax_marking.refresh,
             id        : 'block_ajax_marking_collapse',
-            onclick   : {fn: function() {M.block_ajax_marking.tree.refresh_tree();}},
+            onclick   : {fn: function() {
+                    
+                    M.block_ajax_marking.get_current_tab().displaywidget.initialise();
+                }}, // TODO refresh all trees
             container : 'block_ajax_marking_refresh_button'});
-
-//    var configurebutton = new YAHOO.widget.Button({
-//            label     : M.str.block_ajax_marking.configure,
-//            id        : 'block_ajax_marking_configure_button_button',
-//            onclick   : {fn: function() {M.block_ajax_marking.build_config_overlay();}},
-//            container : 'block_ajax_marking_configure_button'});
-
-    // Add bits to them like onclick
-    // append them to each other and the DOM
 };
 
 /**
@@ -1563,40 +1614,34 @@ M.block_ajax_marking.make_footer = function () {
  * 
  * @return object the Yahoo treeview object
  */
-M.block_ajax_marking.tree_factory = function (type) {
-
-    var treeobject = '';
-
-    switch (type) {
-        
-        case 'courses':
-        case 'main':
-            treeobject                  = new M.block_ajax_marking.tree_base('coursestree');
-            treeobject.icon             = document.getElementById('mainicon');
-            treeobject.div              = document.getElementById('status');
-            treeobject.course_post_data = 'nextnodefilter=courseid';
-            treeobject.setmoduleoverride('quiz', {'coursemoduleid':'questionid', 'questionid':'submissions'})
-            treeobject.setmoduleoverride('workshop', {'coursemoduleid':false})
-            
-            break;
-
-        case 'config':
-            treeobject                  = new M.block_ajax_marking.tree_base('configtree');
-            treeobject.icon             = document.getElementById('configicon');
-            treeobject.div              = document.getElementById('configstatus');
-            treeobject.course_post_data = 'id='+M.str.block_ajax_marking.userid+'&type=config_main_tree&userid=';
-            treeobject.course_post_data += M.str.block_ajax_marking.userid;
-            break;
-            
-        case 'groups':
-            break;
-            
-        case 'students':
-            break;
-    }
-    
-    return treeobject;
-};
+//M.block_ajax_marking.tree_factory = function (type) {
+//
+//    var treeobject = '';
+//
+//    switch (type) {
+//        
+//        case 'courses':
+//            treeobject                  = new M.block_ajax_marking.courses_tree();
+//            break;
+//
+//        case 'config':
+//            treeobject                  = new M.block_ajax_marking.tree_base('configtree');
+//            treeobject.icon             = document.getElementById('configicon');
+//            treeobject.course_post_data = 'id='+M.str.block_ajax_marking.userid+'&type=config_main_tree&userid=';
+//            treeobject.course_post_data += M.str.block_ajax_marking.userid;
+//            break;
+//            
+//        case 'groups':
+//            treeobject                  = new M.block_ajax_marking.cohorts_tree();
+//            break;
+//            
+//        case 'users':
+//            treeobject                  = new M.block_ajax_marking.users_tree();
+//            break;
+//    }
+//    
+//    return treeobject;
+//};
 
 
 //M.block_ajax_marking.show_modal_grading_interface = function(postdata) {
@@ -1659,39 +1704,31 @@ var  block_ajax_marking_callback = {
     // argument : 1200,
     timeout  : 10000
 
+};  
+
+/**
+ * Returns the currently selected node from the tabview widget
+ * 
+ * @return object
+ */
+M.block_ajax_marking.get_current_tab = function() {
+    return M.block_ajax_marking.tabview.get('selection');
 };
 
 /**
- * This is run before the block does anything so that we can't see the HTML stuff if we don't need to.
- * Serious flicker without it.
+ * We don't know what tab is current, but once the grading popup shuts, we need to remove the node
+ * with the id it specifies. This decouples the popup from the tabs. Might want to extend this 
+ * to make sure that it sticks to the right tree too, in case someone fiddles with the tabs 
+ * whilst having the popup open.
+ * 
+ * @param int nodeid
+ * @return void
  */
-//M.block_ajax_marking.hide_html_list = function() {
-//    
-//    YUI().use('stylesheet', function (Y) {
-// 
-//        var css = "#block_ajax_marking_html_list { display: none; } " +
-//                  "#treetabs { display: none; } ";
-//
-//        sheet = new Y.StyleSheet(css);
-//    });
-    
-    
-    
-//    
-//    var styleElement = document.createElement("style");
-//    styleElement.type = "text/css";
-//    
-//    if (styleElement.styleSheet) {
-//        styleElement.styleSheet.cssText = "#block_ajax_marking_html_list { display: none; } ";
-//        styleElement.styleSheet.cssText += "#treetabs { display: none; } ";
-//    } else {
-//        styleElement.appendChild(document.createTextNode("#block_ajax_marking_html_list {display: none;}"));
-//    }
-//    document.getElementsByTagName("head")[0].appendChild(styleElement);
-    
-    
-    
-//}
+M.block_ajax_marking.remove_node_from_current_tab = function(nodeid) {
+
+    var currenttab = M.block_ajax_marking.tabview.get('selection');
+    currenttab.displaywidget.remove_node(nodeid);
+};
 
 /**
  * The initialising stuff to get everything started
@@ -1701,30 +1738,57 @@ var  block_ajax_marking_callback = {
 M.block_ajax_marking.initialise = function() {
     
     YUI().use('tabview', function(Y) {
-        var tabview = new Y.TabView({ // this waits till much too late.
+        M.block_ajax_marking.tabview = new Y.TabView({ // this waits till much too late.
             srcNode: '#treetabs'
-//            children: [{
-//                label: 'Courses',
-//                content: '<div id="coursestree">Course tree goes here</div>'
-//            }, {
-//                label: 'Groups',
-//                content: '<div id="groupstree">Groups tree goes here</div>'
-//            }, {
-//                label: 'Settings',
-//                content: '<div id="settingstree">Settings go here</div>'
-//            }]
+        });
+        
+        // Must render first so treeviews have container divs ready
+        M.block_ajax_marking.tabview.render();
+        
+        // Define the tabs here and add them dynamically.
+        var coursestab = new Y.Tab({
+            'label':'Courses',
+            'content':'<div id="coursestree">course tree goes here</div>'});
+        M.block_ajax_marking.tabview.add(coursestab);
+        coursestab.displaywidget = new M.block_ajax_marking.courses_tree();
+        
+        var cohortstab = new Y.Tab({
+            'label':'Cohorts',
+            'content':'<div id="cohortstree">Still in beta for 2.0 - groups tree will go here once done</div>'});
+        M.block_ajax_marking.tabview.add(cohortstab);
+        cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
+        
+        
+        // Set event that makes a new tree if it's needed when the tabs change
+        M.block_ajax_marking.tabview.after('selectionChange', function(e) {
+        
+            // get current tab and keep a reference to it
+            var newtabindex = e.newVal.get('index');
+            var currenttab = M.block_ajax_marking.get_current_tab();
+            
+            if (typeof(currenttab.alreadyinitialised) === 'undefined') {
+                currenttab.displaywidget.initialise();
+                currenttab.alreadyinitialised = true;
+            } else {
+                currenttab.displaywidget.update_total_count();
+            }
         });
 
-//        tabview.render('#treetabs');
-        tabview.render();
+        
+//        var imagehtml = Y.get('coursestabsicons');
+//        var coursesicon = '';
+//        var cohortssicon = '';
+//        var userssicon = '';
+//        M.block_ajax_marking.tabview.item(0).set('label', '<img src="http://moodle20dev.localhost:8888/theme/image.php?theme=fusion&image=c%2Fcourse" alt="Courses" />'); // works
+        
+        
     });
     
     // unhide that tabs block - preventing flicker
     YUI().use('node', function(Y) {
-        var node = Y.one('#treetabs');
-        node.setStyle('display', 'block');
+        Y.one('#treetabs').setStyle('display', 'block');
+        Y.one('#totalmessage').setStyle('display', 'block');
     });
-    
     
     // workaround for odd https setups. Probably not needed in most cases, but you can get an error 
     // without it if using non-https ajax on a https page
@@ -1732,8 +1796,8 @@ M.block_ajax_marking.initialise = function() {
         M.cfg.wwwroot = M.cfg.wwwroot.replace('http:', 'https:');
     }
     
-    M.block_ajax_marking.tree = M.block_ajax_marking.tree_factory('main');
-    M.block_ajax_marking.tree.initialise_tree();
+    // TODO use cookies/session to store the one the user wants between sessions
+    M.block_ajax_marking.tabview.selectChild(0); // this will initialise the courses tree
     
     // Make the footer
     if (!document.getElementById('block_ajax_marking_collapse')) {
