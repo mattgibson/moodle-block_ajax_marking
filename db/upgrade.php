@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -27,7 +26,7 @@
  */
 
 // include constants
-require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+require_once($CFG->dirroot . '/blocks/ajax_marking/lib.php');
 
 /**
  * Standard upgrade function run every time the block's version number changes
@@ -36,24 +35,20 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
  * @param int $oldversion the current version of the installed block
  * @return bool
  */
-function xmldb_block_ajax_marking_upgrade($oldversion=0) {
+function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
-    //echo "oldversion: ".$oldversion;
     global $DB;
 
     $dbman = $DB->get_manager();
 
-    // TODO make this only happen on the 2.0 upgrade 
+    // TODO make this only happen on the 2.0 upgrade
     // 1.9 latest version 2010101301
     // actual pooint where the code was written: 2010061801 (2.0
     // This should trigger on any verison of 1.9 now, provided 1.9 is not changed again.
     // If people have already installed 2.0 and the upgrade didn't work...
     // If they installed 2.0 and the upgrade did work?
-    
-    //$table = new xmldb_table('block_ajax_marking_groups');
-    
+
     if ($oldversion < 2010101302) {
-//    if ($oldversion < 2010101302 || !$dbman->table_exists($table)) {
 
         // Define key useridkey (foreign) to be dropped from block_ajax_marking
         $table = new xmldb_table('block_ajax_marking');
@@ -62,21 +57,26 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
 
         // Define table block_ajax_marking_groups to be created
         $table = new xmldb_table('block_ajax_marking_groups');
-        
+
         // Adding fields to table block_ajax_marking_groups
-        $table->add_field('id',       XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, XMLDB_SEQUENCE, null, null);
-        $table->add_field('configid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null);
-        $table->add_field('groupid',  XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, null, null);
-        $table->add_field('display',  XMLDB_TYPE_INTEGER, '1',  XMLDB_UNSIGNED, XMLDB_NOTNULL, null, 1, null);
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL,
+                          XMLDB_SEQUENCE, null, null);
+        $table->add_field('configid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null,
+                          null, null);
+        $table->add_field('groupid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, XMLDB_NOTNULL, null,
+                          null, null);
+        $table->add_field('display', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, XMLDB_NOTNULL, null,
+                          1, null);
 
         // Adding keys to table block_ajax_marking_groups
-        $table->add_key('primary',     XMLDB_KEY_PRIMARY, array('id'));
-        $table->add_key('configid-id', XMLDB_KEY_FOREIGN, array('configid'), 'block_ajax_marking', array('id'));
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, array('id'));
+        $table->add_key('configid-id', XMLDB_KEY_FOREIGN, array('configid'), 'block_ajax_marking',
+                        array('id'));
 
         // Launch create table for block_ajax_marking_groups
         if (!$dbman->table_exists($table)) {
             $dbman->create_table($table);
-        
+
             // Transfer all groups stuff to the new table
             $sql = "SELECT id, groups FROM {block_ajax_marking}";
             $oldrecords = $DB->get_records_sql($sql);
@@ -84,12 +84,12 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
             foreach ($oldrecords as $record) {
 
                 // expand the csv groups from the groups column
-                if(!empty($record->groups)) {
+                if (!empty($record->groups)) {
                     $groups = explode(' ', trim($record->groups));
 
                     foreach ($groups as $group) {
                         $data = new stdClass;
-                        $data->groupid  = $group;
+                        $data->groupid = $group;
                         $data->configid = $record->id;
                         $DB->insert_record('block_ajax_marking_groups', $data);
                     }
@@ -104,42 +104,40 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
 
             // Launch drop field groups
             if ($dbman->field_exists($table, $field)) {
-                $dbman->drop_field($table, $field);   
+                $dbman->drop_field($table, $field);
             }
         }
-        
+
         upgrade_block_savepoint(true, 2010101302, 'ajax_marking');
-
-
     }
-    
-    
+
     if ($oldversion < 2011040602) {
-        
+
         // Remove the module settings from the config_plugins table
         $DB->delete_records('config_plugins', array('plugin' => 'block_ajax_marking'));
-        
+
         // Remove the display column from the groups table - not needed
         $table = new xmldb_table('block_ajax_marking_groups');
         $field = new xmldb_field('display');
-        
+
         if ($dbman->field_exists($table, $field)) {
-            $dbman->drop_field($table, $field);   
+            $dbman->drop_field($table, $field);
         }
-        
+
         // put key in for groupid-id
         $table = new xmldb_table('block_ajax_marking_groups');
-        $key = new xmldb_key('groupid-id', XMLDB_KEY_FOREIGN, array('groupid'), 'groups', array('id'));
+        $key = new xmldb_key('groupid-id', XMLDB_KEY_FOREIGN, array('groupid'), 'groups',
+            array('id'));
         $dbman->add_key($table, $key);
-        
+
         // put key back for userid
         $table = new xmldb_table('block_ajax_marking');
         $key = new xmldb_key('useridkey', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
         $dbman->add_key($table, $key);
-                
+
         upgrade_block_savepoint(true, 2011040602, 'ajax_marking');
     }
-    
+
     // Alter table structure ready for coursemodule stuff
     if ($oldversion < 2011052301) {
 
@@ -151,69 +149,62 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         if ($dbman->field_exists($table, $field)) {
             $dbman->drop_field($table, $field);
         }
-        
-        $field = new xmldb_field('courseid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, null, null, '0', 'userid');
+
+        $field = new xmldb_field('courseid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, null, null,
+                                 '0', 'userid');
 
         // Conditionally launch add field courseid
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
-        
-        $field = new xmldb_field('coursemoduleid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, null, null, '0', 'courseid');
+
+        $field = new xmldb_field('coursemoduleid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, null,
+                                 null, '0', 'courseid');
 
         // Conditionally launch add field coursemoduleid
         if (!$dbman->field_exists($table, $field)) {
             $dbman->add_field($table, $field);
         }
-        
-        $field = new xmldb_field('showhide', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null, '1', 'assessmentid');
+
+        $field = new xmldb_field('showhide', XMLDB_TYPE_INTEGER, '1', null, XMLDB_NOTNULL, null,
+                                 '1', 'assessmentid');
 
         // Launch rename field showhide
         $dbman->rename_field($table, $field, 'display');
-        
 
         // ajax_marking savepoint reached
         upgrade_block_savepoint(true, 2011052301, 'ajax_marking');
     }
-    
+
     // Put all coursemodule things into place so that data is n both places
     if ($oldversion < 2011052303) {
-        
+
         $modules = array(
-               // 'assignment', 
-                'forum', 
-                'quiz', 
-                'workshop', 
-                'journal'
+            // 'assignment',
+            'forum',
+            'quiz',
+            'workshop',
+            'journal'
         );
-        
-        // Switch the table to using coursemodule id instead of modulename + instance id in different columns.
-        // Allows for cleaner joins.
+
+        // Switch the table to using coursemodule id instead of modulename + instance id in
+        // different columns. Allows for cleaner joins.
         // TODO test the upgrade
         foreach ($modules as $module) {
-            // Oracle doesn't like this :(
-            // Get current coursemodules and put their ids into place
-//            $sql = "UPDATE {block_ajax_marking} b
-//                INNER JOIN {course_modules} cm
-//                        ON cm.instance = b.assessmentid
-//                INNER JOIN {modules} mt
-//                        ON (cm.module = mt.id AND ".$DB->sql_compare_text('mt.name')." = '{$module}')
-//                       SET b.coursemoduleid = cm.id
-//                     WHERE b.assessmenttype = '{$module}'
-//                        ";
-//            $DB->execute($sql);
             // Get all current coursemodules and put their ids into place
             $sql = "SELECT b.id, cm.id AS cmid
                       FROM {block_ajax_marking} b
                 INNER JOIN {course_modules} cm
                         ON cm.instance = b.assessmentid
                 INNER JOIN {modules} mod
-                        ON (cm.module = mod.id AND ".$DB->sql_compare_text('mod.name')." = '{$module}')
+                        ON (cm.module = mod.id
+                       AND " . $DB->sql_compare_text('mod.name') . " = '{$module}')
                      WHERE b.assessmenttype = '{$module}'
                         ";
-            $modids = $DB->execute($sql);
-            
+            $modids = $DB->get_records_sql($sql, array());
+
             foreach ($modids as $modid) {
+                $row = new stdClass();
                 $row->id = $modid->id;
                 $row->coursemoduleid = $modid->cmid;
                 $DB->update_record('block_ajax_marking', $row);
@@ -222,8 +213,6 @@ function xmldb_block_ajax_marking_upgrade($oldversion=0) {
         // ajax_marking savepoint reached
         upgrade_block_savepoint(true, 2011052303, 'ajax_marking');
     }
-    
-    
 
     return true;
 }

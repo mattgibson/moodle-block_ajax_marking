@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,7 +16,7 @@
 
 /**
  * Class file for the Assignment grading functions
- * 
+ *
  * @package    block
  * @subpackage ajax_marking
  * @copyright  2008 Matt Gibson
@@ -27,19 +26,19 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-require_once $CFG->dirroot.'/mod/assignment/lib.php';
+require_once($CFG->dirroot.'/mod/assignment/lib.php');
 
 class block_ajax_marking_assignment_form extends mod_assignment_grading_form {
-    
+
     /**
      * Will theoretically render the form as a HTML string
+     *
+     * @return string
      */
-    function display() {
-        
-        return $this->_form->toHtml();
-        
-    }
-    
-}
+    public function display() {
 
-?>
+        return $this->_form->toHtml();
+
+    }
+
+}

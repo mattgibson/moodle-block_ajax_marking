@@ -31,22 +31,20 @@ define('AJAX_SCRIPT', true);
 require_once(dirname(__FILE__).'/../../../config.php');
 require_login(0, false);
 
-// Target = what function is going to be doing the save operation. Either a core thing for config stuff,
-// or a module name
+// Target = what function is going to be doing the save operation. Either a core thing for
+// config stuff, or a module name
 $target = required_param('target', PARAM_ALPHA);
 
 // Work out where to send it for processing
 switch ($target) {
-    
+
     case 'config_save':
         break;
-    
+
     default:
         $modules = block_ajax_marking_get_module_classes();
         $modules[$target]->ajax_save();
         break;
-    
-    
 }
 
 // send it

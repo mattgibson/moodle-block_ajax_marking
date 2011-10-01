@@ -267,7 +267,7 @@ span.ygtvlabel {
 
 /* change loading icon. Standard one has white background */
 .ygtvloading {
-    width:18px; 
+    width:18px;
     height:22px;
     background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
 }

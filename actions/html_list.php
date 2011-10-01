@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,11 +16,12 @@
 
 
 /**
- * This is the file that is called by block_ajax_marking.php when the block is created during page-load.
+ * This is the file that is called by block_ajax_marking.php when the block is created during
+ * page-load.
  *
- * It first includes the main lib.php fie that contains the base class which has all of the functions
- * in it, then instantiates a new html_list object which will process the request and output the HTML
- * that the block needs.
+ * It first includes the main lib.php fie that contains the base class which has all of the
+ * functions in it, then instantiates a new html_list object which will process the request and
+ * output the HTML that the block needs.
  *
  * @package    block
  * @subpackage ajax_marking
@@ -55,10 +55,9 @@ foreach ($courses as $course) {
     // loop through each module, getting a count for this course id from each one.
     foreach ($moduleclasses as $moduleclass) {
 
-        //$nodes = $moduleclass->fetch_submissions('modules', array('courseid' => $course->id));
         $nodes = $moduleclass->module_nodes($course->id);
         $course_count += count($nodes);
-        
+
         foreach ($nodes as $node) {
             $node->link = $moduleclass->make_html_link($node);
             $course_output .= block_ajax_marking_make_html_node($node);

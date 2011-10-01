@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -18,7 +17,7 @@
 
 /**
  * Keeps track of the version number
- * 
+ *
  * @package    block
  * @subpackage ajax_marking
  * @copyright  2010 Matt Gibson
@@ -27,5 +26,3 @@
  */
 
 $plugin->version = '2011081401';
-
-?>

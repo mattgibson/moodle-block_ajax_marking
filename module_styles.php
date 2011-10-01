@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -27,32 +26,30 @@
  */
 
 // make the class files happy
-define('MOODLE_INTERNAL', true); 
+define('MOODLE_INTERNAL', true);
 
 // include all the files in the modules directory
 $directory = opendir(dirname(__FILE__).'/modules');
 
 if ($directory) {
-    
+
     require_once(dirname(__FILE__).'/classes/module_base.class.php');
-    
+
     while (($modulefile = readdir($directory)) !== false) {
-        
+
         if ($modulefile == '.' || $modulefile == '..') {
             continue;
         }
-        
-        $filepath = dirname(__FILE__).'/modules/'.$modulefile.'/block_ajax_marking_'.$modulefile.'.class.php';
-        
+
+        $filepath = dirname(__FILE__).'/modules/'.$modulefile.'/block_ajax_marking_'.$modulefile.
+                    '.class.php';
+
         require_once($filepath);
-        
+
         $modulename = substr($modulefile, 0, -4);  //remove '.php'
         $classname = 'block_ajax_marking_'.$modulename;
         call_user_func($classname.'::print_css');
     }
-    
+
     closedir($directory);
 }
-
-
-?>

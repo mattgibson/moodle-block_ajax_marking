@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -30,13 +29,16 @@ class block_ajax_marking_output {
 
     // Hold the output data as a nested set of arrays
     private $output;
-    //remembers where the last node to be added was. Takes the form of nested array keys e.g. '[1][2][5]'
+    //remembers where the last node to be added was. Takes the form of nested array keys
+    // e.g. '[1][2][5]'
     private $pointer;
+
+    private $outputtree;
 
     /**
      * Constructor
      *
-     * @return void
+     * @return \block_ajax_marking_output
      */
     public function __construct() {
         $this->output = '';
@@ -83,7 +85,7 @@ class block_ajax_marking_output {
     }
 
     /**
-     * Sets the type of the data which is beig returned
+     * Sets the type of the data which is being returned
      *
      * @param string $type
      * @return void
@@ -95,6 +97,8 @@ class block_ajax_marking_output {
 
     /**
      * Will return the output array in json format. Needs to iterate recursively over $output
+     *
+     * @return bool|string
      */
     public function json_render() {
 
@@ -103,13 +107,13 @@ class block_ajax_marking_output {
             $output = '[';
             $first = true;
 
-            Foreach ($this->outputtree as $key => $node) {
+            foreach ($this->outputtree as $key => $node) {
 
                 if (!$first) {
                     $output .= ',';
                     $first = false;
                 }
-                // recurive approach renders the whole tree with this function
+                // recursive approach renders the whole tree with this function
                 if ($key == 'subnodes') {
 
                     $this->ajax_render($node);

@@ -28,10 +28,10 @@
 M.block_ajax_marking.journal = (function() {
 
     return {
-        
+
         pop_up_arguments : function () {
             return 'menubar=0,location=0,scrollbars,resizable,width=900,height=500';
         }
-        
+
     };
 })();

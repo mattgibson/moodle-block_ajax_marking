@@ -15,7 +15,7 @@
 
 /**
  * This file conatins all the javascript for the AJAX Marking block
- * 
+ *
  * @package    block
  * @subpackage ajax_marking
  * @copyright  2011 Matt Gibson
@@ -23,16 +23,16 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-        
+
 /**
  * @param object clickednode the node of the tree that was clicked to open the popup
  */
 M.block_ajax_marking.assignment = (function() {
 
     return {
-        
+
         add_css : function() {
-            
+
         },
 
         pop_up_arguments : function() {
@@ -40,4 +40,3 @@ M.block_ajax_marking.assignment = (function() {
         }
     };
 })();
-

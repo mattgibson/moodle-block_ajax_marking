@@ -21,13 +21,13 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-This block is compatible with Moodle version 2.0 or later. 
+This block is compatible with Moodle version 2.0 or later.
 
-To install, place this directory in your /blocks/ folder as-is and then visit the Admin -> notifications 
-page (you will need to be logged in as an admin).
+To install, place this directory in your /blocks/ folder as-is and then visit the Admin ->
+notifications page (you will need to be logged in as an admin).
 
-Any problems, please file them in the tracker under Non-core contributed modules -> Block AJAX marking
-and/or contact me through my profile on moodle.org
+Any problems, please file them in the tracker under Non-core contributed modules -> Block AJAX
+marking and/or contact me through my profile on moodle.org
 
-Hopefully you'll find this useful - it certainly made my life easier whilst I was teaching. Please do 
-let me know if you have comments - I welcome all feedback :)
+Hopefully you'll find this useful - it certainly made my life easier whilst I was teaching.
+Please do let me know if you have comments - I welcome all feedback :)

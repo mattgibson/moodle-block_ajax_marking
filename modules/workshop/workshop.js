@@ -27,29 +27,26 @@
 M.block_ajax_marking.workshop = (function() {
 
     return {
-        
+
         pop_up_arguments : function() {
             return 'menubar=0,location=0,scrollbars,resizable,width=980,height=630';
         },
-        
+
         /**
          * Handles any module specific overrides for the trees
-         */ 
+         */
         nextnodetype : function(defaultnexttype) {
-            
+
             switch (defaultnexttype) {
-                
+
                 case 'coursemoduleid':
                     return false;
                     break;
-                    
+
                 default:
                     return null; // should never happen
-                
-            }
-            
-        }
-        
 
+            }
+        }
     };
-})();  
+})();

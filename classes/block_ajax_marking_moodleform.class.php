@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -17,7 +16,7 @@
 
 /**
  * Class file for the Assignment grading functions
- * 
+ *
  * @package    block
  * @subpackage ajax_marking
  * @copyright  2011 Matt Gibson
@@ -30,16 +29,11 @@
  * so that it doesn't echo immediately
  */
 class block_ajax_marking_moodleform extends moodleform {
-    
-    
+
+
     // Add all the url parameters
-    
+
     // Add sesskey
-    
-    
+
+
 }
-
-
-
-
-?>

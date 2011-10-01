@@ -25,25 +25,24 @@
  */
 
 
-
 M.block_ajax_marking.quiz = (function() {
 
     return {
-        
+
         pop_up_arguments : function() {
             return 'menubar=0,location=0,scrollbars,resizable,width=780,height=670';
         },
-        
+
         /**
          * Handles any module specific overrides for the trees
-         */ 
+         */
         nextnodetype : function(defaultnexttype) {
-            
+
             // TODO this will read from user settings later on
             var userchoosesquestions = true;
-            
+
             switch (defaultnexttype) {
-                
+
                 case 'coursemoduleid':
                     if (userchoosesquestions === true) {
                         return 'questionid';
@@ -51,18 +50,17 @@ M.block_ajax_marking.quiz = (function() {
                         return 'userid'; // TODO this will cause duplicates if we're not adjusting it.
                     }
                     break;
-                    
+
                 case 'questionid':
                     return 'userid';
                     break;
-                    
+
                 default:
                     return null; // should never happen
-                
+
             }
-            
+
         }
-        
+
     };
 })();
-          
