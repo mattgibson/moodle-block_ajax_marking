@@ -216,7 +216,7 @@
   line-height: 0pt;
   width: 35px;
 }
-.block_ajax_marking_hidden {
+#block_ajax_marking_hidden {
   display: none;
 }
 div.block_ajax_marking div.footer {
