@@ -24,6 +24,11 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+// Possibly getting to this point before the main block js file is included.
+if (typeof(M.block_ajax_marking) === 'undefined') {
+    M.block_ajax_marking = {};
+}
+
 // uses 'journal' as the node that will be clicked on will have this type.
 M.block_ajax_marking.journal = (function() {
 

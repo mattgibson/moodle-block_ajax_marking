@@ -13,6 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+// Possibly getting to this point before the main block js file is included.
+if (typeof(M.block_ajax_marking) === 'undefined') {
+    M.block_ajax_marking = {};
+}
 
 /**
  * Javascript stuff for displaying forum posts within the AJAX Marking block

@@ -23,6 +23,10 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+// Possibly getting to this point before the main block js file is included.
+if (typeof(M.block_ajax_marking) === 'undefined') {
+    M.block_ajax_marking = {};
+}
 
 /**
  * @param object clickednode the node of the tree that was clicked to open the popup
