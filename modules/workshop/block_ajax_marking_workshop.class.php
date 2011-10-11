@@ -200,7 +200,8 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
             $selects = array(
                 array(
                     'table'    => 'sub',
-                    'column'   => 'authorid'),
+                    'column'   => 'authorid',
+                    'alias'    => 'userid'),
                 array( // Count in case we have user as something other than the last node
                     'function' => 'COUNT',
                     'table'    => 'sub',
