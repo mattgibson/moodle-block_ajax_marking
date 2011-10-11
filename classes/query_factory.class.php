@@ -713,6 +713,13 @@ class block_ajax_marking_query_factory {
         ));
         $query->add_param('currentuser', $USER->id);
 
+        // Also hide our own work. Only really applies in testing, but still.
+        $query->add_where(array(
+                'type' => 'AND',
+                'condition' => $query->get_userid_column()." != :".$query->prefix_param('currentuser2')
+        ));
+        $query->add_param('currentuser2', $USER->id);
+
     }
 
     /**
