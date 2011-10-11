@@ -546,6 +546,7 @@ M.block_ajax_marking.tree_base.prototype.remove_node = function(nodeuniqueid) {
 M.block_ajax_marking.ajax_success_handler = function(o) {
 
     var mbam = M.block_ajax_marking;
+    var ajaxresponsearray = '';
 
     try {
         var ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
@@ -559,14 +560,14 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
     //var payload = 'default';
     if (typeof(ajaxresponsearray) !== 'object') {
         // TODO error handling here
-    }
-
-    if (typeof(ajaxresponsearray['gradinginterface']) !== 'undefined') {
-        // We have gotten the grading form back. Need to add the HTML to the modal overlay
-        M.block_ajax_marking.gradinginterface.setHeader('');
-        M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content);
-    } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
-        M.block_ajax_marking.get_current_tab().displaywidget.build_nodes(ajaxresponsearray.nodes);
+    } else {
+        if (typeof(ajaxresponsearray['gradinginterface']) !== 'undefined') {
+            // We have gotten the grading form back. Need to add the HTML to the modal overlay
+            M.block_ajax_marking.gradinginterface.setHeader('');
+            M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content);
+        } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
+            M.block_ajax_marking.get_current_tab().displaywidget.build_nodes(ajaxresponsearray.nodes);
+        }
     }
 
     YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
@@ -724,6 +725,10 @@ M.block_ajax_marking.initialise = function() {
                 currenttab.displaywidget.update_total_count();
             }
         });
+
+        // TODO use cookies/session to store the one the user wants between sessions
+        M.block_ajax_marking.tabview.selectChild(0); // this will initialise the courses tree
+
     });
 
     // unhide that tabs block - preventing flicker
@@ -737,9 +742,6 @@ M.block_ajax_marking.initialise = function() {
     if (document.location.toString().indexOf('https://') != -1) {
         M.cfg.wwwroot = M.cfg.wwwroot.replace('http:', 'https:');
     }
-
-    // TODO use cookies/session to store the one the user wants between sessions
-    M.block_ajax_marking.tabview.selectChild(0); // this will initialise the courses tree
 
     // Make the footer
     if (!document.getElementById('block_ajax_marking_collapse')) {
