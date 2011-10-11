@@ -14,7 +14,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file conatins all the javascript for the AJAX Marking block. The script tag at the top is
+ * This file contains all the javascript for the AJAX Marking block. The script tag at the top is
  * so that the ide will do
  *
  * @package    block
@@ -310,8 +310,6 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
     var node = oArgs.node;
     var mbam = window.M.block_ajax_marking;
 
-    //    var nextnodetpye = node.tree.nextnodetype(node);
-
     // we only need to do anything if the clicked node is one of
     // the final ones with no children to fetch.
     if (typeof(node.data.returndata.nextnodefilter) !== 'undefined'
@@ -461,7 +459,6 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
     }
 
     return nextnodefilter;
-
 }
 
 /**
@@ -602,7 +599,7 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
 };
 
 M.block_ajax_marking.ajax_timeout_handler = function(o) {
-    // Do something sensible
+    // TODO Do something sensible and allow refresh
 
 };
 
@@ -748,36 +745,3 @@ M.block_ajax_marking.initialise = function() {
         M.block_ajax_marking.make_footer();
     }
 }
-
-//// Get the IDE to do proper script highlighting
-//if (0) {
-//    ?><!--</script>--><?php
-//}
-//
-//
-//// We need to append all of the plugin specific javascript. This file will be requested as part of a
-//// separate http request after the PHP has all been finished with, so we do this cheaply to keep
-//// overheads low by not using setup.php and having the js in static functions.
-//
-//if (!defined('MOODLE_INTERNAL')) { // necessary because class files are expecting it
-//    define('MOODLE_INTERNAL', true);
-//}
-//
-//$moduledir = opendir(dirname(__FILE__) . '/modules');
-//
-//if ($moduledir) {
-//
-//    // We never instantiate the classes, but it complains if it can't find the base class
-//    //require_once(dirname(__FILE__).'/classes/module_base.class.php');
-//
-//    // Loop through the module files, including each one, then echoing the extra javascript from it
-//    while (($moddir = readdir($moduledir)) !== false) {
-//
-//        // Ignore any that don't fit the pattern, like . and ..
-//        if (preg_match('/^([a-z]*)$/', $moddir, $matches)) {
-//            require_once(dirname(__FILE__) . '/modules/' . $moddir . '/' . $moddir . '.js');
-//
-//        }
-//    }
-//    closedir($moduledir);
-//}
