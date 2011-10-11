@@ -24,7 +24,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-M.block_ajax_marking = {};
+if (typeof(M.block_ajax_marking) === 'undefined') {
+    M.block_ajax_marking = {};
+}
 
 // used to deterine whether to log everything to console
 //const debugdeveloper = 38911;
