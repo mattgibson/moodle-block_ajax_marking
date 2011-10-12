@@ -25,8 +25,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$plugin->version = 2011111000;
+$plugin->version = 2011111200;
 $plugin->maturity = MATURITY_STABLE;
 $plugin->requires = 2010112400; // 2.0
 $plugin->component = 'block_ajax_marking';
-$plugin->release = '2.0.1';
+$plugin->release = '2.0.2';
