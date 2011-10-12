@@ -550,6 +550,7 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
     } catch (error) {
         // add an empty array of nodes so we trigger all the update and cleanup stuff
         // TODO - error handling code to prevent silent failure if data is mashed
+        document.getElementById('count').innerHTML = '?';
     }
 
     // first object holds data about what kind of nodes we have so we can
