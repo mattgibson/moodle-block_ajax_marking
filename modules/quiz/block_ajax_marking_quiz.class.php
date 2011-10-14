@@ -40,6 +40,7 @@ require_once($blockdir.'/classes/query_base.class.php');
 
 if (isset($CFG) && !empty($CFG)) {
     require_once($CFG->dirroot.'/lib/questionlib.php');
+    require_once($CFG->dirroot.'/question/engine/states.php');
     require_once($CFG->dirroot.'/blocks/ajax_marking/modules/quiz/'.
                  'block_ajax_marking_quiz_form.class.php');
 }
@@ -472,31 +473,49 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         ));
         $query->add_from(array(
                 'join'  => 'INNER JOIN',
-                'table' => 'question_sessions',
-                'alias' => 'qsess',
-                'on'    => 'qsess.attemptid = quiz_attempts.uniqueid'
+                'table' => 'question_attempts',
+                'alias' => 'qatt',
+                'on'    => 'qatt.questionusageid = quiz_attempts.uniqueid'
         ));
         $query->add_from(array(
                 'join'  => 'INNER JOIN',
-                'table' => 'question_states',
+                'table' => 'question_attempt_steps',
                 'alias' => 'sub',
-                'on'    => 'qsess.newest = sub.id'
+                'on'    => 'qatt.id = sub.questionattemptid'
         ));
         $query->add_from(array(
                 'join'  => 'INNER JOIN',
                 'table' => 'question',
-                'on'    => 'qsess.questionid = question.id'
+                'on'    => 'qatt.questionid = question.id'
         ));
 
         $query->add_where(array('type' => 'AND',
                                 'condition' => 'quiz_attempts.timefinish > 0'));
         $query->add_where(array('type' => 'AND',
                                 'condition' => 'quiz_attempts.preview = 0'));
-        $comparesql = $DB->sql_compare_text('question.qtype')." = 'essay'";
+        $comparesql = $DB->sql_compare_text('qatt.behaviour')." = 'manualgraded'";
         $query->add_where(array('type' => 'AND',
                                 'condition' => $comparesql));
         $query->add_where(array('type' => 'AND',
-                                'condition' => "sub.event NOT IN (".QUESTION_EVENTS_GRADED.") "));
+                                'condition' => "sub.state = '".question_state::$needsgrading."' "));
+
+        // We want to get a list of graded states so we can retrieve all questions that don't have
+        // one.
+        $gradedstates = array();
+        $us = new ReflectionClass('question_state');
+        foreach ($us->getStaticProperties() as $name => $class) {
+            if ($class->is_graded()) {
+                $gradedstates[] = $name;
+            }
+        }
+        list($gradedsql, $gradedparams) = $DB->get_in_or_equal($gradedstates, SQL_PARAMS_NAMED, 'quizq001');
+        $subsql = "NOT EXISTS( SELECT 1
+                                 FROM {question_attempt_steps} st
+                                WHERE st.state {$gradedsql}
+                                  AND st.questionattemptid = qatt.id)";
+        $query->add_where(array('type' => 'AND',
+                                'condition' => $subsql));
+        $query->add_params($gradedparams, false);
         return $query;
     }
 
