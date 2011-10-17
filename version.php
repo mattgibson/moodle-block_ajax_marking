@@ -27,6 +27,6 @@
 
 $plugin->version = 2011111700;
 $plugin->maturity = MATURITY_STABLE;
-$plugin->requires = 2011070100; // 2.0
+$plugin->requires = 2011070101; // 2.0
 $plugin->component = 'block_ajax_marking';
 $plugin->release = '2.1.0';
