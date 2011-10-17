@@ -369,7 +369,7 @@ class block_ajax_marking_query_base {
     /**
      * Adds an item to the ORDER BY array
      *
-     * @param string $column
+     * @param string $column table.column
      * @param bool $prefix If true, this will be added at the start rather than the end
      * @return void
      */

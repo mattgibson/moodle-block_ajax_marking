@@ -247,18 +247,6 @@ abstract class block_ajax_marking_module_base {
     abstract public function query_factory($callback = false);
 
     /**
-     * Hook to allow subclasses to add specific selects and joins to the query. This is important as
-     * getting the grading interface to pop up needs certain data
-     *
-     * @param block_ajax_marking_query_base $query
-     * @param bool $groupby
-     * @return void
-     */
-    public function alter_query_hook(block_ajax_marking_query_base $query, $groupby = false) {
-
-    }
-
-    /**
      * Sometimes there will need to be extra processing of the nodes that is specific to this module
      * e.g. the title to be displayed for submissions needs to be formatted with firstname and
      * lastname in the way that makes sense for the user's chosen language.

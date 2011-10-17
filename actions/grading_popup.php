@@ -73,7 +73,6 @@ if (!has_capability($moduleobject->capability, $context)) {
 // processed
 $data = data_submitted();
 
-//if (0) {
 if ($data && confirm_sesskey()) {
 
     // make sure this includes require_login() in order to set page context properly

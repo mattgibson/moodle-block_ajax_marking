@@ -31,6 +31,59 @@
 class block_ajax_marking_query_factory {
 
     /**
+     * This will take the parameters which were supplied by the clicked node and its ancestors and
+     * construct an SQL query to get the relevant work from the database. It can be used by the
+     * grading popups in cases where there are multiple items e.g. multiple attempts at a quiz, but
+     * it is mostly for making the queries used to get the next set of nodes.
+     *
+     * @param array $filters
+     * @param block_ajax_marking_module_base $moduleclass e.g. quiz, assignment
+     * @return block_ajax_marking_query_base
+     */
+    public static function get_filtered_module_query($filters, $moduleclass) {
+
+        $query = $moduleclass->query_factory();
+
+        // Apply all the standard filters
+        self::apply_sql_enrolled_students($query);
+        self::apply_sql_visible($query);
+        self::apply_sql_display_settings($query);
+        self::apply_sql_owncourses($query);
+
+        // Apply any filters specific to this request. Next node type one should be a GROUP BY,
+        // the rest need to be WHEREs i.e. starting from the requested nodes, and moving back up
+        // the tree e.g. 'student', 'assessment', 'course'
+        $groupby = false;
+        foreach ($filters as $name => $value) {
+            if ($name == 'nextnodefilter') {
+                //continue; // nextnodefilter is applied to the outermost query
+                $filterfunctionname = 'apply_'.$value.'_filter';
+                $groupby = $value;
+                // The new node filter is in the form 'nextnodefilter => 'functionname', rather
+                // than 'filtername' => <rowid> We want to pass the name of the filter in with
+                // an empty value, so we set the value here.
+                $value = false;
+            } else {
+                $filterfunctionname = 'apply_'.$name.'_filter';
+            }
+            // Find the function. Core ones are part of this class, others will be methods of
+            // the module object.
+            // If we are filtering by a specific module, look there first
+            if (method_exists($moduleclass, $filterfunctionname)) {
+                // All core filters are methods of query_base and module specific ones will be
+                // methods of the module-specific subclass. If we have one of these, it will
+                // always be accompanied by a coursemoduleid, so will only be called on the
+                // relevant module query and not the rest
+                $moduleclass->$filterfunctionname($query, $value);
+            } else if (method_exists(__CLASS__, $filterfunctionname)) {
+                self::$filterfunctionname($query, $value);
+            }
+        }
+
+        return $query;
+    }
+
+    /**
      * This is to build whatever query is needed in order to return the requested nodes. It may be
      * necessary to compose this query from quite a few different pieces. Without filters, this
      * should return all unmarked work across the whole site for this teacher.
@@ -79,64 +132,12 @@ class block_ajax_marking_query_factory {
             // comment to try to get the IDE code completion to work properly
             /** @var $moduleclass block_ajax_marking_module_base */
 
-            if ($moduleid) {
-                if ($moduleclass->get_module_id() == $moduleid) {
-                    // We only want this one as we're filtering by a single coursemodule
-                    $modulequeries[$modname] = $moduleclass->query_factory();
-                    // we will use this ref to get access to non-union module functions
-                    $singlemoduleclass = $moduleclass;
-                } else {
-                    continue;
-                }
-            } else {
-                // we want all of them for the union
-                $modulequeries[$modname] = $moduleclass->query_factory();
+            if ($moduleid && $moduleclass->get_module_id() !== $moduleid) {
+                // We don't want this one as we're filtering by a single coursemodule
+                continue;
             }
 
-            // Apply all the standard filters
-            self::apply_sql_enrolled_students($modulequeries[$modname]);
-            self::apply_sql_visible($modulequeries[$modname]);
-            self::apply_sql_display_settings($modulequeries[$modname]);
-            self::apply_sql_owncourses($modulequeries[$modname]);
-
-            // Apply any filters specific to this request. Next node type one should be a GROUP BY,
-            // the rest need to be WHEREs i.e. starting from the requested nodes, and moving back up
-            // the tree e.g. 'student', 'assessment', 'course'
-            $groupby = false;
-            foreach ($filters as $name => $value) {
-                if ($name == 'nextnodefilter') {
-                    //continue; // nextnodefilter is applied to the outermost query
-                    $filterfunctionname = 'apply_'.$value.'_filter';
-                    $groupby = $value;
-                    // The new node filter is in the form 'nextnodefilter => 'functionname', rather
-                    // than 'filtername' => <rowid> We want to pass the name of the filter in with
-                    // an empty value, so we set the value here.
-                    $value = false;
-                } else {
-                    $filterfunctionname = 'apply_'.$name.'_filter';
-                }
-                // Find the function. Core ones are part of this class, others will be methods of
-                // the module object.
-                // If we are filtering by a specific module, look there first
-                if (method_exists($moduleclass, $filterfunctionname)) {
-                    // All core filters are methods of query_base and module specific ones will be
-                    // methods of the module-specific subclass. If we have one of these, it will
-                    // always be accompanied by a coursemoduleid, so will only be called on the
-                    // relevant module query and not the rest
-                    // TODO does this still pass by reference even though it's part of an array?
-                    $moduleclass->$filterfunctionname($modulequeries[$modname], $value);
-                } else if (method_exists(__CLASS__, $filterfunctionname)) {
-                    self::$filterfunctionname($modulequeries[$modname], $value);
-                } else {
-                    // Can't find the function. Assume it's non-essential data.
-                    debugging('Can\'t find the '.$filterfunctionname.' function.');
-                }
-            }
-
-            // Sometimes, the module will want to customise the query a bit after all the filters
-            // are applied but before it's run. This is mostly to affect what data comes in the
-            // SELECT part of the query
-            $moduleclass->alter_query_hook($modulequeries[$modname], $groupby);
+            $modulequeries[$modname] = self::get_filtered_module_query($filters, $moduleclass);
 
             if ($moduleid) {
                 break; // No need to carry on once we've done the only one
@@ -200,20 +201,24 @@ class block_ajax_marking_query_factory {
         // Now we need to run the final query through the filter for the nextnodetype so that the
         // rest of the necessary SELECT columns can be added, along with the JOIN to get them
         $nextnodefilterfunction = 'apply_'.$filters['nextnodefilter'].'_filter';
-        if ($moduleid && method_exists($singlemoduleclass, $filterfunctionname)) {
-            $singlemoduleclass->$nextnodefilterfunction($unionquery, false, true); // allow override
-        } else if (method_exists(__CLASS__, $filterfunctionname)) {
-            self::$filterfunctionname($unionquery, false, true);
+        if ($moduleid && method_exists($moduleclass, $nextnodefilterfunction)) {
+            // If we stopped when we got to the class we wanted in the loop above, $moduleclass
+            // will still be assigned to the one we want
+            $moduleclass->$nextnodefilterfunction($unionquery, false, true); // allow override
+        } else if (method_exists(__CLASS__, $nextnodefilterfunction)) {
+            self::$nextnodefilterfunction($unionquery, false, true);
         } else {
             // Problem - we have nothing to provide node display data
-            throw new coding_exception('No final filter applied for nextnodetype!');
+            $text = 'No final filter applied for nextnodetype! ('.$filterfunctionname.')';
+            throw new coding_exception($text);
         }
 
+        // This is just for copying and pasting from the paused debugger into a DB gui
         $debugquery = $unionquery->debuggable_query();
 
         $nodes = $unionquery->execute();
-        if ($singlemoduleclass) {
-            $singlemoduleclass->postprocess_nodes_hook($nodes, $filters);
+        if ($moduleid) {
+            $moduleclass->postprocess_nodes_hook($nodes, $filters);
         }
         return $nodes;
 
@@ -714,9 +719,10 @@ class block_ajax_marking_query_factory {
         $query->add_param('currentuser', $USER->id);
 
         // Also hide our own work. Only really applies in testing, but still.
+        $uidcolumn = $query->get_userid_column();
         $query->add_where(array(
                 'type' => 'AND',
-                'condition' => $query->get_userid_column()." != :".$query->prefix_param('currentuser2')
+                'condition' => $uidcolumn." != :".$query->prefix_param('currentuser2')
         ));
         $query->add_param('currentuser2', $USER->id);
 
