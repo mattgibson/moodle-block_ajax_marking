@@ -358,12 +358,10 @@ class block_ajax_marking_query_factory {
 
             // Join cohort_members only to cohorts that are enrolled in the course.
             // We already have a check for enrolments, so we just need a where.
+
             $query->add_where(array(
                     'type' => 'AND',
-                    'condition' => 'cohort_members.id = enrol.customint1'));
-            $query->add_where(array(
-                    'type' => 'AND',
-                    'condition' => $DB->sql_compare_text('enrol.enrol')." = 'cohort'"));
+                    'condition' => $DB->sql_compare_text('ue.enrol')." = 'cohort'"));
         }
 
         if ($cohortid) {
@@ -698,6 +696,14 @@ class block_ajax_marking_query_factory {
                 'table' => 'enrol',
                 'column' => 'courseid'
         ));
+        $subquery->add_select(array(
+                'table' => 'enrol',
+                'column' => 'enrol'
+        ));
+        $subquery->add_select(array(
+                'table' => 'user_enrolments',
+                'column' => 'userid'
+        ));
         $subquery->add_from(array(
                 'table' => 'user_enrolments'
         ));
@@ -708,13 +714,13 @@ class block_ajax_marking_query_factory {
         ));
         $subquery->add_where(array(
                 'type' => 'AND',
-                'condition' => "user_enrolments.userid = :".$query->prefix_param('currentuser')
+                'condition' => "user_enrolments.userid != :".$query->prefix_param('currentuser')
         ));
         $query->add_from(array(
                 'join' => 'INNER JOIN',
                 'table' => $subquery,
                 'alias' => 'ue',
-                'on' => "ue.courseid = moduletable.course"
+                'on' => "(ue.courseid = moduletable.course AND ue.userid = {$usercolumn})"
         ));
         $query->add_param('currentuser', $USER->id);
 
