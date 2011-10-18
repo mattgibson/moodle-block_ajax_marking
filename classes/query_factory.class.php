@@ -676,7 +676,7 @@ class block_ajax_marking_query_factory {
 
         $usercolumn = $query->get_userid_column();
 
-        // TODO Hopefully, this will be an empty string when none are enabled
+        // Hide users added by plugins which are now disabled.
         if ($CFG->enrol_plugins_enabled) {
             // returns list of english names of enrolment plugins
             $plugins = explode(',', $CFG->enrol_plugins_enabled);
@@ -712,9 +712,14 @@ class block_ajax_marking_query_factory {
                 'table' => 'enrol',
                 'on' => 'enrol.id = user_enrolments.enrolid'
         ));
+        // Also hide our own work. Only really applies in testing, but still.
         $subquery->add_where(array(
                 'type' => 'AND',
                 'condition' => "user_enrolments.userid != :".$query->prefix_param('currentuser')
+        ));
+        $subquery->add_where(array(
+                'type' => 'AND',
+                'condition' => "enrol.enrol {$enabledsql}"
         ));
         $query->add_from(array(
                 'join' => 'INNER JOIN',
@@ -723,15 +728,6 @@ class block_ajax_marking_query_factory {
                 'on' => "(ue.courseid = moduletable.course AND ue.userid = {$usercolumn})"
         ));
         $query->add_param('currentuser', $USER->id);
-
-        // Also hide our own work. Only really applies in testing, but still.
-        $uidcolumn = $query->get_userid_column();
-        $query->add_where(array(
-                'type' => 'AND',
-                'condition' => $uidcolumn." != :".$query->prefix_param('currentuser2')
-        ));
-        $query->add_param('currentuser2', $USER->id);
-
     }
 
     /**
