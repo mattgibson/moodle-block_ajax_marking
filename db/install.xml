@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="blocks/ajax_marking/db" VERSION="20110523" COMMENT="XMLDB file for Moodle blocks/ajax_marking"
+<XMLDB PATH="blocks/ajax_marking/db" VERSION="20111018" COMMENT="XMLDB file for Moodle blocks/ajax_marking"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -19,7 +19,7 @@
         <KEY NAME="useridkey" TYPE="foreign" FIELDS="userid" REFTABLE="user" REFFIELDS="id" COMMENT="links userid to the user table" PREVIOUS="primary"/>
       </KEYS>
     </TABLE>
-    <TABLE NAME="block_ajax_marking_groups" COMMENT="Holds the show/hide status of the groups for each user's config choices. Display 1=show the group, display 0=hide it. A group id of -1 means what to do for students in no group." PREVIOUS="block_ajax_marking">
+    <TABLE NAME="block_ajax_marking_groups" COMMENT="Holds the show/hide status of the groups for each user's config choices. Display 1=show the group, display 0=hide it. A group id of 0 means what to do for students in no group." PREVIOUS="block_ajax_marking">
       <FIELDS>
         <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="true" NEXT="configid"/>
         <FIELD NAME="configid" TYPE="int" LENGTH="10" NOTNULL="true" UNSIGNED="true" SEQUENCE="false" COMMENT="The id of the field in the config table" PREVIOUS="id" NEXT="groupid"/>

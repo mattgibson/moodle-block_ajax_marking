@@ -53,12 +53,10 @@ class block_ajax_marking_query_factory {
         // Apply any filters specific to this request. Next node type one should be a GROUP BY,
         // the rest need to be WHEREs i.e. starting from the requested nodes, and moving back up
         // the tree e.g. 'student', 'assessment', 'course'
-        $groupby = false;
         foreach ($filters as $name => $value) {
             if ($name == 'nextnodefilter') {
                 //continue; // nextnodefilter is applied to the outermost query
                 $filterfunctionname = 'apply_'.$value.'_filter';
-                $groupby = $value;
                 // The new node filter is in the form 'nextnodefilter => 'functionname', rather
                 // than 'filtername' => <rowid> We want to pass the name of the filter in with
                 // an empty value, so we set the value here.
@@ -110,12 +108,14 @@ class block_ajax_marking_query_factory {
 
         // if not a union query, we will want to remember which module we are narrowed down to so we
         // can apply the postprocessing hook later
-        $singlemoduleclass = false;
         $filterfunctionname = false;
 
         $modulequeries = array();
         $moduleid = false;
         $moduleclasses = block_ajax_marking_get_module_classes();
+        if (!$moduleclasses) {
+            return array(); // No nodes
+        }
 
         $filternames = array_keys($filters);
 
@@ -129,7 +129,6 @@ class block_ajax_marking_query_factory {
         }
 
         foreach ($moduleclasses as $modname => $moduleclass) {
-            // comment to try to get the IDE code completion to work properly
             /** @var $moduleclass block_ajax_marking_module_base */
 
             if ($moduleid && $moduleclass->get_module_id() !== $moduleid) {
@@ -213,7 +212,7 @@ class block_ajax_marking_query_factory {
             throw new coding_exception($text);
         }
 
-        // This is just for copying and pasting from the paused debugger into a DB gui
+        // This is just for copying and pasting from the paused debugger into a DB GUI
         $debugquery = $unionquery->debuggable_query();
 
         $nodes = $unionquery->execute();
@@ -339,7 +338,6 @@ class block_ajax_marking_query_factory {
         // will not include the code below limiting users to just those who are in a cohort. This
         // means that the total count may well be higher for
 
-        $showorphanedusers = false; // TODO maybe we want a 'no cohort' node?
         // We need to join the userid to the cohort, if there is one
 
         $useridcolumn = $query->get_userid_column();
@@ -453,7 +451,8 @@ class block_ajax_marking_query_factory {
                 // unless we specify that only coursemodules with a specific module id should join
                 // to a specific module table
                 $moduleclasses = block_ajax_marking_get_module_classes();
-                $coalesce = array();
+                $introcoalesce = array();
+                $namecoalesce = array();
                 foreach ($moduleclasses as $moduleclass) {
                     $query->add_from(array(
                         'join' => 'LEFT JOIN',
@@ -502,61 +501,105 @@ class block_ajax_marking_query_factory {
 
     /**
      * We need to check whether the assessment can be displayed (the user may have hidden it).
-     * This sql can be dropped into a query so that it will get the right students
+     * This sql can be dropped into a query so that it will get the right students. This will also
+     * make sure that if only some groups are being displayed, the submission is by a user who
+     * is in one of the displayed groups.
      *
      * @param block_ajax_marking_query_base $query a query object to apply these changes to
      * @return void
      */
     protected function apply_sql_display_settings($query) {
 
+        global $DB;
+
+        // User settings for individual activities
+        $coursemodulescompare = $DB->sql_compare_text('settings_course_modules.tablename');
         $query->add_from(array(
-                'join' => 'LEFT JOIN',
+                'join'  => 'LEFT JOIN',
                 'table' => 'block_ajax_marking',
-                'alias' => 'bama',
-                'on' => 'cm.id = bama.coursemoduleid'
+                'alias' => 'settings_course_modules',
+                'on'    => "(cm.id = settings_course_modules.instanceid ".
+                           "AND {$coursemodulescompare} = 'course_modules')"
         ));
+        // User settings for courses (defaults in case of no activity settings)
+        $coursecompare = $DB->sql_compare_text('settings_course.tablename');
         $query->add_from(array(
-                'join' => 'LEFT JOIN',
+                'join'  => 'LEFT JOIN',
                 'table' => 'block_ajax_marking',
-                'alias' => 'bamc',
-                'on' => 'moduletable.course = bamc.courseid'
+                'alias' => 'settings_course',
+                'on'    => "(cm.course = settings_course.instanceid ".
+                           "AND {$coursecompare} = 'course')"
         ));
-
-        // either no settings, or definitely display
-        // TODO doesn't work without proper join table for groups
-
-        // student might be a member of several groups. As long as one group is in the settings
-        // table, it's ok.
-        // TODO is this more or less efficient than doing an inner join to a subquery?
-
-        // WHERE starts with the course defaults in case we find no assessment preference
-        // Hopefully short circuit evaluation will makes this efficient.
-
-        // TODO can this be made more elegant with a recursive bit in get_where() ?
+        // User settings for groups per course module. Will have a value if there is any groups
+        // settings for this user and coursemodule
         $useridfield = $query->get_userid_column();
-        $groupsubquerya = self::get_sql_groups_subquery('bama', $useridfield);
-        // EXISTS ([user in relevant group]):
-        $groupsubqueryc = self::get_sql_groups_subquery('bamc', $useridfield);
+        list ($groupuserspersetting, $groupsparams) = self::get_sql_groups_subquery();
+        $query->add_params($groupsparams, false);
+        $query->add_from(array(
+                'join'  => 'LEFT JOIN',
+                'table' => $groupuserspersetting,
+                'subquery' => true,
+                'alias' => 'settings_course_modules_groups',
+                'on'    => "settings_course_modules.id = settings_course_modules_groups.configid".
+                           " AND settings_course_modules_groups.userid = {$useridfield}"
+        ));
+        // Same thing for the courses. Provides a default.
+        // Need to get the sql again to regenerate the params to a unique placeholder.
+        list ($groupuserspersetting, $groupsparams) = self::get_sql_groups_subquery();
+        $query->add_params($groupsparams, false);
+        $query->add_from(array(
+                'join'  => 'LEFT JOIN',
+                'table' => $groupuserspersetting,
+                'subquery' => true,
+                'alias' => 'settings_course_groups',
+                'on'    => "settings_course.id = settings_course_groups.configid".
+                           " AND settings_course_groups.userid = {$useridfield}"
+        ));
+
+        // Hierarchy of displaying things, simplest first.
+        // - No display settings (default show, no groups)
+        // - settings_course_modules display is 1, settings_course_modules.groupsdisplay is 0.
+        //   Overrides any course settings
+        // - settings_course_modules display is 1, groupsdisplay is 1 and user is in OK group
+        // - settings_course_modules display is null, settings_course.display is 1,
+        //   settings_course.groupsdisplay is 0
+        // - settings_course_modules display is null, settings_course.display is 1,
+        //   settings_course.groupsdisplay is 1 and user is in OK group.
+        //   Only used if there is no setting at course_module level, so overrides that hide stuff
+        //   which is shown at course level work.
+        // - settings_course_modules display is null, settings_course.display is 1,
+        //   settings_course.groupsdisplay is 1 and user is in OK group.
+        //   Only used if there is no setting at course_module level, so overrides that hide stuff
+        //   which is shown at course level work.
         $query->add_where(array(
                 'type' => 'AND',
+                'condition' => "( (settings_course_modules.display IS NULL
+                                   AND settings_course.display IS NULL)
 
-                // Logic: show if we have:
-                // - no item settings records, or a setting set to 'default' (legacy need)
-                // - a course settings record that allows display
-                'condition' => "
-                (   bama.display = ".BLOCK_AJAX_MARKING_CONF_SHOW."
-                    OR
-                    ( bama.display = ".BLOCK_AJAX_MARKING_CONF_GROUPS." AND {$groupsubquerya} )
-                    OR
-                    ( ( bama.display IS NULL OR bama.display = ".BLOCK_AJAX_MARKING_CONF_DEFAULT." )
-                        AND
-                        ( bamc.display IS NULL
-                          OR bamc.display = ".BLOCK_AJAX_MARKING_CONF_SHOW."
-                          OR (bamc.display = ".BLOCK_AJAX_MARKING_CONF_GROUPS. "
-                              AND {$groupsubqueryc})
-                        )
-                    )
-                    )"));
+                                  OR
+
+                                  (settings_course_modules.display = 1
+                                   AND settings_course_modules.groupsdisplay = 0)
+
+                                  OR
+
+                                   (settings_course_modules.display = 1
+                                    AND settings_course_modules.groupsdisplay = 0
+                                    AND settings_course_modules_groups.display = 1)
+
+                                  OR
+
+                                  (settings_course_modules.display IS NULL
+                                   AND settings_course.display = 1
+                                   AND settings_course.groupsdisplay = 0)
+
+                                  OR
+
+                                  (settings_course_modules.display IS NULL
+                                   AND settings_course.display = 1
+                                   AND settings_course.groupsdisplay = 1
+                                   AND settings_course_groups.display = 1)
+                                )"));
 
     }
 
@@ -608,14 +651,14 @@ class block_ajax_marking_query_factory {
         // the session already, so we take advantage of it.
         $contexts = get_context_instance(CONTEXT_MODULE, array_keys($coursemoduleids));
         // Use has_capability to loop through them finding out which are blocked. Unset all that we
-        // have parmission to grade, leaving just those we are not allowed (smaller list). Hopefully
+        // have permission to grade, leaving just those we are not allowed (smaller list). Hopefully
         // this will never exceed 1000 (oracle hard limit on number of IN values).
         foreach ($contexts as $key => $context) {
             if (has_capability($query->get_capability(), $context)) { // this is fast because cached
                 unset($contexts[$key]);
             }
         }
-        // return a get_in_or_equals with NOT IN if there are any, or empty strings if there arent.
+        // return a get_in_or_equals with NOT IN if there are any, or empty strings if there aren't.
         if (!empty($contexts)) {
             list($contextssql, $contextsparams) = $DB->get_in_or_equal(array_keys($contexts),
                                                                        SQL_PARAMS_NAMED,
@@ -731,24 +774,38 @@ class block_ajax_marking_query_factory {
     }
 
     /**
-     * Provides an EXISTS(xxx) subquery that tells us whether there is a group with user x in it
+     * Provides a subquery with all users who are in groups that ought to be displayed, per config
+     * setting e.g. which users are in displayed groups display for items where groups display is
+     * enabled. We use a SELECT 1 to see if the user of the submission is there for the relevant
+     * config thing.
      *
-     * @param string $configalias this is the alias of the config table in the SQL
-     * @param string $useridfield
-     * @return string SQL fragment
+     * @return array SQL fragment and params
      */
-    private function get_sql_groups_subquery($configalias, $useridfield) {
+    private function get_sql_groups_subquery() {
+        global $USER;
 
-        $groupsql = " EXISTS (SELECT 1
-                                FROM {groups_members} gm
-                          INNER JOIN {groups} g
-                                  ON gm.groupid = g.id
-                          INNER JOIN {block_ajax_marking_groups} gs
-                                  ON g.id = gs.groupid
-                               WHERE gm.userid = {$useridfield}
-                                 AND gs.configid = {$configalias}.id) ";
+        static $count = 1; // If we reuse this, we cannot have the same names for the params
 
-        return $groupsql;
+        // If a user is in two groups, this will lead to duplicates. We use DISTINCT in the
+        // SELECT to prevent this. Possibly one group will say 'display' and the other will say
+        // 'hide'. We assume display if it's there, using MAX to get any 1 that there is.
+        $groupsql = " SELECT DISTINCT gm.userid, groups_settings.configid,
+                             MAX(groups_settings.display) AS display
+                        FROM {groups_members} gm
+                  INNER JOIN {groups} g
+                          ON gm.groupid = g.id
+                  INNER JOIN {block_ajax_marking_groups} groups_settings
+                          ON g.id = groups_settings.groupid
+                  INNER JOIN {block_ajax_marking} settings
+                          ON groups_settings.configid = settings.id
+                       WHERE settings.groupsdisplay = 1
+                         AND settings.userid = :groupsettingsuserid{$count}
+                    GROUP BY gm.userid, groups_settings.configid";
+        // Adding userid to reduce the results set so that the SQL can be more efficient
+        $params = array('groupsettingsuserid'.$count => $USER->id);
+        $count++;
+
+        return array($groupsql, $params);
 
     }
 }
