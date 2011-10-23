@@ -363,11 +363,10 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     /**
      * Returns a query object with the basics all set up to get assignment stuff
      *
-     * @param bool $callback
      * @global type $DB
      * @return block_ajax_marking_query_base
      */
-    public function query_factory($callback = false) {
+    public function query_factory() {
 
         global $DB, $USER;
 

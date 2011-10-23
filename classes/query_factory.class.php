@@ -556,8 +556,9 @@ class block_ajax_marking_query_factory {
                            " AND settings_course_groups.userid = {$useridfield}"
         ));
 
-        // Hierarchy of displaying things, simplest first.
-        // - No display settings (default show, no groups)
+        // Hierarchy of displaying things, simplest first. Hopefully lazy evaluation will make it
+        // quick.
+        // - No display settings (default to show without any groups)
         // - settings_course_modules display is 1, settings_course_modules.groupsdisplay is 0.
         //   Overrides any course settings
         // - settings_course_modules display is 1, groupsdisplay is 1 and user is in OK group

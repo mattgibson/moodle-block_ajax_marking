@@ -91,7 +91,7 @@ class block_ajax_marking_query_base {
     /**
      * Constructor
      *
-     * @param \block_ajax_marking_query_base|bool $moduleobject
+     * @param \block_ajax_marking_module_base|bool $moduleobject
      * @return \block_ajax_marking_query_base
      */
     public function __construct($moduleobject = false) {

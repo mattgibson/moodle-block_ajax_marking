@@ -324,18 +324,15 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
     /**
      * Returns a query object with the basics all set up to get assignment stuff
      *
-     * @param bool $callback
      * @global moodle_database $DB
      * @return block_ajax_marking_query_base
      */
-    public function query_factory($callback = false) {
+    public function query_factory() {
 
         global $DB;
 
         $query = new block_ajax_marking_query_base($this);
         $query->set_userid_column('quiz_attempts.userid');
-
-        global $DB;
 
         $query->add_from(array(
                 'table' => $this->modulename,
