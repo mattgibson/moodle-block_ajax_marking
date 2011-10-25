@@ -916,7 +916,7 @@ function &block_ajax_marking_get_module_classes($reset=false) {
 }
 
 /**
- * Splits the node into display and returndata bits. Display will only involve certian things, so we
+ * Splits the node into display and returndata bits. Display will only involve certain things, so we
  * can hardcode them to be shunted into where they belong. Anything else should be in returndata,
  * which will vary a lot, so we use that as the default.
  *
@@ -985,6 +985,38 @@ function block_ajax_marking_form_url($params=array()) {
 
     return $url;
 
+}
+
+/**
+ * This is not used for output, but just converts the parametrised query to one that can be
+ * copy/pasted into an SQL GUI in order to debug SQL errors
+ *
+ * @param $query
+ * @param bool $params
+ * @global type $CFG
+ * @return string
+ */
+function block_ajax_marking_debuggable_query($query, $params = false) {
+
+    global $CFG;
+
+    if (!is_string($query)) {
+        $params = $query->get_params();
+        $query = $query->to_string();
+    }
+
+    // Substitute all the {tablename} bits
+    $query = preg_replace('/\{/', $CFG->prefix, $query);
+    $query = preg_replace('/}/', '', $query);
+
+    // Now put all the params in place
+    foreach ($params as $name => $value) {
+        $pattern = '/:'.$name.'/';
+        $replacevalue = (is_numeric($value) ? $value : "'".$value."'");
+        $query = preg_replace($pattern, $replacevalue, $query);
+    }
+
+    return $query;
 }
 
 

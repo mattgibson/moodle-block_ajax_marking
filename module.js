@@ -28,7 +28,7 @@ if (typeof(M.block_ajax_marking) === 'undefined') {
     M.block_ajax_marking = {};
 }
 
-// used to deterine whether to log everything to console
+// used to determine whether to log everything to console
 //const debugdeveloper = 38911;
 //const debugall       = 6143;
 
@@ -51,6 +51,8 @@ M.block_ajax_marking.ajaxgradeurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/
  * Base class that can be used for the main and config trees. This extends the
  * YUI treeview class ready to add some new functions to it which are common to both the
  * main and config trees.
+ *
+ * @constructor
  */
 M.block_ajax_marking.tree_base = function(treediv) {
     M.block_ajax_marking.tree_base.superclass.constructor.call(this, treediv);
@@ -72,6 +74,8 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
 
 /**
  * Constructor for the groups tree
+ *
+ * @constructor
  */
 M.block_ajax_marking.cohorts_tree = function() {
     this.initial_nodes_data = 'nextnodefilter=cohortid';
@@ -82,15 +86,38 @@ M.block_ajax_marking.cohorts_tree = function() {
 YAHOO.lang.extend(M.block_ajax_marking.cohorts_tree, M.block_ajax_marking.tree_base);
 
 /**
- * Constructor for the groups tree
+ * Constructor for the users tree
  */
 M.block_ajax_marking.users_tree = function() {
     this.initial_nodes_data = 'nextnodefilter=userid';
     M.block_ajax_marking.tree_base.superclass.constructor.call(this, 'usersstree');
 };
 
-// make the groups tree into a subclass of the base class
+// make the users tree into a subclass of the base class
 YAHOO.lang.extend(M.block_ajax_marking.users_tree, M.block_ajax_marking.tree_base);
+
+/**
+ * Constructor for the config tree
+ */
+M.block_ajax_marking.config_tree = function() {
+    this.initial_nodes_data = 'nextnodefilter=courseid&config=1';
+    this.supplementaryreturndata = 'config=1';
+    M.block_ajax_marking.tree_base.superclass.constructor.call(this, 'configtree');
+};
+
+// make the config tree into a subclass of the base class
+YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_base);
+
+/**
+ * Makes a label out of the text (name of the node) and the count of unmarked items
+ *
+ * @param text
+ * @param count
+ * @return string
+ */
+M.block_ajax_marking.tree_base.prototype.node_label = function(text, count) {
+    return '('+count+') '+text;
+}
 
 /**
  * New unified build nodes function
@@ -108,6 +135,10 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
     var currenttime = Math.round((new Date()).getTime() / 1000); // current unix time
     var iconstyle = '';
     var numberofnodes = nodesarray.length;
+    var labelspan = '';
+    var labeltext = '';
+    var countspan = '';
+    var counttext = '';
 
     // we need to attach nodes to the root node if this is the initial build after a refresh
     var holdertype = typeof(M.block_ajax_marking.parentnodeholder);
@@ -140,9 +171,10 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
 
         // Add a count if we have more than one thing or we're not at the final node
         // e.g. student name
-        if (nodedata.display.count > 1 || nodedata.returndata.nextnodefilter !== false) {
-            nodedata.label = '(<span class="AMB_count">' + nodedata.display.count + '</span>) ' +
-                             nodedata.label;
+        if (typeof(nodedata.display.count) !== 'undefined' &&
+            (nodedata.display.count > 1 || nodedata.returndata.nextnodefilter !== false)) {
+
+            nodedata.label = this.node_label(nodedata.label, nodedata.display.count);
         }
 
         newnode = new YAHOO.widget.TextNode(nodedata, M.block_ajax_marking.parentnodeholder, false);
@@ -240,8 +272,6 @@ M.block_ajax_marking.tree_base.prototype.request_node_data = function(clickednod
     M.block_ajax_marking.parentnodeholder = clickednode;
     M.block_ajax_marking.oncompletefunctionholder = callbackfunction;
 
-    var postdata = [];
-
     // The callback function is the SQL GROUP BY for the next set of nodes, so this is separate
     var nodefilters = M.block_ajax_marking.getnodefilters(clickednode);
     nodefilters.push('nextnodefilter=' + clickednode.data.returndata.nextnodefilter);
@@ -288,8 +318,9 @@ M.block_ajax_marking.tree_base.prototype.update_parent_node = function(parentnod
         if (nodechildrenlength === 0) {
             this.removeNode(parentnodetoupdate, true);
         } else { // Update the node with its new total
-            var newlabel = '(<span class="AMB_count">' + nodecount + '</span>) ' +
-                           parentnodetoupdate.data.display.name;
+
+            var newlabel = this.node_label(parentnodetoupdate.data.display.name, nodecount);
+
             parentnodetoupdate.data.display.count = nodecount;
             parentnodetoupdate.label = newlabel
         }
@@ -342,11 +373,15 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
  * Rcursive function to get the return data from this node and all its parents. Each parent
  * represents a filter e.g. 'only this course', so we need to specify the id numbers for the SQL
  *
- * @param object node
+ * @param node object
  */
 M.block_ajax_marking.getnodefilters = function(node) {
 
     var nodefilters = [];
+
+    if (typeof(node.tree.supplementaryreturndata) !== 'undefined') {
+        nodefilters.push(node.tree.supplementaryreturndata);
+    }
 
     // The callback function is the SQL GROUP BY for the next set of nodes, so this is separate
     //    returndata.push('callbackfunction='+node.data.returndata.callbackfunction);
@@ -355,14 +390,16 @@ M.block_ajax_marking.getnodefilters = function(node) {
 
     while (!nextparentnode.isRoot()) {
         // Add the other item
-        for (varname in nextparentnode.data.returndata) {
-            // Add all the non-callbackfunction stuff e.g. courseid so we can use it to filter the
-            // unmarked work
-            if (varname != 'nextnodefilter' && nextparentnode.data.returndata[varname] != '') {
-                nodefilters.push(varname + '=' + nextparentnode.data.returndata[varname]);
+        if (typeof (nextparentnode.data.returndata !== 'undefined')) {
+            for (varname in nextparentnode.data.returndata) {
+                // Add all the non-callbackfunction stuff e.g. courseid so we can use it to filter the
+                // unmarked work
+                if (varname != 'nextnodefilter' && nextparentnode.data.returndata[varname] != '') {
+                    nodefilters.push(varname + '=' + nextparentnode.data.returndata[varname]);
+                }
             }
+            nextparentnode = nextparentnode.parent;
         }
-        nextparentnode = nextparentnode.parent;
     }
     return nodefilters;
 }
@@ -416,11 +453,12 @@ M.block_ajax_marking.tree_base.prototype.recalculate_total_count = function() {
  * Makes it so that the total count displays the count of this tree
  */
 M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
+    this.recalculate_total_count();
     document.getElementById('count').innerHTML = this.totalcount.toString();
 }
 
 /**
- * This is to control what node the tree asks for next when a user clicks on a node
+ * This is to control what node the cohorts tree asks for next when a user clicks on a node
  *
  * @param string currentfilter
  * @param string modulename can be false or undefined if not there
@@ -460,6 +498,38 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
 
     return nextnodefilter;
 }
+
+/**
+ * This is to control what node the tree asks for next when a user clicks on a node
+ *
+ * @param string currentfilter
+ * @param string modulename can be false or undefined if not there
+ * @return string|bool false if nothing
+ */
+M.block_ajax_marking.config_tree.prototype.nextnodetype = function(currentfilter, modulename) {
+    // if nothing else is found, make the node into a final one with no children
+    var nextnodefilter = false;
+
+    switch (currentfilter) {
+
+        case 'courseid':
+            return 'coursemoduleid';
+
+        case 'coursemoduleid':
+            nextnodefilter = false;
+        // fall through because we need to offer the option to alter things after coursemoduleid.
+
+        default:
+        // any special nodes that came back from a module addition
+    }
+
+    return nextnodefilter;
+}
+
+/**
+ * Empty function - the config tree has no need to update parnet counts.
+ */
+M.block_ajax_marking.config_tree.prototype.update_parent_node = function () {}
 
 /**
  * This is to control what node the tree asks for next when a user clicks on a node
@@ -708,6 +778,14 @@ M.block_ajax_marking.initialise = function() {
             'content':'<div id="cohortstree"></div>'});
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
+
+        /*
+        var configtab = new Y.Tab({
+            'label':'Config',
+            'content':'<div id="configtree"></div>'});
+        M.block_ajax_marking.tabview.add(configtab);
+        configtab.displaywidget = new M.block_ajax_marking.config_tree();
+        */
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function(e) {

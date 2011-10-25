@@ -405,62 +405,73 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     }
 
 
+    /**
+     * Applies filtering when assignment submission nodes need displaying by userid. Currently,
+     * this means that only the displayselect and countselect bit are used.
+     *
+     * @param block_ajax_marking_query_base $query
+     * @param $operation
+     * @param bool $userid
+     * @return void
+     */
+    public function apply_userid_filter(block_ajax_marking_query_base $query, $operation,
+                                        $userid = false) {
 
-    public function apply_userid_filter(block_ajax_marking_query_base $query,
-                                        $userid = false,
-                                        $outerquery = false) {
+        $selects = array();
 
-        if ($userid) {
-            // Not sure we'll ever need this, but just in case...
-            $query->add_where(array(
-                    'type' => 'AND',
-                    'condition' => 'sub.userid = :'.$query->prefix_param('submissionid')));
-            $query->add_param('submissionid', $userid);
-            return;
+        switch ($operation) {
+
+            case 'where':
+                // Not sure we'll ever need this, but just in case...
+                $query->add_where(array(
+                        'type' => 'AND',
+                        'condition' => 'sub.userid = :'.$query->prefix_param('submissionid')));
+                $query->add_param('submissionid', $userid);
+                break;
+
+            case 'displayselect':
+
+                $selects = array(
+                    array(
+                        'table' => 'usertable',
+                        'column' => 'firstname'),
+                    array(
+                        'table' => 'usertable',
+                        'column' => 'lastname'),
+                );
+
+                $query->add_from(array(
+                        'join' => 'INNER JOIN',
+                        'table' => 'user',
+                        'alias' => 'usertable',
+                        'on' => 'usertable.id = combinedmodulesubquery.id'));
+                break;
+
+            case 'countselect':
+                // We just want the counting stuff for the inner query
+                $selects = array(
+                    array(
+                        'table' => 'sub',
+                        'column' => 'userid'),
+                    array( // Count in case we have user as something other than the last node
+                        'function' => 'COUNT',
+                        'table'    => 'sub',
+                        'column'   => 'id',
+                        'alias'    => 'count',
+                        'distinct' => true),
+                    // This is only needed to add the right callback function.
+                    array(
+                        'column' => "'".$query->get_modulename()."'",
+                        'alias' => 'modulename'
+                        ));
+                break;
         }
 
-        if ($outerquery) { // Need to join to get the display stuff
-
-            $selects = array(
-                array(
-                    'table' => 'usertable',
-                    'column' => 'firstname'),
-                array(
-                    'table' => 'usertable',
-                    'column' => 'lastname'),
-            );
-
-            foreach ($selects as $select) {
-                $query->add_select($select);
-            }
-
-            $query->add_from(array(
-                    'join' => 'INNER JOIN',
-                    'table' => 'user',
-                    'alias' => 'usertable',
-                    'on' => 'usertable.id = combinedmodulesubquery.id'));
-        } else {
-            // We just want the counting stuff for the inner query
-            $selects = array(
-                array(
-                    'table' => 'sub',
-                    'column' => 'userid'),
-                array( // Count in case we have user as something other than the last node
-                    'function' => 'COUNT',
-                    'table'    => 'sub',
-                    'column'   => 'id',
-                    'alias'    => 'count',
-                    'distinct' => true),
-                // This is only needed to add the right callback function.
-                array(
-                    'column' => "'".$query->get_modulename()."'",
-                    'alias' => 'modulename'
-                    ));
-            foreach ($selects as $select) {
-                $query->add_select($select);
-            }
+        foreach ($selects as $select) {
+            $query->add_select($select);
         }
-
     }
+
+
 
 }

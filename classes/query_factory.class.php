@@ -42,12 +42,26 @@ class block_ajax_marking_query_factory {
      */
     public static function get_filtered_module_query($filters, $moduleclass) {
 
-        $query = $moduleclass->query_factory();
+        // Might be a config nodes query, in which case, we want to leave off the unmarked work
+        // stuff and make sure we add the display select stuff to this query instead of leaving
+        // it for the outer displayquery that the unmarked work needs
+        $confignodes = isset($filters['config']) ? true : false;
+        if ($confignodes) {
+            $query = new block_ajax_marking_query_base($moduleclass);
+            $query->add_from(array(
+                    'table' => $moduleclass->get_module_name(),
+                    'alias' => 'moduletable',
+            ));
+        } else {
+            $query = $moduleclass->query_factory($confignodes);
 
-        // Apply all the standard filters
-        self::apply_sql_enrolled_students($query);
-        self::apply_sql_visible($query);
-        self::apply_sql_display_settings($query);
+            // Apply all the standard filters. These only make sense when there's unmarked work
+            self::apply_sql_enrolled_students($query);
+            self::apply_sql_visible($query);
+            self::apply_sql_display_settings($query);
+
+        }
+
         self::apply_sql_owncourses($query);
 
         // Apply any filters specific to this request. Next node type one should be a GROUP BY,
@@ -55,15 +69,17 @@ class block_ajax_marking_query_factory {
         // the tree e.g. 'student', 'assessment', 'course'
         foreach ($filters as $name => $value) {
             if ($name == 'nextnodefilter') {
-                //continue; // nextnodefilter is applied to the outermost query
                 $filterfunctionname = 'apply_'.$value.'_filter';
                 // The new node filter is in the form 'nextnodefilter => 'functionname', rather
                 // than 'filtername' => <rowid> We want to pass the name of the filter in with
                 // an empty value, so we set the value here.
                 $value = false;
+                $operation = $confignodes ? 'configselect' : 'countselect';
             } else {
                 $filterfunctionname = 'apply_'.$name.'_filter';
+                $operation = 'where';
             }
+
             // Find the function. Core ones are part of this class, others will be methods of
             // the module object.
             // If we are filtering by a specific module, look there first
@@ -72,9 +88,11 @@ class block_ajax_marking_query_factory {
                 // methods of the module-specific subclass. If we have one of these, it will
                 // always be accompanied by a coursemoduleid, so will only be called on the
                 // relevant module query and not the rest
-                $moduleclass->$filterfunctionname($query, $value);
+                $moduleclass->$filterfunctionname($query, $operation, $value);
             } else if (method_exists(__CLASS__, $filterfunctionname)) {
-                self::$filterfunctionname($query, $value);
+                // config tree needs to have select stuff that doesn't mention sub. Like for the
+                // outer wrappers of the normal query for the unmarked work nodes
+                self::$filterfunctionname($query, $operation, $value);
             }
         }
 
@@ -102,7 +120,7 @@ class block_ajax_marking_query_factory {
      * class
      * @return array
      */
-    public static function get_query($filters = array()) {
+    public static function get_unmarked_nodes($filters = array()) {
 
         global $DB;
 
@@ -118,11 +136,13 @@ class block_ajax_marking_query_factory {
         }
 
         $filternames = array_keys($filters);
+        $havecoursemodulefilter = in_array('coursemoduleid', $filternames);
+        $makingcoursemodulenodes = ($filters['nextnodefilter'] === 'coursemoduleid');
 
         // If one of the filters is coursemodule, then we want to avoid querying all of the module
         // tables and just stick to the one with that coursemodule. If not, we do a UNION of all
         // the modules
-        if (in_array('coursemoduleid', $filternames)) {
+        if ($havecoursemodulefilter) {
             // Get the right module id
             $moduleid = $DB->get_field('course_modules', 'module',
                                        array('id' => $filters['coursemoduleid']));
@@ -139,63 +159,66 @@ class block_ajax_marking_query_factory {
             $modulequeries[$modname] = self::get_filtered_module_query($filters, $moduleclass);
 
             if ($moduleid) {
-                break; // No need to carry on once we've done the only one
+                break; // No need to carry on once we've got the only one we need
             }
         }
 
         // Make an array of queries to join with UNION ALL. This will get us the counts for each
-        // module Implode separate subqueries with UNION ALL. Must use ALL to cope with duplicate
+        // module. Implode separate subqueries with UNION ALL. Must use ALL to cope with duplicate
         // rows with same counts and ids across the UNION. Doing it this way keeps the other items
         // needing to be placed into the SELECT  out of the way of the GROUP BY bit, which makes
         // Oracle bork up.
-        $moduleunionqueries = array();
-        $moduleunionparams = array();
+        $unionallmodulesqueries = array();
+        $unionallmodulesparams = array();
         foreach ($modulequeries as $query) {
             /** @var $query block_ajax_marking_query_base */
-            $moduleunionqueries[] = $query->to_string();
-            $moduleunionparams = array_merge($moduleunionparams, $query->get_params());
+            $unionallmodulesqueries[] = $query->to_string();
+            $unionallmodulesparams = array_merge($unionallmodulesparams, $query->get_params());
         }
-        $moduleunion = implode("\n\n UNION ALL \n\n", $moduleunionqueries);
+        $unionallmodulesqueries = implode("\n\n UNION ALL \n\n", $unionallmodulesqueries);
         // We want the bare minimum here. The idea is to avoid problems with GROUP BY ambiguity,
-        // so we just get the counts
-        $select = "moduleunion.".$filters['nextnodefilter'].
-                  " AS id, SUM(moduleunion.count) AS count ";
-        $groupby = "moduleunion.".$filters['nextnodefilter'];
-        $havecoursemodulefilter = in_array('coursemoduleid', $filternames);
-        $makingcoursemodulenodes = $filters['nextnodefilter'] === 'coursemoduleid';
+        // so we just get the counts as well as the node ids
+        $countwrapperselect = "moduleunion.{$filters['nextnodefilter']} AS id,
+                   SUM(moduleunion.count) AS count ";
+        $countwrappergroupby = "moduleunion.".$filters['nextnodefilter'];
+
         if ($havecoursemodulefilter || $makingcoursemodulenodes) {
-            // Needed to get correct javascript
-            $select .=  ", moduleunion.modulename AS modulename ";
-            $groupby .=  ", moduleunion.modulename ";
+            // Needed to access the correct javascript so we can open the correct popup, so
+            // we include the name of the module
+            $countwrapperselect .=  ", moduleunion.modulename AS modulename ";
+            $countwrappergroupby .=  ", moduleunion.modulename ";
         }
-        $combinedmodulesubquery = "
-            SELECT {$select}
-              FROM ({$moduleunion}) moduleunion
-          GROUP BY {$groupby}
+        // This (called countwrapper elsewhere) gets us the ids of the nodes we want, plus counts
+        // of how many bits of unmarked work there are in a way that works for fussy DBs like
+        // Oracle.
+        $countwrappersubquery = "
+            SELECT {$countwrapperselect}
+              FROM ({$unionallmodulesqueries}) moduleunion
+          GROUP BY {$countwrappergroupby}
           "; // Newlines so the debug query reads better
 
         // The outermost query just joins the already counted nodes with their display data e.g. we
         // already have a count for each courseid, now we want course name and course description
         // but we don't do this in the counting bit so as to avoid weird issues with group by on
         // oracle
-        $unionquery = new block_ajax_marking_query_base();
-        $unionquery->add_select(array(
+        $displayquery = new block_ajax_marking_query_base();
+        $displayquery->add_select(array(
                 'table'    => 'combinedmodulesubquery',
                 'column'   => 'id',
                 'alias'    => $filters['nextnodefilter']));
-        $unionquery->add_select(array(
+        $displayquery->add_select(array(
                 'table'    => 'combinedmodulesubquery',
                 'column'   => 'count'));
         if ($havecoursemodulefilter) { // Need to have this pass through in case we have a mixture
-            $unionquery->add_select(array(
+            $displayquery->add_select(array(
                 'table'    => 'combinedmodulesubquery',
                 'column'   => 'modulename'));
         }
-        $unionquery->add_from(array(
-                'table'    => $combinedmodulesubquery,
+        $displayquery->add_from(array(
+                'table'    => $countwrappersubquery,
                 'alias'    => 'combinedmodulesubquery',
                 'subquery' => true));
-        $unionquery->add_params($moduleunionparams, false);
+        $displayquery->add_params($unionallmodulesparams, false);
 
         // Now we need to run the final query through the filter for the nextnodetype so that the
         // rest of the necessary SELECT columns can be added, along with the JOIN to get them
@@ -203,20 +226,21 @@ class block_ajax_marking_query_factory {
         if ($moduleid && method_exists($moduleclass, $nextnodefilterfunction)) {
             // If we stopped when we got to the class we wanted in the loop above, $moduleclass
             // will still be assigned to the one we want
-            $moduleclass->$nextnodefilterfunction($unionquery, false, true); // allow override
+            $moduleclass->$nextnodefilterfunction($displayquery, 'displayselect'); // allow override
         } else if (method_exists(__CLASS__, $nextnodefilterfunction)) {
-            self::$nextnodefilterfunction($unionquery, false, true);
+            self::$nextnodefilterfunction($displayquery, 'displayselect');
         } else {
-            // Problem - we have nothing to provide node display data
-            $text = 'No final filter applied for nextnodetype! ('.$filterfunctionname.')';
+            // Problem - we have nothing to provide node display data.
+            $text = 'No final filter applied for nextnodetype! ('.$nextnodefilterfunction.')';
             throw new coding_exception($text);
         }
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
-        $debugquery = $unionquery->debuggable_query();
+        $debugquery = block_ajax_marking_debuggable_query($displayquery);
 
-        $nodes = $unionquery->execute();
+        $nodes = $displayquery->execute();
         if ($moduleid) {
+            // this does e.g. allowing the forum module to tweak the name depending on forum type
             $moduleclass->postprocess_nodes_hook($nodes, $filters);
         }
         return $nodes;
@@ -227,51 +251,70 @@ class block_ajax_marking_query_factory {
      * Applies the filter needed for course nodes or their descendants
      *
      * @param block_ajax_marking_query_base $query
-     * @param int $courseid Optional. Will apply SELECT and GROUP BY for nodes if missing
-     * @param bool $union If we are glueing many module queries together, we will need to
+     * @param bool|string $operation If we are glueing many module queries together, we will need to
      *                    run a wrapper query that will select from the UNIONed subquery
+     * @param int $courseid Optional. Will apply SELECT and GROUP BY for nodes if missing
      * @return void|string
      */
-    private static function apply_courseid_filter($query, $courseid = 0, $union = false) {
+    private static function apply_courseid_filter($query, $operation, $courseid = 0) {
         // Apply SELECT clauses for course nodes
 
-        if ($courseid) { // We are getting courses
-            // Apply WHERE clause
-            $query->add_where(array(
-                    'type' => 'AND',
-                    'condition' => 'moduletable.course = :'.$query->prefix_param('courseid')));
-            $query->add_param('courseid', $courseid);
-            return;
-        }
+        $selects = array();
+        $tablename = 'combinedmodulesubquery.id';
 
-        if (!$union) { // What do we need for the individual module queries?
+        switch ($operation) {
 
-            $selects = array(
-                array(
-                    'table'    => 'moduletable',
-                    'column'   => 'course',
-                    'alias'    => 'courseid'),
-                array(
-                    'table'    => 'sub',
-                    'column'   => 'id',
-                    'alias'    => 'count',
-                    'function' => 'COUNT',
-                    'distinct' => true));
-        } else {
-            $query->add_from(array(
-                    'join' => 'INNER JOIN',
-                    'table' => 'course',
-                    'on' => 'combinedmodulesubquery.id = course.id'
-            ));
-            $selects = array(
-                array(
-                    'table'    => 'course',
-                    'column'   => 'shortname',
-                    'alias'    => 'name'),
-                array(
-                    'table'    => 'course',
-                    'column'   => 'fullname',
-                    'alias'    => 'tooltip'));
+            case 'where':
+                // This is for when a courseid node is an ancestor of the node that has been
+                // selected, so we just do a where
+
+                $query->add_where(array(
+                        'type' => 'AND',
+                        'condition' => 'moduletable.course = :'.$query->prefix_param('courseid')));
+                $query->add_param('courseid', $courseid);
+                break;
+
+            case 'countselect':
+                // This is for the module queries when we are making course nodes
+                $selects = array(
+                    array(
+                        'table'    => 'moduletable',
+                        'column'   => 'course',
+                        'alias'    => 'courseid'),
+                    array(
+                        'table'    => 'sub',
+                        'column'   => 'id',
+                        'alias'    => 'count',
+                        'function' => 'COUNT',
+                        'distinct' => true));
+                break;
+
+            case 'configselect':
+                $query->add_select(array(
+                        'table'    => 'moduletable',
+                        'column'   => 'course',
+                        'alias'    => 'courseid'));
+                // Without the wrapped queries, we just join straight to the modules
+                $tablename = 'moduletable.course';
+
+            case 'displayselect':
+                // This is for the displayquery when we are making course nodes
+                $query->add_from(array(
+                        'join' => 'INNER JOIN',
+                        'table' =>'course',
+                        'alias' => 'course',
+                        'on' => $tablename.' = course.id'
+                ));
+                $selects = array(
+                    array(
+                        'table'    => 'course',
+                        'column'   => 'shortname',
+                        'alias'    => 'name'),
+                    array(
+                        'table'    => 'course',
+                        'column'   => 'fullname',
+                        'alias'    => 'tooltip'));
+                break;
         }
 
         foreach ($selects as $select) {
@@ -282,10 +325,11 @@ class block_ajax_marking_query_factory {
     /**
      *
      * @param block_ajax_marking_query_base $query
+     * @param $operation
      * @param bool|int $groupid
      * @return void
      */
-    private static function apply_groupid_filter ($query, $groupid = false) {
+    private static function apply_groupid_filter ($query, $operation, $groupid = false) {
 
         if (!$groupid) {
             $selects = array(array(
@@ -322,24 +366,24 @@ class block_ajax_marking_query_factory {
     /**
      * Applies a filter so that only nodes from a certain cohort are returned
      *
-     * @global moodle_database $DB
      * @param \block_ajax_marking_query_base|bool $query
+     * @param $operation
      * @param bool|int $cohortid
-     * @param bool $union
+     * @global moodle_database $DB
      * @return void
      */
-    private static function apply_cohortid_filter($query = false,
-                                                  $cohortid = false,
-                                                  $union = false) {
+    private static function apply_cohortid_filter(block_ajax_marking_query_base $query,
+                                                  $operation, $cohortid = false) {
 
         global $DB;
+
+        $selects = array();
 
         // Note: Adding a cohort filter after any other filter will cause a problem as e.g. courseid
         // will not include the code below limiting users to just those who are in a cohort. This
         // means that the total count may well be higher for
 
-        // We need to join the userid to the cohort, if there is one
-
+        // We need to join the userid to the cohort, if there is one.
         $useridcolumn = $query->get_userid_column();
         if ($useridcolumn) {
             // Add join to cohort_members
@@ -362,44 +406,50 @@ class block_ajax_marking_query_factory {
                     'condition' => $DB->sql_compare_text('ue.enrol')." = 'cohort'"));
         }
 
-        if ($cohortid) {
-            // Apply WHERE clause
-            $query->add_where(array(
-                    'type' => 'AND',
-                    'condition' => 'cohort.id = :'.$query->prefix_param('cohortid')));
-            $query->add_param('cohortid', $cohortid);
-            return;
+        switch ($operation) {
+
+            case 'where':
+
+                // Apply WHERE clause
+                $query->add_where(array(
+                        'type' => 'AND',
+                        'condition' => 'cohort.id = :'.$query->prefix_param('cohortid')));
+                $query->add_param('cohortid', $cohortid);
+                break;
+
+            case 'countselect':
+
+                $selects = array(array(
+                        'table'    => 'cohort',
+                        'column'   => 'id',
+                        'alias'    => 'cohortid'),
+                    array(
+                        'table'    => 'sub',
+                        'column'   => 'id',
+                        'alias'    => 'count',
+                        'function' => 'COUNT',
+                        'distinct' => true),
+                );
+                break;
+
+            case 'displayselect':
+
+                // What do we need for the nodes?
+                $query->add_from(array(
+                        'join' => 'INNER JOIN',
+                        'table' => 'cohort',
+                        'on' => 'combinedmodulesubquery.id = cohort.id'
+                ));
+                $selects = array(
+                    array(
+                        'table'    => 'cohort',
+                        'column'   => 'name'),
+                    array(
+                        'table'    => 'cohort',
+                        'column'   => 'description'));
+                break;
         }
 
-        if (!$union) { // what we want if we are just dealing with a single module in the count bit
-
-            $selects = array(array(
-                    'table'    => 'cohort',
-                    'column'   => 'id',
-                    'alias'    => 'cohortid'),
-                array(
-                    'table'    => 'sub',
-                    'column'   => 'id',
-                    'alias'    => 'count',
-                    'function' => 'COUNT',
-                    'distinct' => true),
-            );
-        } else {
-            // What do we need for the nodes?
-            $query->add_from(array(
-                    'join' => 'INNER JOIN',
-                    'table' => 'cohort',
-                    'on' => 'combinedmodulesubquery.id = cohort.id'
-            ));
-            $selects = array(
-                array(
-                    'table'    => 'cohort',
-                    'column'   => 'name'),
-                array(
-                    'table'    => 'cohort',
-                    'column'   => 'description'));
-
-        }
         foreach ($selects as $select) {
             $query->add_select($select);
         }
@@ -410,17 +460,25 @@ class block_ajax_marking_query_factory {
      *
      * @param block_ajax_marking_query_base $query
      * @param int $coursemoduleid optional. Will apply SELECT and GROUP BY for nodes if missing
-     * @param bool $union
+     * @param bool $operation
      * @return void
      */
-    private static function apply_coursemoduleid_filter($query,
-                                                        $coursemoduleid = 0,
-                                                        $union = false) {
+    private static function apply_coursemoduleid_filter($query, $operation, $coursemoduleid = 0 ) {
+        $selects = array();
+        $jointable = 'combinedmodulesubquery.id';
 
-        if (!$coursemoduleid) {
+        switch ($operation) {
 
-            // Same order as the next query will need them
-            if (!$union) {
+            case 'where':
+                $query->add_where(array(
+                        'type' => 'AND',
+                        'condition' => 'cm.id = :'.$query->prefix_param('coursemoduleid')));
+                $query->add_param('coursemoduleid', $coursemoduleid);
+                break;
+
+            case 'countselect':
+
+                // Same order as the next query will need them
                 $selects = array(
                     array(
                         'table' => 'cm',
@@ -437,13 +495,19 @@ class block_ajax_marking_query_factory {
                         'column' => "'".$query->get_modulename()."'",
                         'alias' => 'modulename'
                         ));
-            } else {
+                    break;
+
+            case 'configselect':
+
+//                $jointable = '';
+
+            case 'displayselect':
 
                 // Need to get the module stuff from specific tables, not coursemodule
                 $query->add_from(array(
                         'join' => 'INNER JOIN',
                         'table' => 'course_modules',
-                        'on' => 'combinedmodulesubquery.id = course_modules.id'
+                        'on' => $jointable.' = course_modules.id'
                 ));
 
                 // Awkwardly, the course_module table doesn't hold the name and description of the
@@ -482,20 +546,12 @@ class block_ajax_marking_query_factory {
                             'function' => 'COALESCE',
                             'column'   => 'intro',
                             'alias'    => 'tooltip')
-
                 );
-            }
+                break;
+        }
 
-            foreach ($selects as $select) {
-                $query->add_select($select);
-            }
-
-        } else {
-            // Apply WHERE clause
-            $query->add_where(array(
-                    'type' => 'AND',
-                    'condition' => 'cm.id = :'.$query->prefix_param('coursemoduleid')));
-            $query->add_param('coursemoduleid', $coursemoduleid);
+        foreach ($selects as $select) {
+            $query->add_select($select);
         }
     }
 
@@ -809,4 +865,50 @@ class block_ajax_marking_query_factory {
         return array($groupsql, $params);
 
     }
+
+    /**
+     * For the config nodes, we want all of the coursemodules. No need to worry about counting etc
+     *
+     * @param array $filters
+     * @return void
+     */
+    public static function get_config_nodes($filters) {
+
+        global $DB;
+
+        $modulequeries = array();
+        $moduleclasses = block_ajax_marking_get_module_classes();
+        if (!$moduleclasses) {
+            return array(); // No nodes
+        }
+
+        foreach ($moduleclasses as $modname => $moduleclass) {
+            /** @var $moduleclass block_ajax_marking_module_base */
+            $modulequeries[$modname] = self::get_filtered_module_query($filters, $moduleclass);
+        }
+
+        $unionallmodulesquery = array();
+        $unionallmodulesparams = array();
+        foreach ($modulequeries as $query) {
+            /** @var $query block_ajax_marking_query_base */
+            $unionallmodulesquery[] = $query->to_string();
+            $unionallmodulesparams = array_merge($unionallmodulesparams, $query->get_params());
+        }
+
+        // Just straight union here. No counts, so duplicates will happen and can be merged
+        // We just want anything where the user has permissions to grade.
+        $unionallmodulesquery = implode("\n\n UNION \n\n", $unionallmodulesquery);
+
+        // This is just for copying and pasting from the paused debugger into a DB GUI
+        $debugquery = block_ajax_marking_debuggable_query($unionallmodulesquery,
+                                                          $unionallmodulesparams);
+
+        $nodes = $DB->get_records_sql($unionallmodulesquery, $unionallmodulesparams);
+        return $nodes;
+
+    }
+
+
+
+
 }

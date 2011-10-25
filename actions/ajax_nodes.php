@@ -45,7 +45,7 @@ $PAGE->set_context(get_context_instance(CONTEXT_SYSTEM));
 // required_param() means hard-coding them.
 $params = array();
 
-// Need to get the filters in the right order so that the query recieves them in the right order
+// Need to get the filters in the right order so that the query receives them in the right order
 foreach ($_POST as $name => $value) {
     $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
 }
@@ -55,7 +55,12 @@ if (!isset($params['nextnodefilter'])) {
     die();
 }
 
-$nodes = block_ajax_marking_query_factory::get_query($params);
+if (isset($params['config'])) {
+    $nodes = block_ajax_marking_query_factory::get_config_nodes($params);
+} else {
+    $nodes = block_ajax_marking_query_factory::get_unmarked_nodes($params);
+}
+
 foreach ($nodes as &$node) {
     block_ajax_marking_format_node($node, $params['nextnodefilter']);
 }

@@ -471,92 +471,93 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     /**
      * This will alter a query to send back the stuff needed for quiz questions
      *
-     * @internal param int $questionid the id to filter by
-     * @param \block_ajax_marking_query_base|\type $query
+     * @param block_ajax_marking_query_base $query
+     * @param $operation
      * @param int $discussionid
-     * @param bool $outerquery
      * @return void
      */
-    public function apply_discussionid_filter(block_ajax_marking_query_base $query,
-                                              $discussionid = 0, $outerquery = false) {
+    public function apply_discussionid_filter(block_ajax_marking_query_base $query, $operation,
+                                              $discussionid = 0) {
 
-        // If we have an id, then discussion is an ancestor node. We are filtering the bits that
-        // do the counting in the inner query here
-        if ($discussionid) {
-            $query->add_where(array(
-                    'type' => 'AND',
-                    'condition' => 'discussion.id = :'.$query->prefix_param('discussionid')));
-            $query->add_param('discussionid', $discussionid);
-            return;
-        }
+        $selects = array();
 
-        // If we get this far, the current node type is this filter. If we are in the outerquery,
-        // we want to join to the table that provides the display details.
-        if ($outerquery) {
+        switch ($operation) {
 
-            // This will be derived form the coursemoduleid, but how to get it cleanly?
-            // The query will know, but not easy to get it out. Might have been prefixed.
-            // TODO pass this properly somehow
-            $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
-            // normal forum needs discussion title as label, participant usernames as description
-            // eachuser needs username as title and discussion subject as description
-            if ($this->forum_is_eachuser($coursemoduleid)) {
-                $query->add_select(array(
-                        'table' => 'firstpost',
-                        'column' => 'subject',
-                        'alias' => 'description'
-                ));
-            } else {
-                $query->add_select(array(
-                        'table' => 'firstpost',
-                        'column' => 'subject',
-                        'alias' => 'label'
-                ));
-                // TODO need a SELECT bit to get all userids of people in the discussion instead
-                $query->add_select(array(
-                        'table' => 'firstpost',
-                        'column' => 'message',
-                        'alias' => 'tooltip'
-                ));
-            }
+            case 'where':
+                $query->add_where(array(
+                        'type' => 'AND',
+                        'condition' => 'discussion.id = :'.$query->prefix_param('discussionid')));
+                $query->add_param('discussionid', $discussionid);
+                break;
 
-            $query->add_from(array(
-                    'join' => 'INNER JOIN',
-                    'table' => 'forum_discussions',
-                    'alias' => 'outerdiscussions',
-                    'on' => 'combinedmodulesubquery.id = outerdiscussions.id'
-            ));
+            case 'displayselect':
 
-            $query->add_from(array(
-                    'join' => 'INNER JOIN',
-                    'table' => 'forum_posts',
-                    'alias' => 'firstpost',
-                    'on' => 'firstpost.id = outerdiscussions.firstpost'
-            ));
-
-        } else {
-            // We are in the inner counting bit where module stuff is.
-            $selects = array(
-                array(
-                    'table' => 'discussions',
-                    'column' => 'id',
-                    'alias' => 'discussionid'),
-                array(
-                    'table' => 'sub',
-                    'column' => 'id',
-                    'alias' => 'count',
-                    'function' => 'COUNT',
-                    'distinct' => true),
-                // This is only needed to add the right callback function.
-                array(
-                    'column' => "'".$query->get_modulename()."'",
-                    'alias' => 'modulename'
+                // This will be derived form the coursemoduleid, but how to get it cleanly?
+                // The query will know, but not easy to get it out. Might have been prefixed.
+                // TODO pass this properly somehow
+                $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
+                // normal forum needs discussion title as label, participant usernames as description
+                // eachuser needs username as title and discussion subject as description
+                if ($this->forum_is_eachuser($coursemoduleid)) {
+                    $query->add_select(array(
+                            'table' => 'firstpost',
+                            'column' => 'subject',
+                            'alias' => 'description'
                     ));
-            foreach ($selects as $select) {
-                $query->add_select($select);
-            }
+                } else {
+                    $query->add_select(array(
+                            'table' => 'firstpost',
+                            'column' => 'subject',
+                            'alias' => 'label'
+                    ));
+                    // TODO need a SELECT bit to get all userids of people in the discussion instead
+                    $query->add_select(array(
+                            'table' => 'firstpost',
+                            'column' => 'message',
+                            'alias' => 'tooltip'
+                    ));
+                }
+
+                $query->add_from(array(
+                        'join' => 'INNER JOIN',
+                        'table' => 'forum_discussions',
+                        'alias' => 'outerdiscussions',
+                        'on' => 'combinedmodulesubquery.id = outerdiscussions.id'
+                ));
+
+                $query->add_from(array(
+                        'join' => 'INNER JOIN',
+                        'table' => 'forum_posts',
+                        'alias' => 'firstpost',
+                        'on' => 'firstpost.id = outerdiscussions.firstpost'
+                ));
+                break;
+
+
+            case 'countselect':
+                // We are in the inner counting bit where module stuff is.
+                $selects = array(
+                    array(
+                        'table' => 'discussions',
+                        'column' => 'id',
+                        'alias' => 'discussionid'),
+                    array(
+                        'table' => 'sub',
+                        'column' => 'id',
+                        'alias' => 'count',
+                        'function' => 'COUNT',
+                        'distinct' => true),
+                    // This is only needed to add the right callback function.
+                    array(
+                        'column' => "'".$query->get_modulename()."'",
+                        'alias' => 'modulename'
+                        ));
+                break;
         }
 
+        foreach ($selects as $select) {
+            $query->add_select($select);
+        }
     }
 
 

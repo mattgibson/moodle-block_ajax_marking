@@ -102,11 +102,10 @@ class block_ajax_marking_query_base {
      * Crunches the SELECT array into a valid SQL query string. Each has 'function', 'table',
      * 'column', 'alias', 'distinct'
      *
-     * @param bool $union Are we asking for a version of the SELECT clauses that can be used as a
      * wrapper via UNION?
      * @return string SQL
      */
-    public function get_select($union = false) {
+    public function get_select() {
 
         $selectarray = array();
 
@@ -573,45 +572,6 @@ class block_ajax_marking_query_base {
 
     }
 
-    /**
-     * Looks to the associated module to make any specific changes
-     *
-     * @param bool $groupby
-     * @return void
-     */
-    public function alter_query_hook($groupby = false) {
-        $this->moduleobject->alter_query_hook($this, $groupby);
-    }
-
-    /**
-     * This is not used for output, but just converts the parametrised query to one that can be
-     * copy/pasted into an SQL GUI in order to debug SQL errors
-     *
-     *
-     * @internal param string $query
-     * @internal param array $params
-     * @global type $CFG
-     * @return string
-     */
-    public function debuggable_query() {
-
-        global $CFG;
-
-        $query = $this->to_string();
-        $params = $this->get_params();
-
-        // Substitute all the {tablename} bits
-        $query = preg_replace('/\{/', $CFG->prefix, $query);
-        $query = preg_replace('/}/', '', $query);
-
-        // Now put all the params in place
-        foreach ($params as $name => $value) {
-            $pattern = '/:'.$name.'/';
-            $replacevalue = (is_numeric($value) ? $value : "'".$value."'");
-            $query = preg_replace($pattern, $replacevalue, $query);
-        }
-
-        return $query;
-    }
 
 }
+

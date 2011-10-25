@@ -112,7 +112,7 @@ abstract class block_ajax_marking_module_base {
      *
      * @return string
      */
-    protected function get_module_name() {
+    public function get_module_name() {
         return $this->modulename;
     }
 

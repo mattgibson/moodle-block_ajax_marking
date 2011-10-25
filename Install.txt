@@ -21,7 +21,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-This block is compatible with Moodle version 2.0 or later.
+This block is compatible with Moodle version 2.1 or later.
 
 To install, place this directory in your /blocks/ folder as-is and then visit the Admin ->
 notifications page (you will need to be logged in as an admin).
