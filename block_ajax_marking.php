@@ -149,17 +149,16 @@ class block_ajax_marking extends block_base {
                     <div id="treetabs">
                     </div>';
                 $this->content->footer .= '<div id="block_ajax_marking_refresh_button"></div>
-                                           <div id="block_ajax_marking_configure_button"></div>';
+                                           <div id="block_ajax_marking_configure_button"></div>
+                                           <div id="block_ajax_marking_error"></div>';
 
                 // Don't warn about javascript if the screenreader option is set - it was deliberate
-                if (!$USER->screenreader) {
-                    $noscript = '<noscript>
-                                     <p>'.
-                                         get_string('nojavascript', 'block_ajax_marking').
-                                    '</p>
-                                 </noscript>';
-                    $this->content->text .= $noscript;
-                }
+                $noscript = '<noscript>
+                                 <p>'.
+                                     get_string('nojavascript', 'block_ajax_marking').
+                                '</p>
+                             </noscript>';
+                $this->content->text .= $noscript;
 
                 // Set things going
                 $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true,

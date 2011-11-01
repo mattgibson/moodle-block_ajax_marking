@@ -282,12 +282,20 @@ span.ygtvlabel {
     clear: both;
 }
 #coursestreetab {
-    background-image: url([[pix:core|c/course]]);
-    background-repeat: no-repeat;
-    background-position: 50%;
+    background: url([[pix:core|c/course]]) no-repeat 50%;
     width: 35px;
     height: 25px;
     position: absolute;
     float: left;
     z-index: 100;
+}
+#block_ajax_marking_error {
+    display: none;
+    color: #000000;
+    background-color: #ff6666;
+    clear: both;
+    float: left;
+    overflow-x: scroll;
+    border: 1px solid #000;
+    padding: 3px;
 }

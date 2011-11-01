@@ -614,25 +614,36 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
 
     var mbam = M.block_ajax_marking;
     var ajaxresponsearray = '';
+    var errormessage = '';
 
     try {
         var ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
     } catch (error) {
         // add an empty array of nodes so we trigger all the update and cleanup stuff
-        // TODO - error handling code to prevent silent failure if data is mashed
-        document.getElementById('count').innerHTML = '?';
+        errormessage = '<strong>An error occurred:</strong><br />'
+        errormessage += o.responseText;
+        M.block_ajax_marking.show_error(errormessage);
     }
 
     // first object holds data about what kind of nodes we have so we can
     // fire the right function.
     //var payload = 'default';
-    if (typeof(ajaxresponsearray) !== 'object') {
-        // TODO error handling here
-    } else {
-        if (typeof(ajaxresponsearray['gradinginterface']) !== 'undefined') {
+    if (typeof(ajaxresponsearray) === 'object') {
+        // If we have a neatly structured Moodle error, we want to display it
+        if (typeof(ajaxresponsearray.error) !== 'undefined') {
+            errormessage = '<strong>A Moodle error occurred:</strong><br />';
+            errormessage += ajaxresponsearray.error+'<br />';
+            errormessage += '<strong>Debug info:</strong><br />';
+            errormessage += ajaxresponsearray.debuginfo+'<br />';
+            errormessage += '<strong>Stacktrace:</strong><br />';
+            errormessage += ajaxresponsearray.stacktrace+'<br />';
+            M.block_ajax_marking.show_error(errormessage);
+
+        } else if (typeof(ajaxresponsearray['gradinginterface']) !== 'undefined') {
             // We have gotten the grading form back. Need to add the HTML to the modal overlay
             M.block_ajax_marking.gradinginterface.setHeader('');
             M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content);
+
         } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
             M.block_ajax_marking.get_current_tab().displaywidget.build_nodes(ajaxresponsearray.nodes);
         }
@@ -640,6 +651,23 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
 
     YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
 };
+
+/**
+ * Shows an error message in the div below the tree.
+ * @param errormessage
+ */
+M.block_ajax_marking.show_error = function(errormessage) {
+
+    if (typeof(M.cfg.developerdebug) === 'undefined') {
+        errormessage = 'Error: Please contact your administrator.';
+    }
+
+    if (typeof(errormessage) === 'string') {
+        document.getElementById('block_ajax_marking_error').innerHTML = errormessage;
+    }
+    YAHOO.util.Dom.setStyle('block_ajax_marking_error', 'display', 'block');
+    document.getElementById('count').innerHTML = '?';
+}
 
 /**
  * function which fires if the AJAX call fails
@@ -702,9 +730,9 @@ M.block_ajax_marking.make_footer = function () {
         label     : M.str.block_ajax_marking.refresh,
         id        : 'block_ajax_marking_collapse',
         onclick   : {fn: function() {
-
+            YAHOO.util.Dom.setStyle('block_ajax_marking_error', 'display', 'none');
             M.block_ajax_marking.get_current_tab().displaywidget.initialise();
-        }}, // TODO refresh all trees
+        }}, // TODO refresh all trees?
         container : 'block_ajax_marking_refresh_button'});
 };
 
