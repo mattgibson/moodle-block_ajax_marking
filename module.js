@@ -667,7 +667,7 @@ M.block_ajax_marking.show_error = function(errormessage) {
     }
     YAHOO.util.Dom.setStyle('block_ajax_marking_error', 'display', 'block');
     document.getElementById('count').innerHTML = '?';
-}
+};
 
 /**
  * function which fires if the AJAX call fails
