@@ -572,6 +572,23 @@ class block_ajax_marking_query_base {
 
     }
 
+    /**
+     * Sometimes we need to know if we can safely add a clause
+     *
+     * @param string$tablename
+     * @return bool
+     */
+    public function has_join_table($tablename) {
+
+        foreach ($this->from as $join) {
+            if ($join['table'] == $tablename) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
 
 }
 

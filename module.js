@@ -117,7 +117,7 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
  */
 M.block_ajax_marking.tree_base.prototype.node_label = function(text, count) {
     return '('+count+') '+text;
-}
+};
 
 /**
  * New unified build nodes function
@@ -135,10 +135,6 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
     var currenttime = Math.round((new Date()).getTime() / 1000); // current unix time
     var iconstyle = '';
     var numberofnodes = nodesarray.length;
-    var labelspan = '';
-    var labeltext = '';
-    var countspan = '';
-    var counttext = '';
 
     // we need to attach nodes to the root node if this is the initial build after a refresh
     var holdertype = typeof(M.block_ajax_marking.parentnodeholder);
@@ -236,6 +232,12 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         }
     }
 
+};
+
+/**
+ * Sorts things out after nodes have been added, or an error happened (so refresh still works)
+ */
+M.block_ajax_marking.tree_base.prototype.rebuild_tree_after_ajax = function() {
     this.render();
     // finally, run the function that updates the original node and adds the children. Won't be
     // there if we have just built the tree
@@ -254,15 +256,14 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
     //if (typeof(M.block_ajax_marking.parentnodeholder) === 'object' &&
     //    typeof(M.block_ajax_marking.parentnodeholder.count) === 'integer') {
     this.update_parent_node(M.block_ajax_marking.parentnodeholder);
-
-}
+};
 
 /**
  * This function is called when a node is clicked (expanded) and makes the ajax request. It sends
  * thefilters from all parent nodes and the nextnodetype
  *
- * @param obj clickednode
- * @param string callbackfunction
+ * @param clickednode
+ * @param callbackfunction
  */
 M.block_ajax_marking.tree_base.prototype.request_node_data = function(clickednode,
                                                                       callbackfunction) {
@@ -402,7 +403,7 @@ M.block_ajax_marking.getnodefilters = function(node) {
         }
     }
     return nodefilters;
-}
+};
 
 /**
  * Builds the tree when the block is loaded, or refresh is clicked
@@ -455,7 +456,7 @@ M.block_ajax_marking.tree_base.prototype.recalculate_total_count = function() {
 M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
     this.recalculate_total_count();
     document.getElementById('count').innerHTML = this.totalcount.toString();
-}
+};
 
 /**
  * This is to control what node the cohorts tree asks for next when a user clicks on a node
@@ -497,7 +498,7 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
     }
 
     return nextnodefilter;
-}
+};
 
 /**
  * This is to control what node the tree asks for next when a user clicks on a node
@@ -524,12 +525,12 @@ M.block_ajax_marking.config_tree.prototype.nextnodetype = function(currentfilter
     }
 
     return nextnodefilter;
-}
+};
 
 /**
  * Empty function - the config tree has no need to update parnet counts.
  */
-M.block_ajax_marking.config_tree.prototype.update_parent_node = function () {}
+M.block_ajax_marking.config_tree.prototype.update_parent_node = function () {};
 
 /**
  * This is to control what node the tree asks for next when a user clicks on a node
@@ -586,7 +587,7 @@ M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilte
 
     return nextnodefilter;
 
-}
+};
 
 /**
  * This function updates the tree to remove the node of the pop up that has just been marked,
@@ -648,7 +649,7 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
             M.block_ajax_marking.get_current_tab().displaywidget.build_nodes(ajaxresponsearray.nodes);
         }
     }
-
+    M.block_ajax_marking.get_current_tab().displaywidget.rebuild_tree_after_ajax();
     YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
 };
 
@@ -693,13 +694,18 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
             M.block_ajax_marking.make_footer();
         }
     }
-
+    M.block_ajax_marking.get_current_tab().displaywidget.rebuild_tree_after_ajax();
     YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
 };
 
+/**
+ * If the AJAX connection times out, this will handle things so we know what happened
+ * @param o
+ */
 M.block_ajax_marking.ajax_timeout_handler = function(o) {
-    // TODO Do something sensible and allow refresh
-
+    document.getElementById('status').innerHTML = M.str.block_ajax_marking.connecttimeout;
+    M.block_ajax_marking.get_current_tab().displaywidget.rebuild_tree_after_ajax();
+    YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
 };
 
 /**
@@ -807,13 +813,81 @@ M.block_ajax_marking.initialise = function() {
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
 
-        /*
+
         var configtab = new Y.Tab({
             'label':'Config',
             'content':'<div id="configtree"></div>'});
         M.block_ajax_marking.tabview.add(configtab);
         configtab.displaywidget = new M.block_ajax_marking.config_tree();
-        */
+
+        // Make the context menu for the config tree
+        // Attach a listener to the root div which will activate the menu
+        // menu needs to be repositioned next to the clicked node
+        // menu
+
+        // Menu needs to be made of
+        // - show/hide toggle
+        // - show/hide group nodes
+        // - submenu to show/hide specific groups
+
+    	M.block_ajax_marking.contextmenu = new YAHOO.widget.ContextMenu(
+            "configcontextmenu",
+            {
+                trigger: "configtree",
+                keepopen: true,
+                lazyload: true,
+                itemdata: [
+                    {   text: M.str.block_ajax_marking.show,
+                        onclick: { fn: M.block_ajax_marking.context_show_onclick },
+                        checked: true,
+                        id: 'block_ajax_marking_context_show'},
+                    {   text: M.str.block_ajax_marking.showgroups,
+                        onclick: { fn: M.block_ajax_marking.context_showgroups_onclick },
+                        checked: false,
+                        id: 'block_ajax_marking_context_showgroups'},
+                    {
+                        text: "Choose groups",
+                        submenu: {
+                                    id: "submenu1",
+                                    lazyload: true,
+                                    itemdata: [
+                                        {   text: "Group 1",
+                                            onclick: { fn: M.block_ajax_marking.context_group_onclick } },
+                                        {   text: "Group 2",
+                                            onclick: { fn: M.block_ajax_marking.context_group_onclick } },
+                                        {   text: "Group 3",
+                                            onclick: { fn: M.block_ajax_marking.context_group_onclick } },
+                                        {   text: "Group 4",
+                                            onclick: { fn: M.block_ajax_marking.context_group_onclick } }
+                                    ]
+                                }
+                    }
+                ]
+            }
+        );
+
+        // Make sure the menu is updated to be surrent with the node it matches
+        M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
+                                                   M.block_ajax_marking.context_update);
+
+
+        // menu item onclick
+//        {
+//            fn: Function, // The handler to call when the event fires.
+//            obj: Object, // An object to pass back to the handler.
+//            scope: Object // The object to use for the scope of the handler.
+//        }
+
+
+
+
+
+
+
+
+
+
+
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function(e) {
@@ -851,4 +925,84 @@ M.block_ajax_marking.initialise = function() {
     if (!document.getElementById('block_ajax_marking_collapse')) {
         M.block_ajax_marking.make_footer();
     }
-}
+};
+
+/**
+ * When the context menu is activiated, we need to make sure it reflects the current status of the
+ * node it is attached to. This function will read data that was sent from the server via ajax and
+ * stored in a node property, then make the context menu have corresponding items.
+ * @param e The event
+ */
+M.block_ajax_marking.context_update = function(thing, otherthing) {
+
+    // highlight the current node
+
+    // update menuitem with node data
+
+    // re-render menu
+
+};
+
+/**
+ * OnClick handler for the show context menu item. It will ajax a request to change the node's
+ * config and make the context menu item checked if successful
+ */
+M.block_ajax_marking.context_show_onclick = function(event, otherthing, obj) {
+
+
+    if (this.cfg.getProperty('checked') == true) {
+        this.cfg.setProperty("checked", false);
+    } else {
+        this.cfg.setProperty("checked", true);
+    }
+
+    // disable menu item
+
+    // gather data
+
+    // send request
+
+    // ..d success handler should check/uncheck the menu item and undisable it
+    // also disable other menu items if this is set to not show
+
+};
+
+M.block_ajax_marking.context_showgroups_onclick = function(event, otherthing, obj) {
+
+
+    if (this.cfg.getProperty('checked') == true) {
+        this.cfg.setProperty("checked", false);
+    } else {
+        this.cfg.setProperty("checked", true);
+    }
+
+    // disable menu item
+
+    // gather data
+
+    // send request
+
+    // ..d success handler should check/uncheck the menu item and undisable it
+    // also disable other menu items if this is set to not show
+
+};
+
+M.block_ajax_marking.context_group_onclick = function(event, otherthing, obj) {
+
+
+    if (this.cfg.getProperty('checked') == true) {
+        this.cfg.setProperty("checked", false);
+    } else {
+        this.cfg.setProperty("checked", true);
+    }
+
+    // disable menu item
+
+    // gather data
+
+    // send request
+
+    // ..d success handler should check/uncheck the menu item and undisable it
+    // also disable other menu items if this is set to not show
+
+};

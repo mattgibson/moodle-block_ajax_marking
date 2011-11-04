@@ -38,11 +38,12 @@ $string['showwithgroups']       = 'Show with groups';
 $string['nogradedassessments']  = 'You have no courses with graded assessments yet';
 $string['configure']            = 'configure';
 $string['connectfail']          = 'AJAX connection failed';
+$string['connecttimeout']       = 'AJAX connection timed out';
 $string['day']                  = 'day';
 $string['days']                 = 'days';
 $string['earliest']             = 'Earliest unrated post';
 $string['extensions']           = 'For instructions on how to write extensions for this block, see the documentation on Moodle Docs';
-$string['settingsheadertext']           = 'AJAX marking block settings for';
+$string['settingsheadertext']   = 'AJAX marking block settings for';
 $string['hour']                 = 'hour';
 $string['hours']                = 'hours';
 $string['instructions']         = 'What you can do here:<ul><li>Show and hide individual assessment items</li><li>'
@@ -65,6 +66,8 @@ $string['totaltomark']          = 'Total to mark';
 $string['waiting']              = 'Pieces of work';
 $string['week']                 = 'week';
 $string['weeks']                = 'weeks';
+$string['show']                 = 'Show this item';
+$string['showgroups']           = 'Show group nodes';
 
 // Specific to modules
 

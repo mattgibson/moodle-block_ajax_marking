@@ -62,8 +62,6 @@ class block_ajax_marking_query_factory {
 
         }
 
-        self::apply_sql_owncourses($query);
-
         // Apply any filters specific to this request. Next node type one should be a GROUP BY,
         // the rest need to be WHEREs i.e. starting from the requested nodes, and moving back up
         // the tree e.g. 'student', 'assessment', 'course'
@@ -95,6 +93,8 @@ class block_ajax_marking_query_factory {
                 self::$filterfunctionname($query, $operation, $value);
             }
         }
+
+        self::apply_sql_owncourses($query);
 
         return $query;
     }
@@ -267,7 +267,6 @@ class block_ajax_marking_query_factory {
             case 'where':
                 // This is for when a courseid node is an ancestor of the node that has been
                 // selected, so we just do a where
-
                 $query->add_where(array(
                         'type' => 'AND',
                         'condition' => 'moduletable.course = :'.$query->prefix_param('courseid')));
@@ -499,7 +498,30 @@ class block_ajax_marking_query_factory {
 
             case 'configselect':
 
-//                $jointable = '';
+                // This query just unions together simple queries that get all
+
+                $selects = array(
+                    array(
+                        'table' => 'course_modules',
+                        'column' => 'id',
+                        'alias' => 'coursemoduleid'),
+                    array(
+                        'table' => 'moduletable',
+                        'column' => 'name'),
+                    array(
+                        'table' => 'moduletable',
+                        'column' => 'intro',
+                        'alias' => 'tooltip'));
+
+                $query->add_from(array(
+                        'join' => 'INNER JOIN',
+                        'table' => 'course_modules',
+                        'on' => 'moduletable.id = course_modules.instance'
+                ));
+                $query->add_where(array(
+                        'type' => 'AND',
+                        'condition' => 'course_modules.module = '.$query->get_module_id()));
+                break;
 
             case 'displayselect':
 
@@ -753,9 +775,16 @@ class block_ajax_marking_query_factory {
             $startname = $query->prefix_param('courseid0000');
             list($sql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, $startname);
 
+            // Sometimes course.id, sometimes moduletable.course, depending on the query
+            if ($query->has_join_table('course')) {
+                $coursecolumn = 'course.id';
+            } else {
+                $coursecolumn = 'moduletable.course';
+            }
+
             $query->add_where(array(
                     'type' => 'AND',
-                    'condition' => "course.id {$sql}"));
+                    'condition' => $coursecolumn.' '.$sql));
             $query->add_params($params, false);
         }
     }

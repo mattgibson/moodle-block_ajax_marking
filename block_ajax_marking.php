@@ -66,7 +66,6 @@ class block_ajax_marking extends block_base {
 
         global $CFG, $USER, $DB, $PAGE, $OUTPUT;
 
-        /** @define "$CFG->dirroot" "../.." */
         require_once($CFG->dirroot . '/blocks/ajax_marking/lib.php');
 
         $courses = block_ajax_marking_get_my_teacher_courses();
@@ -85,12 +84,12 @@ class block_ajax_marking extends block_base {
                       /* <![CDATA[ */
                       var styleElement = document.createElement("style");
                       styleElement.type = "text/css";
+                      var hidehtml = "#block_ajax_marking_html_list, "+
+                                     "#treetabs, "+
+                                     "#totalmessage {display: none;}";
                       if (styleElement.styleSheet) {
-                          var css = "#block_ajax_marking_html_list { display: none; } " +
-                                    "#treetabs { display: none; } ";
                           styleElement.styleSheet.cssText = css;
                       } else {
-                          var hidehtml = "#block_ajax_marking_html_list {display: none;}";
                           styleElement.appendChild(document.createTextNode(hidehtml));
                           var hidetreetabs = "#treetabs {display: none;}";
                           styleElement.appendChild(document.createTextNode(hidetreetabs));
@@ -104,9 +103,13 @@ class block_ajax_marking extends block_base {
                 $jsmodule = array(
                     'name' => 'block_ajax_marking',
                     'fullpath' => '/blocks/ajax_marking/module.js',
-                    'requires' =>
-                    array('yui2-treeview', 'yui2-button', 'yui2-connection', 'yui2-json',
-                          'yui2-container', 'tabview'),
+                    'requires' => array('yui2-treeview',
+                                        'yui2-button',
+                                        'yui2-connection',
+                                        'yui2-json',
+                                        'yui2-container',
+                                        'yui2-menu',
+                                        'tabview'),
                     'strings' => array(
                         array('totaltomark', 'block_ajax_marking'),
                         array('instructions', 'block_ajax_marking'),
@@ -115,6 +118,7 @@ class block_ajax_marking extends block_base {
                         array('refresh', 'block_ajax_marking'),
                         array('configure', 'block_ajax_marking'),
                         array('connectfail', 'block_ajax_marking'),
+                        array('connecttimeout', 'block_ajax_marking'),
                         array('nogroups', 'block_ajax_marking'),
                         array('settingsheadertext', 'block_ajax_marking'),
                         array('showthisassessment', 'block_ajax_marking'),
@@ -123,7 +127,9 @@ class block_ajax_marking extends block_base {
                         array('hidethisassessment', 'block_ajax_marking'),
                         array('hidethiscourse', 'block_ajax_marking'),
                         array('coursedefault', 'block_ajax_marking'),
-                        array('hidethiscourse', 'block_ajax_marking')
+                        array('hidethiscourse', 'block_ajax_marking'),
+                        array('show', 'block_ajax_marking'),
+                        array('showgroups', 'block_ajax_marking')
                     )
                 );
 
@@ -147,10 +153,10 @@ class block_ajax_marking extends block_base {
                         <div id="status"></div>
                     </div>
                     <div id="treetabs">
-                    </div>';
-                $this->content->footer .= '<div id="block_ajax_marking_refresh_button"></div>
-                                           <div id="block_ajax_marking_configure_button"></div>
-                                           <div id="block_ajax_marking_error"></div>';
+                    </div>
+                    <div id="block_ajax_marking_refresh_button"></div>
+                    <div id="block_ajax_marking_configure_button"></div>
+                    <div id="block_ajax_marking_error"></div>';
 
                 // Don't warn about javascript if the screenreader option is set - it was deliberate
                 $noscript = '<noscript>
