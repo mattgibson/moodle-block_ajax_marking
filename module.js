@@ -122,7 +122,7 @@ M.block_ajax_marking.tree_base.prototype.node_label = function(text, count) {
 /**
  * New unified build nodes function
  *
- * @param array nodesarray
+ * @param nodesarray array
  */
 M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
 
@@ -131,7 +131,7 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
     var seconds = 0;
     var currentfilter = '';
     var modulename = '';
-    // TODO what if server time and browser time are mismatche?
+    // TODO what if server time and browser time are mismatched?
     var currenttime = Math.round((new Date()).getTime() / 1000); // current unix time
     var iconstyle = '';
     var numberofnodes = nodesarray.length;
@@ -371,7 +371,7 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
 };
 
 /**
- * Rcursive function to get the return data from this node and all its parents. Each parent
+ * Recursive function to get the return data from this node and all its parents. Each parent
  * represents a filter e.g. 'only this course', so we need to specify the id numbers for the SQL
  *
  * @param node object
@@ -418,7 +418,7 @@ M.block_ajax_marking.tree_base.prototype.initialise = function() {
     this.removeChildren(rootnode);
     this.render();
 
-    // Reload the data for the root node. We keep the tree object intect rather than destroying
+    // Reload the data for the root node. We keep the tree object intact rather than destroying
     // and recreating in order to improve responsiveness.
     M.block_ajax_marking.parentnodeholder = rootnode;
     // If we don't do this, then after refresh, we get it trying to run the oncomplete thing from
@@ -461,8 +461,8 @@ M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
 /**
  * This is to control what node the cohorts tree asks for next when a user clicks on a node
  *
- * @param string currentfilter
- * @param string modulename can be false or undefined if not there
+ * @param currentfilter
+ * @param modulename can be false or undefined if not there
  * @return string|bool false if nothing
  */
 M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilter, modulename) {
@@ -480,7 +480,7 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
 
         case 'coursemoduleid':
             nextnodefilter = 'userid';
-        // fall through because we need to offer the option to alter things after coursemoduleid.
+            break;
 
         default:
         // any special nodes that came back from a module addition
@@ -503,8 +503,8 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
 /**
  * This is to control what node the tree asks for next when a user clicks on a node
  *
- * @param string currentfilter
- * @param string modulename can be false or undefined if not there
+ * @param currentfilter
+ * @param modulename can be false or undefined if not there
  * @return string|bool false if nothing
  */
 M.block_ajax_marking.config_tree.prototype.nextnodetype = function(currentfilter, modulename) {
@@ -518,7 +518,7 @@ M.block_ajax_marking.config_tree.prototype.nextnodetype = function(currentfilter
 
         case 'coursemoduleid':
             nextnodefilter = false;
-        // fall through because we need to offer the option to alter things after coursemoduleid.
+            break;
 
         default:
         // any special nodes that came back from a module addition
@@ -528,15 +528,15 @@ M.block_ajax_marking.config_tree.prototype.nextnodetype = function(currentfilter
 };
 
 /**
- * Empty function - the config tree has no need to update parnet counts.
+ * Empty function - the config tree has no need to update parent counts.
  */
 M.block_ajax_marking.config_tree.prototype.update_parent_node = function () {};
 
 /**
  * This is to control what node the tree asks for next when a user clicks on a node
  *
- * @param string currentfilter
- * @param string modulename can be false or undefined if not there
+ * @param currentfilter
+ * @param modulename can be false or undefined if not there
  * @return string|bool false if nothing
  */
 M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilter, modulename) {
@@ -568,7 +568,7 @@ M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilte
 
         case 'coursemoduleid':
             nextnodefilter = 'userid';
-        // fall through because we need to offer the option to alter things after coursemoduleid.
+            break;
 
         default:
         // any special nodes that came back from a module addition
@@ -613,15 +613,13 @@ M.block_ajax_marking.tree_base.prototype.remove_node = function(nodeuniqueid) {
  */
 M.block_ajax_marking.ajax_success_handler = function(o) {
 
-    var mbam = M.block_ajax_marking;
-    var ajaxresponsearray = '';
     var errormessage = '';
 
     try {
-        var ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
+        ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
     } catch (error) {
         // add an empty array of nodes so we trigger all the update and cleanup stuff
-        errormessage = '<strong>An error occurred:</strong><br />'
+        errormessage = '<strong>An error occurred:</strong><br />';
         errormessage += o.responseText;
         M.block_ajax_marking.show_error(errormessage);
     }
@@ -642,8 +640,8 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
 
         } else if (typeof(ajaxresponsearray['gradinginterface']) !== 'undefined') {
             // We have gotten the grading form back. Need to add the HTML to the modal overlay
-            M.block_ajax_marking.gradinginterface.setHeader('');
-            M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content);
+            // M.block_ajax_marking.gradinginterface.setHeader('');
+            // M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content);
 
         } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
             M.block_ajax_marking.get_current_tab().displaywidget.build_nodes(ajaxresponsearray.nodes);
@@ -682,7 +680,7 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
     // transaction aborted
     if (o.tId == -1) {
         // TODO what is this meant to do?
-        document.getElementById('status').innerHTML = M.str.block_ajax_marking.collapseString;
+        // document.getElementById('status').innerHTML = M.str.block_ajax_marking.collapseString;
     }
 
     // communication failure
@@ -776,7 +774,7 @@ M.block_ajax_marking.get_current_tab = function() {
  * to make sure that it sticks to the right tree too, in case someone fiddles with the tabs
  * whilst having the popup open.
  *
- * @param int nodeid
+ * @param nodeid
  * @return void
  */
 M.block_ajax_marking.remove_node_from_current_tab = function(nodeid) {
@@ -865,7 +863,7 @@ M.block_ajax_marking.initialise = function() {
             }
         );
 
-        // Make sure the menu is updated to be surrent with the node it matches
+        // Make sure the menu is updated to be current with the node it matches
         M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
                                                    M.block_ajax_marking.context_update);
 
@@ -915,10 +913,10 @@ M.block_ajax_marking.initialise = function() {
 };
 
 /**
- * When the context menu is activiated, we need to make sure it reflects the current status of the
+ * When the context menu is activated, we need to make sure it reflects the current status of the
  * node it is attached to. This function will read data that was sent from the server via ajax and
  * stored in a node property, then make the context menu have corresponding items.
- * @param e The event
+ * @param thing The event
  */
 M.block_ajax_marking.context_update = function(thing, otherthing) {
 
@@ -936,7 +934,7 @@ M.block_ajax_marking.context_update = function(thing, otherthing) {
  */
 M.block_ajax_marking.context_show_onclick = function(event, otherthing, obj) {
 
-    if (this.cfg.getProperty('checked') == true) {
+    if (this.cfg.getProperty('checked')) {
         this.cfg.setProperty("checked", false);
     } else {
         this.cfg.setProperty("checked", true);
@@ -955,7 +953,7 @@ M.block_ajax_marking.context_show_onclick = function(event, otherthing, obj) {
 
 M.block_ajax_marking.context_showgroups_onclick = function(event, otherthing, obj) {
 
-    if (this.cfg.getProperty('checked') == true) {
+    if (this.cfg.getProperty('checked')) {
         this.cfg.setProperty("checked", false);
     } else {
         this.cfg.setProperty("checked", true);
@@ -974,7 +972,7 @@ M.block_ajax_marking.context_showgroups_onclick = function(event, otherthing, ob
 
 M.block_ajax_marking.context_group_onclick = function(event, otherthing, obj) {
 
-    if (this.cfg.getProperty('checked') == true) {
+    if (this.cfg.getProperty('checked')) {
         this.cfg.setProperty("checked", false);
     } else {
         this.cfg.setProperty("checked", true);

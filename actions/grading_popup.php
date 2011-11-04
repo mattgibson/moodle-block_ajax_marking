@@ -62,7 +62,7 @@ if (!class_exists($classname)) {
     print_error('AJAX marking block does not support the '.$modname.' module');
     die();
 }
-/** @var block_ajax_marking_module_base $moduleobject  */
+/** @var $moduleobject block_ajax_marking_module_base   */
 $moduleobject = new $classname;
 if (!has_capability($moduleobject->capability, $context)) {
     print_error('You do not have permission to grade submissions for this course module');

@@ -15,37 +15,34 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
 /**
- * Provides all CSS styles for the AJAX Marking block
- *
- * @package    block
- * @subpackage ajax_marking
- * @copyright  2007 Matt Gibson
- * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
+* Provides all CSS styles for the AJAX Marking block
+*
+* @package    block
+* @subpackage ajax_marking
+* @copyright  2007 Matt Gibson
+* @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+* @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+*/
 
 .icon-course, .icon-assignment, .icon-workshop, .icon-forum, .icon-quiz, .icon-quiz_question,
 .icon-journal, .icon-group {
-  padding-left: 0px;
-  padding-bottom: 0px;
-  background-repeat: no-repeat;
-  cursor: pointer;
-  background-color: transparent;
-
-  /* white-space: nowrap; */
-  margin-left: 0px;
-  display: block;
-  float: left;
+    padding-left: 0;
+    padding-bottom: 0;
+    background: transparent no-repeat;
+    cursor: pointer;
+    /* white-space: nowrap; */
+    margin-left: 0;
+    display: block;
+    float: left;
 }
 .amb-icon {
-  width: 20px;
-  padding-right: 3px;
-  margin-bottom: -5px;
+    width: 20px;
+    padding-right: 3px;
+    margin-bottom: -5px;
 }
 .icon-course {
-  padding-left: 0px;
+    padding-left: 0;
 
 }
 
@@ -59,83 +56,76 @@
 
 .icon-user-one, .icon-user-two, .icon-user-three, .icon-user-four, .icon-user-five, .icon-user-six,
 .icon-user-seven, .icon-user-eight {
-  padding-left: 0px;
-  padding-right: 2px;
-  cursor:pointer;
- /*
-  background-repeat: no-repeat;
-  white-space: nowrap;
-
-  background-color: transparent;
-  */
-  border-style: none;
-  border-width: 2px;
-  overflow: hidden;
-  width: 150px;
-  height: 40px;
-  margin: 0;
+    padding-left: 0;
+    padding-right: 2px;
+    cursor: pointer;
+    border: 2px none;
+    overflow: hidden;
+    width: 150px;
+    height: 40px;
+    margin: 0;
 }
 .icon-user-one {
-  background-color: #ccffcc;
+    background-color: #ccffcc;
 }
-.icon-user-two  {
-  background-color: #ccffcc;
+.icon-user-two {
+    background-color: #ccffcc;
 }
-.icon-user-three  {
-  background-color: #EEE5AA;
+.icon-user-three {
+    background-color: #EEE5AA;
 }
-.icon-user-four  {
-  background-color: #EEE5AA;
+.icon-user-four {
+    background-color: #EEE5AA;
 }
-.icon-user-five  {
-  background-color: #EECAB3;
+.icon-user-five {
+    background-color: #EECAB3;
 }
-.icon-user-six  {
-  background-color: #EECAB3;
+.icon-user-six {
+    background-color: #EECAB3;
 }
-.icon-user-seven  {
-  background-color: #ffb0bb;
+.icon-user-seven {
+    background-color: #ffb0bb;
 }
-.icon-user-eight  {
-  background-color: #ffb0bb;
+.icon-user-eight {
+    background-color: #ffb0bb;
 }
 #loader {
-  position: relative;
-  top: 3px;
-  right: 0px;
-  float: left;
-  z-index: 100;
-  margin: 0px;
-  padding: 0px;
+    position: relative;
+    top: 3px;
+    right: 0;
+    float: left;
+    z-index: 100;
+    margin: 0;
+    padding: 0;
 }
 #hidden-icons {
-  display: none;
+    display: none;
 }
 #totalmessage {
-  float: left;
-  padding-bottom: 2px;
-  margin-left: 3px;
+    float: left;
+    padding-bottom: 2px;
+    margin-left: 3px;
 }
 .loaderimage {
-  background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
-  width: 15px;
-  height: 15px;
-  display: block;
+    background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
+    width: 15px;
+    height: 15px;
+    display: block;
 }
 #count {
-  font-weight: bold;
+    font-weight: bold;
 }
 #treediv {
-  clear: both;
-  margin-bottom: 5px;
-  padding-bottom: 0px;
-  float: left;
-  font:10pt tahoma;
-  min-width: 150px;
+    clear: both;
+    margin-bottom: 5px;
+    padding-bottom: 0;
+    float: left;
+    font: 10pt tahoma;
+    min-width: 150px;
 }
 #mainicon {
-  float: left;
-  margin-left: 8px;
+    float: left;
+    margin-left: 8px;
 }
 
 /*
@@ -143,52 +133,50 @@
  */
 
 #block_ajax_marking_refresh_button {
-  float:left;
-  width: 45%;
-  margin-left: 3px;
+    float: left;
+    width: 45%;
+    margin-left: 3px;
 }
 #block_ajax_marking_configure_button {
-  float:right;
-  width: 45%;
-  margin-right: 3px;
-  text-align: right;
+    float: right;
+    width: 45%;
+    margin-right: 3px;
+    text-align: right;
 }
 #conf-wrapper {
-  float: left;
-  clear: both;
-  background-color: transparent;
+    float: left;
+    clear: both;
+    background-color: transparent;
 }
 #close {
-  float:right;
-  margin: 0px;
-  padding: 0px;
+    float: right;
+    margin: 0;
+    padding: 0;
 }
 #confname {
-  float: left;
-  font-weight: bold;
-  width: 50%;
-  padding-left: 4px;
-  line-height: 15px;
+    float: left;
+    font-weight: bold;
+    width: 50%;
+    padding-left: 4px;
+    line-height: 15px;
 }
 #dialog {
-  display:none;
-  z-index: 500;
-  background-color: transparent;
-  padding:0px;
-  font:10pt tahoma;
-  border:1px solid gray;
-  width:420px;
-  position:absolute;
+    display: none;
+    z-index: 500;
+    background-color: transparent;
+    padding: 0;
+    font: 10pt tahoma;
+    border: 1px solid gray;
+    width: 420px;
+    position: absolute;
 }
 .dialogheader {
-  line-height: 0;
-  height: 25px;
-  border-width: 0;
-  border-bottom-width: 1px;
-  border-style: solid;
-  border-color: #000;
-  width: 100%;
-  margin: 0px;
+    line-height: 0;
+    height: 25px;
+    border: 0 solid #000;
+    border-bottom-width: 1px;
+    width: 100%;
+    margin: 0;
 }
 /*#configtree {
   float: left;
@@ -201,38 +189,34 @@
   background-color: transparent;
 }*/
 #configSettings {
-  float:left;
-  width:190px;
-  padding-left: 10px;
-  font:10pt tahoma;
+    float: left;
+    width: 190px;
+    padding-left: 10px;
+    font: 10pt tahoma;
 }
 #configgroupsdiv {
-  float:right;
-  width:190px;
-  background-color: transparent;
+    float: right;
+    width: 190px;
+    background-color: transparent;
 }
 #configicon {
-  position: relative;
-  line-height: 0pt;
-  width: 35px;
+    position: relative;
+    line-height: 0pt;
+    width: 35px;
 }
 #block_ajax_marking_hidden {
-  display: none;
+    display: none;
 }
 div.block_ajax_marking div.footer {
-  border-style: none;
-  padding-bottom: 0px;
-  height: 30px;
+    border-style: none;
+    padding-bottom: 0;
+    height: 30px;
 }
 #configInstructions {
-  font:10pt tahoma;
-  float: left;
-  width: 100%;
+    font: 10pt tahoma;
+    float: left;
+    width: 100%;
 }
-
-
-
-
 
 /* Stuff to make the lists display right with AJAX turned off */
 
@@ -240,35 +224,35 @@ ul.AMB_html li {
     list-style-type: none;
 }
 ul.AMB_html {
-  padding-left: 5px;
-  list-style-type: none;
-  margin: 0;
+    padding-left: 5px;
+    list-style-type: none;
+    margin: 0;
 }
 li.AMB_html, li.AMB_html_course {
-  padding-top: 3px;
-  padding-bottom: 3px;
-  list-style-type: none;
+    padding-top: 3px;
+    padding-bottom: 3px;
+    list-style-type: none;
 }
 li.AMB_html_course {
-  background-color: #ddd;
-  padding-left: 7px;
+    background-color: #ddd;
+    padding-left: 7px;
 }
 ul.AMB_html_items {
-  margin-top: 5px;
+    margin-top: 5px;
 
-  list-style-type: none;
+    list-style-type: none;
 }
 span.AMB_count {
-  font-weight: bold;
+    font-weight: bold;
 }
 span.ygtvlabel {
-  background-color: transparent;
+    background-color: transparent;
 }
 
 /* change loading icon. Standard one has white background */
 .ygtvloading {
-    width:18px;
-    height:22px;
+    width: 18px;
+    height: 22px;
     background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
 }
 #block_ajax_marking_hidden {

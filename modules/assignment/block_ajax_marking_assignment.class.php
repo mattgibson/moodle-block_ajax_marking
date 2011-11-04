@@ -43,8 +43,8 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
  * e.g. the quiz module has extra functions because it has an extra level for quiz questions within
  * each quiz and the journal module has only two levels because it doesn't show students work
  * individually, only aggregated). All module specific files are included at the start of each
- * request and a module object is instatiated ready to be used. For efficiency, only installed
- * modules which have grading code available are included & instatiated, so there is a list kept in
+ * request and a module object is instantiated ready to be used. For efficiency, only installed
+ * modules which have grading code available are included & instantiated, so there is a list kept in
  * the block's config data saying which modules have available module_grading.php files based on a
  * search conducted each time the block is upgraded by the {@link amb_update_modules()} function.
  *
@@ -54,7 +54,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
     /**
-     * Constuctor. Needs to be duplicated in all modules, so best put in parent. PHP4 issue though.
+     * Constructor. Needs to be duplicated in all modules, so best put in parent. PHP4 issue though.
      *
      * The aim is to pass in the main ajax_marking_functions object by reference, so that its
      * properties are accessible
@@ -114,7 +114,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         if (!$submission) {
             print_error('No submission for this user');
-            return;
+            return false;
         }
 
         $course         = $DB->get_record('course', array('id' => $assignment->course));
@@ -126,7 +126,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         if (!$user) {
             print_error('No user');
-            return;
+            return false;
         }
 
         // Load up the required assignment code
@@ -218,7 +218,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      *
      * @param object $data from the feedback form
      * @param $params
-     * @return void
+     * @return string
      */
     public function process_data($data, $params) {
 

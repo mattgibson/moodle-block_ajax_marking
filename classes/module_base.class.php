@@ -224,14 +224,13 @@ abstract class block_ajax_marking_module_base {
 
     /**
      * The submissions nodes may be aggregating actual work so that it is easier to view/grade e.g.
-     * seeing a whole forum discussion at once because posts are meaninless without context. This
+     * seeing a whole forum discussion at once because posts are meaningless without context. This
      * allows modules to override the default label text of the node, which is the user's name.
      *
      * @param object $submission
-     * @param int $moduleid
      * @return string
      */
-    protected function submission_title(&$submission, $moduleid=null) {
+    protected function submission_title(&$submission) {
         $title = fullname($submission);
         unset($submission->firstname, $submission->lastname);
         return $title;
@@ -250,7 +249,7 @@ abstract class block_ajax_marking_module_base {
      * e.g. the title to be displayed for submissions needs to be formatted with firstname and
      * lastname in the way that makes sense for the user's chosen language.
      *
-     * This function provides a default that can be overidden by the subclasses.
+     * This function provides a default that can be overridden by the subclasses.
      *
      * @param array $nodes Array of objects
      * @param array $filters as sent via $_POST
@@ -299,6 +298,16 @@ abstract class block_ajax_marking_module_base {
      */
     public function process_data() {
 
+    }
+
+    /**
+     * Makes the contents of the pop up grading window
+     *
+     * @param $params
+     * @param $coursemodule
+     * @return string HTML
+     */
+    public function grading_popup($params, $coursemodule) {
     }
 
 }

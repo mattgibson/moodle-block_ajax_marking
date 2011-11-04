@@ -16,7 +16,7 @@
 
 
 /**
- * Saves data sent back via AJAX from the block coonfig or grading interfaces
+ * Saves data sent back via AJAX from the block config or grading interfaces
  *
  * @package    block
  * @subpackage ajax_marking

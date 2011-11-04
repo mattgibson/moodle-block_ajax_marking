@@ -33,7 +33,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/mod/workshop/locallib.php'); // for constants
 
 /**
- * Provides marking funcionality for the workshop module
+ * Provides marking functionality for the workshop module
  *
  * @copyright 2008-2010 Matt Gibson
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
@@ -153,7 +153,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
     }
 
     /**
-     * Applies the module-specifi stuff for the user nodes
+     * Applies the module-specific stuff for the user nodes
      *
      * @param block_ajax_marking_query_base $query
      * @param $operation

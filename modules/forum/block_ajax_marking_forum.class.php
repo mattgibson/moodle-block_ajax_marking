@@ -74,7 +74,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     private function get_teacher_sql() {
 
         // making a where not exists to make sure the rating is not a teacher.
-        // asume that the main query has a 'course c' and 'ratings r' clause in FROM
+        // assume that the main query has a 'course c' and 'ratings r' clause in FROM
 
         // correlated sub query for the where should be OK if the joins only give a small number of
         // rows
@@ -124,9 +124,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     /**
      * Is this a forum of type 'eachuser' or not?
      *
-     * @param type $coursemoduleid
+     * @param int $coursemoduleid
      * @global moodle_database $DB
-     * @internal param \type $reset returns the forum type
      * @return bool|null
      */
     private function forum_is_eachuser($coursemoduleid) {
@@ -182,7 +181,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     /**
      * Returns a HTML link allowing a student's work to be marked
      *
-     * @param object $item a row of the database tabe representing one discussion post
+     * @param object $item a row of the database table representing one discussion post
      *
      * @return string
      */
@@ -242,7 +241,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         // move this down fix for MDL-6926
         require_once($CFG->dirroot.'/mod/forum/lib.php');
 
-        // Possibly, the view permission is being used to prevent certian forums from being
+        // Possibly, the view permission is being used to prevent certain forums from being
         // accessed. Might be best not to rely on just the rate one.
         $modcontext = get_context_instance(CONTEXT_MODULE, $cm->id);
         require_capability('mod/forum:viewdiscussion', $modcontext, null, true,
@@ -345,6 +344,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                                $canreply, $canrate);
 
         echo html_writer::end_tag('div');
+
+        return true;
 
     }
 

@@ -29,9 +29,6 @@ class block_ajax_marking_output {
 
     // Hold the output data as a nested set of arrays
     private $output;
-    //remembers where the last node to be added was. Takes the form of nested array keys
-    // e.g. '[1][2][5]'
-    private $pointer;
 
     private $outputtree;
 
@@ -59,7 +56,7 @@ class block_ajax_marking_output {
     }
 
     /**
-     * Adds a seried of key => value pairs to the json string
+     * Adds a series of key => value pairs to the json string
      *
      * @param array $newnode a collection of key => value pairs
      * @return void

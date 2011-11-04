@@ -99,8 +99,6 @@ function block_ajax_marking_clean_name_text($text, $length=0) {
  */
 function block_ajax_marking_make_time_tooltip($seconds) {
 
-    $weeksstr   = get_string('weeks', 'block_ajax_marking');
-    $weekstr    = get_string('week',  'block_ajax_marking');
     $daysstr    = get_string('days',  'block_ajax_marking');
     $daystr     = get_string('day',   'block_ajax_marking');
     $hoursstr   = get_string('hours', 'block_ajax_marking');
@@ -130,189 +128,6 @@ function block_ajax_marking_make_time_tooltip($seconds) {
     return $name;
 }
 
-///**
-// * This is to build the data ready to be written to the db, using the parameters submitted so far.
-// * Others might be added to this object later byt he functions that call it, to match different
-// * scenarios
-// *
-// * @return void
-// */
-//function block_ajax_marking_make_config_data() {
-//    global $USER;
-//    $->data                 = new stdClass;
-//    $this->data->userid         = $USER->id;
-//    $this->data->assessmenttype = $this->assessmenttype;
-//    $this->data->assessmentid   = $this->assessmentid;
-//    $this->data->display        = $this->display;
-//}
-
-///**
-// * Takes data as the $this->data object and writes it to the db as either a new record or an
-// * updated one. Might be to show or not show or show by groups.
-// * Called from config_set, config_groups, make_config_groups_radio_buttons ($this->data->groups)
-// *
-// * @param string $assessmenttype
-// * @param int $assessmentid
-// * @return bool
-// */
-//function block_ajax_marking_config_write($assessmenttype, $assessmentid) {
-//
-//    global $USER, $DB;
-//    $existingrecord  = false;
-//    $recordid = '';
-//
-//    $existingrecord = $DB->get_record('block_ajax_marking',
-//                                      array('assessmenttype' => $assessmenttype,
-//                                            'assessmentid' => $assessmentid,
-//                                            'userid' => $USER->id));
-//    if ($existingrecord) {
-//
-//        // get all existing group stuff. We can assume that if there is no existing config
-//        // record then there will also be no groups as config records are never deleted
-//        $currentgroups = $DB->get_records('block_ajax_marking',
-//                                          array('configid' => $existingrecord->id));
-//
-//        // a record exists, so we update
-//        $recordid = $this->data->id = $existingrecord->id;
-//
-//        if (!$DB->update_record('block_ajax_marking', $this->data)) {
-//            return false;
-//        }
-//
-//    } else {
-//        // no record, so we create one
-//        $recordid = $DB->insert_record('block_ajax_marking', $this->data);
-//
-//        if (!$recordid) {
-//            return false;
-//        }
-//    }
-//
-//    // Save each group
-//    if (isset($this->data->groups)) {
-//
-//        $groups = explode(' ', trim($this->data->groups));
-//
-//        if ($groups) {
-//
-//            foreach ($groups as $group) {
-//
-//                $data = new stdClass;
-//                $data->groupid = $group;
-//                $data->display = 1;
-//                $data->configid = $recordid;
-//
-//                // is there an existing record?
-//                if ($currentgroups) {
-//
-//                    foreach ($currentgroups as $currentgroup) {
-//
-//                        if ($currentgroup->groupid == $group) {
-//                            $data->id = $currentgroup->id;
-//                            break;
-//                        }
-//                    }
-//                }
-//
-//                if (isset($data->id)) {
-//                    if (!$DB->update_record('block_ajax_marking_groups', $data)) {
-//                        return false;
-//                    }
-//                } else {
-//                    if (!$DB->insert_record('block_ajax_marking_groups', $data)) {
-//                        return false;
-//                    }
-//                }
-//            }
-//        }
-//    }
-//    // no errors so far
-//    return true;
-//}
-
-
-/**
- * finds the groups info for a given course for the config tree. It then needs to check if those
- * groups are to be displayed for this assessment and user. can probably be merged with the
- * function above. Outputs a json object straight to AJAX
- *
- * The call might be for a course, not an assessment, so the presence of $assessmentid is used
- * to determine this.
- *
- * @param int $courseid the id of the course
- * @param string $assessmenttype type of assessment e.g. forum, workshop
- * @param int $assessmentid optional id of the assessment. Not needed for a course level config bit
- * @return void
- */
-function block_ajax_marking_make_config_groups_radio_buttons($courseid, $assessmenttype,
-                                                             $assessmentid=null) {
-
-    global $DB;
-
-    $groups           = '';
-    $current_settings = '';
-    $current_groups   = '';
-    $groupslist       = '';
-    $output = '';
-
-    // get currently saved groups settings, if there are any, so that check boxes can be marked
-    // correctly
-    if ($assessmentid) {
-        $config_settings = block_ajax_marking_get_groups_settings($assessmenttype, $assessmentid);
-    } else {
-        $config_settings = block_ajax_marking_get_groups_settings('course', $courseid);
-    }
-
-    if ($config_settings) {
-
-        //only make the array if there is not a null value
-        if ($config_settings->groups) {
-
-            if (($config_settings->groups != 'none') && ($config_settings->groups != null)) {
-                //turn space separated list of groups from possible config entry into an array
-                $current_groups = explode(' ', $config_settings->groups);
-            }
-        }
-    }
-    $groups = $DB->get_records('groups', array('courseid' => $courseid));
-
-    if ($groups) {
-
-        foreach ($groups as $group) {
-
-            // make a space separated list for saving if this is the first time
-            if (!$config_settings || !$config_settings->groups) {
-                    $groupslist .= $group->id.' ';
-
-            }
-            $output .= ',{';
-
-            // do they have a record for which groups to display? if no records yet made, default
-            // to display, i.e. box is checked
-            if ($current_groups) {
-                $settodisplay = in_array($group->id, $current_groups);
-                $output .= ($settodisplay) ? '"display":"true",' : '"display":"false",';
-
-            } else if ($config_settings && ($config_settings->groups == 'none')) {
-                // all groups should not be displayed.
-                $output .= '"display":"false",';
-
-            } else {
-                //default to display if there was no entry so far (first time)
-                $output .= '"display":"true",';
-            }
-            $output .= '"label":"'.$group->name.'",';
-            $output .= '"name":"' .$group->name.'",';
-            $output .= '"id":"'   .$group->id.'"';
-            $output .= '}';
-        }
-
-        return $output;
-
-    }
-    // TODO - what if there are no groups - does the return function in javascript deal with this?
-}
-
 /**
  * Fetches the correct config settings row from the settings object, given the details
  * of an assessment item
@@ -336,7 +151,7 @@ function block_ajax_marking_get_groups_settings($assessmenttype, $assessmentid, 
     }
 
     if ($groupconfig) {
-        foreach ($groupconfig as $key => $config_row) {
+        foreach ($groupconfig as $config_row) {
             $righttype = ($config_row->assessmenttype == $assessmenttype);
             $rightid = ($config_row->assessmentid == $assessmentid);
 
@@ -388,57 +203,6 @@ function block_ajax_marking_check_assessment_display_settings($assessmenttype, $
 }
 
 /**
- * This takes the settings for a particular assessment item and checks whether the submission
- * should be added to the count for it, depending on the assessment's display settings and the
- * student's group membership.
- *
- * @param string $assessmenttype e.g. form, workshop
- * @param object $submission the submission object
- * @return bool
- */
-function block_ajax_marking_can_show_submission($assessmenttype, $submission) {
-
-    $assessmentsettings = block_ajax_marking_get_groups_settings($assessmenttype, $submission->id);
-    $coursesettings = block_ajax_marking_get_groups_settings('course', $submission->course);
-
-    // several options:
-    // 1. there are no settings, so default to show
-    // 2. there are settings and it is set to show by groups, so show, but only if the student
-    // is in a group that is to be shown
-    // 3. the settings say 'show'
-
-    if ($assessmentsettings) {
-        $displaywithoutgroups = ($assessmentsettings->display == BLOCK_AJAX_MARKING_CONF_SHOW);
-        $displaywithgroups    = ($assessmentsettings->display == BLOCK_AJAX_MARKING_CONF_GROUPS);
-        $intherightgroup      = block_ajax_marking_is_member_of_group($assessmentsettings->groups,
-                                                                      $submission->userid);
-
-        if ($displaywithoutgroups || ($displaywithgroups && $intherightgroup)) {
-            return true;
-        }
-
-    } else {
-        // check at course level for a default
-        if ($coursesettings) {
-            $displaywithgroups    = ($coursesettings->display == BLOCK_AJAX_MARKING_CONF_GROUPS);
-            $intherightgroup      = block_ajax_marking_is_member_of_group($coursesettings->groups,
-                                                                          $submission->userid);
-            $displaywithoutgroups = ($coursesettings->display == BLOCK_AJAX_MARKING_CONF_SHOW);
-
-            if ($displaywithoutgroups || ($displaywithgroups && $intherightgroup)) {
-                return true;
-            } else {
-                return false;
-            }
-
-        } else {
-             // default to show if no settings saved yet.
-            return true;
-        }
-    }
-}
-
-/**
  * This runs through the previously retrieved group members list looking for a match between
  * student id and group id. If one is found, it returns true. False means that the student is
  * not a member of said group, or there were no groups supplied. Takes a space separated list so
@@ -451,7 +215,7 @@ function block_ajax_marking_can_show_submission($assessmenttype, $submission) {
  */
 function block_ajax_marking_is_member_of_group($groups, $memberid, $reset=false) {
 
-    global $CFG, $DB, $USER;
+    global $DB;
 
     static $groupmembers;
 
@@ -469,7 +233,6 @@ function block_ajax_marking_is_member_of_group($groups, $memberid, $reset=false)
         $groupmembers = $DB->get_records_sql($sql, $courseparams);
     }
 
-    $groupsarray = array();
     $groups = trim($groups);
     $groupsarray = explode(' ', $groups);
 
@@ -496,7 +259,7 @@ function block_ajax_marking_is_member_of_group($groups, $memberid, $reset=false)
  * @param object $submissions Must have
  *               $submission->id as the assessment id and
  *               $submission->cmid as coursemodule id (optional for quiz question)
- *               $submission->description as the desription
+ *               $submission->description as the description
  *               $submission->name as the name
  * @param bool $course are we listing them for a course level node?
  * @return array array of ids => cmids
@@ -548,78 +311,6 @@ function block_ajax_marking_list_assessment_ids($submissions, $course=false) {
 }
 
 /**
- * For SQL statements, a comma separated list of course ids is needed. It is vital that only
- * courses where the user is a teacher are used and also that the front page is excluded.
- *
- * @param array $courses
- * @return array
- */
-function block_ajax_marking_make_courseids_list($courses) {
-
-    global $USER, $DB;
-
-    $courseids = array();
-
-    if ($courses) {
-
-        // retrieve the teacher role id (3)
-        // TODO make this into a setting
-        $teacherrole = $DB->get_field('role', 'id', array('shortname' => 'editingteacher'));
-
-        foreach ($courses as $key => $course) {
-
-            $allowed_role = false;
-
-            // role check bit borrowed from block_marking, thanks to Mark J Tyers [ZANNET]
-            $teachers = 0;
-            $noneditingteachers = 0;
-
-            // check for editing teachers
-            $context = get_context_instance(CONTEXT_COURSE, $course->id);
-            $teachers = get_role_users($teacherrole, $context, true);
-
-            if ($teachers) {
-
-                foreach ($teachers as $teacher) {
-
-                    if ($teacher->id == $USER->id) {
-                        $allowed_role = true;
-                    }
-                }
-            }
-
-            if (!$allowed_role) {
-                // check the non-editing teacher role id (4) only if the last bit failed
-                $noneditingteacherrole = $DB->get_field('role', 'id',
-                                                        array('shortname' => 'teacher'));
-                // check for non-editing teachers
-                $noneditingteachers = get_role_users($noneditingteacherrole, $context, true);
-
-                if ($noneditingteachers) {
-
-                    foreach ($noneditingteachers as $noneditingteacher) {
-
-                        if ($noneditingteacher->id == $USER->id) {
-                            $allowed_role = true;
-                        }
-                    }
-                }
-            }
-            // if still nothing, don't use this course
-            if (!$allowed_role) {
-                unset($courses[$key]);
-                continue;
-            }
-            // otherwise, add it to the list
-            $courseids[] = $course->id;
-
-        }
-    }
-
-    return $courseids;
-}
-
-/**
  * It turned out to be impossible to add icons reliably
  * with CSS, so this function generates the right img tag
  *
@@ -629,10 +320,8 @@ function block_ajax_marking_make_courseids_list($courses) {
  */
 function block_ajax_marking_add_icon($type) {
 
-    global $CFG, $OUTPUT;
-
     // TODO make this work properly - load all icons in HTML, then apply them using css as needed
-    return;
+    return true;
 
     $result = "<img class='amb-icon' src='";
 
@@ -771,7 +460,7 @@ function block_ajax_marking_get_number_of_category_levels($reset=false) {
  * @param bool $returnsql flag to determine whether we want to get the sql and params to use as a
  * subquery for something else
  * @param bool $reset
- * @return aray of courses keyed by courseid
+ * @return array of courses keyed by courseid
  */
 function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=false) {
 
@@ -996,7 +685,7 @@ function block_ajax_marking_form_url($params=array()) {
  * @global type $CFG
  * @return string
  */
-function block_ajax_marking_debuggable_query($query, $params = false) {
+function block_ajax_marking_debuggable_query(block_ajax_marking_query_base $query, $params = array()) {
 
     global $CFG;
 

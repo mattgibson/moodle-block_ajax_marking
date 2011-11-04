@@ -43,7 +43,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
     // TODO make this only happen on the 2.0 upgrade
     // 1.9 latest version 2010101301
-    // actual pooint where the code was written: 2010061801 (2.0
+    // actual point where the code was written: 2010061801 (2.0
     // This should trigger on any verison of 1.9 now, provided 1.9 is not changed again.
     // If people have already installed 2.0 and the upgrade didn't work...
     // If they installed 2.0 and the upgrade did work?

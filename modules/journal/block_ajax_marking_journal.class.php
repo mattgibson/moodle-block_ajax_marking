@@ -72,7 +72,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
      */
     public function submissions($journalid) {
 
-        global $USER, $CFG, $DB;
+        global $USER, $DB;
         // need to get course id in order to retrieve students
         $journal = $DB->get_record('journal', array('id' => $journalid));
         $courseid = $journal->course;

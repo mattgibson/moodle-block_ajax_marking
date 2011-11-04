@@ -126,7 +126,6 @@ class block_ajax_marking_query_factory {
 
         // if not a union query, we will want to remember which module we are narrowed down to so we
         // can apply the postprocessing hook later
-        $filterfunctionname = false;
 
         $modulequeries = array();
         $moduleid = false;
@@ -251,7 +250,7 @@ class block_ajax_marking_query_factory {
      * Applies the filter needed for course nodes or their descendants
      *
      * @param block_ajax_marking_query_base $query
-     * @param bool|string $operation If we are glueing many module queries together, we will need to
+     * @param bool|string $operation If we are gluing many module queries together, we will need to
      *                    run a wrapper query that will select from the UNIONed subquery
      * @param int $courseid Optional. Will apply SELECT and GROUP BY for nodes if missing
      * @return void|string
@@ -899,7 +898,7 @@ class block_ajax_marking_query_factory {
      * For the config nodes, we want all of the coursemodules. No need to worry about counting etc
      *
      * @param array $filters
-     * @return void
+     * @return array
      */
     public static function get_config_nodes($filters) {
 

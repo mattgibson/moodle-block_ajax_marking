@@ -14,7 +14,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * This file conatins all the javascript for the AJAX Marking block
+ * This file contains all the javascript for the AJAX Marking block
  *
  * @package    block
  * @subpackage ajax_marking
@@ -34,11 +34,6 @@ if (typeof(M.block_ajax_marking) === 'undefined') {
 M.block_ajax_marking.assignment = (function() {
 
     return {
-
-        add_css : function() {
-
-        },
-
         pop_up_arguments : function() {
             return 'menubar=0,location=0,scrollbars,resizable,width=900,height=630';
         }

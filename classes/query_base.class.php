@@ -42,7 +42,7 @@ class block_ajax_marking_query_base {
     private $select = array();
 
     /**
-     * An array of arrays. Each needsm 'join', 'table', 'on'
+     * An array of arrays. Each needs 'join', 'table', 'on'
      * @var array
      */
     private $from = array();
@@ -54,12 +54,6 @@ class block_ajax_marking_query_base {
      * @var array
      */
     private $where = array();
-
-    /**
-     * Array of column aliases
-     * @var array
-     */
-    private $groupby = array();
 
     /**
      * Array of column aliases
@@ -219,21 +213,20 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Need to construct the groupby here from the SELECT bits as Oracle compalins if you have an
+     * Need to construct the groupby here from the SELECT bits as Oracle complains if you have an
      * aggregate and then leave out some of the bits. Possible that Oracle doesn't accept aliases
      * for GROUP BY?
      *
-     * @param bool $union
      * @return string SQL
      */
-    public function get_groupby($union = false) {
+    public function get_groupby() {
 
         $groupby = array();
 
         if ($this->has_select_aggregate()) {
             // Can't miss out any of the things or Oracle will be unhappy
 
-            foreach ($this->select as $alias => $column) {
+            foreach ($this->select as $column) {
                 // if the column is not a MAX, COUNT, etc, add it to the groupby
                 if (!isset($column['function']) && $column['column'] !== '*') {
                     $groupby[] = (isset($column['table']) ? $column['table'].'.' : '').
@@ -436,7 +429,7 @@ class block_ajax_marking_query_base {
      * Adds an associative array of parameters to the query
      *
      * @param array $params
-     * @param bool $prefix do we want to make these paremters unique to this module? Use false if
+     * @param bool $prefix do we want to make these parameters unique to this module? Use false if
      * get_in_or_equal() has been used
      * @return void
      */
@@ -461,7 +454,7 @@ class block_ajax_marking_query_base {
 
     /**
      * Will check to see if any of the select clauses have aggregates. Needed to know if GROUP BY is
-     * necesary.
+     * necessary.
      *
      * @return bool
      */
@@ -516,7 +509,7 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Geter function for the associated module's capability so we can check for permissions
+     * Getter function for the associated module's capability so we can check for permissions
      *
      * @return string
      */
