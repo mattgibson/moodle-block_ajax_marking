@@ -813,7 +813,6 @@ M.block_ajax_marking.initialise = function() {
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
 
-
         var configtab = new Y.Tab({
             'label':'Config',
             'content':'<div id="configtree"></div>'});
@@ -848,19 +847,19 @@ M.block_ajax_marking.initialise = function() {
                     {
                         text: "Choose groups",
                         submenu: {
-                                    id: "submenu1",
-                                    lazyload: true,
-                                    itemdata: [
-                                        {   text: "Group 1",
-                                            onclick: { fn: M.block_ajax_marking.context_group_onclick } },
-                                        {   text: "Group 2",
-                                            onclick: { fn: M.block_ajax_marking.context_group_onclick } },
-                                        {   text: "Group 3",
-                                            onclick: { fn: M.block_ajax_marking.context_group_onclick } },
-                                        {   text: "Group 4",
-                                            onclick: { fn: M.block_ajax_marking.context_group_onclick } }
-                                    ]
-                                }
+                            id: "submenu1",
+                            lazyload: true,
+                            itemdata: [
+                                {   text: "Group 1",
+                                    onclick: { fn: M.block_ajax_marking.context_group_onclick } },
+                                {   text: "Group 2",
+                                    onclick: { fn: M.block_ajax_marking.context_group_onclick } },
+                                {   text: "Group 3",
+                                    onclick: { fn: M.block_ajax_marking.context_group_onclick } },
+                                {   text: "Group 4",
+                                    onclick: { fn: M.block_ajax_marking.context_group_onclick } }
+                            ]
+                        }
                     }
                 ]
             }
@@ -870,24 +869,12 @@ M.block_ajax_marking.initialise = function() {
         M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
                                                    M.block_ajax_marking.context_update);
 
-
         // menu item onclick
 //        {
 //            fn: Function, // The handler to call when the event fires.
 //            obj: Object, // An object to pass back to the handler.
 //            scope: Object // The object to use for the scope of the handler.
 //        }
-
-
-
-
-
-
-
-
-
-
-
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function(e) {
@@ -949,7 +936,6 @@ M.block_ajax_marking.context_update = function(thing, otherthing) {
  */
 M.block_ajax_marking.context_show_onclick = function(event, otherthing, obj) {
 
-
     if (this.cfg.getProperty('checked') == true) {
         this.cfg.setProperty("checked", false);
     } else {
@@ -969,7 +955,6 @@ M.block_ajax_marking.context_show_onclick = function(event, otherthing, obj) {
 
 M.block_ajax_marking.context_showgroups_onclick = function(event, otherthing, obj) {
 
-
     if (this.cfg.getProperty('checked') == true) {
         this.cfg.setProperty("checked", false);
     } else {
@@ -988,7 +973,6 @@ M.block_ajax_marking.context_showgroups_onclick = function(event, otherthing, ob
 };
 
 M.block_ajax_marking.context_group_onclick = function(event, otherthing, obj) {
-
 
     if (this.cfg.getProperty('checked') == true) {
         this.cfg.setProperty("checked", false);

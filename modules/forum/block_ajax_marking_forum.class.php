@@ -496,8 +496,9 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                 // The query will know, but not easy to get it out. Might have been prefixed.
                 // TODO pass this properly somehow
                 $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
-                // normal forum needs discussion title as label, participant usernames as description
-                // eachuser needs username as title and discussion subject as description
+                // normal forum needs discussion title as label, participant usernames as
+                // description eachuser needs username as title and discussion subject as
+                // description
                 if ($this->forum_is_eachuser($coursemoduleid)) {
                     $query->add_select(array(
                             'table' => 'firstpost',
@@ -532,7 +533,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                         'on' => 'firstpost.id = outerdiscussions.firstpost'
                 ));
                 break;
-
 
             case 'countselect':
                 // We are in the inner counting bit where module stuff is.

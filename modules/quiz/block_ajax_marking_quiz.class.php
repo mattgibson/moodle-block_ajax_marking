@@ -409,9 +409,10 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 
             case 'where':
                 // Applies if users are not the final nodes,
+                $id = $query->prefix_param('submissionid');
                 $query->add_where(array(
                         'type' => 'AND',
-                        'condition' => 'quiz_attempts.userid = :'.$query->prefix_param('submissionid'))
+                        'condition' => 'quiz_attempts.userid = :'.$id)
                 );
                 $query->add_param('submissionid', $userid);
                 break;
