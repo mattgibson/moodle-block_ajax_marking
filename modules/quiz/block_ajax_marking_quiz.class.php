@@ -93,8 +93,8 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 // Apply WHERE clause
                 $query->add_where(array(
                         'type' => 'AND',
-                        'condition' => 'question.id = :'.$query->prefix_param('questionid')));
-                $query->add_param('questionid', $questionid);
+                        'condition' => 'question.id = :questionidfilterquestionid'));
+                $query->add_param('questionidfilterquestionid', $questionid);
                 break;
 
             case 'displayselect':
@@ -102,7 +102,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 $query->add_from(array(
                         'join' => 'INNER JOIN',
                         'table' => 'question',
-                        'on' => 'question.id = combinedmodulesubquery.id'));
+                        'on' => 'question.id = countwrapperquery.id'));
                 $selects = array(
                         array(
                             'table' => 'question',
@@ -360,6 +360,10 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 'on'    => 'question_attempts.questionid = question.id'
         ));
 
+        // Standard userid for joins
+        $query->add_select(array('table' => 'quiz_attempts',
+                                 'column' => 'userid'));
+
         $query->add_where(array('type' => 'AND',
                                 'condition' => 'quiz_attempts.timefinish > 0'));
         $query->add_where(array('type' => 'AND',
@@ -388,7 +392,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                   AND st.questionattemptid = question_attempts.id)";
         $query->add_where(array('type' => 'AND',
                                 'condition' => $subsql));
-        $query->add_params($gradedparams, false);
+        $query->add_params($gradedparams);
         return $query;
     }
 
@@ -409,12 +413,11 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 
             case 'where':
                 // Applies if users are not the final nodes,
-                $id = $query->prefix_param('submissionid');
                 $query->add_where(array(
                         'type' => 'AND',
-                        'condition' => 'quiz_attempts.userid = :'.$id)
+                        'condition' => 'quiz_attempts.userid = :useridfiltersubmissionid')
                 );
-                $query->add_param('submissionid', $userid);
+                $query->add_param('useridfiltersubmissionid', $userid);
                 break;
 
             case 'displayselect':
@@ -430,7 +433,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                         'join'  => 'INNER JOIN',
                         'table' => 'user',
                         'alias' => 'usertable',
-                        'on'    => 'usertable.id = combinedmodulesubquery.id'
+                        'on'    => 'usertable.id = countwrapperquery.id'
                 ));
                 break;
 

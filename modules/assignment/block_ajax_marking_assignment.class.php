@@ -379,7 +379,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         global $DB;
 
         $query = new block_ajax_marking_query_base($this);
-        $query->set_userid_column('sub.userid');
 
         $query->add_from(array(
                 'table' => 'assignment',
@@ -393,6 +392,10 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                 'on' => 'sub.assignment = moduletable.id'
         ));
 
+        // Standard userid for joins
+        $query->add_select(array('table' => 'sub',
+                                 'column' => 'userid'));
+
         $query->add_where(array(
                                'type' => 'AND',
                                'condition' => 'sub.timemarked < sub.timemodified'));
@@ -400,6 +403,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                 "NOT ( (moduletable.resubmit = 0 AND sub.timemarked > 0)
                        OR (".$DB->sql_compare_text('moduletable.assignmenttype')." = 'upload'
                            AND ".$DB->sql_compare_text('sub.data2')." != 'submitted') )"));
+//        $query->add_select(array('column' => 1,
+//                                 'alias' => 'count'));
 
         return $query;
     }
@@ -418,18 +423,26 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                         $userid = false) {
 
         $selects = array();
+        $countwrapper = $query->get_subquery('countwrapperquery');
 
         switch ($operation) {
 
             case 'where':
                 // Not sure we'll ever need this, but just in case...
-                $query->add_where(array(
+                $countwrapper->add_where(array(
                         'type' => 'AND',
                         'condition' => 'sub.userid = :'.$query->prefix_param('submissionid')));
                 $query->add_param('submissionid', $userid);
                 break;
 
-            case 'displayselect':
+            case 'countselect':
+
+                // Make the count be grouped by userid
+                $countwrapper->add_select(array(
+                        'table'    => 'moduleunion',
+                        'column'   => 'userid',
+                        'alias'    => 'id'), true
+                );
 
                 $selects = array(
                     array(
@@ -437,33 +450,14 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                         'column' => 'firstname'),
                     array(
                         'table' => 'usertable',
-                        'column' => 'lastname'),
+                        'column' => 'lastname')
                 );
 
                 $query->add_from(array(
-                        'join' => 'INNER JOIN',
                         'table' => 'user',
                         'alias' => 'usertable',
-                        'on' => 'usertable.id = combinedmodulesubquery.id'));
-                break;
+                        'on' => 'usertable.id = countwrapperquery.id'));
 
-            case 'countselect':
-                // We just want the counting stuff for the inner query
-                $selects = array(
-                    array(
-                        'table' => 'sub',
-                        'column' => 'userid'),
-                    array( // Count in case we have user as something other than the last node
-                        'function' => 'COUNT',
-                        'table'    => 'sub',
-                        'column'   => 'id',
-                        'alias'    => 'count',
-                        'distinct' => true),
-                    // This is only needed to add the right callback function.
-                    array(
-                        'column' => "'".$query->get_modulename()."'",
-                        'alias' => 'modulename'
-                        ));
                 break;
         }
 

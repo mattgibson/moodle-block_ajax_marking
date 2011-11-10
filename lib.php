@@ -615,9 +615,10 @@ function &block_ajax_marking_get_module_classes($reset=false) {
  */
 function block_ajax_marking_format_node(&$node, $nextnodefilter) {
 
-    $node->display    = new stdClass;
-    $node->returndata = new stdClass;
-    $node->popupstuff = new stdClass;
+    $node->displaydata = new stdClass;
+    $node->returndata  = new stdClass;
+    $node->popupstuff  = new stdClass;
+    $node->configdata  = new stdClass;
 
     // The things to go into display are fixed. Stuff for return data varies
     $displayitems = array(
@@ -634,13 +635,24 @@ function block_ajax_marking_format_node(&$node, $nextnodefilter) {
             'time'
     );
 
+    $configitems = array(
+            'display',
+            'groupsdisplay',
+            'groups'
+    );
+
     // loop through the rest of the object's properties moving them to the returndata bit
     foreach ($node as $varname => $value) {
 
-        if ($varname !== 'display' && $varname !== 'returndata' && $varname !== 'popupstuff') {
+        if ($varname !== 'displaydata' &&
+            $varname !== 'returndata' &&
+            $varname !== 'popupstuff' &&
+            $varname !== 'configdata') {
 
             if (in_array($varname, $displayitems)) {
-                $node->display->$varname = $value;
+                $node->displaydata->$varname = $value;
+            } else if (in_array($varname, $configitems)) {
+                $node->configdata->$varname = $value;
             } else if ($varname == $nextnodefilter) {
                 $node->returndata->$varname = $value;
             } else {
@@ -681,11 +693,11 @@ function block_ajax_marking_form_url($params=array()) {
  * copy/pasted into an SQL GUI in order to debug SQL errors
  *
  * @param $query
- * @param bool $params
+ * @param array $params
  * @global type $CFG
  * @return string
  */
-function block_ajax_marking_debuggable_query(block_ajax_marking_query_base $query, $params = array()) {
+function block_ajax_marking_debuggable_query($query, $params = array()) {
 
     global $CFG;
 

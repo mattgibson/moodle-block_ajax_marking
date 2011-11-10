@@ -126,30 +126,21 @@ M.block_ajax_marking.tree_base.prototype.node_label = function(text, count) {
  */
 M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
 
-    var newnode = '';
-    var nodedata = '';
-    var seconds = 0;
-    var currentfilter = '';
-    var modulename = '';
-    // TODO what if server time and browser time are mismatched?
-    var currenttime = Math.round((new Date()).getTime() / 1000); // current unix time
-    var iconstyle = '';
-    var numberofnodes = nodesarray.length;
-
-    // we need to attach nodes to the root node if this is the initial build after a refresh
-    var holdertype = typeof(M.block_ajax_marking.parentnodeholder);
-    if (holdertype !== 'object') {
+    var newnode = '', nodedata = '', currentfilter ='', modulename = '', iconstyle = '',
+        seconds = 0, currenttime = Math.round((new Date()).getTime() / 1000), // current unix time
+        numberofnodes = nodesarray.length, m = 0;
+    if (typeof(M.block_ajax_marking.parentnodeholder) !== 'object') {
         M.block_ajax_marking.parentnodeholder = this.getRoot();
     }
 
     // cycle through the array and make the nodes
-    for (var m = 0; m < numberofnodes; m++) {
+    for (m = 0; m < numberofnodes; m++) {
 
         nodedata = nodesarray[m];
 
         // Make the display data accessible to the node creation code
-        nodedata.label = nodedata.display.name;
-        nodedata.title = nodedata.display.tooltip;
+        nodedata.label = nodedata.displaydata.name;
+        nodedata.title = nodedata.displaydata.tooltip;
 
         // Get current filter name. Assumes only one value in returndata
         for (var filtername in nodedata.returndata) {
@@ -161,16 +152,16 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         }
         // Some nodes won't be specific to a module, but this needs to be specified to avoid
         // silent errors
-        modulename = (typeof(nodedata.display.modulename) !== 'undefined') ?
-                nodedata.display.modulename : false;
+        modulename = (typeof(nodedata.displaydata.modulename) !== 'undefined') ?
+                nodedata.displaydata.modulename : false;
         nodedata.returndata.nextnodefilter = this.nextnodetype(currentfilter, modulename);
 
         // Add a count if we have more than one thing or we're not at the final node
         // e.g. student name
-        if (typeof(nodedata.display.count) !== 'undefined' &&
-            (nodedata.display.count > 1 || nodedata.returndata.nextnodefilter !== false)) {
+        if (typeof(nodedata.displaydata.count) !== 'undefined' &&
+            (nodedata.displaydata.count > 1 || nodedata.returndata.nextnodefilter !== false)) {
 
-            nodedata.label = this.node_label(nodedata.label, nodedata.display.count);
+            nodedata.label = this.node_label(nodedata.label, nodedata.displaydata.count);
         }
 
         newnode = new YAHOO.widget.TextNode(nodedata, M.block_ajax_marking.parentnodeholder, false);
@@ -185,15 +176,14 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         }
 
         // We assume that the modules have added any css they want to add in styles.php
-        newnode.labelStyle = 'block_ajax_marking_node_' + nodedata.display.style;
+        newnode.labelStyle = 'block_ajax_marking_node_' + nodedata.displaydata.style;
 
         // If the node has a time (of oldest submission) show urgency by adding a background colour
-        if (typeof(nodedata.display) !== 'undefined' &&
-                typeof(nodedata.display.time) !== 'undefined') {
+        if (typeof(nodedata.displaydata.time) !== 'undefined') {
 
             iconstyle = '';
 
-            seconds = currenttime - parseInt(nodedata.display.time, 10);
+            seconds = currenttime - parseInt(nodedata.displaydata.time, 10);
 
             if (seconds < 21600) {
                 // less than 6 hours
@@ -297,7 +287,7 @@ M.block_ajax_marking.tree_base.prototype.update_parent_node = function(parentnod
     var nodecount = 0;
     for (var i = 0; i < nodechildrenlength; i++) {
         // stored as a string
-        nodecount += parseInt(parentnodetoupdate.children[i].data.display.count, 10);
+        nodecount += parseInt(parentnodetoupdate.children[i].data.displaydata.count, 10);
     }
 
     // If root, we want to stop recursing, after updating the count
@@ -320,9 +310,9 @@ M.block_ajax_marking.tree_base.prototype.update_parent_node = function(parentnod
             this.removeNode(parentnodetoupdate, true);
         } else { // Update the node with its new total
 
-            var newlabel = this.node_label(parentnodetoupdate.data.display.name, nodecount);
+            var newlabel = this.node_label(parentnodetoupdate.data.displaydata.name, nodecount);
 
-            parentnodetoupdate.data.display.count = nodecount;
+            parentnodetoupdate.data.displaydata.count = nodecount;
             parentnodetoupdate.label = newlabel
         }
 
@@ -352,7 +342,7 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
 
     // Get window size, etc
     var popupurl = window.M.cfg.wwwroot + '/blocks/ajax_marking/actions/grading_popup.php?';
-    var modulejavascript = mbam[node.data.display.modulename];
+    var modulejavascript = mbam[node.data.displaydata.modulename];
     var popupargs = modulejavascript.pop_up_arguments(node);
 
     // New way:
@@ -446,7 +436,7 @@ M.block_ajax_marking.tree_base.prototype.recalculate_total_count = function() {
     var childrenlength = children.length;
 
     for (var i = 0; i < childrenlength; i++) {
-        this.totalcount += parseInt(children[i].data.display.count, 10);
+        this.totalcount += parseInt(children[i].data.displaydata.count, 10);
     }
 };
 
@@ -486,7 +476,7 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
         // any special nodes that came back from a module addition
     }
 
-    // what module do we have? Stored as currentnode.data.display.modulename
+    // what module do we have? Stored as currentnode.data.displaydata.modulename
     // possibly we may not have any javascript?
     if (typeof(modulename) === 'string') {
         if (typeof(M.block_ajax_marking[modulename]) === 'object') {
@@ -574,7 +564,7 @@ M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilte
         // any special nodes that came back from a module addition
     }
 
-    // what module do we have? Stored as currentnode.data.display.modulename
+    // what module do we have? Stored as currentnode.data.displaydata.modulename
     // possibly we may not have any javascript?
     if (typeof(modulename) === 'string') {
         if (typeof(M.block_ajax_marking[modulename]) === 'object') {
@@ -734,6 +724,7 @@ M.block_ajax_marking.make_footer = function () {
         label     : M.str.block_ajax_marking.refresh,
         id        : 'block_ajax_marking_collapse',
         onclick   : {fn: function() {
+            document.getElementById('status').innerHTML = '';
             YAHOO.util.Dom.setStyle('block_ajax_marking_error', 'display', 'none');
             M.block_ajax_marking.get_current_tab().displaywidget.initialise();
         }}, // TODO refresh all trees?

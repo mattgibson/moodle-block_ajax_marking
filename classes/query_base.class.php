@@ -158,24 +158,34 @@ class block_ajax_marking_query_base {
 
         foreach ($this->from as $from) {
 
+            // allow shorthand
+            if (isset($from['join'])) {
+                $from['join'] = ($from['join'] == 'left') ? 'LEFT JOIN' : $from['join'];
+            }
+
             if ($from['table'] instanceof block_ajax_marking_query_base) { //allow for recursion
                 $fromstring = '('.$from['table']->to_string().')';
             } else if (isset($from['subquery'])) {
-                $fromstring = '('.$from['table'].')';
+                $fromstring = '('.$from['table'].")\n";
             } else {
                 $fromstring = '{'.$from['table'].'}';
             }
-            if (isset($from['join'])) {
-                $fromstring = $from['join'].' '.$fromstring;
+            if (!empty($fromarray)) { // No JOIN keyword for the first table
+                if (isset($from['join'])) {
+                    $fromstring = $from['join'].' '.$fromstring;
+                } else {
+                    // Default to INNER JOIN
+                    $fromstring = 'INNER JOIN '.$fromstring;
+                }
             }
             if (isset ($from['alias'])) {
                 $fromstring .= ' '.$from['alias'];
             } else {
                 $fromstring .= ' '.$from['table'];
             }
-            if (isset($from['join'])) {
+            if (!empty($fromarray)) {
                 if (isset($from['on'])) {
-                    $fromstring .= ' ON '.$from['on'];
+                    $fromstring .= " ON ".$from['on'];
                 } else {
                     throw new coding_exception('No on bit specified for query join');
                 }
@@ -234,7 +244,7 @@ class block_ajax_marking_query_base {
                 }
             }
             if ($groupby) {
-                return "\n\n GROUP BY ".implode(', ', $groupby).' ';
+                return "\n\n GROUP BY ".implode(", \n", $groupby).' ';
             } else {
                 return '';
             }
@@ -384,8 +394,8 @@ class block_ajax_marking_query_base {
     public function add_param($name, $value) {
         // must differentiate between the modules, which will be duplicating params. Prefixing with
         // the module name means that when we do array_merge, we won't have a problem
-        $key = $this->prefix_param($name);
-        $this->params[$key] = $value;
+//        $key = $this->prefix_param($name);
+        $this->params[$name] = $value;
     }
 
     /**
@@ -394,12 +404,12 @@ class block_ajax_marking_query_base {
      * @param string $name
      * @return string
      */
-    public function prefix_param($name) {
-        if ($this->moduleobject) {
-            return $this->moduleobject->modulename.'xx'.$name;
-        }
-        return 'mainqueryxx'.$name;
-    }
+//    public function prefix_param($name) {
+//        if ($this->moduleobject) {
+//            return $this->moduleobject->modulename.'xx'.$name;
+//        }
+//        return 'mainqueryxx'.$name;
+//    }
 
     /**
      * Getter for the DB module name
@@ -429,24 +439,13 @@ class block_ajax_marking_query_base {
      * Adds an associative array of parameters to the query
      *
      * @param array $params
-     * @param bool $prefix do we want to make these parameters unique to this module? Use false if
-     * get_in_or_equal() has been used
      * @return void
      */
-    public function add_params(array $params, $prefix = true) {
-        // TODO throw error if same keys as existing ones are fed in.
+    public function add_params(array $params) {
+
         $dupes = array_intersect_key($params, $this->params);
         if ($dupes) {
             throw new coding_exception('Duplicate keys when adding query params', $dupes);
-        }
-
-        // Avoid collisions by prefixing all key names unless otherwise specified
-        if ($prefix) {
-            foreach ($params as $oldkey => $value) {
-                $newkey = $this->prefix_param($oldkey);
-                $params[$newkey] = $value;
-                unset($params[$oldkey]);
-            }
         }
 
         $this->params = array_merge($this->params, $params);
@@ -509,6 +508,15 @@ class block_ajax_marking_query_base {
     }
 
     /**
+     * Setter for the userid column
+     *
+     * @param string $column the userid column in the submissions (sub) table
+     */
+    public function set_userid_table($column) {
+        $this->useridtable = $column;
+    }
+
+    /**
      * Getter function for the associated module's capability so we can check for permissions
      *
      * @return string
@@ -550,7 +558,7 @@ class block_ajax_marking_query_base {
      */
     private function get_sql_groups_subquery($configalias) {
 
-        $useridfield = $this->get_userid_column();
+//        $useridfield = $this->get_userid_column();
 
         $groupsql = " EXISTS (SELECT 1
                                 FROM {groups_members} gm
@@ -558,7 +566,7 @@ class block_ajax_marking_query_base {
                                   ON gm.groupid = g.id
                           INNER JOIN {block_ajax_marking_groups} gs
                                   ON g.id = gs.groupid
-                               WHERE gm.userid = {$useridfield}
+                               WHERE gm.userid = moduleunion.userid
                                  AND gs.configid = {$configalias}.id) ";
 
         return $groupsql;
@@ -580,6 +588,24 @@ class block_ajax_marking_query_base {
         }
 
         return false;
+    }
+
+    /**
+     * This will retrieve a subquery object so that filters can be applied to it
+     *
+     * @param string $queryname
+     * @return block_ajax_marking_query_base
+     */
+    public function &get_subquery($queryname) {
+
+        foreach ($this->from as $jointable) {
+
+            if ($jointable['subquery'] && $jointable['alias'] === $queryname) {
+                return $jointable['table'];
+            }
+        }
+        throw new coding_exception('Trying to retrieve a non-existent subquery: '.$queryname);
+
     }
 
 

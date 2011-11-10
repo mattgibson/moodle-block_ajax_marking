@@ -137,7 +137,6 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
     public function query_factory() {
 
         $query = new block_ajax_marking_query_base($this);
-        $query->set_userid_column('sub.userid');
 
         $query->add_from(array(
                 'table' => $this->modulename,
@@ -150,6 +149,9 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
                 'alias' => 'sub',
                 'on' => 'sub.journal = moduletable.id'
         ));
+        // Standard userid for joins
+        $query->add_select(array('table' => 'sub',
+                                 'column' => 'userid'));
 
         $query->add_where(array('type' => 'AND', 'condition' => 'moduletable.assessed <> 0'));
         $query->add_where(array('type' => 'AND', 'condition' => 'sub.modified > sub.timemarked'));
