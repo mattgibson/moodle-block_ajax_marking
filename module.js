@@ -810,7 +810,7 @@ M.block_ajax_marking.initialise = function() {
             'content':'<div id="cohortstree"></div>'});
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
-
+        /*
         var configtab = new Y.Tab({
             'label':'Config',
             'content':'<div id="configtree"></div>'});
@@ -866,13 +866,7 @@ M.block_ajax_marking.initialise = function() {
         // Make sure the menu is updated to be current with the node it matches
         M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
                                                    M.block_ajax_marking.context_update);
-
-        // menu item onclick
-//        {
-//            fn: Function, // The handler to call when the event fires.
-//            obj: Object, // An object to pass back to the handler.
-//            scope: Object // The object to use for the scope of the handler.
-//        }
+        */
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function(e) {
