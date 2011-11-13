@@ -86,53 +86,68 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                             $questionid = 0) {
 
         $selects = array();
+        /**
+         * @var block_ajax_marking_query_base $countwrapper
+         */
+        $countwrapper = $query->get_subquery('countwrapperquery');
+        /**
+         * @var block_ajax_marking_query_base $moduleunion
+         */
+        $moduleunion = $countwrapper->get_subquery('moduleunion');
 
         switch ($operation) {
 
             case 'where':
                 // Apply WHERE clause
-                $query->add_where(array(
+                $moduleunion['quiz']->add_select(array(
+                                             'table' => 'question',
+                                             'column' => 'id',
+                                             'alias' => 'questionid'
+                                         ));
+                $countwrapper->add_where(array(
                         'type' => 'AND',
-                        'condition' => 'question.id = :questionidfilterquestionid'));
-                $query->add_param('questionidfilterquestionid', $questionid);
-                break;
-
-            case 'displayselect':
-
-                $query->add_from(array(
-                        'join' => 'INNER JOIN',
-                        'table' => 'question',
-                        'on' => 'question.id = countwrapperquery.id'));
-                $selects = array(
-                        array(
-                            'table' => 'question',
-                            'column' => 'name'),
-                        array(
-                            'table' => 'question',
-                            'column' => 'questiontext',
-                            'alias' => 'tooltip')
-                );
+                        'condition' => 'moduleunion.questionid = :questionidfilterquestionid'));
+                $countwrapper->add_param('questionidfilterquestionid', $questionid);
                 break;
 
             case 'countselect':
 
-                $selects = array(
-                    array(
+                // We can add this as we can be sure that we are only looking at quiz nodes, so
+                // there will be no other modules being added with UNION, so they won't all need
+                // the same columns for the UNION to work.
+                $moduleunion['quiz']->add_select(array(
+                                             'table' => 'question',
+                                             'column' => 'id',
+                                             'alias' => 'questionid'
+                                         ));
+                // Inner bit to make sure we get the counts grouped by questionid
+//                $countwrapper->add_from(array(
+//                        'table'    => 'forum_posts',
+//                        'on'       => 'moduleunion.subid = post.id',
+//                        'alias'    => 'post')
+//                );
+                $countwrapper->add_select(array(
+                        'table' => 'moduleunion',
+                        'column' => 'questionid',
+                        'alias' => 'id'));
+
+                // Outer bit to get display name
+                $query->add_from(array(
+                        'join' => 'INNER JOIN',
                         'table' => 'question',
-                        'column' => 'id',
-                        'alias' => 'questionid'),
-                    array(
-                        'table' => 'sub',
-                        'column' => 'id',
-                        'alias' => 'count',
-                        'function' => 'COUNT',
-                        'distinct' => true),
-                     // This is only needed to add the right callback function.
-                    array(
-                        'column' => "'".$query->get_modulename()."'",
-                        'alias' => 'modulename'
-                        )
-                    );
+                        'on' => 'question.id = countwrapperquery.id'));
+                $query->add_select(array(
+                        'table' => 'question',
+                        'column' => 'name'));
+                $query->add_select(array(
+                        'table' => 'question',
+                        'column' => 'questiontext',
+                        'alias' => 'tooltip'));
+
+                // This is only needed to add the right callback function.
+                $query->add_select(array(
+                        'column' => "'".$this->get_module_name()."'",
+                        'alias' => 'modulename'));
                 break;
         }
 
@@ -339,23 +354,19 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 'alias' => 'moduletable',
         ));
         $query->add_from(array(
-                'join'  => 'INNER JOIN',
                 'table' => 'quiz_attempts',
                 'on'    => 'moduletable.id = quiz_attempts.quiz'
         ));
         $query->add_from(array(
-                'join'  => 'INNER JOIN',
                 'table' => 'question_attempts',
                 'on'    => 'question_attempts.questionusageid = quiz_attempts.uniqueid'
         ));
         $query->add_from(array(
-                'join'  => 'INNER JOIN',
                 'table' => 'question_attempt_steps',
                 'alias' => 'sub',
                 'on'    => 'question_attempts.id = sub.questionattemptid'
         ));
         $query->add_from(array(
-                'join'  => 'INNER JOIN',
                 'table' => 'question',
                 'on'    => 'question_attempts.questionid = question.id'
         ));
@@ -408,6 +419,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                         $userid = 0) {
 
         $selects = array();
+        $countwrapper = $query->get_subquery('countwrapperquery');
 
         switch ($operation) {
 
@@ -420,14 +432,13 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 $query->add_param('useridfiltersubmissionid', $userid);
                 break;
 
-            case 'displayselect':
-                $selects = array(
-                        array(
-                            'table'    => 'usertable',
-                            'column'   => 'firstname'),
-                        array(
-                            'table'    => 'usertable',
-                            'column'   => 'lastname'));
+            case 'countselect':
+                $query->add_select(array(
+                    'table'    => 'usertable',
+                    'column'   => 'firstname'));
+                $query->add_select(array(
+                    'table'    => 'usertable',
+                    'column'   => 'lastname'));
 
                 $query->add_from(array(
                         'join'  => 'INNER JOIN',
@@ -435,21 +446,14 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                         'alias' => 'usertable',
                         'on'    => 'usertable.id = countwrapperquery.id'
                 ));
-                break;
 
-            case 'countselect':
-                $selects = array(
-                    array(
-                        'table'    => 'quiz_attempts',
-                        'column'   => 'userid'),
-                    array( // Count in case we have user as something other than the last node
-                        'function' => 'COUNT',
-                        'table'    => 'sub',
-                        'column'   => 'id',
-                        'alias'    => 'count'),
+                $countwrapper->add_select(array(
+                        'table'    => 'moduleunion',
+                        'column'   => 'userid',
+                        'alias' => 'id'));
                     // This is only needed to add the right callback function.
-                    array(
-                        'column' => "'".$query->get_modulename()."'",
+                $query->add_select(array(
+                        'column' => "'".$this->get_module_name()."'",
                         'alias' => 'modulename'
                         ));
                 break;

@@ -177,22 +177,12 @@ class block_ajax_marking_query_factory {
             }
         }
 
-
-
-
         // Make an array of queries to join with UNION ALL. This will get us the counts for each
         // module. Implode separate subqueries with UNION ALL. Must use ALL to cope with duplicate
         // rows with same counts and ids across the UNION. Doing it this way keeps the other items
         // needing to be placed into the SELECT  out of the way of the GROUP BY bit, which makes
         // Oracle bork up.
-        $unionallmodulesqueries = array();
-        $unionallmodulesparams = array();
-        foreach ($modulequeries as $query) {
-            /** @var $query block_ajax_marking_query_base */
-            $unionallmodulesqueries[] = $query->to_string();
-            $unionallmodulesparams = array_merge($unionallmodulesparams, $query->get_params());
-        }
-        $unionallmodulesqueries = implode("\n\n UNION ALL \n\n", $unionallmodulesqueries);
+
         // We want the bare minimum here. The idea is to avoid problems with GROUP BY ambiguity,
         // so we just get the counts as well as the node ids
 
@@ -204,8 +194,6 @@ class block_ajax_marking_query_factory {
                                              'alias' => 'count',
                                              'function' => 'COUNT'));
 
-
-
         if ($havecoursemodulefilter || $makingcoursemodulenodes) {
             // Needed to access the correct javascript so we can open the correct popup, so
             // we include the name of the module
@@ -213,15 +201,14 @@ class block_ajax_marking_query_factory {
                                                  'column' => 'modulename'));
         }
 
-        $countwrapperquery->add_from(array('table' => $unionallmodulesqueries,
+        $countwrapperquery->add_from(array('table' => $modulequeries,
                                            'alias' => 'moduleunion',
+                                           'union' => true,
                                            'subquery' => true));
-        $countwrapperquery->add_params($unionallmodulesparams);
-
 
         // Apply all WHERE filters
         // Apply all the standard filters. These only make sense when there's unmarked work
-        self::apply_sql_enrolled_students($countwrapperquery);
+        self::apply_sql_enrolled_students($countwrapperquery, $filters);
         self::apply_sql_visible($countwrapperquery);
         self::apply_sql_display_settings($countwrapperquery);
         self::apply_sql_owncourses($countwrapperquery);
@@ -257,7 +244,7 @@ class block_ajax_marking_query_factory {
                 'table'    => $countwrapperquery,
                 'alias'    => 'countwrapperquery',
                 'subquery' => true));
-        $displayquery->add_params($countwrapperquery->get_params());
+        //$displayquery->add_params($countwrapperquery->get_params());
 
 
         foreach ($filters as $name => $value) {
@@ -442,6 +429,9 @@ class block_ajax_marking_query_factory {
         global $DB;
 
         $selects = array();
+        $countwrapper = $query->get_subquery('countwrapperquery');
+        $moduleunion = $countwrapper->get_subquery('moduleunion');
+
 
         // Note: Adding a cohort filter after any other filter will cause a problem as e.g. courseid
         // will not include the code below limiting users to just those who are in a cohort. This
@@ -449,55 +439,35 @@ class block_ajax_marking_query_factory {
 
         // We need to join the userid to the cohort, if there is one.
         // TODO when is there not one?
-//        $useridcolumn = $query->get_userid_column();
-//        if ($useridcolumn) {
             // Add join to cohort_members
-            $query->add_from(array(
+            $countwrapper->add_from(array(
                     'join' => 'INNER JOIN',
                     'table' => 'cohort_members',
                     'on' => 'cohort_members.userid = moduleunion.userid'
             ));
-            $query->add_from(array(
+            $countwrapper->add_from(array(
                     'join' => 'INNER JOIN',
                     'table' => 'cohort',
                     'on' => 'cohort_members.cohortid = cohort.id'
             ));
 
-            // Join cohort_members only to cohorts that are enrolled in the course.
-            // We already have a check for enrolments, so we just need a where.
-
-            $query->add_where(array(
-                    'type' => 'AND',
-                    'condition' => $DB->sql_compare_text('ue.enrol')." = 'cohort'"));
-//        }
 
         switch ($operation) {
 
             case 'where':
 
                 // Apply WHERE clause
-                $query->add_where(array(
+                $countwrapper->add_where(array(
                         'type' => 'AND',
                         'condition' => 'cohort.id = :cohortidfiltercohortid'));
-                $query->add_param('cohortidfiltercohortid', $cohortid);
+                $countwrapper->add_param('cohortidfiltercohortid', $cohortid);
                 break;
 
             case 'countselect':
 
-                $selects = array(array(
+                $countwrapper->add_select(array(
                         'table'    => 'cohort',
-                        'column'   => 'id',
-                        'alias'    => 'cohortid'),
-                    array(
-                        'table'    => 'sub',
-                        'column'   => 'id',
-                        'alias'    => 'count',
-                        'function' => 'COUNT',
-                        'distinct' => true),
-                );
-                break;
-
-            case 'displayselect':
+                        'column'   => 'id'));
 
                 // What do we need for the nodes?
                 $query->add_from(array(
@@ -841,17 +811,19 @@ class block_ajax_marking_query_factory {
      * course
      * @TODO: Needs to also check parent contexts.
      *
-     * @param \block_ajax_marking_query_base $query
-     * @internal param string $useralias the thing that contains the userid e.g. s.userid
-     * @internal param string $moduletable the thing that contains the courseid e.g. a.course
+     * @param block_ajax_marking_query_base $query
+     * @param array $filters So we can filter by cohortid if we need to
      * @return array The join and where strings, with params. (Where starts with 'AND)
      */
-    private static function apply_sql_enrolled_students(block_ajax_marking_query_base $query) {
+    private static function apply_sql_enrolled_students(block_ajax_marking_query_base $query, array $filters) {
 
         global $DB, $CFG, $USER;
 
         // Hide users added by plugins which are now disabled.
-        if ($CFG->enrol_plugins_enabled) {
+        if (isset($filters['cohortid']) || $filters['nextnodefilter'] == 'cohortid') {
+            // We need to specify only people enrolled via a cohort
+            $enabledsql = " = 'cohort'";
+        } else if ($CFG->enrol_plugins_enabled) {
             // returns list of english names of enrolment plugins
             $plugins = explode(',', $CFG->enrol_plugins_enabled);
             list($enabledsql, $params) = $DB->get_in_or_equal($plugins,
@@ -989,6 +961,15 @@ class block_ajax_marking_query_factory {
                                                           $unionallmodulesparams);
 
         $nodes = $DB->get_records_sql($unionallmodulesquery, $unionallmodulesparams);
+
+
+        // Need to get all groups for each node. Can't do this in the main query as there are
+        // possibly multiple groups settings for each node. There is a limit to how many things we
+        // can have in an SQL IN statement
+        // Join to the config table and
+        $groupssql = "";
+
+
         return $nodes;
 
     }

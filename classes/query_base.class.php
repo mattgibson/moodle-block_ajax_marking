@@ -165,8 +165,27 @@ class block_ajax_marking_query_base {
 
             if ($from['table'] instanceof block_ajax_marking_query_base) { //allow for recursion
                 $fromstring = '('.$from['table']->to_string().')';
+//                $this->add_params($from['table']->get_params());
+
             } else if (isset($from['subquery'])) {
-                $fromstring = '('.$from['table'].")\n";
+
+                if (isset($from['union'])) {
+                    if (!is_array($from['table'])) {
+                        $error = 'Union subqueries must have an array supplied as their table item';
+                        throw new coding_exception($error);
+                    }
+                    $this->validate_union_array($from['table']);
+                    $unionarray = array();
+                    foreach ($from['table'] as $table) {
+                        $unionarray[] = $table->to_string();
+                    }
+                    $fromstring = '(';
+                    $fromstring .= implode("\n\n UNION ALL \n\n", $unionarray);
+                    $fromstring .= ")";
+
+                } else {
+                    $fromstring = '('.$from['table'].")\n";
+                }
             } else {
                 $fromstring = '{'.$from['table'].'}';
             }
@@ -335,10 +354,16 @@ class block_ajax_marking_query_base {
             throw new invalid_parameter_exception($table);
         }
 
-        $requiredkeys = array('join', 'table', 'alias', 'on', 'subquery');
+        $requiredkeys = array('join',
+                              'table',
+                              'alias',
+                              'on',
+                              'subquery',
+                              'union');
 
         if (array_diff(array_keys($table), $requiredkeys) === array()) {
-            $this->from[] = $table;
+            $key = isset($table['alias']) ? $table['alias'] : $table['table'];
+            $this->from[$key] = $table;
         } else {
             $errorstring = 'Wrong array items specified for new FROM table';
             throw new coding_exception($errorstring, array_keys($table));
@@ -439,16 +464,22 @@ class block_ajax_marking_query_base {
      * Adds an associative array of parameters to the query
      *
      * @param array $params
-     * @return void
+     * @param bool|array $arraytoaddto
+     * @return boool|array
      */
-    public function add_params(array $params) {
+    public function add_params(array $params, $arraytoaddto = false) {
 
-        $dupes = array_intersect_key($params, $this->params);
+        $dupes = array_intersect(array_keys($params), array_keys($this->params));
         if ($dupes) {
-            throw new coding_exception('Duplicate keys when adding query params', $dupes);
+            throw new coding_exception('Duplicate keys when adding query params',
+                                       implode(', ', $dupes));
         }
-
-        $this->params = array_merge($this->params, $params);
+        if ($arraytoaddto === false) {
+            $this->params = array_merge($this->params, $params);
+            return true;
+        } else {
+            return array_merge($params, $arraytoaddto);
+        }
     }
 
     /**
@@ -490,12 +521,40 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Getter function for the params
+     * Getter function for the params. Works recursively to allow subqueries an union (arrays) of
+     * subqueries.
      *
      * @return array
      */
     public function get_params() {
-        return $this->params;
+        $params = array();
+        foreach ($this->from as $jointable) {
+            $table = $jointable['table'];
+            if ($table instanceof block_ajax_marking_query_base) {
+                $params = $this->add_params($table->get_params(), $params);
+            } else if (is_array($table)) {
+                $this->validate_union_array($table);
+                foreach ($table as $uniontable) {
+                    $params = $this->add_params($uniontable->get_params(), $params);
+                }
+            }
+        }
+        return array_merge($params, $this->params);
+    }
+
+    /**
+     * Makes sure that we have an array of query objects rather than strings or anything else
+     *
+     * @throws coding_exception
+     * @param $unionarray
+     * @return void
+     */
+    private function validate_union_array($unionarray) {
+        foreach ($unionarray as $table) {
+            if (!($table instanceof block_ajax_marking_query_base)) {
+                throw new coding_exception('Array of queries for union are not all instances of block_ajax_marking_query_base');
+            }
+        }
     }
 
     /**
@@ -595,6 +654,7 @@ class block_ajax_marking_query_base {
      *
      * @param string $queryname
      * @return block_ajax_marking_query_base
+     * @throws coding_exception
      */
     public function &get_subquery($queryname) {
 
