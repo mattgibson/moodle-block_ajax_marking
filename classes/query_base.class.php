@@ -165,7 +165,6 @@ class block_ajax_marking_query_base {
 
             if ($from['table'] instanceof block_ajax_marking_query_base) { //allow for recursion
                 $fromstring = '('.$from['table']->to_string().')';
-//                $this->add_params($from['table']->get_params());
 
             } else if (isset($from['subquery'])) {
 
@@ -419,22 +418,8 @@ class block_ajax_marking_query_base {
     public function add_param($name, $value) {
         // must differentiate between the modules, which will be duplicating params. Prefixing with
         // the module name means that when we do array_merge, we won't have a problem
-//        $key = $this->prefix_param($name);
         $this->params[$name] = $value;
     }
-
-    /**
-     * Avoid naming collisions when using similar subqueries
-     *
-     * @param string $name
-     * @return string
-     */
-//    public function prefix_param($name) {
-//        if ($this->moduleobject) {
-//            return $this->moduleobject->modulename.'xx'.$name;
-//        }
-//        return 'mainqueryxx'.$name;
-//    }
 
     /**
      * Getter for the DB module name
@@ -552,7 +537,9 @@ class block_ajax_marking_query_base {
     private function validate_union_array($unionarray) {
         foreach ($unionarray as $table) {
             if (!($table instanceof block_ajax_marking_query_base)) {
-                throw new coding_exception('Array of queries for union are not all instances of block_ajax_marking_query_base');
+                $error = 'Array of queries for union are not all instances of '.
+                         'block_ajax_marking_query_base';
+                throw new coding_exception($error);
             }
         }
     }
@@ -617,8 +604,6 @@ class block_ajax_marking_query_base {
      */
     private function get_sql_groups_subquery($configalias) {
 
-//        $useridfield = $this->get_userid_column();
-
         $groupsql = " EXISTS (SELECT 1
                                 FROM {groups_members} gm
                           INNER JOIN {groups} g
@@ -650,7 +635,7 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * This will retrieve a subquery object so that filters can be applied to it
+     * This will retrieve a subquery object so that filters can be applied to it.
      *
      * @param string $queryname
      * @return block_ajax_marking_query_base
@@ -665,7 +650,6 @@ class block_ajax_marking_query_base {
             }
         }
         throw new coding_exception('Trying to retrieve a non-existent subquery: '.$queryname);
-
     }
 
 

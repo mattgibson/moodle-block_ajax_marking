@@ -403,8 +403,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                 "NOT ( (moduletable.resubmit = 0 AND sub.timemarked > 0)
                        OR (".$DB->sql_compare_text('moduletable.assignmenttype')." = 'upload'
                            AND ".$DB->sql_compare_text('sub.data2')." != 'submitted') )"));
-//        $query->add_select(array('column' => 1,
-//                                 'alias' => 'count'));
 
         return $query;
     }

@@ -57,8 +57,6 @@ class block_ajax_marking_query_test extends UnitTestCase {
 
         // Make submissions
 
-
-
     }
 
     /**

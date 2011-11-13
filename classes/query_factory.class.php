@@ -55,41 +55,7 @@ class block_ajax_marking_query_factory {
         } else {
             $query = $moduleclass->query_factory($confignodes);
 
-            // Apply all the standard filters. These only make sense when there's unmarked work
-//            self::apply_sql_enrolled_students($query);
-//            self::apply_sql_visible($query);
-//            self::apply_sql_display_settings($query);
-
         }
-
-        // Apply any filters specific to this request. Next node type one should be a GROUP BY,
-        // the rest need to be WHEREs i.e. starting from the requested nodes, and moving back up
-        // the tree e.g. 'student', 'assessment', 'course'
-//        foreach ($filters as $name => $value) {
-//            if ($name == 'nextnodefilter') {
-//                $filterfunctionname = 'apply_'.$value.'_filter';
-//                // The new node filter is in the form 'nextnodefilter => 'functionname', rather
-//                // than 'filtername' => <rowid> We want to pass the name of the filter in with
-//                // an empty value, so we set the value here.
-//                $value = false;
-//                $operation = $confignodes ? 'configselect' : 'countselect';
-//            } else {
-//                $filterfunctionname = 'apply_'.$name.'_filter';
-//                $operation = 'where';
-//            }
-//
-//            // Find the function. Core ones are part of the factory class, others will be methods of
-//            // the module object.
-//            // If we are filtering by a specific module, look there first
-//            if (method_exists($moduleclass, $filterfunctionname)) {
-//                // All core filters are methods of query_base and module specific ones will be
-//                // methods of the module-specific subclass. If we have one of these, it will
-//                // always be accompanied by a coursemoduleid, so will only be called on the
-//                // relevant module query and not the rest
-//                $moduleclass->$filterfunctionname($query, $operation, $value);
-//            }
-//        }
-
 
         // Need the course to join to other filters
         $query->add_select(array('table'  => 'moduletable',
@@ -108,8 +74,6 @@ class block_ajax_marking_query_factory {
                                  'alias'  =>'subid'));
         $query->add_select(array('column' => "'".$query->get_modulename()."'",
                                  'alias'  =>'modulename'));
-
-//        self::apply_sql_owncourses($query);
 
         return $query;
     }
@@ -206,22 +170,11 @@ class block_ajax_marking_query_factory {
                                            'union' => true,
                                            'subquery' => true));
 
-        // Apply all WHERE filters
         // Apply all the standard filters. These only make sense when there's unmarked work
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
         self::apply_sql_visible($countwrapperquery);
         self::apply_sql_display_settings($countwrapperquery);
         self::apply_sql_owncourses($countwrapperquery);
-
-
-        // This (called countwrapper elsewhere) gets us the ids of the nodes we want, plus counts
-        // of how many bits of unmarked work there are in a way that works for fussy DBs like
-        // Oracle.
-//        $countwrapperquery = "
-//            SELECT {$countwrapperselect}
-//              FROM ({$unionallmodulesqueries}) moduleunion
-//          GROUP BY {$countwrappergroupby}
-//          "; // Newlines so the debug query reads better
 
         // The outermost query just joins the already counted nodes with their display data e.g. we
         // already have a count for each courseid, now we want course name and course description
@@ -244,8 +197,6 @@ class block_ajax_marking_query_factory {
                 'table'    => $countwrapperquery,
                 'alias'    => 'countwrapperquery',
                 'subquery' => true));
-        //$displayquery->add_params($countwrapperquery->get_params());
-
 
         foreach ($filters as $name => $value) {
 
@@ -276,21 +227,6 @@ class block_ajax_marking_query_factory {
                 self::$filterfunctionname($displayquery, $operation, $value);
             }
         }
-
-        // Now we need to run the final query through the filter for the nextnodetype so that the
-        // rest of the necessary SELECT columns can be added, along with the JOIN to get them
-//        $nextnodefilterfunction = 'apply_'.$filters['nextnodefilter'].'_filter';
-//        if ($moduleid && method_exists($moduleclass, $nextnodefilterfunction)) {
-//            // If we stopped when we got to the class we wanted in the loop above, $moduleclass
-//            // will still be assigned to the one we want
-//            $moduleclass->$nextnodefilterfunction($displayquery, 'displayselect'); // allow override
-//        } else if (method_exists(__CLASS__, $nextnodefilterfunction)) {
-//            self::$nextnodefilterfunction($displayquery, 'displayselect');
-//        } else {
-//            // Problem - we have nothing to provide node display data.
-//            $text = 'No final filter applied for nextnodetype! ('.$nextnodefilterfunction.')';
-//            throw new coding_exception($text);
-//        }
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
         $debugquery = block_ajax_marking_debuggable_query($displayquery);
@@ -426,12 +362,8 @@ class block_ajax_marking_query_factory {
     private static function apply_cohortid_filter(block_ajax_marking_query_base $query,
                                                   $operation, $cohortid = false) {
 
-        global $DB;
-
         $selects = array();
         $countwrapper = $query->get_subquery('countwrapperquery');
-        $moduleunion = $countwrapper->get_subquery('moduleunion');
-
 
         // Note: Adding a cohort filter after any other filter will cause a problem as e.g. courseid
         // will not include the code below limiting users to just those who are in a cohort. This
@@ -439,18 +371,17 @@ class block_ajax_marking_query_factory {
 
         // We need to join the userid to the cohort, if there is one.
         // TODO when is there not one?
-            // Add join to cohort_members
-            $countwrapper->add_from(array(
-                    'join' => 'INNER JOIN',
-                    'table' => 'cohort_members',
-                    'on' => 'cohort_members.userid = moduleunion.userid'
-            ));
-            $countwrapper->add_from(array(
-                    'join' => 'INNER JOIN',
-                    'table' => 'cohort',
-                    'on' => 'cohort_members.cohortid = cohort.id'
-            ));
-
+        // Add join to cohort_members
+        $countwrapper->add_from(array(
+                'join' => 'INNER JOIN',
+                'table' => 'cohort_members',
+                'on' => 'cohort_members.userid = moduleunion.userid'
+        ));
+        $countwrapper->add_from(array(
+                'join' => 'INNER JOIN',
+                'table' => 'cohort',
+                'on' => 'cohort_members.cohortid = cohort.id'
+        ));
 
         switch ($operation) {
 
@@ -620,7 +551,6 @@ class block_ajax_marking_query_factory {
         ));
         // User settings for groups per course module. Will have a value if there is any groups
         // settings for this user and coursemodule
-//        $useridfield = $query->get_userid_column();
         list ($groupuserspersetting, $groupsparams) = self::get_sql_groups_subquery();
         $query->add_params($groupsparams);
         $query->add_from(array(
@@ -732,9 +662,7 @@ class block_ajax_marking_query_factory {
         // that's limited by explicit category and course permissions
         $sql = "SELECT id
                   FROM {course_modules}
-                 WHERE course {$coursesql}";"
-//                   AND module = :moduleid";
-//        $params['moduleid'] = $query->get_module_id();
+                 WHERE course {$coursesql}";
         // no point caching - only one request per module per page request:
         $coursemoduleids = $DB->get_records_sql($sql, $params);
         // Get all contexts (will cache them). This is expensive and hopefully has been cached in]
@@ -764,7 +692,8 @@ class block_ajax_marking_query_factory {
         }
 
         // Only show enabled mods
-        list($visiblesql, $visibleparams) = $DB->get_in_or_equal($modids, SQL_PARAMS_NAMED, 'visible000');
+        list($visiblesql, $visibleparams) = $DB->get_in_or_equal($modids, SQL_PARAMS_NAMED,
+                                                                 'visible000');
         $query->add_where(array(
                 'type'      => 'AND',
                 'condition' => "cm.module {$visiblesql}"));
@@ -790,7 +719,8 @@ class block_ajax_marking_query_factory {
         $courseids = array_keys($courses);
 
         if ($courseids) {
-            list($sql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED, 'courseid0000');
+            list($sql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED,
+                                                       'courseid0000');
 
             // Sometimes course.id, sometimes moduletable.course, depending on the query
             if ($query->has_join_table('course')) {
@@ -809,13 +739,13 @@ class block_ajax_marking_query_factory {
     /**
      * Returns an SQL snippet that will tell us whether a student is directly enrolled in this
      * course
-     * @TODO: Needs to also check parent contexts.
      *
      * @param block_ajax_marking_query_base $query
      * @param array $filters So we can filter by cohortid if we need to
      * @return array The join and where strings, with params. (Where starts with 'AND)
      */
-    private static function apply_sql_enrolled_students(block_ajax_marking_query_base $query, array $filters) {
+    private static function apply_sql_enrolled_students(block_ajax_marking_query_base $query,
+                                                        array $filters) {
 
         global $DB, $CFG, $USER;
 
@@ -843,45 +773,8 @@ class block_ajax_marking_query_factory {
                    AND enrol.courseid = moduleunion.course
                    AND user_enrolments.userid != :enrolcurrentuser
                    AND user_enrolments.userid = moduleunion.userid
-
         ";
 
-//        $subquery = new block_ajax_marking_query_base();
-//        $subquery->add_select(array(
-//                'table' => 'enrol',
-//                'column' => 'courseid'
-//        ));
-//        $subquery->add_select(array(
-//                'table' => 'enrol',
-//                'column' => 'enrol'
-//        ));
-//        $subquery->add_select(array(
-//                'table' => 'user_enrolments',
-//                'column' => 'userid'
-//        ));
-//        $subquery->add_from(array(
-//                'table' => 'user_enrolments'
-//        ));
-//        $subquery->add_from(array(
-//                'join' => 'INNER JOIN',
-//                'table' => 'enrol',
-//                'on' => 'enrol.id = user_enrolments.enrolid'
-//        ));
-//        // Also hide our own work. Only really applies in testing, but still.
-//        $subquery->add_where(array(
-//                'type' => 'AND',
-//                'condition' => "user_enrolments.userid != :".$query->prefix_param('currentuser')
-//        ));
-//        $subquery->add_where(array(
-//                'type' => 'AND',
-//                'condition' => "enrol.enrol {$enabledsql}"
-//        ));
-//        $query->add_from(array(
-//                'join' => 'INNER JOIN',
-//                'table' => $subquery,
-//                'alias' => 'ue',
-//                'on' => "(ue.courseid = moduleunion.course AND ue.userid = moduleunion.userid)"
-//        ));
         $query->add_where(array('type' => 'AND',
                                 'condition' => "EXISTS ({$sql})"));
         $query->add_param('enrolcurrentuser', $USER->id, false);
@@ -920,7 +813,6 @@ class block_ajax_marking_query_factory {
         $count++;
 
         return array($groupsql, $params);
-
     }
 
     /**
@@ -962,13 +854,11 @@ class block_ajax_marking_query_factory {
 
         $nodes = $DB->get_records_sql($unionallmodulesquery, $unionallmodulesparams);
 
-
         // Need to get all groups for each node. Can't do this in the main query as there are
         // possibly multiple groups settings for each node. There is a limit to how many things we
         // can have in an SQL IN statement
         // Join to the config table and
         $groupssql = "";
-
 
         return $nodes;
 

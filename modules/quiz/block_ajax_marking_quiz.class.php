@@ -120,12 +120,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                              'column' => 'id',
                                              'alias' => 'questionid'
                                          ));
-                // Inner bit to make sure we get the counts grouped by questionid
-//                $countwrapper->add_from(array(
-//                        'table'    => 'forum_posts',
-//                        'on'       => 'moduleunion.subid = post.id',
-//                        'alias'    => 'post')
-//                );
                 $countwrapper->add_select(array(
                         'table' => 'moduleunion',
                         'column' => 'questionid',
