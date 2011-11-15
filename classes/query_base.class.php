@@ -645,7 +645,10 @@ class block_ajax_marking_query_base {
 
         foreach ($this->from as $jointable) {
 
-            if ($jointable['subquery'] && $jointable['alias'] === $queryname) {
+            if (isset($jointable['subquery']) &&
+                isset($jointable['alias']) &&
+                $jointable['alias'] === $queryname) {
+
                 return $jointable['table'];
             }
         }

@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Class file for the block_ajax_marking_query_factory class
+ * Class file for the block_ajax_marking_nodes_factory class
  *
  * @package    block
  * @subpackage ajax_marking
@@ -29,7 +29,7 @@ if (!defined('MOODLE_INTERNAL')) {
 }
 
 global $CFG;
-require_once($CFG->wwwroot.'/blocks/ajax_marking/classes/query_factory.class.php');
+require_once($CFG->wwwroot.'/blocks/ajax_marking/classes/nodes_factory.class.php');
 require_once($CFG->wwwroot.'/blocks/ajax_marking/classes/query_base.class.php');
 
 global $DB;

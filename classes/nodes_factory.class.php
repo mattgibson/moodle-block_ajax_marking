@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Class file for the block_ajax_marking_query_factory class
+ * Class file for the block_ajax_marking_nodes_factory class
  *
  * @package    block
  * @subpackage ajax_marking
@@ -24,11 +24,15 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
+
 /**
  * This is to build a query based on the parameters passed into the constructor. Without parameters,
  * the query should return all unmarked items across all of the site.
  */
-class block_ajax_marking_query_factory {
+class block_ajax_marking_nodes_factory {
 
     /**
      * This will take the parameters which were supplied by the clicked node and its ancestors and
@@ -193,9 +197,10 @@ class block_ajax_marking_query_factory {
 
         // Apply all the standard filters. These only make sense when there's unmarked work
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
-        self::apply_sql_visible($countwrapperquery);
+        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid',
+                                'moduleunion.course');
         self::apply_sql_display_settings($countwrapperquery);
-        self::apply_sql_owncourses($countwrapperquery);
+        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
 
         // The outermost query just joins the already counted nodes with their display data e.g. we
         // already have a count for each courseid, now we want course name and course description
@@ -270,11 +275,14 @@ class block_ajax_marking_query_factory {
      * @return void|string
      */
     private static function apply_courseid_filter($query, $operation, $courseid = 0) {
-        // Apply SELECT clauses for course nodes
 
         $selects = array();
-        $tablename = 'countwrapperquery.id';
-        $countwrapper = $query->get_subquery('countwrapperquery');
+        $countwrapper = '';
+        if ($operation != 'configdisplay' && $operation != 'configwhere') {
+            $countwrapper = $query->get_subquery('countwrapperquery');
+        }
+
+        $tablename = '';
 
         switch ($operation) {
 
@@ -288,8 +296,17 @@ class block_ajax_marking_query_factory {
                 $query->add_param('courseidfiltercourseid', $courseid);
                 break;
 
+            case 'configwhere':
+
+                // This is for when a courseid node is an ancestor of the node that has been
+                // selected, so we just do a where
+                $query->add_where(array(
+                        'type' => 'AND',
+                        'condition' => 'course_modules.course = :courseidfiltercourseid'));
+                $query->add_param('courseidfiltercourseid', $courseid);
+                break;
+
             case 'countselect':
-                // This is for the module queries when we are making course nodes
 
                 $countwrapper->add_select(array(
                         'table'    => 'moduleunion',
@@ -302,26 +319,42 @@ class block_ajax_marking_query_factory {
                       //  'join' => 'INNER JOIN',
                         'table' =>'course',
                         'alias' => 'course',
-                        'on' => $tablename.' = course.id'
+                        'on' => 'countwrapperquery.id = course.id'
                 ));
-                $selects = array(
-                    array(
-                        'table'    => 'course',
-                        'column'   => 'shortname',
-                        'alias'    => 'name'),
-                    array(
-                        'table'    => 'course',
-                        'column'   => 'fullname',
-                        'alias'    => 'tooltip'));
+                $query->add_select(array(
+                    'table'    => 'course',
+                    'column'   => 'shortname',
+                    'alias'    => 'name'));
+                $query->add_select(array(
+                    'table'    => 'course',
+                    'column'   => 'fullname',
+                    'alias'    => 'tooltip'));
                 break;
 
-            case 'configselect':
+            case 'configdisplay':
+
+                // This is for the displayquery when we are making course nodes
+                $query->add_from(array(
+                      //  'join' => 'INNER JOIN',
+                        'table' =>'course',
+                        'alias' => 'course',
+                        'on' => 'course_modules.course = course.id'
+                ));
                 $query->add_select(array(
-                        'table'    => 'moduletable',
-                        'column'   => 'course',
-                        'alias'    => 'courseid'));
-                // Without the wrapped queries, we just join straight to the modules
-                // We want the next bit too, so fall through:
+                    'table'    => 'course',
+                    'column'   => 'id',
+                    'alias' => 'courseid',
+                    'distinct' => true));
+                $query->add_select(array(
+                    'table'    => 'course',
+                    'column'   => 'shortname',
+                    'alias'    => 'name'));
+                $query->add_select(array(
+                    'table'    => 'course',
+                    'column'   => 'fullname',
+                    'alias'    => 'tooltip'));
+                break;
+
         }
 
         foreach ($selects as $select) {
@@ -454,7 +487,9 @@ class block_ajax_marking_query_factory {
      */
     private static function apply_coursemoduleid_filter($query, $operation, $coursemoduleid = 0 ) {
 
-        $countwrapper = $query->get_subquery('countwrapperquery');
+        if ($operation != 'configdisplay') {
+            $countwrapper = $query->get_subquery('countwrapperquery');
+        }
 
         switch ($operation) {
 
@@ -485,7 +520,6 @@ class block_ajax_marking_query_factory {
                         'table'    => 'countwrapperquery',
                         'column'   => 'modulename'));
 
-
             case 'configdisplay':
 
                 // Awkwardly, the course_module table doesn't hold the name and description of the
@@ -506,7 +540,6 @@ class block_ajax_marking_query_factory {
                     $introcoalesce[$moduleclass->get_module_table()] = 'intro';
                 }
 
-
                 $query->add_select(array(
                         'table'    => $namecoalesce,
                         'function' => 'COALESCE',
@@ -520,10 +553,7 @@ class block_ajax_marking_query_factory {
 
                 break;
 
-
-
         }
-
 
     }
 
@@ -546,7 +576,7 @@ class block_ajax_marking_query_factory {
                 'join'  => 'LEFT JOIN',
                 'table' => 'block_ajax_marking',
                 'alias' => 'settings_course_modules',
-                'on'    => "(cm.id = settings_course_modules.instanceid ".
+                'on'    => "(course_modules.id = settings_course_modules.instanceid ".
                            "AND {$coursemodulescompare} = 'course_modules')"
         ));
         // User settings for courses (defaults in case of no activity settings)
@@ -555,7 +585,7 @@ class block_ajax_marking_query_factory {
                 'join'  => 'LEFT JOIN',
                 'table' => 'block_ajax_marking',
                 'alias' => 'settings_course',
-                'on'    => "(cm.course = settings_course.instanceid ".
+                'on'    => "(course_modules.course = settings_course.instanceid ".
                            "AND {$coursecompare} = 'course')"
         ));
         // User settings for groups per course module. Will have a value if there is any groups
@@ -639,23 +669,26 @@ class block_ajax_marking_query_factory {
      * find a small list of contexts that a teacher cannot grade in within the courses where they
      * normally can, then do a NOT IN thing with it. Also the obvious visible = 1 stuff.
      *
-     * @param \block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query_base $query
+     * @param string $coursemodulejoin What table.column to join to course_modules.id
+     * @param bool $includehidden Do we want to have hidden coursemodules included? Config = yes
      * @return array The join string, where string and params array. Note, where starts with 'AND'
      */
-    private static function apply_sql_visible(block_ajax_marking_query_base $query) {
-
+    private static function apply_sql_visible(block_ajax_marking_query_base $query,
+                                              $coursemodulejoin = '', $includehidden = false) {
         global $DB;
 
-        $query->add_from(array(
-                'join' => 'INNER JOIN',
-                'table' => 'course_modules',
-                'alias' => 'cm',
-                'on' => 'cm.id = moduleunion.coursemoduleid'
-        ));
+        if ($coursemodulejoin) { // only needed if the table is not already there
+            $query->add_from(array(
+                    'join' => 'INNER JOIN',
+                    'table' => 'course_modules',
+                    'on' => 'course_modules.id = '.$coursemodulejoin
+            ));
+        }
         $query->add_from(array(
                 'join' => 'INNER JOIN',
                 'table' => 'course',
-                'on' => 'course.id = moduleunion.course'
+                'on' => 'course.id = course_modules.course'
         ));
 
         // Get coursemoduleids for all items of this type in all courses as one query. Won't come
@@ -684,6 +717,8 @@ class block_ajax_marking_query_factory {
         foreach ($mods as $mod) {
             $modids[] = $mod->get_module_id(); // Save these for later
             foreach ($contexts as $key => $context) {
+                // If we don't find any capabilities for a context, it will remain and be excluded
+                // from the SQL. Hopefully this will be a small list.
                 if (has_capability($mod->get_capability(), $context)) { // this is cached, so fast
                     unset($contexts[$key]);
                 }
@@ -695,7 +730,8 @@ class block_ajax_marking_query_factory {
                                                                        SQL_PARAMS_NAMED,
                                                                        'context0000',
                                                                        false);
-            $query->add_where(array('type' => 'AND', 'condition' => "cm.id {$contextssql}"));
+            $query->add_where(array('type' => 'AND',
+                                    'condition' => "course_modules.id {$contextssql}"));
             $query->add_params($contextsparams);
         }
 
@@ -704,8 +740,13 @@ class block_ajax_marking_query_factory {
                                                                  'visible000');
         $query->add_where(array(
                 'type'      => 'AND',
-                'condition' => "cm.module {$visiblesql}"));
-        $query->add_where(array('type' => 'AND', 'condition' => 'cm.visible = 1'));
+                'condition' => "course_modules.module {$visiblesql}"));
+        // We want the coursmeodules that are hidden to be gone form the main trees. For config,
+        // We may want to show them greyed out so that settings can be sorted before they are shown
+        // to students.
+        if (!$includehidden) {
+            $query->add_where(array('type' => 'AND', 'condition' => 'course_modules.visible = 1'));
+        }
         $query->add_where(array('type' => 'AND', 'condition' => 'course.visible = 1'));
 
         $query->add_params($visibleparams);
@@ -716,9 +757,11 @@ class block_ajax_marking_query_factory {
      * Makes sure we only get stuff for the courses this user is a teacher in
      *
      * @param block_ajax_marking_query_base $query
+     * @param string $coursecolumn
      * @return void
      */
-    private static function apply_sql_owncourses(block_ajax_marking_query_base $query) {
+    private static function apply_sql_owncourses(block_ajax_marking_query_base $query,
+                                                 $coursecolumn = '') {
 
         global $DB;
 
@@ -729,13 +772,6 @@ class block_ajax_marking_query_factory {
         if ($courseids) {
             list($sql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED,
                                                        'courseid0000');
-
-            // Sometimes course.id, sometimes moduletable.course, depending on the query
-            if ($query->has_join_table('course')) {
-                $coursecolumn = 'course.id';
-            } else {
-                $coursecolumn = 'moduleunion.course';
-            }
 
             $query->add_where(array(
                     'type' => 'AND',
@@ -832,21 +868,16 @@ class block_ajax_marking_query_factory {
      */
     public static function get_config_nodes($filters) {
 
-        $modulequeries = array();
-        $moduleclasses = block_ajax_marking_get_module_classes();
-        $moduleclass = '';
-        if (!$moduleclasses) {
-            return array(); // No nodes
-        }
+        // The logic is that we need to filter the coure modues because some of them will be hidden
+        // or the user will not have access to them. Then we m,ay or may not group them by course
+        $configbasequery = new block_ajax_marking_query_base();
+        $configbasequery->add_from(array('table' => 'course_modules'));
 
-        foreach ($moduleclasses as $modname => $moduleclass) {
-            /** @var $moduleclass block_ajax_marking_module_base */
-            $modulequeries[$modname] = self::get_config_module_query($filters, $moduleclass);
-        }
+        // Now apply the filters.
+        self::apply_sql_owncourses($configbasequery, 'course_modules.course');
+        self::apply_sql_visible($configbasequery, '', true);
 
-        $displayquery = new block_ajax_marking_query_base();
-
-
+        // Now we either want the courses, grouped via DISTINCT, or the whole lot
         foreach ($filters as $name => $value) {
 
             if ($name == 'nextnodefilter') {
@@ -858,29 +889,23 @@ class block_ajax_marking_query_factory {
                 $operation = 'configdisplay';
             } else {
                 $filterfunctionname = 'apply_'.$name.'_filter';
-                $operation = 'where';
+                $operation = 'configwhere';
             }
 
             // Find the function. Core ones are part of the factory class, others will be methods of
             // the module object.
             // If we are filtering by a specific module, look there first
-            if (method_exists($moduleclass, $filterfunctionname)) {
-                // All core filters are methods of query_base and module specific ones will be
-                // methods of the module-specific subclass. If we have one of these, it will
-                // always be accompanied by a coursemoduleid, so will only be called on the
-                // relevant module query and not the rest
-                $moduleclass->$filterfunctionname($displayquery, $operation, $value);
-            } else if (method_exists(__CLASS__, $filterfunctionname)) {
+            if (method_exists(__CLASS__, $filterfunctionname)) {
                 // config tree needs to have select stuff that doesn't mention sub. Like for the
                 // outer wrappers of the normal query for the unmarked work nodes
-                self::$filterfunctionname($displayquery, $operation, $value);
+                self::$filterfunctionname($configbasequery, $operation, $value);
             }
         }
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
-        $debugquery = block_ajax_marking_debuggable_query($displayquery);
+        $debugquery = block_ajax_marking_debuggable_query($configbasequery);
 
-        $nodes = $displayquery->execute();
+        $nodes = $configbasequery->execute();
 
         // Need to get all groups for each node. Can't do this in the main query as there are
         // possibly multiple groups settings for each node. There is a limit to how many things we
@@ -945,8 +970,5 @@ class block_ajax_marking_query_factory {
         }
 
     }
-
-
-
 
 }
