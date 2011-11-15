@@ -483,6 +483,7 @@ class block_ajax_marking_nodes_factory {
      * @return void
      */
     private static function apply_coursemoduleid_filter($query, $operation, $coursemoduleid = 0 ) {
+        global $USER;
 
         $countwrapper = '';
         if ($operation != 'configdisplay') {
@@ -537,7 +538,10 @@ class block_ajax_marking_nodes_factory {
                     $namecoalesce[$moduleclass->get_module_table()] = 'name';
                     $introcoalesce[$moduleclass->get_module_table()] = 'intro';
                 }
-
+                $query->add_select(array(
+                        'table'    => 'course_modules',
+                        'column'   => 'id',
+                        'alias'    => 'coursemoduleid'));
                 $query->add_select(array(
                         'table'    => $namecoalesce,
                         'function' => 'COALESCE',
@@ -548,6 +552,23 @@ class block_ajax_marking_nodes_factory {
                         'function' => 'COALESCE',
                         'column'   => 'intro',
                         'alias'    => 'tooltip'));
+
+                // We need the config settings too, if there are any
+                $query->add_from(array(
+                        'join' => 'LEFT JOIN',
+                        'table' =>'block_ajax_marking',
+                        'alias' => 'settings',
+                        'on' => "settings.instanceid = course_modules.id
+                                 AND settings.tablename = 'course_modules'
+                                 AND settings.userid = :settingsuserid"
+                ));
+                $query->add_param('settingsuserid', $USER->id);
+                $query->add_select(array(
+                    'table'    => 'settings',
+                    'column'   => 'display'));
+                $query->add_select(array(
+                    'table'    => 'settings',
+                    'column'   => 'groupsdisplay'));
 
                 break;
 
