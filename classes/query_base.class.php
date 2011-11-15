@@ -26,6 +26,25 @@
  */
 
 /**
+ * Defines methods needed by the query objects and it's decorators
+ */
+interface block_ajax_marking_query {
+
+    public function get_select();
+
+    public function get_from();
+
+    public function get_where();
+
+    public function get_orderby();
+
+    public function get_params();
+
+    public function execute();
+
+}
+
+/**
  * Base class for core queries, allowing the parameters and various other filters to be added
  * dynamically
  */
@@ -554,15 +573,6 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Setter for the userid column
-     *
-     * @param string $column the userid column in the submissions (sub) table
-     */
-    public function set_userid_table($column) {
-        $this->useridtable = $column;
-    }
-
-    /**
      * Getter function for the associated module's capability so we can check for permissions
      *
      * @return string
@@ -572,16 +582,6 @@ class block_ajax_marking_query_base {
             return $this->moduleobject->get_capability();
         }
         throw new coding_exception('Trying to get a capability from a query with no module');
-    }
-
-    /**
-     * Returns the name of the userid column of the submissions table. Currently either userid or
-     * authorid. This is so that other components of the SQL query can reference the userid
-     *
-     * @return string table.column
-     */
-    public function get_userid_column() {
-        return $this->useridcolumn ? $this->useridcolumn : false;
     }
 
     /**

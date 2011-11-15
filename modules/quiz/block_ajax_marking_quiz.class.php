@@ -469,7 +469,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      */
     protected function get_question_attempts($params) {
 
-        $query = block_ajax_marking_query_factory::get_filtered_module_query($params, $this);
+        $query = block_ajax_marking_query_factory::get_unmarked_module_query($params, $this);
         $query->add_select(array('table' => 'question_attempts',
                                'column' => 'id',
                                'distinct' => true
