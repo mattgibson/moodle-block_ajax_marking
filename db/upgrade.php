@@ -25,6 +25,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
 // include constants
 require_once($CFG->dirroot . '/blocks/ajax_marking/lib.php');
 
@@ -192,12 +194,12 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
         // TODO test the upgrade
         foreach ($modules as $module) {
             // Get all current coursemodules and put their ids into place
-            $sql = "SELECT b.id, cm.id AS cmid
+            $sql = "SELECT b.id, course_modules.id AS cmid
                       FROM {block_ajax_marking} b
-                INNER JOIN {course_modules} cm
-                        ON cm.instance = b.assessmentid
+                INNER JOIN {course_modules} course_modules
+                        ON course_modules.instance = b.assessmentid
                 INNER JOIN {modules} mod
-                        ON (cm.module = mod.id
+                        ON (course_modules.module = mod.id
                        AND " . $DB->sql_compare_text('mod.name') . " = '{$module}')
                      WHERE b.assessmenttype = '{$module}'
                         ";
@@ -322,6 +324,25 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
         }
 
         upgrade_block_savepoint(true, 2011112301, 'ajax_marking');
+
+    }
+
+    // This is also at 2011112300, but due to a bug in 2.1.1, where the xml table definition didn't
+    // include this field, some people installed, didn't get the field, and then found that
+    // subsequent upgrades didn't add it. Duplicating it here adds it for anyone who's missing
+    // it
+    if ($oldversion < 2011112505) {
+
+        // Add a new field for showing whether groups should be displayed
+        $table = new xmldb_table('block_ajax_marking');
+        $field = new xmldb_field('groupsdisplay', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, null,
+                                 null, '0', 'display');
+        // Conditionally launch add field
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        upgrade_block_savepoint(true, 2011112505, 'ajax_marking');
 
     }
     return true;
