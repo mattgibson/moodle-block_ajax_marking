@@ -84,25 +84,6 @@ class block_ajax_marking_nodes_factory {
     }
 
     /**
-     * Makes a module query that just returns coursemoduleids, but which other filters can be
-     * plugged into.
-     *
-     * @static
-     * @param array $filters
-     * @param block_ajax_marking_module_base $moduleclass
-     * @return void
-     */
-    public static function get_config_module_query(array $filters,
-                                                   block_ajax_marking_module_base $moduleclass) {
-
-        $query = new block_ajax_marking_query_base($moduleclass);
-        $query->add_select(array('table'  => 'course_modules',
-                                 'column' => 'id',
-                                 'alias'  =>'coursemoduleid'));
-        $query->add_from(array('table' => 'course_modules'));
-    }
-
-    /**
      * This is to build whatever query is needed in order to return the requested nodes. It may be
      * necessary to compose this query from quite a few different pieces. Without filters, this
      * should return all unmarked work across the whole site for this teacher.
@@ -275,6 +256,7 @@ class block_ajax_marking_nodes_factory {
      * @return void|string
      */
     private static function apply_courseid_filter($query, $operation, $courseid = 0) {
+        global $USER;
 
         $selects = array();
         $countwrapper = '';
@@ -316,7 +298,6 @@ class block_ajax_marking_nodes_factory {
 
                 // This is for the displayquery when we are making course nodes
                 $query->add_from(array(
-                      //  'join' => 'INNER JOIN',
                         'table' =>'course',
                         'alias' => 'course',
                         'on' => 'countwrapperquery.id = course.id'
@@ -335,7 +316,6 @@ class block_ajax_marking_nodes_factory {
 
                 // This is for the displayquery when we are making course nodes
                 $query->add_from(array(
-                      //  'join' => 'INNER JOIN',
                         'table' =>'course',
                         'alias' => 'course',
                         'on' => 'course_modules.course = course.id'
@@ -353,6 +333,23 @@ class block_ajax_marking_nodes_factory {
                     'table'    => 'course',
                     'column'   => 'fullname',
                     'alias'    => 'tooltip'));
+
+                // We need the config settings too, if there are any
+                $query->add_from(array(
+                        'join' => 'LEFT JOIN',
+                        'table' =>'block_ajax_marking',
+                        'alias' => 'settings',
+                        'on' => "settings.instanceid = course.id
+                                 AND settings.tablename = 'course'
+                                 AND settings.userid = :settingsuserid"
+                ));
+                $query->add_param('settingsuserid', $USER->id);
+                $query->add_select(array(
+                    'table'    => 'settings',
+                    'column'   => 'display'));
+                $query->add_select(array(
+                    'table'    => 'settings',
+                    'column'   => 'groupsdisplay'));
                 break;
 
         }
