@@ -24,6 +24,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * This class builds a marking block on the front page which loads assignments and submissions
  * dynamically into a tree structure using AJAX. All marking occurs in pop-up windows and each node

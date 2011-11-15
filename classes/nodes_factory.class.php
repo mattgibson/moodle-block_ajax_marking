@@ -487,6 +487,7 @@ class block_ajax_marking_nodes_factory {
      */
     private static function apply_coursemoduleid_filter($query, $operation, $coursemoduleid = 0 ) {
 
+        $countwrapper = '';
         if ($operation != 'configdisplay') {
             $countwrapper = $query->get_subquery('countwrapperquery');
         }

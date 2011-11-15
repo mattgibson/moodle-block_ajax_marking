@@ -30,6 +30,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
 require_login(0, false);
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');

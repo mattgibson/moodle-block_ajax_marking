@@ -25,6 +25,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
 // show/hide constants for config settings
 define('BLOCK_AJAX_MARKING_CONF_DEFAULT', 0);
 define('BLOCK_AJAX_MARKING_CONF_SHOW',    1);
