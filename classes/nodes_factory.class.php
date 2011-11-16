@@ -350,6 +350,10 @@ class block_ajax_marking_nodes_factory {
                 $query->add_select(array(
                     'table'    => 'settings',
                     'column'   => 'groupsdisplay'));
+                $query->add_select(array(
+                    'table'    => 'settings',
+                    'column'   => 'id',
+                    'alias'    => 'settingsid'));
                 break;
 
         }
@@ -569,6 +573,10 @@ class block_ajax_marking_nodes_factory {
                 $query->add_select(array(
                     'table'    => 'settings',
                     'column'   => 'groupsdisplay'));
+                $query->add_select(array(
+                    'table'    => 'settings',
+                    'column'   => 'id',
+                    'alias'    => 'settingsid'));
 
                 break;
 
@@ -886,8 +894,9 @@ class block_ajax_marking_nodes_factory {
      * @return array
      */
     public static function get_config_nodes($filters) {
+        global $DB, $USER;
 
-        // The logic is that we need to filter the coure modues because some of them will be hidden
+        // The logic is that we need to filter the course modules because some of them will be hidden
         // or the user will not have access to them. Then we m,ay or may not group them by course
         $configbasequery = new block_ajax_marking_query_base();
         $configbasequery->add_from(array('table' => 'course_modules'));
@@ -926,10 +935,50 @@ class block_ajax_marking_nodes_factory {
 
         $nodes = $configbasequery->execute();
 
+
         // Need to get all groups for each node. Can't do this in the main query as there are
         // possibly multiple groups settings for each node. There is a limit to how many things we
         // can have in an SQL IN statement
         // Join to the config table and
+
+        // Get the ids of the config settings
+        $settingsids = array();
+        $courseids = array();
+        foreach ($nodes as $node) {
+            if (!is_null($node->settingsid)) {
+                $settingsids[] = $node->settingsid;
+                $courseids[] = $node->courseid;
+            }
+        }
+
+        if ($filters['nextnodefilter'] == 'courseid') {
+            // Retrieve all groups that we may need. This includes those with no settings yet as
+            // otherwise, we won't be able to offer to create settings for them. Only for courses
+            list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+            $sql = "SELECT groups.id, groups.courseid AS courseid,
+                           groups.name, combinedsettings.display
+                      FROM {groups} groups
+                 LEFT JOIN (SELECT groupssettings.display, settings.instanceid AS courseid
+                              FROM {block_ajax_marking} settings
+                        INNER JOIN {block_ajax_marking_groups} groupssettings
+                                ON groupssettings.configid = settings.id
+                             WHERE settings.tablename = 'course'
+                               AND settings.userid = :settingsuserid) combinedsettings
+                        ON combinedsettings.courseid = groups.courseid
+                   WHERE groups.courseid {$coursesql}
+                        ";
+            $params['settingsuserid'] = $USER->id;
+            $debugquery = block_ajax_marking_debuggable_query($sql, $params);
+            $groups = $DB->get_records_sql($sql, $params);
+
+            foreach ($groups as $group) {
+                if (!isset($nodes[$group->courseid]->groups)) {
+                    $nodes[$group->courseid]->groups = array();
+                }
+                $nodes[$group->courseid]->groups[] = $group;
+            }
+        }
+
 
         return $nodes;
 
