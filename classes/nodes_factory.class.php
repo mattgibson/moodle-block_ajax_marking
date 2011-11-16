@@ -941,13 +941,17 @@ class block_ajax_marking_nodes_factory {
         // can have in an SQL IN statement
         // Join to the config table and
 
-        // Get the ids of the config settings
-        $settingsids = array();
+        // Get the ids of the nodes
         $courseids = array();
+        $coursemoduleids = array();
+        $groups = array();
+        $sql = '';
         foreach ($nodes as $node) {
-            if (!is_null($node->settingsid)) {
-                $settingsids[] = $node->settingsid;
+            if (isset($node->courseid)) {
                 $courseids[] = $node->courseid;
+            }
+            if (isset($node->coursemoduleid)) {
+                $coursemoduleids[] = $node->coursemoduleid;
             }
         }
 
@@ -968,6 +972,7 @@ class block_ajax_marking_nodes_factory {
                    WHERE groups.courseid {$coursesql}
                         ";
             $params['settingsuserid'] = $USER->id;
+
             $debugquery = block_ajax_marking_debuggable_query($sql, $params);
             $groups = $DB->get_records_sql($sql, $params);
 
@@ -977,8 +982,36 @@ class block_ajax_marking_nodes_factory {
                 }
                 $nodes[$group->courseid]->groups[] = $group;
             }
-        }
 
+        } else if ($filters['nextnodefilter'] == 'coursemoduleid' && $coursemoduleids) {
+            // Here, we just want data o override the course stuff if necessary
+            list($cmsql, $params) = $DB->get_in_or_equal($coursemoduleids, SQL_PARAMS_NAMED);
+            $sql = "SELECT groups.id, settings.instanceid AS coursemoduleid,
+                           groups.name, groupssettings.display
+                      FROM {groups} groups
+                INNER JOIN {block_ajax_marking_groups} groupssettings
+                        ON groupssettings.groupid = groups.id
+                INNER JOIN {block_ajax_marking} settings
+                        ON settings.id = groupssettings.configid
+                     WHERE settings.tablename = 'course_modules'
+                       AND settings.userid = :settingsuserid
+                      AND groups.courseid = :settingscourseid
+                      AND settings.instanceid {$cmsql}
+                        ";
+            $params['settingscourseid'] = $filters['courseid'];
+            $params['settingsuserid'] = $USER->id;
+
+
+            $debugquery = block_ajax_marking_debuggable_query($sql, $params);
+            $groups = $DB->get_records_sql($sql, $params);
+
+            foreach ($groups as $group) {
+                if (!isset($nodes[$group->coursemoduleid]->groups)) {
+                    $nodes[$group->coursemoduleid]->groups = array();
+                }
+                $nodes[$group->coursemoduleid]->groups[] = $group;
+            }
+        }
 
         return $nodes;
 
