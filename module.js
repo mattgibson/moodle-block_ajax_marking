@@ -52,7 +52,6 @@ M.block_ajax_marking.ajaxgradeurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/
  * YUI treeview class ready to add some new functions to it which are common to both the
  * main and config trees.
  *
- * @constructor
  */
 M.block_ajax_marking.tree_base = function(treediv) {
     M.block_ajax_marking.tree_base.superclass.constructor.call(this, treediv);
@@ -494,10 +493,9 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
  * This is to control what node the tree asks for next when a user clicks on a node
  *
  * @param currentfilter
- * @param modulename can be false or undefined if not there
  * @return string|bool false if nothing
  */
-M.block_ajax_marking.config_tree.prototype.nextnodetype = function(currentfilter, modulename) {
+M.block_ajax_marking.config_tree.prototype.nextnodetype = function(currentfilter) {
     // if nothing else is found, make the node into a final one with no children
     var nextnodefilter = false;
 
@@ -595,6 +593,89 @@ M.block_ajax_marking.tree_base.prototype.remove_node = function(nodeuniqueid) {
 };
 
 /**
+ * Gets the groups from the course node and displays them in the contextmenu
+ *
+ */
+M.block_ajax_marking.load_groups = function() {
+
+    // Remove previous groups. If there are none, we don't want to offer the option to show or hide
+    // them
+    var submenus = this.getSubmenus();
+    if (submenus.length > 0) {
+        var choosegroupsmenu = submenus[0];
+        var submenuitems = choosegroupsmenu.getItems();
+        var numberofitems = submenuitems.length;
+        for (var k = 0; k < numberofitems; k++) {
+            // This eats array items and renumbers them as it goes, so we keep removing item 0
+            choosegroupsmenu.removeItem(submenuitems[0]);
+        }
+    }
+
+    var target = this.contextEventTarget;
+    var coursenode = false;
+    var coursemodulenode = false;
+    var groups = [];
+    var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
+
+    // Get all groups from the coursenode, which may have been clicked or may be the parent of this
+    // one (if we clicked on a coursemodule)
+    if (typeof(clickednode.data.returndata.courseid) == 'undefined') {
+        coursenode = clickednode.parent;
+        coursemodulenode = clickednode;
+    } else {
+        coursenode = clickednode;
+    }
+    // We need all of the groups, even if there are no settings
+    if (typeof(coursenode.data.configdata.groups) !== 'undefined') {
+        groups = coursenode.data.configdata.groups;
+    }
+
+    // Format the data so that it will be ready to slot in to the contextmenu
+    var itemdata = [];
+    var numberofgroups = groups.length;
+    if (numberofgroups) {
+
+        // Make the groups into an array of objects in the right format for the context menu
+        var newgroup = {};
+        var groupdefault = 1;
+        for (var i = 0; i < numberofgroups; i++) {
+            newgroup = { "text"    : groups[i].name,
+                         "value"   : { "display" : groups[i].display, // 1, 0 or null
+                                       "groupid" : groups[i].id},
+                         "onclick" : { fn : M.block_ajax_marking.context_group_onclick } };
+            // Make sure the items' appearance reflect their current settings
+            if (groups[i].display === "1") { // JSON seems to like sending back ints as strings
+                // Make sure it is checked
+                newgroup.checked = true;
+
+            } else if (groups[i].display === "0") {
+                newgroup.checked = false;
+
+            } else if (groups[i].display === null) {
+                // We want to show that this node inherits it's setting for this group
+                newgroup.classname = 'inherited';
+                // Now we need to get the right default for it and show it as checked or not
+                groupdefault = M.block_ajax_marking.get_node_setting_default(clickednode,
+                                                                             'group',
+                                                                             groups[i].id);
+                newgroup.checked = groupdefault ? true : false;
+            }
+            choosegroupsmenu.addItem(newgroup);
+        }
+
+        // Enable the menu item, since we have groups in it
+        choosegroupsmenu.parent.cfg.setProperty("disabled", false);
+
+    } else {
+        // disable it so people can see that this is an option, but there are no groups
+        choosegroupsmenu.parent.cfg.setProperty("disabled", true);
+    }
+
+    this.render();
+
+};
+
+/**
  * Ajax success function called when the server responds with valid data, which checks the data
  * coming in and calls the right function depending on the type of data it is
  *
@@ -604,6 +685,7 @@ M.block_ajax_marking.tree_base.prototype.remove_node = function(nodeuniqueid) {
 M.block_ajax_marking.ajax_success_handler = function(o) {
 
     var errormessage = '';
+    var ajaxresponsearray = '';
 
     try {
         ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
@@ -635,10 +717,80 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
 
         } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
             M.block_ajax_marking.get_current_tab().displaywidget.build_nodes(ajaxresponsearray.nodes);
+
+        } else if (typeof(ajaxresponsearray['configsave']) !== 'undefined') {
+
+            if (ajaxresponsearray['configsave'].success !== true) {
+                // TODO handle error gracefully
+                // TODO deal with exceptions
+            }
+            // We want to toggle the display of the menu item by setting it to the new value.
+            // Don't assume that the default hasn't changed.
+            switch (ajaxresponsearray['configsave'].settingtype) {
+
+                case 'display':
+                    M.block_ajax_marking.configsave_display_callback(ajaxresponsearray);
+                    break;
+
+                case 'displaygroups':
+                        M.block_ajax_marking.configsave_displaygroups_callback(ajaxresponsearray);
+                    break;
+
+                case 'group':
+                    M.block_ajax_marking.configsave_group_callback(ajaxresponsearray);
+                    break;
+            }
         }
     }
+
     M.block_ajax_marking.get_current_tab().displaywidget.rebuild_tree_after_ajax();
     YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
+};
+
+/**
+ * Sorts out what needs to happen once a response is received from the server that a setting
+ * has been saved for an individual group
+ */
+M.block_ajax_marking.configsave_group_callback = function(ajaxresponsearray) {
+    // TODO use constants here
+    var submenus = M.block_ajax_marking.contextmenu.getSubmenus();
+    var clickeditem = submenus[0].getItem(ajaxresponsearray['configsave'].menuitemindex, 0);
+    var target = clickeditem.parent.parent.parent.contextEventTarget;
+    var configtab = M.block_ajax_marking.get_current_tab();
+    var clickednode = configtab.displaywidget.getNodeByElement(target);
+
+    // Update the menu item so the user can see the change
+    var newsetting = ajaxresponsearray['configsave'].newsetting;
+    if (newsetting === null) {
+        // get default
+        var groupid = clickeditem.value.groupid;
+        var defaultsetting = M.block_ajax_marking.get_node_setting_default(clickednode,
+                                                                           'group', groupid);
+        //set default
+        var checked = defaultsetting ? true : false;
+        clickeditem.cfg.setProperty("checked", checked);
+        // set inherited class
+        clickeditem.cfg.setProperty("classname", 'inherited');
+    } else if (newsetting == 1) {
+        clickeditem.cfg.setProperty("checked", true);
+        clickeditem.cfg.setProperty("classname", '');
+    } else if (newsetting == 0) {
+        clickeditem.cfg.setProperty("checked", false);
+        clickeditem.cfg.setProperty("classname", '');
+    }
+
+    // Update the menuitem display value in case of multiple clicks
+    clickeditem.value.display = newsetting;
+    // We also need to update the data held in the tree, so that future requests are not
+    // all the same as this one
+    var groups = clickednode.data.configdata.groups;
+    var numberofgroups = groups.length;
+    for (var i = 0; i < numberofgroups; i++) {
+        if (groups[i].id == groupid) {
+            groups[i].display = newsetting;
+            break;
+        }
+    }
 };
 
 /**
@@ -690,7 +842,7 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
  * If the AJAX connection times out, this will handle things so we know what happened
  * @param o
  */
-M.block_ajax_marking.ajax_timeout_handler = function(o) {
+M.block_ajax_marking.ajax_timeout_handler = function() {
     document.getElementById('status').innerHTML = M.str.block_ajax_marking.connecttimeout;
     M.block_ajax_marking.get_current_tab().displaywidget.rebuild_tree_after_ajax();
     YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
@@ -801,7 +953,7 @@ M.block_ajax_marking.initialise = function() {
             'content':'<div id="cohortstree"></div>'});
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
-        /*
+        
         var configtab = new Y.Tab({
             'label':'Config',
             'content':'<div id="configtree"></div>'});
@@ -823,41 +975,35 @@ M.block_ajax_marking.initialise = function() {
             {
                 trigger: "configtree",
                 keepopen: true,
-                lazyload: true,
+                lazyload: false,
                 itemdata: [
                     {   text: M.str.block_ajax_marking.show,
-                        onclick: { fn: M.block_ajax_marking.context_show_onclick },
+                        onclick: { fn: M.block_ajax_marking.context_setting_onclick,
+                                   obj: {'settingtype' : 'display'} },
                         checked: true,
                         id: 'block_ajax_marking_context_show'},
                     {   text: M.str.block_ajax_marking.showgroups,
-                        onclick: { fn: M.block_ajax_marking.context_showgroups_onclick },
+                        onclick: { fn: M.block_ajax_marking.context_setting_onclick,
+                                   obj: {'settingtype' : 'displaygroups'} },
                         checked: false,
                         id: 'block_ajax_marking_context_showgroups'},
-                    {
-                        text: "Choose groups",
+                    {   text: M.str.block_ajax_marking.choosegroups,
                         submenu: {
-                            id: "submenu1",
+                            id : 'choosegroupssubmenu',
+                            keepopen: true,
                             lazyload: true,
-                            itemdata: [
-                                {   text: "Group 1",
-                                    onclick: { fn: M.block_ajax_marking.context_group_onclick } },
-                                {   text: "Group 2",
-                                    onclick: { fn: M.block_ajax_marking.context_group_onclick } },
-                                {   text: "Group 3",
-                                    onclick: { fn: M.block_ajax_marking.context_group_onclick } },
-                                {   text: "Group 4",
-                                    onclick: { fn: M.block_ajax_marking.context_group_onclick } }
-                            ]
+                            itemdata: {}
                         }
                     }
                 ]
             }
         );
+        // Initial render makes sure we have something to add and takeaway items from
+        M.block_ajax_marking.contextmenu.render(document.body);
 
         // Make sure the menu is updated to be current with the node it matches
         M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
-                                                   M.block_ajax_marking.context_update);
-        */
+                                                   M.block_ajax_marking.load_groups);
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function(e) {
@@ -917,26 +1063,57 @@ M.block_ajax_marking.context_update = function(thing, otherthing) {
  * OnClick handler for the show context menu item. It will ajax a request to change the node's
  * config and make the context menu item checked if successful
  */
-M.block_ajax_marking.context_show_onclick = function(event, otherthing, obj) {
+M.block_ajax_marking.context_setting_onclick = function(event, otherthing, obj) {
 
-    if (this.cfg.getProperty('checked')) {
-        this.cfg.setProperty("checked", false);
-    } else {
-        this.cfg.setProperty("checked", true);
+    var settingtype = obj.settingtype;
+
+    var coursenodeclicked = false;
+    var target = this.parent.contextEventTarget;
+    var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
+    if (typeof(clickednode.data.returndata.courseid) !== 'undefined') {
+        coursenodeclicked = true;
     }
 
-    // disable menu item
+    // What is the current setting
+    var currentsetting = clickednode.data.configdata[settingtype]
+
+    // What is the default setting
+    var defaultsetting = M.block_ajax_marking.get_node_setting_default(clickednode, settingtype);
+
+    // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
+    // This means we want to assume that it needs to be the opposite of the default if there is
+    // no current setting.
+    if (currentsetting === null) {
+        settingtorequest = defaultsetting ? 0 : 1;
+    } else {
+        // There is an existing setting. The user toggled from the default last time, so
+        // will want to toggle back to default. No point deliberately making a setting when we can
+        // just use the default, leaving more flexibility if the defaults are changed (rare)
+        settingtorequest = null;
+    }
 
     // gather data
+    var requestdata = {};
+    requestdata.menuitemindex = this.index;
+    requestdata.settingtype = settingtype;
+    if (settingtorequest !== null) { // leaving this out defaults to null on the other end
+        requestdata.settingvalue = settingtorequest;
+    }
+    requestdata.tablename = coursenodeclicked ? 'course' : 'course_modules';
+    requestdata.instanceid = coursenodeclicked ?
+                             clickednode.data.returndata.courseid :
+                             clickednode.data.returndata.coursemoduleid;
+
 
     // send request
+    M.block_ajax_marking.config_ajax_request(requestdata);
 
     // ..d success handler should check/uncheck the menu item and undisable it
     // also disable other menu items if this is set to not show
 
 };
 
-M.block_ajax_marking.context_showgroups_onclick = function(event, otherthing, obj) {
+M.block_ajax_marking.context_groupsdisplay_onclick = function(event, otherthing, obj) {
 
     if (this.cfg.getProperty('checked')) {
         this.cfg.setProperty("checked", false);
@@ -949,6 +1126,7 @@ M.block_ajax_marking.context_showgroups_onclick = function(event, otherthing, ob
     // gather data
 
     // send request
+    M.block_ajax_marking.config_ajax_request(requestdata);
 
     // ..d success handler should check/uncheck the menu item and undisable it
     // also disable other menu items if this is set to not show
@@ -957,19 +1135,113 @@ M.block_ajax_marking.context_showgroups_onclick = function(event, otherthing, ob
 
 M.block_ajax_marking.context_group_onclick = function(event, otherthing, obj) {
 
-    if (this.cfg.getProperty('checked')) {
-        this.cfg.setProperty("checked", false);
-    } else {
-        this.cfg.setProperty("checked", true);
+    // we want to set the class so that we can indicate whether the checked (show) status is
+    // directly set, or whether it is inherited
+
+    // TODO Are we attached to a course or coursemodule?
+    var coursenodeclicked = false;
+    var target = this.parent.parent.parent.contextEventTarget;
+    var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
+    if (typeof(clickednode.data.returndata.courseid) !== 'undefined') {
+        coursenodeclicked = true;
     }
 
-    // disable menu item
+    // What do we have as the current setting?
+    var currentsetting = this.value.display;
+
+    var groupid = this.value.groupid;
+    var defaultsetting = M.block_ajax_marking.get_node_setting_default(clickednode,
+                                                                       'group', groupid);
+    var settingtorequest = 1;
+    // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
+    // This means we want to assume that it needs to be the opposite of the default if there is
+    // no current setting.
+    if (currentsetting === null) {
+        settingtorequest = defaultsetting ? 0 : 1;
+    } else {
+        // There is an existing setting. The user toggled from the default last time, so
+        // will want to toggle back to default. No point deliberately making a setting when we can
+        // just use the default, leaving more flexibility if the defaults are changed (rare)
+        settingtorequest = null;
+    }
 
     // gather data
+    var requestdata = {};
+    requestdata.groupid = this.value.groupid;
+    requestdata.menuitemindex = this.index;
+    requestdata.settingtype = 'group';
+    if (settingtorequest !== null) { // leaving out defaults to null on the other end
+        requestdata.settingvalue = settingtorequest;
+    }
+    requestdata.tablename = coursenodeclicked ? 'course' : 'course_modules';
+    requestdata.instanceid = coursenodeclicked ?
+                             clickednode.data.returndata.courseid :
+                             clickednode.data.returndata.coursemoduleid;
 
     // send request
+    M.block_ajax_marking.config_ajax_request(requestdata);
 
-    // ..d success handler should check/uncheck the menu item and undisable it
-    // also disable other menu items if this is set to not show
+};
 
+/**
+ * Finds out what the default is for this group node, if it has no display setting
+ * @param node
+ */
+M.block_ajax_marking.get_node_setting_default = function(node, settingtype, groupid) {
+
+    var defaultsetting = null;
+
+    if (typeof(node.data.returndata.courseid) === 'undefined') { // Must be a coursemodule
+        switch (settingtype) {
+
+            case 'group':
+                defaultsetting = node.parent.data.configdata.groups[groupid].display;
+                break;
+
+            case 'display':
+                defaultsetting = node.parent.data.configdata.display;
+                break;
+
+            case 'groupsdisplay':
+                defaultsetting = node.parent.data.configdata.groupsdisplay;
+                break;
+        }
+    }
+    if (defaultsetting !== null) {
+        return defaultsetting;
+    }
+
+    // This is the root default until there's a better way of setting it
+    switch (settingtype) {
+
+        case 'group':
+
+        case 'display':
+            return 1;
+            break;
+
+        case 'groupsdisplay':
+            return 0; // Cleaner if we hide the group nodes by default
+            break;
+    }
+
+};
+
+/**
+ * Asks the server to change the setting for something
+ */
+M.block_ajax_marking.config_ajax_request = function(requestdata) {
+
+    // Turn our pbject into a string that the AJAX stuff likes.
+    var poststring = '';
+    var temparray = [];
+    for (var key in requestdata) {
+        temparray.push(key + '=' + requestdata[key]);
+    }
+    poststring = temparray.join('&');
+
+    YAHOO.util.Connect.asyncRequest('POST',
+                                    M.cfg.wwwroot+'/blocks/ajax_marking/actions/config_save.php',
+                                    block_ajax_marking_callback,
+                                    poststring);
 };

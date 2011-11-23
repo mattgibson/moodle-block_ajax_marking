@@ -896,8 +896,9 @@ class block_ajax_marking_nodes_factory {
     public static function get_config_nodes($filters) {
         global $DB, $USER;
 
-        // The logic is that we need to filter the course modules because some of them will be hidden
-        // or the user will not have access to them. Then we m,ay or may not group them by course
+        // The logic is that we need to filter the course modules because some of them will be
+        // hidden or the user will not have access to them. Then we m,ay or may not group them by
+        // course
         $configbasequery = new block_ajax_marking_query_base();
         $configbasequery->add_from(array('table' => 'course_modules'));
 
@@ -934,7 +935,6 @@ class block_ajax_marking_nodes_factory {
         $debugquery = block_ajax_marking_debuggable_query($configbasequery);
 
         $nodes = $configbasequery->execute();
-
 
         // Need to get all groups for each node. Can't do this in the main query as there are
         // possibly multiple groups settings for each node. There is a limit to how many things we
@@ -1000,7 +1000,6 @@ class block_ajax_marking_nodes_factory {
                         ";
             $params['settingscourseid'] = $filters['courseid'];
             $params['settingsuserid'] = $USER->id;
-
 
             $debugquery = block_ajax_marking_debuggable_query($sql, $params);
             $groups = $DB->get_records_sql($sql, $params);

@@ -68,6 +68,8 @@ $string['week']                 = 'week';
 $string['weeks']                = 'weeks';
 $string['show']                 = 'Show this item';
 $string['showgroups']           = 'Show group nodes';
+$string['choosegroups']         = 'Show/hide specific groups';
+
 
 // Specific to modules
 

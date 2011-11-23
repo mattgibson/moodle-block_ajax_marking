@@ -282,3 +282,15 @@ span.ygtvlabel {
     padding: 3px;
     width: 100%;
 }
+#configcontextmenu .inherited .yuimenuitemlabel {
+    color: #999999;
+}
+#configcontextmenu .inherited.yuimenuitem-checked {
+    background-image: url("../../lib/yui/2.9.0/build/assets/skins/sam/menuitem_checkbox_disabled.png");
+    color: #999999;
+}
+#configcontextmenu .notchecked {
+    background-image: url([[pix:block_ajax_marking|cross]]);
+    background-position: left center;
+    background-repeat: no-repeat
+}

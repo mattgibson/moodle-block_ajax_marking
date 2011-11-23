@@ -131,7 +131,8 @@ class block_ajax_marking extends block_base {
                         array('coursedefault', 'block_ajax_marking'),
                         array('hidethiscourse', 'block_ajax_marking'),
                         array('show', 'block_ajax_marking'),
-                        array('showgroups', 'block_ajax_marking')
+                        array('showgroups', 'block_ajax_marking'),
+                        array('choosegroups', 'block_ajax_marking')
                     )
                 );
 
