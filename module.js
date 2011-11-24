@@ -764,14 +764,16 @@ M.block_ajax_marking.configsave_callback = function(ajaxresponsearray) {
     var configtab = M.block_ajax_marking.get_current_tab();
     var clickednode = configtab.displaywidget.getNodeByElement(target);
 
+    var groupid = null;
+    if (settingtype === 'group') {
+        groupid = clickeditem.value.groupid;
+    }
+
     // Update the menu item so the user can see the change
     var newsetting = ajaxresponsearray['configsave'].newsetting;
     if (newsetting === null) {
         // get default
-        var groupid = null;
-        if (settingtype === 'group') {
-            var groupid = clickeditem.value.groupid;
-        }
+
         var defaultsetting = M.block_ajax_marking.get_node_setting_default(clickednode,
                                                                            settingtype, groupid);
         //set default
@@ -794,13 +796,8 @@ M.block_ajax_marking.configsave_callback = function(ajaxresponsearray) {
     // all the same as this one
     if (settingtype === 'group') {
         var groups = clickednode.data.configdata.groups;
-        var numberofgroups = groups.length;
-        for (var i = 0; i < numberofgroups; i++) {
-            if (groups[i].id == groupid) {
-                groups[i].display = newsetting;
-                break;
-            }
-        }
+        var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
+        group.display = newsetting;
     } else {
         clickednode.data.configdata[settingtype] = newsetting;
     }
@@ -1183,6 +1180,26 @@ M.block_ajax_marking.context_group_onclick = function(event, otherthing, obj) {
 };
 
 /**
+ * Given an array of groups and an id, this will loop over them till it gets the right one and
+ * return it.
+ *
+ * @param {array} groups
+ * @param {int} groupid
+ * @return array|bool
+ */
+M.block_ajax_marking.get_group_by_id = function(groups, groupid) {
+
+    var numberofgroups = groups.length;
+    for (var i = 0; i < numberofgroups; i++) {
+        if (groups[i].id == groupid) {
+            return groups[i];
+        }
+    }
+    M.block_ajax_marking.show_error('No group found for groupid '+groupid);
+    return false;
+}
+
+/**
  * Finds out what the default is for this group node, if it has no display setting
  * @param node
  */
@@ -1194,7 +1211,9 @@ M.block_ajax_marking.get_node_setting_default = function(node, settingtype, grou
         switch (settingtype) {
 
             case 'group':
-                defaultsetting = node.parent.data.configdata.groups[groupid].display;
+                var groups = node.parent.data.configdata.groups;
+                var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
+                defaultsetting = group.display;
                 break;
 
             case 'display':
