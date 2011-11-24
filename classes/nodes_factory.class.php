@@ -962,13 +962,15 @@ class block_ajax_marking_nodes_factory {
             $sql = "SELECT groups.id, groups.courseid AS courseid,
                            groups.name, combinedsettings.display
                       FROM {groups} groups
-                 LEFT JOIN (SELECT groupssettings.display, settings.instanceid AS courseid
+                 LEFT JOIN (SELECT groupssettings.display, settings.instanceid AS courseid,
+                                   groupssettings.groupid
                               FROM {block_ajax_marking} settings
                         INNER JOIN {block_ajax_marking_groups} groupssettings
                                 ON groupssettings.configid = settings.id
                              WHERE settings.tablename = 'course'
                                AND settings.userid = :settingsuserid) combinedsettings
-                        ON combinedsettings.courseid = groups.courseid
+                        ON (combinedsettings.courseid = groups.courseid
+                            AND combinedsettings.groupid = groups.id)
                    WHERE groups.courseid {$coursesql}
                         ";
             $params['settingsuserid'] = $USER->id;

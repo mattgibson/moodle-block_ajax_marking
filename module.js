@@ -268,7 +268,7 @@ M.block_ajax_marking.tree_base.prototype.request_node_data = function(clickednod
     nodefilters = nodefilters.join('&');
 
     YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl,
-                                    block_ajax_marking_callback, nodefilters);
+                                    M.block_ajax_marking.callback, nodefilters);
 };
 
 /**
@@ -419,7 +419,7 @@ M.block_ajax_marking.tree_base.prototype.initialise = function() {
 
     // send the ajax request
     YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl,
-                                    block_ajax_marking_callback, this.initial_nodes_data);
+                                    M.block_ajax_marking.callback, this.initial_nodes_data);
 
 };
 
@@ -593,10 +593,12 @@ M.block_ajax_marking.tree_base.prototype.remove_node = function(nodeuniqueid) {
 };
 
 /**
- * Gets the groups from the course node and displays them in the contextmenu
+ * Gets the groups from the course node and displays them in the contextmenu.
+ *
+ * Coming from an onclick in the context menu, so 'this' is the contextmenu instance
  *
  */
-M.block_ajax_marking.load_groups = function() {
+M.block_ajax_marking.contextmenu_load_groups = function() {
 
     // Remove previous groups. If there are none, we don't want to offer the option to show or hide
     // them
@@ -616,6 +618,12 @@ M.block_ajax_marking.load_groups = function() {
     var coursemodulenode = false;
     var groups = [];
     var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
+
+    // Need to make sure the contextmenu display matches the actual state of the nodes
+    var displayitem = this.getItem(0);
+    var displaygroupsitem = this.getItem(1);
+    displayitem.value.display = clickednode.data.configdata.display;
+    displayitem.value.displaygroups = clickednode.data.configdata.displaygroups;
 
     // Get all groups from the coursenode, which may have been clicked or may be the parent of this
     // one (if we clicked on a coursemodule)
@@ -726,20 +734,7 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
             }
             // We want to toggle the display of the menu item by setting it to the new value.
             // Don't assume that the default hasn't changed.
-            switch (ajaxresponsearray['configsave'].settingtype) {
-
-                case 'display':
-                    M.block_ajax_marking.configsave_display_callback(ajaxresponsearray);
-                    break;
-
-                case 'displaygroups':
-                        M.block_ajax_marking.configsave_displaygroups_callback(ajaxresponsearray);
-                    break;
-
-                case 'group':
-                    M.block_ajax_marking.configsave_group_callback(ajaxresponsearray);
-                    break;
-            }
+            M.block_ajax_marking.configsave_callback(ajaxresponsearray);
         }
     }
 
@@ -751,11 +746,21 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
  * Sorts out what needs to happen once a response is received from the server that a setting
  * has been saved for an individual group
  */
-M.block_ajax_marking.configsave_group_callback = function(ajaxresponsearray) {
-    // TODO use constants here
-    var submenus = M.block_ajax_marking.contextmenu.getSubmenus();
-    var clickeditem = submenus[0].getItem(ajaxresponsearray['configsave'].menuitemindex, 0);
-    var target = clickeditem.parent.parent.parent.contextEventTarget;
+M.block_ajax_marking.configsave_callback = function(ajaxresponsearray) {
+
+    var settingtype = ajaxresponsearray['configsave'].settingtype;
+    var menuitemindex = ajaxresponsearray['configsave'].menuitemindex;
+    var menu = null;
+
+    if (settingtype === 'group') {
+        var submenus = M.block_ajax_marking.contextmenu.getSubmenus();
+        menu = submenus[0];
+    } else {
+        menu =  M.block_ajax_marking.contextmenu;
+    }
+
+    var clickeditem = menu.getItem(menuitemindex, 0);
+    var target = M.block_ajax_marking.contextmenu.contextEventTarget;
     var configtab = M.block_ajax_marking.get_current_tab();
     var clickednode = configtab.displaywidget.getNodeByElement(target);
 
@@ -763,9 +768,12 @@ M.block_ajax_marking.configsave_group_callback = function(ajaxresponsearray) {
     var newsetting = ajaxresponsearray['configsave'].newsetting;
     if (newsetting === null) {
         // get default
-        var groupid = clickeditem.value.groupid;
+        var groupid = null;
+        if (settingtype === 'group') {
+            var groupid = clickeditem.value.groupid;
+        }
         var defaultsetting = M.block_ajax_marking.get_node_setting_default(clickednode,
-                                                                           'group', groupid);
+                                                                           settingtype, groupid);
         //set default
         var checked = defaultsetting ? true : false;
         clickeditem.cfg.setProperty("checked", checked);
@@ -779,17 +787,22 @@ M.block_ajax_marking.configsave_group_callback = function(ajaxresponsearray) {
         clickeditem.cfg.setProperty("classname", '');
     }
 
-    // Update the menuitem display value in case of multiple clicks
+    // Update the menuitem display value so that if it is clicked again, it will know not to the
+    // same ajax request and will toggle properly
     clickeditem.value.display = newsetting;
-    // We also need to update the data held in the tree, so that future requests are not
+    // We also need to update the data held in the tree node, so that future requests are not
     // all the same as this one
-    var groups = clickednode.data.configdata.groups;
-    var numberofgroups = groups.length;
-    for (var i = 0; i < numberofgroups; i++) {
-        if (groups[i].id == groupid) {
-            groups[i].display = newsetting;
-            break;
+    if (settingtype === 'group') {
+        var groups = clickednode.data.configdata.groups;
+        var numberofgroups = groups.length;
+        for (var i = 0; i < numberofgroups; i++) {
+            if (groups[i].id == groupid) {
+                groups[i].display = newsetting;
+                break;
+            }
         }
+    } else {
+        clickednode.data.configdata[settingtype] = newsetting;
     }
 };
 
@@ -879,7 +892,7 @@ M.block_ajax_marking.make_footer = function () {
             document.getElementById('status').innerHTML = '';
             YAHOO.util.Dom.setStyle('block_ajax_marking_error', 'display', 'none');
             M.block_ajax_marking.get_current_tab().displaywidget.initialise();
-        }}, // TODO refresh all trees?
+        }},
         container : 'block_ajax_marking_refresh_button'});
 };
 
@@ -889,7 +902,7 @@ M.block_ajax_marking.make_footer = function () {
  *
  * @return void
  */
-var block_ajax_marking_callback = {
+M.block_ajax_marking.callback = {
 
     cache    : false,
     success  : M.block_ajax_marking.ajax_success_handler,
@@ -981,12 +994,14 @@ M.block_ajax_marking.initialise = function() {
                         onclick: { fn: M.block_ajax_marking.context_setting_onclick,
                                    obj: {'settingtype' : 'display'} },
                         checked: true,
-                        id: 'block_ajax_marking_context_show'},
+                        id: 'block_ajax_marking_context_show',
+                        value : {}},
                     {   text: M.str.block_ajax_marking.showgroups,
                         onclick: { fn: M.block_ajax_marking.context_setting_onclick,
                                    obj: {'settingtype' : 'displaygroups'} },
                         checked: false,
-                        id: 'block_ajax_marking_context_showgroups'},
+                        id: 'block_ajax_marking_context_showgroups',
+                        value : {}},
                     {   text: M.str.block_ajax_marking.choosegroups,
                         submenu: {
                             id : 'choosegroupssubmenu',
@@ -1003,7 +1018,7 @@ M.block_ajax_marking.initialise = function() {
 
         // Make sure the menu is updated to be current with the node it matches
         M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
-                                                   M.block_ajax_marking.load_groups);
+                                                   M.block_ajax_marking.contextmenu_load_groups);
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function(e) {
@@ -1043,21 +1058,6 @@ M.block_ajax_marking.initialise = function() {
     }
 };
 
-/**
- * When the context menu is activated, we need to make sure it reflects the current status of the
- * node it is attached to. This function will read data that was sent from the server via ajax and
- * stored in a node property, then make the context menu have corresponding items.
- * @param thing The event
- */
-M.block_ajax_marking.context_update = function(thing, otherthing) {
-
-    // highlight the current node
-
-    // update menuitem with node data
-
-    // re-render menu
-
-};
 
 /**
  * OnClick handler for the show context menu item. It will ajax a request to change the node's
@@ -1103,7 +1103,6 @@ M.block_ajax_marking.context_setting_onclick = function(event, otherthing, obj) 
     requestdata.instanceid = coursenodeclicked ?
                              clickednode.data.returndata.courseid :
                              clickednode.data.returndata.coursemoduleid;
-
 
     // send request
     M.block_ajax_marking.config_ajax_request(requestdata);
@@ -1242,6 +1241,6 @@ M.block_ajax_marking.config_ajax_request = function(requestdata) {
 
     YAHOO.util.Connect.asyncRequest('POST',
                                     M.cfg.wwwroot+'/blocks/ajax_marking/actions/config_save.php',
-                                    block_ajax_marking_callback,
+                                    M.block_ajax_marking.callback,
                                     poststring);
 };
