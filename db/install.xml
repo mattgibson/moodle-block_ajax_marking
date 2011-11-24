@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="blocks/ajax_marking/db" VERSION="20111031" COMMENT="XMLDB file for Moodle blocks/ajax_marking"
+<XMLDB PATH="blocks/ajax_marking/db" VERSION="20111124" COMMENT="XMLDB file for Moodle blocks/ajax_marking"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -10,7 +10,7 @@
         <FIELD NAME="userid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="false" SEQUENCE="false" COMMENT="the userid of the person to whom this preference applies" PREVIOUS="id" NEXT="instanceid"/>
         <FIELD NAME="instanceid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Matches the primary key of whatever table this setting refers to" PREVIOUS="userid" NEXT="tablename"/>
         <FIELD NAME="tablename" TYPE="char" LENGTH="40" NOTNULL="false" SEQUENCE="false" COMMENT="What table contains the item we are making display settings for?" PREVIOUS="instanceid" NEXT="display"/>
-        <FIELD NAME="display" TYPE="int" LENGTH="1" NOTNULL="true" UNSIGNED="false" DEFAULT="1" SEQUENCE="false" COMMENT="should this assessment be shown at all to this user? 0=no 1=yes default to yes" PREVIOUS="tablename" NEXT="groupsdisplay"/>
+        <FIELD NAME="display" TYPE="int" LENGTH="1" NOTNULL="false" UNSIGNED="true" DEFAULT="1" SEQUENCE="false" COMMENT="should this assessment be shown at all to this user? 0=no 1=yes default to yes" PREVIOUS="tablename" NEXT="groupsdisplay"/>
         <FIELD NAME="groupsdisplay" TYPE="int" LENGTH="1" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Should group nodes be shown for this item?" PREVIOUS="display"/>
       </FIELDS>
       <KEYS>

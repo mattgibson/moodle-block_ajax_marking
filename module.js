@@ -953,7 +953,7 @@ M.block_ajax_marking.initialise = function() {
             'content':'<div id="cohortstree"></div>'});
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
-        
+
         var configtab = new Y.Tab({
             'label':'Config',
             'content':'<div id="configtree"></div>'});
