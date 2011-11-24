@@ -443,6 +443,18 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
     }
 
+    // Allow all settings to be null in case we want to have site level defaults
+    if ($oldversion < 2011112507) {
+
+        $table = new xmldb_table('block_ajax_marking');
+        $field = new xmldb_field('display', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, null, null, '1', 'tablename');
+
+        $dbman->change_field_type($table, $field);
+
+        upgrade_block_savepoint(true, 2011112507, 'ajax_marking');
+
+    }
+
 
 
 
