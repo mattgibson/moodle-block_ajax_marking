@@ -103,6 +103,24 @@ $PAGE->set_url($url);
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('popup');
 
+// Make sure that whatever happens, we lose the tree highlight when the pop up shuts
+$code = "
+    YAHOO.util.Event.addListener(window, 'beforeunload', function(args) {
+
+       // Get tree
+       var tab = window.opener.M.block_ajax_marking.get_current_tab();
+       var tree = tab.displaywidget;
+
+       // get node
+       var node = tree.getNodeByIndex({$node});
+
+       // unhighlight node
+       node.unhighlight();
+
+   });
+";
+$PAGE->requires->js_init_code($code);
+
 // may involve a redirect if we don't want a form
 $content = $moduleobject->grading_popup($params, $coursemodule);
 

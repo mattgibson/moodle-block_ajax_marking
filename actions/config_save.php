@@ -48,7 +48,7 @@ $instance = $DB->get_record($tablename, array('id' => $instanceid));
 if (!$instance) {
     die('Invlaid table row');
 }
-$allowedsettings = array('display', 'displaygroups', 'group');
+$allowedsettings = array('display', 'groupsdisplay', 'group');
 if (!in_array($settingtype, $allowedsettings)) {
     die('Invalid setting type');
 }
@@ -84,9 +84,12 @@ switch ($settingtype) {
     case 'display':
         $existingsetting->display = $settingvalue;
         $success = $DB->update_record('block_ajax_marking', $existingsetting);
+
+        // For a course level node, we also want to update all child nodes, otherwise it could get
+        // complex
         break;
 
-    case 'displaygroups':
+    case 'groupsdisplay':
         $existingsetting->groupsdisplay = $settingvalue;
         $success = $DB->update_record('block_ajax_marking', $existingsetting);
         break;
