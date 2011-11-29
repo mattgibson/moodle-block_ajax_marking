@@ -47,7 +47,11 @@ M.block_ajax_marking.popuptimer = '';
 M.block_ajax_marking.ajaxnodesurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/ajax_nodes.php';
 M.block_ajax_marking.ajaxgradeurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/grading_popup.php';
 
-
+/**
+ * Change to true to see what settings are null (inherited) by having them marked in grey on the
+ * context menu
+ */
+M.block_ajax_marking.showinheritance = true;
 
 /**
  * Base class that can be used for the main and config trees. This extends the
@@ -695,7 +699,7 @@ M.block_ajax_marking.contextmenu_make_setting = function(contextmenu, settingnam
         }
     }
     menuitem.cfg.setProperty('checked', checked);
-}
+};
 
 /**
  * Turns the raw groups data from the tree node into menu items and attaches them to the menu
@@ -744,7 +748,7 @@ M.block_ajax_marking.contextmenu_make_groups = function(rawgroups, menu, clicked
  *
  * @param {object} clickednode
  * @param {string} settingtype
- * @param {int} groupsid
+ * @param {int} groupid
  */
 M.block_ajax_marking.get_node_setting = function(clickednode, settingtype, groupid) {
 
@@ -812,7 +816,7 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
             errormessage += ajaxresponsearray.debuginfo+'<br />';
             errormessage += '<strong>Stacktrace:</strong><br />';
             errormessage += ajaxresponsearray.stacktrace+'<br />';
-            M.block_ajax_marking.error(errormessage);
+            M.block_ajax_marking.show_error(errormessage);
 
         } else if (typeof(ajaxresponsearray['gradinginterface']) !== 'undefined') {
             // We have gotten the grading form back. Need to add the HTML to the modal overlay
@@ -825,24 +829,20 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
         } else if (typeof(ajaxresponsearray['configsave']) !== 'undefined') {
 
             if (ajaxresponsearray['configsave'].success !== true) {
+                M.block_ajax_marking.show_error('Config setting failed to save');
                 // TODO handle error gracefully
                 // TODO deal with exceptions
+            } else {
+                // We want to toggle the display of the menu item by setting it to the new value.
+                // Don't assume that the default hasn't changed.
+                M.block_ajax_marking.contextmenu_ajax_callback(ajaxresponsearray);
             }
-            // We want to toggle the display of the menu item by setting it to the new value.
-            // Don't assume that the default hasn't changed.
-            M.block_ajax_marking.contextmenu_ajax_callback(ajaxresponsearray);
         }
     }
 
     M.block_ajax_marking.get_current_tab().displaywidget.rebuild_tree_after_ajax();
     YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
 };
-
-/**
- * Change to true to see what settings are null (inherited) by having them marked in grey on the
- * context menu
- */
-M.block_ajax_marking.showinheritance = false;
 
 /**
  * Sorts out what needs to happen once a response is received from the server that a setting
@@ -959,7 +959,6 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
 
 /**
  * If the AJAX connection times out, this will handle things so we know what happened
- * @param o
  */
 M.block_ajax_marking.ajax_timeout_handler = function() {
     document.getElementById('status').innerHTML = M.str.block_ajax_marking.connecttimeout;
@@ -1133,10 +1132,9 @@ M.block_ajax_marking.initialise = function() {
 
 
         // Set event that makes a new tree if it's needed when the tabs change
-        M.block_ajax_marking.tabview.after('selectionChange', function(e) {
+        M.block_ajax_marking.tabview.after('selectionChange', function() {
 
             // get current tab and keep a reference to it
-            var newtabindex = e.newVal.get('index');
             var currenttab = M.block_ajax_marking.get_current_tab();
 
             if (typeof(currenttab.alreadyinitialised) === 'undefined') {
@@ -1254,7 +1252,7 @@ M.block_ajax_marking.contextmenu_setting_onclick = function(event, otherthing, o
     // What do we have as the current setting?
     var groupid = null;
     if (settingtype === 'group') {
-        var groupid = this.value.groupid;
+        groupid = this.value.groupid;
     }
     var currentsetting = M.block_ajax_marking.get_node_setting(clickednode, settingtype, groupid);
     var defaultsetting = M.block_ajax_marking.get_node_setting_default(clickednode,
@@ -1294,7 +1292,7 @@ M.block_ajax_marking.contextmenu_setting_onclick = function(event, otherthing, o
  * Given an array of groups and an id, this will loop over them till it gets the right one and
  * return it.
  *
- * @param {array} groups
+ * @param {Array} groups
  * @param {int} groupid
  * @return array|bool
  */
@@ -1308,16 +1306,19 @@ M.block_ajax_marking.get_group_by_id = function(groups, groupid) {
     }
     M.block_ajax_marking.error('No group found for groupid '+groupid);
     return false;
-}
+};
 
 /**
  * Finds out what the default is for this group node, if it has no display setting
- * @param node
+ * @param {object} node
  */
 M.block_ajax_marking.get_node_setting_default = function(node, settingtype, groupid) {
 
     var defaultsetting = null;
 
+    /**
+     * @var {Array} node.data.returndata
+     */
     if (typeof(node.data.returndata.courseid) === 'undefined') { // Must be a coursemodule
         switch (settingtype) {
 
