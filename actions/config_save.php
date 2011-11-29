@@ -142,6 +142,27 @@ switch ($settingtype) {
                 $success = $DB->insert_record('block_ajax_marking_groups', $groupsetting);
             }
         }
+
+        if ($tablename == 'course') {
+            // Delete all group settings for associated coursemodules, making them NULL
+            $sql = "     DELETE config_groups
+                           FROM {block_ajax_marking_groups} config_groups
+                     INNER JOIN {block_ajax_marking} course_module_config
+                             ON (config_groups.configid = course_module_config.id
+                                AND course_module_config.tablename = 'course_modules')
+                     INNER JOIN {course_modules} course_modules
+                             ON course_modules.id = course_module_config.instanceid
+                     INNER JOIN {block_ajax_marking} course_config
+                             ON (course_config.instanceid = course_modules.course
+                                AND course_config.tablename = 'course')
+                          WHERE course_config.id = :settingid
+                            AND config_groups.groupid = :groupid
+                    ";
+            $params = array('settingid' => $existingsetting->id,
+                            'groupid'   => $groupid);
+            $DB->execute($sql, $params);
+        }
+
         break;
 
 }
