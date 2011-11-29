@@ -62,14 +62,18 @@ if ($groupid) {
     }
 }
 
+/**
+ * @var stdClass $USER // Prevent IDE complaining about undefined fields
+ */
+$userid = $USER->id;
 $existingsetting = $DB->get_record('block_ajax_marking', array('tablename' => $tablename,
                                                                'instanceid' => $instanceid,
-                                                               'userid' => $USER->id));
+                                                               'userid' => $userid));
 if (!$existingsetting) {
     $existingsetting = new stdClass();
     $existingsetting->tablename  = $tablename;
     $existingsetting->instanceid = $instanceid;
-    $existingsetting->userid     = $USER->id;
+    $existingsetting->userid     = $userid;
     $existingsetting->id = $DB->insert_record('block_ajax_marking', $existingsetting);
     if (!$existingsetting->id) {
         die('Could not create new setting');

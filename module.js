@@ -1183,59 +1183,13 @@ M.block_ajax_marking.contextmenu_unhighlight = function() {
 
 
 /**
- * OnClick handler for the show context menu item. It will ajax a request to change the node's
- * config and make the context menu item checked if successful
+ * OnClick handler for the contextmenu that sends an ajax request for the setting to be changed on
+ * the server.
+ *
+ * @param event
+ * @param otherthing
+ * @param obj
  */
-//M.block_ajax_marking.context_setting_onclick = function(event, otherthing, obj) {
-//
-//    var settingtype = obj.settingtype;
-//
-//    var coursenodeclicked = false;
-//    var target = this.parent.contextEventTarget;
-//    var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
-//    if (typeof(clickednode.data.returndata.courseid) !== 'undefined') {
-//        coursenodeclicked = true;
-//    }
-//
-//    // What is the current setting
-//    var currentsetting = clickednode.data.configdata[settingtype]
-//
-//    // What is the default setting
-//    var defaultsetting = M.block_ajax_marking.get_node_setting_default(clickednode, settingtype);
-//
-//    // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
-//    // This means we want to assume that it needs to be the opposite of the default if there is
-//    // no current setting.
-//    if (currentsetting === null) {
-//        settingtorequest = defaultsetting ? 0 : 1;
-//    } else {
-//        // There is an existing setting. The user toggled from the default last time, so
-//        // will want to toggle back to default. No point deliberately making a setting when we can
-//        // just use the default, leaving more flexibility if the defaults are changed (rare)
-//        settingtorequest = null;
-//    }
-//
-//    // gather data
-//    var requestdata = {};
-//    requestdata.menuitemindex = this.index;
-//    requestdata.settingtype = settingtype;
-//    if (settingtorequest !== null) { // leaving this out defaults to null on the other end
-//        requestdata.settingvalue = settingtorequest;
-//    }
-//    requestdata.tablename = coursenodeclicked ? 'course' : 'course_modules';
-//    requestdata.instanceid = coursenodeclicked ?
-//                             clickednode.data.returndata.courseid :
-//                             clickednode.data.returndata.coursemoduleid;
-//
-//    // send request
-//    M.block_ajax_marking.contextmenu_ajax_request(requestdata);
-//
-//    // ..d success handler should check/uncheck the menu item and undisable it
-//    // also disable other menu items if this is set to not show
-//
-//};
-
-
 M.block_ajax_marking.contextmenu_setting_onclick = function(event, otherthing, obj) {
 
     // we want to set the class so that we can indicate whether the checked (show) status is
@@ -1310,7 +1264,10 @@ M.block_ajax_marking.get_group_by_id = function(groups, groupid) {
 
 /**
  * Finds out what the default is for this group node, if it has no display setting
+ *
  * @param {object} node
+ * @param {string} settingtype
+ * @param {int} groupid
  */
 M.block_ajax_marking.get_node_setting_default = function(node, settingtype, groupid) {
 
@@ -1359,6 +1316,8 @@ M.block_ajax_marking.get_node_setting_default = function(node, settingtype, grou
 
 /**
  * Asks the server to change the setting for something
+ *
+ * @param {object} requestdata
  */
 M.block_ajax_marking.contextmenu_ajax_request = function(requestdata) {
 
