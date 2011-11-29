@@ -332,12 +332,12 @@ function block_ajax_marking_form_url($params=array()) {
  * This is not used for output, but just converts the parametrised query to one that can be
  * copy/pasted into an SQL GUI in order to debug SQL errors
  *
- * @param block_ajax_marking_query_base $query
+ * @param block_ajax_marking_query_base|string $query
  * @param array $params
  * @global stdClass $CFG
  * @return string
  */
-function block_ajax_marking_debuggable_query(block_ajax_marking_query_base $query,
+function block_ajax_marking_debuggable_query($query,
                                              $params = array()) {
 
     global $CFG;

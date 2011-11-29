@@ -910,6 +910,11 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
     } else {
         clickednode.data.configdata[settingtype] = newsetting;
     }
+
+    // Update any child nodes to be 'inherited' now that this will be the way the settings
+    // are on the server
+    M.block_ajax_marking.contextmenu_update_child_nodes(clickednode, settingtype, groupid);
+
 };
 
 /**
@@ -1358,3 +1363,53 @@ M.block_ajax_marking.grading_unhighlight = function (node) {
 
 };
 
+/**
+ * When settings are changed on a course node, the child nodes (coursemodules) need to know about
+ * it so that subsequent right-clicks show settings as they currently are, not how the outdated
+ * original data was from when the tree first loaded
+ *
+ * @param {object} node
+ * @param {string} settingtype eitherdisplay, groupsdisplay or group
+ * @param {int} groupid
+ */
+M.block_ajax_marking.contextmenu_update_child_nodes = function(node, settingtype, groupid) {
+
+    // get children
+    var childnodes = node.children;
+    var groups;
+
+    // loop
+    for (var i = 0; i < childnodes.length; i++) {
+        // if the child is a node, recurse
+        if (childnodes[i].children.length > 0) {
+            M.block_ajax_marking.contextmenu_update_child_nodes(childnodes[i]);
+        }
+        // update node config data
+        switch (settingtype) {
+
+            case 'display':
+
+            case 'groupsdisplay':
+                childnodes[i].data.configdata[settingtype] = null;
+                break;
+
+            case 'group':
+                groups = node.data.configdata.groups;
+                for (var j = 0; j < groups.length; j++) {
+                    if (groups[j].id == groupid) {
+                        groups.display = null;
+                        break;
+                    }
+                }
+                break;
+
+            default:
+
+        }
+
+
+
+    }
+
+
+};
