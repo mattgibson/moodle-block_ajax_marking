@@ -119,12 +119,18 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
 /**
  * Makes a label out of the text (name of the node) and the count of unmarked items
  *
- * @param text
- * @param count
+ * @param {string} text
+ * @param {int} count
+ * @param {string} classes
  * @return string
  */
-M.block_ajax_marking.tree_base.prototype.node_label = function(text, count) {
-    return '('+count+') '+text;
+M.block_ajax_marking.tree_base.prototype.node_label = function(text, count, classes) {
+    if (typeof(classes) !== 'undefined') {
+        classes = ' '+classes; // avoid running class names together
+    } else {
+        classes = ''
+    }
+    return '<div class="node-icon'+classes+'"></div><strong>('+count+')</strong> '+text;
 };
 
 /**
@@ -173,10 +179,10 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         if (typeof(nodedata.displaydata.count) !== 'undefined' &&
             (nodedata.displaydata.count > 1 || nodedata.returndata.nextnodefilter !== false)) {
 
-            nodedata.label = this.node_label(nodedata.label, nodedata.displaydata.count);
+            nodedata.html = this.node_label(nodedata.label, nodedata.displaydata.count);
         }
 
-        newnode = new YAHOO.widget.TextNode(nodedata, M.block_ajax_marking.parentnodeholder, false);
+        newnode = new YAHOO.widget.HTMLNode(nodedata, M.block_ajax_marking.parentnodeholder, false);
 
         // set the node to load data dynamically, unless it has not sent a callback i.e. it's a
         // final node
@@ -765,8 +771,12 @@ M.block_ajax_marking.get_node_setting = function(clickednode, settingtype, group
 
         case 'group':
             var groups = clickednode.data.configdata.groups;
-            var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
-            setting = group.display;
+            if (typeof(groups) !== 'undefined') {
+                var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
+                setting = group.display;
+            } else {
+                setting = null;
+            }
             break;
 
         default:
@@ -1263,8 +1273,7 @@ M.block_ajax_marking.get_group_by_id = function(groups, groupid) {
             return groups[i];
         }
     }
-    M.block_ajax_marking.error('No group found for groupid '+groupid);
-    return false;
+    return null;
 };
 
 /**
@@ -1397,19 +1406,43 @@ M.block_ajax_marking.contextmenu_update_child_nodes = function(node, settingtype
                 groups = node.data.configdata.groups;
                 for (var j = 0; j < groups.length; j++) {
                     if (groups[j].id == groupid) {
-                        groups.display = null;
+                        groups[j].display = null;
                         break;
                     }
                 }
                 break;
 
             default:
-
         }
-
-
-
     }
-
-
 };
+
+/**
+ * Makes a label out of the text (name of the node) and the count of unmarked items
+ *
+ * @param {string} text
+ * @param {int} count
+ * @param {string} classes
+ * @return string
+ */
+M.block_ajax_marking.config_tree.prototype.node_label = function(text, count, classes) {
+    if (typeof(classes) !== 'undefined') {
+        classes = ' '+classes; // avoid running class names together
+    } else {
+        classes = ''
+    }
+    return '<div class="node-icon display-icon"></div>' +
+           '<div class="node-icon groupsdisplay-icon"></div>' +
+           '<div class="node-icon groups-icon"></div>' +
+           '<div class="node-icon inherit-icon"></div>' +
+           '<strong>('+count+')</strong> '+text;
+};
+
+/**
+ * This subclasses the textnode used
+ */
+M.block_ajax_marking.contextmenu_node = function(oData , oParent , expanded) {
+    M.block_ajax_marking.contextmenu_node.superclass.constructor.call(oData , oParent , expanded);
+};
+
+YAHOO.lang.extend(M.block_ajax_marking.contextmenu_node, YAHOO.widget.HTMLNode);

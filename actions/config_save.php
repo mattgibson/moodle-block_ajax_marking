@@ -143,7 +143,7 @@ switch ($settingtype) {
             }
         }
 
-        if ($tablename == 'course') {
+        if ($tablename === 'course') {
             // Delete all group settings for associated coursemodules, making them NULL
             $sql = "     DELETE config_groups
                            FROM {block_ajax_marking_groups} config_groups
@@ -170,7 +170,7 @@ switch ($settingtype) {
 $response = new stdClass();
 $response->configsave = array('menuitemindex' => $menuitemindex,
                               'settingtype' => $settingtype,
-                              'success' => $success,
+                              'success' => (bool)$success,
                               'newsetting' => $settingvalue);
 
 echo json_encode($response);
