@@ -54,6 +54,79 @@ M.block_ajax_marking.ajaxgradeurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/
 M.block_ajax_marking.showinheritance = true;
 
 /**
+ * This subclasses the textnode to make a node that wil have extra icons to show what the current
+ * settings are
+ */
+M.block_ajax_marking.configtree_node = function(oData , oParent , expanded) {
+    M.block_ajax_marking.configtree_node.superclass.constructor.call(this, oData , oParent , expanded);
+};
+
+YAHOO.lang.extend(M.block_ajax_marking.configtree_node, YAHOO.widget.HTMLNode);
+
+/**
+ * Get the markup for the configtree node.
+ *
+ * @method getNodeHtml
+ * @return {string} The HTML that will render this node.
+ */
+M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
+
+    this.logger.log("Generating html");
+    var sb = [];
+
+    sb[sb.length] = '<table id="ygtvtableel' + this.index + '" border="0" cellpadding="0" cellspacing="0" class="ygtvtable ygtvdepth' + this.depth;
+    sb[sb.length] = ' ygtv-' + (this.expanded?'expanded':'collapsed');
+    if (this.enableHighlight) {
+        sb[sb.length] = ' ygtv-highlight' + this.highlightState;
+    }
+    if (this.className) {
+        sb[sb.length] = ' ' + this.className;
+    }
+    sb[sb.length] = '"><tr class="ygtvrow">';
+
+    for (var i=0;i<this.depth;++i) {
+        sb[sb.length] = '<td class="ygtvcell ' + this.getDepthStyle(i) + '"><div class="ygtvspacer"></div></td>';
+    }
+
+    if (this.hasIcon) {
+        sb[sb.length] = '<td id="' + this.getToggleElId();
+        sb[sb.length] = '" class="ygtvcell ';
+        sb[sb.length] = this.getStyle() ;
+        sb[sb.length] = '"><a href="#" class="ygtvspacer">&#160;</a></td>';
+    }
+
+    // Make display icon
+    sb[sb.length] = '<td id="' +  "block_ajax_marking_display_icon" + this.index;
+    sb[sb.length] = '" class="ygtvcell ';
+    sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ' ;
+    sb[sb.length] = '"><a href="#" class="ygtvspacer">&#160;</a></td>';
+
+    // Make groupsdisplay icon
+    sb[sb.length] = '<td id="' + 'block_ajax_marking_groupsdisplay_icon' + this.index;
+    sb[sb.length] = '" class="ygtvcell ';
+    sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groupsdisplay_icon ' ;
+    sb[sb.length] = '"><a href="#" class="ygtvspacer">&#160;</a></td>';
+
+    // Make groups icon
+    sb[sb.length] = '<td id="' + 'block_ajax_marking_groups_icon' + this.index;
+    sb[sb.length] = '" class="ygtvcell ';
+    sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groups_icon ' ;
+    sb[sb.length] = '"><a href="#" class="ygtvspacer">&#160;</a></td>';
+
+    sb[sb.length] = '<td id="' + this.contentElId;
+    sb[sb.length] = '" class="ygtvcell ';
+    sb[sb.length] = this.contentStyle  + ' ygtvcontent" ';
+    sb[sb.length] = (this.nowrap) ? ' nowrap="nowrap" ' : '';
+    sb[sb.length] = ' >';
+    sb[sb.length] = this.getContentHtml();
+    sb[sb.length] = '</td></tr></table>';
+
+    return sb.join("");
+
+
+};
+
+/**
  * Base class that can be used for the main and config trees. This extends the
  * YUI treeview class ready to add some new functions to it which are common to both the
  * main and config trees.
@@ -65,20 +138,20 @@ M.block_ajax_marking.tree_base = function(treediv) {
     this.singleNodeHighlight = true;
 };
 
-// make the base class into a subclass of the YUI treeview widget
-YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView);
-
+// make the base class into a subclass of the YUI treeview widget.
+YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView,
+                  {nodetype: YAHOO.widget.HTMLNode});
 
 /**
  * Constructor for the courses tree
  */
 M.block_ajax_marking.courses_tree = function() {
-    this.initial_nodes_data = 'nextnodefilter=courseid';
     M.block_ajax_marking.tree_base.superclass.constructor.call(this, 'coursestree');
 };
 
 // make the courses tree into a subclass of the base class
-YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_base);
+YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_base,
+                  {initial_nodes_data : 'nextnodefilter=courseid'});
 
 /**
  * Constructor for the groups tree
@@ -86,35 +159,38 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
  * @constructor
  */
 M.block_ajax_marking.cohorts_tree = function() {
-    this.initial_nodes_data = 'nextnodefilter=cohortid';
+
     M.block_ajax_marking.tree_base.superclass.constructor.call(this, 'cohortstree');
 };
 
 // make the groups tree into a subclass of the base class
-YAHOO.lang.extend(M.block_ajax_marking.cohorts_tree, M.block_ajax_marking.tree_base);
+YAHOO.lang.extend(M.block_ajax_marking.cohorts_tree, M.block_ajax_marking.tree_base,
+                  {initial_nodes_data : 'nextnodefilter=cohortid'});
 
 /**
  * Constructor for the users tree
  */
 M.block_ajax_marking.users_tree = function() {
-    this.initial_nodes_data = 'nextnodefilter=userid';
     M.block_ajax_marking.tree_base.superclass.constructor.call(this, 'usersstree');
 };
 
 // make the users tree into a subclass of the base class
-YAHOO.lang.extend(M.block_ajax_marking.users_tree, M.block_ajax_marking.tree_base);
+YAHOO.lang.extend(M.block_ajax_marking.users_tree, M.block_ajax_marking.tree_base,
+                  {initial_nodes_data : 'nextnodefilter=userid'});
 
 /**
  * Constructor for the config tree
  */
 M.block_ajax_marking.config_tree = function() {
-    this.initial_nodes_data = 'nextnodefilter=courseid&config=1';
-    this.supplementaryreturndata = 'config=1';
+
     M.block_ajax_marking.tree_base.superclass.constructor.call(this, 'configtree');
 };
 
-// make the config tree into a subclass of the base class
-YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_base);
+// make the config tree into a subclass of the base class. Tell it to use custom nodes
+YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_base,
+                  {nodetype : M.block_ajax_marking.configtree_node,
+                   initial_nodes_data : 'nextnodefilter=courseid&config=1',
+                   supplementaryreturndata : 'config=1'});
 
 /**
  * Makes a label out of the text (name of the node) and the count of unmarked items
@@ -130,7 +206,7 @@ M.block_ajax_marking.tree_base.prototype.node_label = function(text, count, clas
     } else {
         classes = ''
     }
-    return '<div class="node-icon'+classes+'"></div><strong>('+count+')</strong> '+text;
+    return '<strong>('+count+')</strong> '+text;
 };
 
 /**
@@ -157,7 +233,7 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         nodedata = nodesarray[m];
 
         // Make the display data accessible to the node creation code
-        nodedata.label = nodedata.displaydata.name;
+        nodedata.html = nodedata.displaydata.name;
         nodedata.title = nodedata.displaydata.tooltip;
 
         // Get current filter name. Assumes only one value in returndata
@@ -182,7 +258,8 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
             nodedata.html = this.node_label(nodedata.label, nodedata.displaydata.count);
         }
 
-        newnode = new YAHOO.widget.HTMLNode(nodedata, M.block_ajax_marking.parentnodeholder, false);
+        //newnode = new YAHOO.widget.HTMLNode(nodedata, M.block_ajax_marking.parentnodeholder, false);
+        newnode = new this.nodetype(nodedata, M.block_ajax_marking.parentnodeholder, false);
 
         // set the node to load data dynamically, unless it has not sent a callback i.e. it's a
         // final node
@@ -1438,11 +1515,4 @@ M.block_ajax_marking.config_tree.prototype.node_label = function(text, count, cl
            '<strong>('+count+')</strong> '+text;
 };
 
-/**
- * This subclasses the textnode used
- */
-M.block_ajax_marking.contextmenu_node = function(oData , oParent , expanded) {
-    M.block_ajax_marking.contextmenu_node.superclass.constructor.call(oData , oParent , expanded);
-};
 
-YAHOO.lang.extend(M.block_ajax_marking.contextmenu_node, YAHOO.widget.HTMLNode);

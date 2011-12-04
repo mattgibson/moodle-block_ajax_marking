@@ -107,7 +107,7 @@
     margin-left: 3px;
 }
 .loaderimage {
-    background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
+    background: url('/blocks/ajax_marking/pix/ajax-loader.gif') 0 0 no-repeat;
     width: 15px;
     height: 15px;
     display: block;
@@ -253,7 +253,7 @@ span.ygtvlabel {
 .ygtvloading {
     width: 18px;
     height: 22px;
-    background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
+    background: url('/blocks/ajax_marking/pix/ajax-loader.gif') 0 0 no-repeat;
 }
 #block_ajax_marking_hidden {
     display: none;
@@ -293,4 +293,8 @@ span.ygtvlabel {
     background-image: url([[pix:block_ajax_marking|cross]]);
     background-position: left center;
     background-repeat: no-repeat
+}
+
+.block_ajax_marking_node_icon {
+    background-image: url([[pix:block_ajax_marking|cross]]);
 }
