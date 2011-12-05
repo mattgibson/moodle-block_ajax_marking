@@ -159,7 +159,8 @@ class block_ajax_marking extends block_base {
                     </div>
                     <div id="block_ajax_marking_refresh_button"></div>
                     <div id="block_ajax_marking_configure_button"></div>
-                    <div id="block_ajax_marking_error"></div>';
+                    <div id="block_ajax_marking_error"></div>
+                    <div class="block_ajax_marking_spacer"></div>';
 
                 // Don't warn about javascript if the screenreader option is set - it was deliberate
                 $noscript = '<noscript>

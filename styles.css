@@ -107,7 +107,8 @@
     margin-left: 3px;
 }
 .loaderimage {
-    background: url('/blocks/ajax_marking/pix/ajax-loader.gif') 0 0 no-repeat;
+    /* background: url('/blocks/ajax_marking/pix/ajax-loader.gif') 0 0 no-repeat; */
+    background: url([[pix:block_ajax_marking|ajax-loader]]) 0 0 no-repeat;
     width: 15px;
     height: 15px;
     display: block;
@@ -253,7 +254,8 @@ span.ygtvlabel {
 .ygtvloading {
     width: 18px;
     height: 22px;
-    background: url('/blocks/ajax_marking/pix/ajax-loader.gif') 0 0 no-repeat;
+    /* background: url('/blocks/ajax_marking/pix/ajax-loader.gif') 0 0 no-repeat; */
+    background: url([[pix:block_ajax_marking|ajax-loader]]) 0 0 no-repeat;
 }
 #block_ajax_marking_hidden {
     display: none;
@@ -282,6 +284,8 @@ span.ygtvlabel {
     padding: 3px;
     width: 100%;
 }
+
+/* Context menu */
 #configcontextmenu .inherited .yuimenuitemlabel {
     color: #999999;
 }
@@ -289,12 +293,33 @@ span.ygtvlabel {
     background-image: url("../../lib/yui/2.9.0/build/assets/skins/sam/menuitem_checkbox_disabled.png");
     color: #999999;
 }
-#configcontextmenu .notchecked {
-    background-image: url([[pix:block_ajax_marking|cross]]);
-    background-position: left center;
-    background-repeat: no-repeat
-}
 
+/* Node icons for the config tree */
 .block_ajax_marking_node_icon {
-    background-image: url([[pix:block_ajax_marking|cross]]);
+    width: 20px;
+}
+.block_ajax_marking_display_icon.enabled {
+    background: url([[pix:core|t/hide]]) 2px 3px no-repeat;
+}
+.block_ajax_marking_display_icon.disabled {
+    background: url([[pix:core|t/show]]) 2px 3px no-repeat;
+}
+.block_ajax_marking_groupsdisplay_icon.enabled {
+    background: url([[pix:block_ajax_marking|group]]) no-repeat;
+}
+.block_ajax_marking_groupsdisplay_icon.disabled {
+    background: url([[pix:block_ajax_marking|group-disabled]]) no-repeat;
+}
+.block_ajax_marking_groups_icon.enabled {
+    background: url([[pix:block_ajax_marking|groups]]) no-repeat;
+}
+.block_ajax_marking_groups_icon.disabled {
+    background: url([[pix:block_ajax_marking|groups-disabled]]) no-repeat;
+}
+.block_ajax_marking_spacer {
+    clear: both;
+}
+.block_ajax_marking_groups_icon {
+    vertical-align: top;
+    font-size: 9pt;
 }

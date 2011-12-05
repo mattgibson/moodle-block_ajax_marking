@@ -82,8 +82,11 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     if (this.className) {
         sb[sb.length] = ' ' + this.className;
     }
-    sb[sb.length] = '"><tr class="ygtvrow">';
 
+
+    sb[sb.length] = '"><tr class="ygtvrow block_ajax_marking_label_row">';
+
+    // Spacers cells to make indents
     for (var i=0;i<this.depth;++i) {
         sb[sb.length] = '<td class="ygtvcell ' + this.getDepthStyle(i) + '"><div class="ygtvspacer"></div></td>';
     }
@@ -95,31 +98,120 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
         sb[sb.length] = '"><a href="#" class="ygtvspacer">&#160;</a></td>';
     }
 
+    // Make main label on its own row
+    sb[sb.length] = '<td id="' + this.contentElId;
+    sb[sb.length] = '" class="ygtvcell ';
+    sb[sb.length] = this.contentStyle  + ' ygtvcontent" ';
+    sb[sb.length] = (this.nowrap) ? ' nowrap="nowrap" ' : '';
+    sb[sb.length] = ' colspan="4">';
+    sb[sb.length] = this.getContentHtml();
+    sb[sb.length] = '</td>';
+    sb[sb.length] = '</tr>';
+
+    // Info row
+    sb[sb.length] = '<tr class="ygtvrow block_aax_marking_info_row">';
+
+    // depth +1 so we indent. needs dotted line background
+    for (var i=0;i<this.depth;++i) {
+        sb[sb.length] = '<td class="ygtvcell ' + this.getDepthStyle(i) + '"><div class="ygtvspacer"></div></td>';
+    }
+    var depthclass =  (this.nextSibling) ? "ygtvdepthcell" : "ygtvblankdepthcell";
+    sb[sb.length] = '<td class="ygtvcell '+depthclass+'"><div class="ygtvspacer"></div></td>';
+
     // Make display icon
     sb[sb.length] = '<td id="' +  "block_ajax_marking_display_icon" + this.index;
     sb[sb.length] = '" class="ygtvcell ';
+    var displaysetting = M.block_ajax_marking.get_node_setting(this, 'display');
+    if (displaysetting === null) {
+        displaysetting = M.block_ajax_marking.get_node_setting_default(this.parent, 'display');
+    }
+    if (displaysetting == 1) {
+        sb[sb.length] = ' enabled ';
+    } else {
+        sb[sb.length] = ' disabled ';
+    }
     sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ' ;
-    sb[sb.length] = '"><a href="#" class="ygtvspacer">&#160;</a></td>';
+    sb[sb.length] = '"><div class="ygtvspacer">&#160;</div></td>';
 
     // Make groupsdisplay icon
     sb[sb.length] = '<td id="' + 'block_ajax_marking_groupsdisplay_icon' + this.index;
     sb[sb.length] = '" class="ygtvcell ';
+    var groupsdisplaysetting = M.block_ajax_marking.get_node_setting(this, 'groupsdisplay');
+    if (groupsdisplaysetting === null) {
+        groupsdisplaysetting = M.block_ajax_marking.get_node_setting_default(this.parent, 'groupsdisplay');
+    }
+    if (groupsdisplaysetting == 1) {
+        sb[sb.length] = ' enabled ';
+    } else {
+        sb[sb.length] = ' disabled ';
+    }
     sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groupsdisplay_icon ' ;
-    sb[sb.length] = '"><a href="#" class="ygtvspacer">&#160;</a></td>';
+    sb[sb.length] = '"><div class="ygtvspacer">&#160;</div></td>';
 
     // Make groups icon
     sb[sb.length] = '<td id="' + 'block_ajax_marking_groups_icon' + this.index;
     sb[sb.length] = '" class="ygtvcell ';
     sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groups_icon ' ;
-    sb[sb.length] = '"><a href="#" class="ygtvspacer">&#160;</a></td>';
+    sb[sb.length] = '"><div class="ygtvspacer">';
 
-    sb[sb.length] = '<td id="' + this.contentElId;
-    sb[sb.length] = '" class="ygtvcell ';
-    sb[sb.length] = this.contentStyle  + ' ygtvcontent" ';
-    sb[sb.length] = (this.nowrap) ? ' nowrap="nowrap" ' : '';
-    sb[sb.length] = ' >';
-    sb[sb.length] = this.getContentHtml();
-    sb[sb.length] = '</td></tr></table>';
+    // We want to show how many groups are currently displayed, as well as how many there are
+    var numberofgroups = 0;
+    var groupscurrentlydisplayed = 0;
+    var groups = [];
+    // Could be a course or coursemodule node
+
+    if (typeof(this.data.returndata.courseid) !== 'undefined') { //course node. Easy.
+
+        groups = this.data.configdata.groups;
+        if (typeof(groups) === 'undefined') {
+            groups = [];
+        }
+        numberofgroups = groups.length;
+        for (var h = 0; h < numberofgroups; h++) {
+            if (groups[h].display === null || parseInt(groups[h].display) === 1) {
+                groupscurrentlydisplayed++;
+            }
+        }
+    } else { // coursemodule node.
+
+        groups = this.parent.data.configdata.groups;
+        if (typeof(groups) === 'undefined') {
+            groups = [];
+        }
+        var subgroups = this.data.configdata.groups;
+        if (typeof(subgroups) === 'undefined') {
+            subgroups = [];
+        }
+        numberofgroups = groups.length;
+        parentnodes:
+        for (var i = 0; i < numberofgroups; i++) {
+            for (var j = 0; j < subgroups.length; j++) { // check each subgroup
+                if (subgroups[j].id == groups[i].id) {
+                    // The subgroup overrides the parent node
+                    if (subgroups[j].display == 1) {
+                        groupscurrentlydisplayed++;
+                    }
+                    if (subgroups[j].display !== null) { // if null, use inherited value
+                        continue parentnodes;
+                    }
+                }
+            }
+            // No override, so use the course level setting
+            if (groups[i].display === null || parseInt(groups[i].display) === 1) {
+                groupscurrentlydisplayed++;
+            }
+        }
+    }
+
+    sb[sb.length] = groupscurrentlydisplayed + '/' + numberofgroups + ' ';
+    sb[sb.length] = '</div></td>';
+
+
+    // Spacer cell
+    sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
+
+
+    sb[sb.length] = '</table>';
 
     return sb.join("");
 
@@ -255,7 +347,7 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         if (typeof(nodedata.displaydata.count) !== 'undefined' &&
             (nodedata.displaydata.count > 1 || nodedata.returndata.nextnodefilter !== false)) {
 
-            nodedata.html = this.node_label(nodedata.label, nodedata.displaydata.count);
+            nodedata.html = this.node_label(nodedata.html, nodedata.displaydata.count);
         }
 
         //newnode = new YAHOO.widget.HTMLNode(nodedata, M.block_ajax_marking.parentnodeholder, false);
@@ -317,6 +409,11 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
 
             newnode.labelStyle = iconstyle;
         }
+
+        // Update the node's appearance based on its config data
+//        if (typeof(newnode.update) === 'function') {
+//            newnode.update();
+//        }
     }
 
 };
@@ -1367,7 +1464,9 @@ M.block_ajax_marking.get_node_setting_default = function(node, settingtype, grou
     /**
      * @var {Array} node.data.returndata
      */
-    if (typeof(node.data.returndata.courseid) === 'undefined') { // Must be a coursemodule
+    if (typeof(node.data.returndata) !== 'undefined' &&
+        typeof(node.data.returndata.courseid) === 'undefined') { // Must be a coursemodule
+
         switch (settingtype) {
 
             case 'group':
@@ -1514,5 +1613,6 @@ M.block_ajax_marking.config_tree.prototype.node_label = function(text, count, cl
            '<div class="node-icon inherit-icon"></div>' +
            '<strong>('+count+')</strong> '+text;
 };
+
 
 
