@@ -123,7 +123,7 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     sb[sb.length] = '" class="ygtvcell ';
     var displaysetting = M.block_ajax_marking.get_node_setting(this, 'display');
     if (displaysetting === null) {
-        displaysetting = M.block_ajax_marking.get_node_setting_default(this.parent, 'display');
+        displaysetting = M.block_ajax_marking.get_node_setting_default(this, 'display');
     }
     if (displaysetting == 1) {
         sb[sb.length] = ' enabled ';
@@ -138,7 +138,7 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     sb[sb.length] = '" class="ygtvcell ';
     var groupsdisplaysetting = M.block_ajax_marking.get_node_setting(this, 'groupsdisplay');
     if (groupsdisplaysetting === null) {
-        groupsdisplaysetting = M.block_ajax_marking.get_node_setting_default(this.parent, 'groupsdisplay');
+        groupsdisplaysetting = M.block_ajax_marking.get_node_setting_default(this, 'groupsdisplay');
     }
     if (groupsdisplaysetting == 1) {
         sb[sb.length] = ' enabled ';
