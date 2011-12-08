@@ -235,10 +235,16 @@ class block_ajax_marking_nodes_factory {
             }
         }
 
+        // Adds the config options if there are any, so JavaScript knows what to ask for
+        self::apply_config_filter($displayquery, 'configselect');
+
         // This is just for copying and pasting from the paused debugger into a DB GUI
         $debugquery = block_ajax_marking_debuggable_query($displayquery);
 
         $nodes = $displayquery->execute();
+
+        $nodes = self::attach_groups_to_nodes($nodes, $filters);
+
         if ($moduleid) {
             // this does e.g. allowing the forum module to tweak the name depending on forum type
             $moduleclass->postprocess_nodes_hook($nodes, $filters);
@@ -936,6 +942,24 @@ class block_ajax_marking_nodes_factory {
 
         $nodes = $configbasequery->execute();
 
+        $nodes = self::attach_groups_to_nodes($nodes, $filters);
+
+        return $nodes;
+
+    }
+
+    /**
+     * In order to set the groups display properly, we need to know what groups are available. This takes the nodes
+     * we have and attaches the groups to them if there are any.
+     *
+     * @param array $nodes
+     * @param array $filters
+     * @return array
+     */
+    private function attach_groups_to_nodes($nodes, $filters) {
+
+        global $DB, $USER;
+
         // Need to get all groups for each node. Can't do this in the main query as there are
         // possibly multiple groups settings for each node. There is a limit to how many things we
         // can have in an SQL IN statement
@@ -1038,9 +1062,17 @@ class block_ajax_marking_nodes_factory {
 
             case 'configselect':
 
-                // Join to config tables. This will only be happening on the get_config_nodes query.
+                // Join to config tables so we can have the settings sent along with the nodes when relevant
                 // We need to join to the correct table: course or course_modules
-                $table = $query->has_join_table('course_modules') ? 'course_modules' : 'course';
+                $table = '';
+                if ($query->has_join_table('course_modules')) {
+                    $table = 'course_modules';
+                } else if ($query->has_join_table('course')) {
+                    $table = 'course';
+                }
+                if (!$table) {
+                    return;
+                }
 
                 $query->add_from(array(
                                      'join' => 'LEFT JOIN',
