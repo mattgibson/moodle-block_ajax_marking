@@ -341,7 +341,7 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         // silent errors
         modulename = (typeof(nodedata.displaydata.modulename) !== 'undefined') ?
                 nodedata.displaydata.modulename : false;
-        nodedata.returndata.nextnodefilter = this.nextnodetype(currentfilter, modulename);
+        nodedata.returndata.nextnodefilter = this.nextnodetype(currentfilter, modulename, nodedata.configdata);
 
         // Add a count if we have more than one thing or we're not at the final node
         // e.g. student name
@@ -646,7 +646,7 @@ M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
  * @param modulename can be false or undefined if not there
  * @return string|bool false if nothing
  */
-M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilter, modulename) {
+M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilter, modulename, configdata) {
     // if nothing else is found, make the node into a final one with no children
     var nextnodefilter = false;
 
@@ -660,6 +660,14 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
             return false;
 
         case 'coursemoduleid':
+            if (configdata.groupsdisplay == 1) {
+                nextnodefilter = 'groupid';
+            } else {
+                nextnodefilter = 'userid';
+            }
+            break;
+
+        case 'groupid':
             nextnodefilter = 'userid';
             break;
 
@@ -719,7 +727,7 @@ M.block_ajax_marking.config_tree.prototype.update_parent_node = function () {};
  * @param modulename can be false or undefined if not there
  * @return string|bool false if nothing
  */
-M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilter, modulename) {
+M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilter, modulename, configdata) {
     // if nothing else is found, make the node into a final one with no children
     var nextnodefilter = false;
 
@@ -747,6 +755,14 @@ M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilte
             return false;
 
         case 'coursemoduleid':
+            if (configdata.groupsdisplay == 1) {
+                nextnodefilter = 'groupid';
+            } else {
+                nextnodefilter = 'userid';
+            }
+            break;
+
+        case 'groupid':
             nextnodefilter = 'userid';
             break;
 
@@ -882,12 +898,12 @@ M.block_ajax_marking.contextmenu_make_setting = function(contextmenu, settingnam
  *
  * @param {Array} coursegroups
  * @param menu
- * @param clickednode
+ * @param {YAHOO.widget.Node} clickednode
  * @return void
  */
 M.block_ajax_marking.contextmenu_make_groups = function(coursegroups, menu, clickednode) {
 
-    var newgroup, groupdefault, nodegroupsettings, nodesettings = [];
+    var newgroup, groupdefault, coursenodegroupsettings, nodesettings = [];
     var numberofgroups = coursegroups.length;
 
     // If we clicked a coursemodule, we want to use the settings to override those of the course
@@ -904,29 +920,30 @@ M.block_ajax_marking.contextmenu_make_groups = function(coursegroups, menu, clic
                      onclick   : { fn: M.block_ajax_marking.contextmenu_setting_onclick,
                                    obj: {'settingtype' : 'group'} } };
 
-        nodegroupsettings = coursegroups[i];
-        // Awkwardly, the arrays aren't indexed by group id
+        coursenodegroupsettings = coursegroups[i];
+        // Awkwardly, the arrays aren't indexed by group id.
+        // If there is a setting for this group on the coursemodule node, we use that instead
         for (var j = 0; j < nodesettings.length; j++) {
             if (nodesettings[j].id === coursegroups[i].id) {
-                nodegroupsettings = nodesettings[j];
+                coursenodegroupsettings = nodesettings[j];
             }
         }
 
         // Make sure the items' appearance reflect their current settings
-        if (nodegroupsettings.display === "1") { // JSON seems to like sending back ints as strings
+        if (coursenodegroupsettings.display === "1") { // JSON seems to like sending back ints as strings
             // Make sure it is checked
             newgroup.checked = true;
 
-        } else if (nodegroupsettings.display === "0") {
+        } else if (coursenodegroupsettings.display === "0") {
             newgroup.checked = false;
 
-        } else if (nodegroupsettings.display === null) {
+        } else if (coursenodegroupsettings.display === null) {
             // We want to show that this node inherits it's setting for this group
             // newgroup.classname = 'inherited';
             // Now we need to get the right default for it and show it as checked or not
             groupdefault = M.block_ajax_marking.get_node_setting_default(clickednode,
                                                                          'group',
-                                                                         nodegroupsettings.id);
+                                                                         coursenodegroupsettings.id);
             newgroup.checked = groupdefault ? true : false;
             if (M.block_ajax_marking.showinheritance) {
                newgroup.classname = 'inherited';
@@ -1099,7 +1116,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
         }
     }
 
-    // Update the menuitem display value so that if it is clicked again, it will know not to the
+    // Update the menu item display value so that if it is clicked again, it will know not to send the
     // same ajax request and will toggle properly
     clickeditem.value.display = newsetting;
     // We also need to update the data held in the tree node, so that future requests are not
@@ -1625,7 +1642,7 @@ M.block_ajax_marking.grading_unhighlight = function (node) {
  * original data was from when the tree first loaded
  *
  * @param {object} node
- * @param {string} settingtype eitherdisplay, groupsdisplay or group
+ * @param {string} settingtype either display, groupsdisplay or group
  * @param {int} groupid
  */
 M.block_ajax_marking.contextmenu_update_child_nodes = function(node, settingtype, groupid) {
@@ -1638,7 +1655,7 @@ M.block_ajax_marking.contextmenu_update_child_nodes = function(node, settingtype
     for (var i = 0; i < childnodes.length; i++) {
         // if the child is a node, recurse
         if (childnodes[i].children.length > 0) {
-            M.block_ajax_marking.contextmenu_update_child_nodes(childnodes[i]);
+            M.block_ajax_marking.contextmenu_update_child_nodes(childnodes[i], settingtype, groupid);
         }
         // update node config data
         switch (settingtype) {
