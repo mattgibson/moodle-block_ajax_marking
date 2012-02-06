@@ -196,6 +196,9 @@ class block_ajax_marking_query_base {
                     }
                     $this->validate_union_array($from['table']);
                     $unionarray = array();
+                    /**
+                     * @var block_ajax_marking_query_base $table
+                     */
                     foreach ($from['table'] as $table) {
                         $unionarray[] = $table->to_string();
                     }
@@ -363,9 +366,9 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * This will add a join table.
+     * This will add a join table. No alias means it'll use the table name.
      *
-     * @param array $table containing 'join', 'table', 'alias', 'on'
+     * @param array $table containing 'join', 'table', 'alias', 'on', 'subquery' (last one optional)
      * @return void
      */
     public function add_from(array $table) {
@@ -471,7 +474,7 @@ class block_ajax_marking_query_base {
      *
      * @param array $params
      * @param bool|array $arraytoaddto
-     * @return boool|array
+     * @return bool|array
      */
     public function add_params(array $params, $arraytoaddto = false) {
 
@@ -535,11 +538,17 @@ class block_ajax_marking_query_base {
     public function get_params() {
         $params = array();
         foreach ($this->from as $jointable) {
+            /**
+             * @var block_ajax_marking_query_base $table
+             */
             $table = $jointable['table'];
             if ($table instanceof block_ajax_marking_query_base) {
                 $params = $this->add_params($table->get_params(), $params);
             } else if (is_array($table)) {
                 $this->validate_union_array($table);
+                /**
+                 * @var block_ajax_marking_query_base $uniontable
+                 */
                 foreach ($table as $uniontable) {
                     $params = $this->add_params($uniontable->get_params(), $params);
                 }

@@ -152,6 +152,8 @@ class block_ajax_marking_output {
         $final .= $this->output;
         $final .= ']';
 
+        return $final;
+
     }
 
 }

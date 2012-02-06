@@ -26,11 +26,23 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 
 /**
- * This is to build a query based on the parameters passed into the constructor. Without parameters,
+ * This is to build a query based on the parameters passed in from the client. Without parameters,
  * the query should return all unmarked items across all of the site.
+ *
+ * The query has 3 layers: the innermost is a UNION of several queries that go and fetch the unmarked submissions from
+ * each module (1 for each module as they all store unmarked work differently). The middle layer attaches standard
+ * filters  via apply_sql_xxxx_settings() functions e.g. 'only show submissions from currently enrolled students' and
+ * 'only show submissions that I have not configured to be hidden'. It also applies filters so that drilling down
+ * through the nodes tree, the lower levels filter by the upper levels e.g. expanding a course node leads to a
+ * 'WHERE courseid = xxx' clause being added. Finally, a GROUP BY statement is added for the current node level e.g.
+ * for coursemodule nodes, we want to use coursemoduleid for this, then count the submissions. The outermost layer
+ * then joins to the GROUP BY ids and counts (the only two columns that the middle query provides) to supply the
+ * display details e.g. the name of the coursemodule. This arrangement is needed because Oracle doesn't allow text
+ * fields and GROUP BY to be mixed.
  */
 class block_ajax_marking_nodes_factory {
 
@@ -270,8 +282,6 @@ class block_ajax_marking_nodes_factory {
             $countwrapper = $query->get_subquery('countwrapperquery');
         }
 
-        $tablename = '';
-
         switch ($operation) {
 
             case 'where':
@@ -379,120 +389,64 @@ class block_ajax_marking_nodes_factory {
      * @param bool|int $groupid
      * @return void
      */
-    private static function apply_groupid_filter ($query, $operation, $groupid = 0) {
-//        global $USER;
+    private static function apply_groupid_filter($query, $operation, $groupid = 0) {
 
-        $selects = array();
         $countwrapper = '';
         if ($operation != 'configdisplay' && $operation != 'configwhere') {
             $countwrapper = $query->get_subquery('countwrapperquery');
         }
 
-
-        // We need to get the best groupid we can, for a given coursemodule and user combo. The user may be in two
-        // groups, so we have to get one id in this case. At the moment, this is a stop-gap, which will lead to
-        // items being counted twice if a user is in two groups. Hopefully, people will hide stuff that isn't
-        // relevant in this case using the settings, so that the counting will be fine.
-
-
-
+        // We only want to add the bit that appends a groupid to each submission if we are going to use it
+        // as the calculations are expensive.
+        if ($operation == 'where' || $operation == 'countselect') {
+            // This adds the subquery that can tell us wht the display settings are for each group. Once we have
+            // filtered out those submissions with no visible groups, we choose the best match i.e. randomly
+            // assign the submissions to one of its visible groups (there will usually only be one) so it's
+            // not counted twice in case the user is in two groups in this context
+            list($maxgroupidsubquery, $maxgroupidparams) = self::get_sql_max_groupid_subquery();
+            $countwrapper->add_params($maxgroupidparams);
+            $countwrapper->add_from(array(
+                    'join' => 'LEFT JOIN',
+                    'table' => $maxgroupidsubquery,
+                    'on' => 'maxgroupidsubquery.cmid = moduleunion.coursemoduleid AND
+                             maxgroupidsubquery.userid = moduleunion.userid',
+                    'alias' => 'maxgroupidsubquery',
+                    'subquery' => true));
+        }
 
         switch ($operation) {
 
             case 'where':
 
-                // This is for when a courseid node is an ancestor of the node that has been
-                // selected, so we just do a where
-                $countwrapper->add_where(array(
-                    'type' => 'AND',
-                    'condition' => 'moduleunion.groupid = :courseidfiltercourseid'));
-                $query->add_param('courseidfiltercourseid', $groupid);
+                $query->add_where(array('type' => 'AND',
+                                        'condition' => 'COALESCE(maxgroupidsubquery.groupid, 0) = :groupid'));
+                $query->add_param('groupid', $groupid);
                 break;
 
-//            case 'configwhere':
-//
-//                // This is for when a courseid node is an ancestor of the node that has been
-//                // selected, so we just do a where
-//                $query->add_where(array(
-//                    'type' => 'AND',
-//                    'condition' => 'course_modules.course = :courseidfiltercourseid'));
-//                $query->add_param('courseidfiltercourseid', $groupid);
-//                break;
-
-            // This gets the stuff to attach to the count, which is an id (of a group) and a count, both from a subquery
+            // This is when we make group nodes and need group name etc
             case 'countselect':
 
                 $countwrapper->add_select(array(
-                        'table'    => 'moduleunion',
-                        'column'   => 'group',
-                        'alias'    => 'id'), true
-                );
+                        'table' => array('maxgroupidsubquery.groupid', 0),
+                        'function' => 'COALESCE',
+                        'alias' => 'id'));
 
                 // This is for the displayquery when we are making course nodes
                 $query->add_from(array(
-                    'table' =>'course',
-                    'alias' => 'course',
-                    'on' => 'countwrapperquery.id = course.id'
+                    'table' => 'groups',
+                    'on' => 'countwrapperquery.id = group.id'
                 ));
                 $query->add_select(array(
-                    'table'    => 'course',
-                    'column'   => 'shortname',
-                    'alias'    => 'name'));
+                    'table'    => 'groups',
+                    'column'   => 'name'));
                 $query->add_select(array(
-                    'table'    => 'course',
-                    'column'   => 'fullname',
+                    'table'    => 'groups',
+                    'column'   => 'description',
                     'alias'    => 'tooltip'));
                 break;
 
-//            case 'configdisplay':
-//
-//                // This is for the displayquery when we are making course nodes
-//                $query->add_from(array(
-//                    'table' =>'course',
-//                    'alias' => 'course',
-//                    'on' => 'course_modules.course = course.id'
-//                ));
-//                $query->add_select(array(
-//                    'table'    => 'course',
-//                    'column'   => 'id',
-//                    'alias'    => 'courseid',
-//                    'distinct' => true));
-//                $query->add_select(array(
-//                    'table'    => 'course',
-//                    'column'   => 'shortname',
-//                    'alias'    => 'name'));
-//                $query->add_select(array(
-//                    'table'    => 'course',
-//                    'column'   => 'fullname',
-//                    'alias'    => 'tooltip'));
-
-                // We need the config settings too, if there are any
-//                $query->add_from(array(
-//                    'join' => 'LEFT JOIN',
-//                    'table' =>'block_ajax_marking',
-//                    'alias' => 'settings',
-//                    'on' => "settings.instanceid = course.id
-//                             AND settings.tablename = 'course'
-//                             AND settings.userid = :settingsuserid"
-//                ));
-//                $query->add_param('settingsuserid', $USER->id);
-//                $query->add_select(array(
-//                    'table'    => 'settings',
-//                    'column'   => 'display'));
-//                $query->add_select(array(
-//                    'table'    => 'settings',
-//                    'column'   => 'groupsdisplay'));
-//                $query->add_select(array(
-//                    'table'    => 'settings',
-//                    'column'   => 'id',
-//                    'alias'    => 'settingsid'));
-//                break;
-
         }
 
-        foreach ($selects as $select) {
-            $query->add_select($select);
-        }
     }
 
     /**
@@ -676,7 +630,78 @@ class block_ajax_marking_nodes_factory {
     }
 
     /**
-     * We need to check whether the activity can be displayed (the user may have hidden it).
+     * In order to display the right things, we need to work out the visibility of each group for each course module.
+     * This subquery lists all submodules once for each coursemodule in the user's courses, along with it's most
+     * relevant show/hide setting, i.e. a coursemodule level override if it's there, other wise a course level
+     * setting, or if neither, the site default. This is potentially very expensive if there are hundreds of courses as
+     * it's effectively a cartesian join between the groups and coursemodules tables, so we filter using the user's
+     * courses. This may or may not impact on the query optimiser being able to cache the execution plan between users.
+     *
+     * @return array SQL and params
+     */
+    private function get_sql_group_visibility_subquery() {
+
+        global $DB;
+
+        // This make it work
+//        return array('SELECT 1 as cmid', array());
+
+        /**
+         * We may need to reuse this subquery. Because it uses the user's teacher courses as a filter (less calculation
+         * that way), we might have issues with the query optimiser not reusing the execution plan. Hopefully not.
+         * This variable allows us to feed the same teacher courses in more than once because Moodle requires variables
+         * with different names for different parts of the query - you cannot reuse one with the same name in more
+         * than one place. The number of params must match the number of array items.
+         */
+        static $counter = 0;
+
+        $courses = block_ajax_marking_get_my_teacher_courses();
+        list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
+                                                                 SQL_PARAMS_NAMED,
+                                                                 "groups{$counter}courses");
+        $counter++;
+
+        // TODO use proper constant
+        $sitedefault = 1; // configurable in future
+
+        $groupdisplaysubquery = <<<SQL
+        SELECT group_course_modules.id AS cmid,
+               group_groups.id AS groupid,
+               COALESCE(group_cmconfig_groups.display,
+                        group_courseconfig_groups.display,
+                        {$sitedefault}) AS display
+
+          FROM {course_modules} group_course_modules
+    INNER JOIN {groups} group_groups
+            ON group_groups.courseid = group_course_modules.course
+
+     LEFT JOIN {block_ajax_marking} group_cmconfig
+            ON group_course_modules.id = group_cmconfig.instanceid
+                AND group_cmconfig.tablename = 'course_modules'
+     LEFT JOIN {block_ajax_marking_groups} group_cmconfig_groups
+            ON group_cmconfig_groups.configid = group_cmconfig.id
+
+     LEFT JOIN {block_ajax_marking} group_courseconfig
+            ON group_courseconfig.instanceid = group_course_modules.course
+                AND group_courseconfig.tablename = 'course'
+     LEFT JOIN {block_ajax_marking_groups} group_courseconfig_groups
+            ON group_courseconfig_groups.configid = group_courseconfig.id
+
+         WHERE group_courseconfig_groups.groupid = group_cmconfig_groups.groupid
+            OR group_courseconfig_groups.groupid IS NULL
+            OR group_cmconfig_groups.groupid IS NULL
+           AND group_course_modules.course {$coursessql}
+
+SQL;
+        //$debugquery = block_ajax_marking_debuggable_query($groupdisplaysubquery, $coursesparams);
+
+        return array($groupdisplaysubquery, $coursesparams);
+
+
+    }
+
+    /**
+     * We need to check whether the activity can be displayed (the user may have hidden it using the settings).
      * This sql can be dropped into a query so that it will get the right students. This will also
      * make sure that if only some groups are being displayed, the submission is by a user who
      * is in one of the displayed groups.
@@ -687,6 +712,115 @@ class block_ajax_marking_nodes_factory {
     private static function apply_sql_display_settings($query) {
 
         global $DB;
+
+        // Groups stuff - new version
+//        $joincmconfig = " LEFT JOIN {block_ajax_marking} cmconfig
+//                                  ON cmconfig.table = 'coursemodules'
+//                                     AND cmconfig.instanceid = :coursemoduleid
+//                           LEFT JOIN {block_ajax_marking_groups} cmconfiggroups
+//                                  ON cmconfig.id = cmconfiggroups.configid ";
+
+        // TODO am I actually using these joins?
+        // Probably to check for display = 1
+
+        $query->add_from(array('table' => 'block_ajax_marking',
+                               'join' => 'LEFT JOIN',
+                               'on' => "cmconfig.tablename = 'coursemodules'
+                                        AND cmconfig.instanceid = moduleunion.coursemoduleid",
+                               'alias' => 'cmconfig' ));
+//        $query->add_from(array('table' => 'block_ajax_marking_groups',
+//                               'join' => 'LEFT JOIN',
+//                               'on' => "cmconfig.id = cmconfiggroups.configid",
+//                               'alias' => 'cmconfiggroups' ));
+
+
+//$joincourseconfig = " LEFT JOIN {block_ajax_marking} courseconfig
+//                                 ON courseconfig.table = 'course'
+//                                    AND courseconfig.instanceid = :courseid
+//                          LEFT JOIN {block_ajax_marking_groups} courseconfiggroups
+//                                 ON courseconfig.id = courseconfiggroups.configid ";
+
+        $query->add_from(array('table' => 'block_ajax_marking',
+                                       'join' => 'LEFT JOIN',
+                                       'on' => "courseconfig.tablename = 'course'
+                                               AND courseconfig.instanceid = moduleunion.course",
+                                       'alias' => 'courseconfig' ));
+//        $query->add_from(array('table' => 'block_ajax_marking_groups',
+//                               'join' => 'LEFT JOIN',
+//                               'on' => "ourseconfig.id = courseconfiggroups.configid",
+//                               'alias' => 'courseconfiggroups' ));
+
+
+
+
+
+
+        // We want to keep it so that when we select the MAX groupid from the above table, we don't get any of
+        // the hidden groups we exclude below in the WHERE clause.
+//        $query->add_where(array(
+//                'type' => 'AND',
+//                'condition' => 'leftjoinvisibilitysubquery.display = 1'));
+
+
+
+        // Here, we filter out the users with no group memberships, where the users without group memberships have
+        // been set to be hidden for this coursemodule.
+        // Second bit (after OR) filters out those who have group memberships, but all of them are set to be hidden
+        $sitedefaultnogroup = 1; // what to do with users who have no group membership?
+        list($existsvisibilitysubquery, $existsparams) = self::get_sql_group_visibility_subquery();
+        $query->add_params($existsparams);
+        $hidden = <<<SQL
+(
+    ( NOT EXISTS (SELECT NULL
+            FROM {groups_members} groups_members
+      INNER JOIN {groups} groups
+              ON groups_members.groupid = groups.id
+           WHERE groups_members.userid = moduleunion.userid
+             AND groups.courseid = moduleunion.course)
+
+      AND ( COALESCE(cmconfig.showorphans, courseconfig.showorphans, {$sitedefaultnogroup}) = 1 ) )
+
+    OR
+
+    ( EXISTS (SELECT NULL
+                FROM {groups_members} groups_members
+          INNER JOIN {groups} groups
+                  ON groups_members.groupid = groups.id
+          INNER JOIN ({$existsvisibilitysubquery}) existsvisibilitysubquery
+                  ON existsvisibilitysubquery.groupid = groups.id
+               WHERE groups_members.userid = moduleunion.userid
+                 AND existsvisibilitysubquery.cmid = moduleunion.coursemoduleid
+                 AND groups.courseid = moduleunion.course
+                 AND existsvisibilitysubquery.display = 1)
+    )
+)
+SQL;
+        $query->add_where(array('type' => 'AND',
+                                'condition' => $hidden));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // old stuff
 
         // User settings for individual activities
         $coursemodulescompare = $DB->sql_compare_text('settings_course_modules.tablename');
@@ -724,8 +858,8 @@ class block_ajax_marking_nodes_factory {
 
 
         // Need to get the sql again to regenerate the params to a unique set of placeholders. Can't reuse params.
-        list ($excludedgroupssql, $excludedgroupsparams) = self::get_sql_excluded_groups_subquery();
-        $query->add_params($excludedgroupsparams);
+       // list ($excludedgroupssql, $excludedgroupsparams) = self::get_sql_excluded_groups_subquery();
+       // $query->add_params($excludedgroupsparams);
 //        $getgroupidsql = "SELECT MAX(groupmembers.groupid) AS groupid,
 //                                 groupmembers.userid
 //                            FROM {groups_members} groupmembers
@@ -743,28 +877,28 @@ class block_ajax_marking_nodes_factory {
 //                           " AND moduleunion.groupid = excluded_groups.groupid"
 //        ));
 
+
+        // TODO this really goes in the groupid filter
+
         // This section will add the highest non-hidden groupid if there is one. We need a further test so that null
         // values are dealt with properly.
-        $query->add_select(array('table' => 'combogroups',
-                                 'column' => 'groupid',
-                                 'function' => 'MAX',
-                                 'alias' => 'groupid'));
+
         // These are left joins because a user may not be in any groups.
-        $query->add_from(array(
-                        'join'  => 'LEFT JOIN',
-                        'table' => 'SELECT gm.groupid,
-                                           gm.userid,
-                                           g.courseid
-                                      FROM {groups_members} gm
-                                INNER JOIN {groups} g
-                                        ON g.id = gm.groupid',
-                        'subquery' => true,
-                        'alias' => 'combogroups',
-                        'on'    => "(combogroups.userid = moduleunion.userid
-                                     AND combogroups.courseid = moduleunion.course)"
-                ));
-        $query->add_where(array('type' => 'AND',
-                                'condition' => "combogroups.groupid NOT IN ($excludedgroupssql)"));
+//        $query->add_from(array(
+//                        'join'  => 'LEFT JOIN',
+//                        'table' => 'SELECT gm.groupid,
+//                                           gm.userid,
+//                                           g.courseid
+//                                      FROM {groups_members} gm
+//                                INNER JOIN {groups} g
+//                                        ON g.id = gm.groupid',
+//                        'subquery' => true,
+//                        'alias' => 'combogroups',
+//                        'on'    => "(combogroups.userid = moduleunion.userid
+//                                     AND combogroups.courseid = moduleunion.course)"
+//                ));
+//        $query->add_where(array('type' => 'AND',
+//                                'condition' => "combogroups.groupid NOT IN ($excludedgroupssql)"));
 
         /*
 
@@ -822,6 +956,7 @@ class block_ajax_marking_nodes_factory {
      * be shown. We then choose the highest id of those that are left (hopefully the users will have made settings
      * sensibly so that there's only one
      *
+     * @todo not used - temporary experiment
      * @return array
      */
     private function get_sql_excluded_groups_subquery() {
@@ -1024,7 +1159,8 @@ class block_ajax_marking_nodes_factory {
             $query->add_param('sqlenrollednever', -1);
         }
 
-        $sql = "SELECT 1 FROM {enrol} enrol
+        $sql = "SELECT NULL
+                  FROM {enrol} enrol
             INNER JOIN {user_enrolments} user_enrolments
                     ON user_enrolments.enrolid = enrol.id
                  WHERE enrol.enrol {$enabledsql}
@@ -1097,7 +1233,6 @@ class block_ajax_marking_nodes_factory {
      * @return array
      */
     public static function get_config_nodes($filters) {
-        global $DB, $USER;
 
         // The logic is that we need to filter the course modules because some of them will be
         // hidden or the user will not have access to them. Then we m,ay or may not group them by
@@ -1157,6 +1292,10 @@ class block_ajax_marking_nodes_factory {
 
         global $DB, $USER;
 
+        if (!$nodes) {
+            return array();
+        }
+
         // Need to get all groups for each node. Can't do this in the main query as there are
         // possibly multiple groups settings for each node. There is a limit to how many things we
         // can have in an SQL IN statement
@@ -1165,8 +1304,6 @@ class block_ajax_marking_nodes_factory {
         // Get the ids of the nodes
         $courseids = array();
         $coursemoduleids = array();
-        $groups = array();
-        $sql = '';
         foreach ($nodes as $node) {
             if (isset($node->courseid)) {
                 $courseids[] = $node->courseid;
@@ -1299,6 +1436,52 @@ class block_ajax_marking_nodes_factory {
             case 'displayselect':
                 break;
         }
+
+    }
+
+    /**
+     * Returns an SQL fragment that checks whether a group membership exists in the form EXISTS (<sql here>).
+     * Needs to be told what userid
+     *
+     * @return string
+     */
+    private function get_sql_group_membership_exists() {
+        $checkmemberships = <<<SQL
+EXISTS (SELECT NULL
+          FROM {groups_members} groups_members
+    INNER JOIN {groups} groups
+            ON groups_members.groupid = groups.id
+         WHERE groups_members.userid = :userid
+           AND groups.id = :groupid)
+SQL;
+        return $checkmemberships;
+    }
+
+    /**
+     * Once we have filtered out the ones we don't want based on display settings, those that are left may have
+     * memberships in more than one group. We want to choose one of these so that the piece of work is not
+     * counted twice. This query returns the maximum (in terms of DB row id) groupid for each student/coursemodule
+     * pair where coursemodules are in the courses that the user teaches. This has the potential to be expensive, so
+     * hopefully the inner join will be used by the optimiser to limit the rows that are actually calculated to the ones
+     * that the external query needs.
+     *
+     * @return string sql
+     */
+    private function get_sql_max_groupid_subquery() {
+
+        list($visibilitysubquery, $params) = self::get_sql_group_visibility_subquery();
+
+        $maxgroupsql = <<<SQL
+         SELECT members.userid,
+                MAX(displaytable.groupid) AS groupid,
+                displaytable.cmid
+           FROM ({$visibilitysubquery}) AS displaytable
+     INNER JOIN mdl_groups_members members
+             ON members.groupid = displaytable.groupid
+       GROUP BY members.userid,
+                displaytable.cmid
+SQL;
+        return array($maxgroupsql, $params);
 
     }
 

@@ -28,6 +28,8 @@
 
 require_once(dirname(__FILE__).'/../../../config.php');
 
+global $DB, $OUTPUT, $CFG, $PAGE;
+
 // Each popup request will have different stuff that we want to pass to
 // $moduleobject->grading_popup()
 $params = array();

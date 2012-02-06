@@ -31,8 +31,8 @@ if (typeof(M.block_ajax_marking) === 'undefined') {
 }
 
 // used to determine whether to log everything to console
-//const debugdeveloper = 38911;
-//const debugall       = 6143;
+// const debugdeveloper = 38911;
+// const debugall       = 6143;
 
 //this holds the parent node so it can be referenced by other functions
 M.block_ajax_marking.parentnodeholder = '';
@@ -121,9 +121,9 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     // Make display icon
     sb[sb.length] = '<td id="' +  "block_ajax_marking_display_icon" + this.index;
     sb[sb.length] = '" class="ygtvcell ';
-    var displaysetting = M.block_ajax_marking.get_node_setting(this, 'display');
+    var displaysetting = M.block_ajax_marking.get_node_setting(this, 'display', null);
     if (displaysetting === null) {
-        displaysetting = M.block_ajax_marking.get_node_setting_default(this, 'display');
+        displaysetting = M.block_ajax_marking.get_node_setting_default(this, 'display', null);
     }
     if (displaysetting == 1) {
         sb[sb.length] = ' enabled ';
@@ -136,9 +136,9 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     // Make groupsdisplay icon
     sb[sb.length] = '<td id="' + 'block_ajax_marking_groupsdisplay_icon' + this.index;
     sb[sb.length] = '" class="ygtvcell ';
-    var groupsdisplaysetting = M.block_ajax_marking.get_node_setting(this, 'groupsdisplay');
+    var groupsdisplaysetting = M.block_ajax_marking.get_node_setting(this, 'groupsdisplay', null);
     if (groupsdisplaysetting === null) {
-        groupsdisplaysetting = M.block_ajax_marking.get_node_setting_default(this, 'groupsdisplay');
+        groupsdisplaysetting = M.block_ajax_marking.get_node_setting_default(this, 'groupsdisplay', null);
     }
     if (groupsdisplaysetting == 1) {
         sb[sb.length] = ' enabled ';
@@ -157,7 +157,6 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     // We want to show how many groups are currently displayed, as well as how many there are
     var numberofgroups = 0;
     var groupscurrentlydisplayed = 0;
-//    var coursenode = M.block_ajax_marking.get_course_node(this);
     var groups = [];
     // Could be a course or coursemodule node
 
@@ -290,15 +289,9 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
  *
  * @param {string} text
  * @param {int} count
- * @param {string} classes
  * @return string
  */
-M.block_ajax_marking.tree_base.prototype.node_label = function(text, count, classes) {
-    if (typeof(classes) !== 'undefined') {
-        classes = ' '+classes; // avoid running class names together
-    } else {
-        classes = ''
-    }
+M.block_ajax_marking.tree_base.prototype.node_label = function(text, count) {
     return '<strong>('+count+')</strong> '+text;
 };
 
@@ -315,7 +308,8 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         modulename,
         iconstyle,
         seconds = 0, currenttime = Math.round((new Date()).getTime() / 1000), // current unix time
-        numberofnodes = nodesarray.length, m = 0;
+        numberofnodes = nodesarray.length,
+        m;
     if (typeof(M.block_ajax_marking.parentnodeholder) !== 'object') {
         M.block_ajax_marking.parentnodeholder = this.getRoot();
     }
@@ -930,7 +924,7 @@ M.block_ajax_marking.contextmenu_make_groups = function(coursegroups, menu, clic
         }
 
         // Make sure the items' appearance reflect their current settings
-        if (coursenodegroupsettings.display === "1") { // JSON seems to like sending back ints as strings
+        if (coursenodegroupsettings.display === "1") { // JSON seems to like sending back integerss as strings
             // Make sure it is checked
             newgroup.checked = true;
 
@@ -992,7 +986,7 @@ M.block_ajax_marking.get_node_setting = function(clickednode, settingtype, group
 
     }
 
-    // Moodle sends the settings as strings, but we want ints so we can do proper comparisons
+    // Moodle sends the settings as strings, but we want integerss so we can do proper comparisons
     if (setting !== null) {
         setting = parseInt(setting);
     }
@@ -1010,8 +1004,8 @@ M.block_ajax_marking.get_node_setting = function(clickednode, settingtype, group
  */
 M.block_ajax_marking.ajax_success_handler = function(o) {
 
-    var errormessage = '';
-    var ajaxresponsearray = '';
+    var errormessage;
+    var ajaxresponsearray;
 
     try {
         ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
@@ -1019,7 +1013,7 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
         // add an empty array of nodes so we trigger all the update and cleanup stuff
         errormessage = '<strong>An error occurred:</strong><br />';
         errormessage += o.responseText;
-        M.block_ajax_marking.error(errormessage);
+        M.block_ajax_marking.show_error(errormessage);
     }
 
     // first object holds data about what kind of nodes we have so we can
@@ -1068,15 +1062,15 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
  */
 M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
 
-    var settingtype = ajaxresponsearray['configsave'].settingtype;
-    var menuitemindex = ajaxresponsearray['configsave'].menuitemindex;
-    var groups = [], menu = null;
+    var settingtype = ajaxresponsearray['configsave'].settingtype,
+        menuitemindex = ajaxresponsearray['configsave'].menuitemindex,
+        menu;
 
     if (settingtype === 'group') {
         var submenus = M.block_ajax_marking.contextmenu.getSubmenus();
         menu = submenus[0];
     } else {
-        menu =  M.block_ajax_marking.contextmenu;
+        menu = M.block_ajax_marking.contextmenu;
     }
 
     var clickeditem = menu.getItem(menuitemindex, 0);
@@ -1162,6 +1156,7 @@ M.block_ajax_marking.update_node_group_setting = function(node, groupid, newsett
     var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
     // Possibly no group as we may have had a null setting from the DB. Need to create one
     if (group === null) {
+        // TODO should this be an array?
         group = {};
         group.id = groupid;
         group.display = newsetting;
@@ -1599,8 +1594,8 @@ M.block_ajax_marking.get_node_setting_default = function(node, settingtype, grou
  */
 M.block_ajax_marking.contextmenu_ajax_request = function(requestdata) {
 
-    // Turn our pbject into a string that the AJAX stuff likes.
-    var poststring = '';
+    // Turn our object into a string that the AJAX stuff likes.
+    var poststring;
     var temparray = [];
     for (var key in requestdata) {
         temparray.push(key + '=' + requestdata[key]);
@@ -1683,12 +1678,7 @@ M.block_ajax_marking.contextmenu_update_child_nodes = function(node, settingtype
  * @param {string} classes
  * @return string
  */
-M.block_ajax_marking.config_tree.prototype.node_label = function(text, count, classes) {
-    if (typeof(classes) !== 'undefined') {
-        classes = ' '+classes; // avoid running class names together
-    } else {
-        classes = ''
-    }
+M.block_ajax_marking.config_tree.prototype.node_label = function(text, count) {
     return '<div class="node-icon display-icon"></div>' +
            '<div class="node-icon groupsdisplay-icon"></div>' +
            '<div class="node-icon groups-icon"></div>' +

@@ -29,6 +29,8 @@ define('AJAX_SCRIPT', true);
 
 require_once(dirname(__FILE__).'/../../../config.php');
 
+global $DB;
+
 require_login();
 
 // Get POST data
@@ -82,6 +84,7 @@ if (!$existingsetting) {
 
 $existinggroupsettings = $DB->get_records('block_ajax_marking_groups',
                                    array('configid' => $existingsetting->id));
+$success = false;
 
 switch ($settingtype) {
 
@@ -117,6 +120,7 @@ switch ($settingtype) {
 
         // Do we have an existing setting?
         $havegroupsettting = false;
+        $groupsetting = false;
         foreach ($existinggroupsettings as $groupsetting) {
             if ($groupsetting->groupid == $groupid) {
                 $havegroupsettting = true;

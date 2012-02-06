@@ -29,6 +29,7 @@ if (!defined('MOODLE_INTERNAL')) {
     die();
 }
 
+global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 
 /**

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<XMLDB PATH="blocks/ajax_marking/db" VERSION="20111124" COMMENT="XMLDB file for Moodle blocks/ajax_marking"
+<XMLDB PATH="blocks/ajax_marking/db" VERSION="20120202" COMMENT="XMLDB file for Moodle blocks/ajax_marking"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:noNamespaceSchemaLocation="../../../lib/xmldb/xmldb.xsd"
 >
@@ -11,7 +11,8 @@
         <FIELD NAME="instanceid" TYPE="int" LENGTH="10" NOTNULL="false" UNSIGNED="true" DEFAULT="0" SEQUENCE="false" COMMENT="Matches the primary key of whatever table this setting refers to" PREVIOUS="userid" NEXT="tablename"/>
         <FIELD NAME="tablename" TYPE="char" LENGTH="40" NOTNULL="false" SEQUENCE="false" COMMENT="What table contains the item we are making display settings for?" PREVIOUS="instanceid" NEXT="display"/>
         <FIELD NAME="display" TYPE="int" LENGTH="1" NOTNULL="false" UNSIGNED="true" DEFAULT="1" SEQUENCE="false" COMMENT="should this assessment be shown at all to this user? 0=no 1=yes default to yes" PREVIOUS="tablename" NEXT="groupsdisplay"/>
-        <FIELD NAME="groupsdisplay" TYPE="int" LENGTH="1" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Should group nodes be shown for this item?" PREVIOUS="display"/>
+        <FIELD NAME="groupsdisplay" TYPE="int" LENGTH="1" NOTNULL="false" UNSIGNED="true" SEQUENCE="false" COMMENT="Should group nodes be shown for this item?" PREVIOUS="display" NEXT="showorphans"/>
+        <FIELD NAME="showorphans" TYPE="int" LENGTH="1" NOTNULL="true" UNSIGNED="true" DEFAULT="1" SEQUENCE="false" COMMENT="If we are showing students in separate group nodes, what do we do with those who are not in any groups? 1 = show them in a 'orphans' group, 0 = hide them." PREVIOUS="groupsdisplay"/>
       </FIELDS>
       <KEYS>
         <KEY NAME="primary" TYPE="primary" FIELDS="id" COMMENT="primary key of the table, please edit me" NEXT="useridkey"/>

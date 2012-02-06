@@ -29,6 +29,7 @@ if (!defined('MOODLE_INTERNAL')) {
     die();
 }
 
+global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 
 /**
@@ -86,7 +87,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         // get category and course role assignments separately
         // for category level, we look for users with a role assignment where the contextinstance
-        // can be left joined to any category that's a parent of the suplied course
+        // can be left joined to any category that's a parent of the supplied course
         $select = "NOT EXISTS( SELECT 1
                                  FROM {role_assignments} ra
                            INNER JOIN {context} cx

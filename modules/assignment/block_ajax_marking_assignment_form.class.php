@@ -26,6 +26,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+global $CFG;
 require_once($CFG->dirroot.'/mod/assignment/lib.php');
 
 class block_ajax_marking_assignment_form extends mod_assignment_grading_form {

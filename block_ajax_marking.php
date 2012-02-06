@@ -82,7 +82,7 @@ class block_ajax_marking extends block_base {
             if ($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
 
                 // Add a style to hide the HTML list and prevent flicker
-                $s = '<script type="text/javascript" defer="defer">
+                $script = '<script type="text/javascript" defer="defer">
                       /* <![CDATA[ */
                       var styleElement = document.createElement("style");
                       styleElement.type = "text/css";
@@ -99,7 +99,7 @@ class block_ajax_marking extends block_base {
                       document.getElementsByTagName("head")[0].appendChild(styleElement);
                       /* ]]> */</script>';
 
-                $this->content->text .= $s;
+                $this->content->text .= $script;
 
                 // Set up the javascript module, with any data that the JS will need
                 $jsmodule = array(

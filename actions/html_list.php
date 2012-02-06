@@ -33,10 +33,10 @@
 defined('MOODLE_INTERNAL') || die();
 
 require_login(0, false);
+global $USER, $CFG, $DB;
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
-global $USER, $CFG, $DB;
 
 $moduleclasses = block_ajax_marking_get_module_classes();
 

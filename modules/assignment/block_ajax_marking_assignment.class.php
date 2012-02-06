@@ -133,6 +133,9 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
                      '/assignment.class.php');
         $assignmentclass = 'assignment_'.$assignment->assignmenttype;
+        /**
+         * @var assignment_base $assignmentinstance
+         */
         $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
                                                    $coursemodule, $course);
 
@@ -254,9 +257,10 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $assignment   = $DB->get_record('assignment', array('id' => $coursemodule->instance));
         $grading_info = grade_get_grades($coursemodule->course, 'mod', 'assignment',
                                          $assignment->id, $data->userid);
+        $userid = $data->userid;
         $submission   = $DB->get_record('assignment_submissions',
                                         array('assignment' => $assignment->id,
-                                              'userid' => $data->userid));
+                                              'userid' => $userid));
 
         if (!$submission) {
             return 'Wrong submission id';
@@ -283,6 +287,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
                 $outcomedata = array();
 
+                // TODO needs sorting out!
                 if (!empty($grading_info->outcomes)) {
 
                     foreach ($grading_info->outcomes as $n => $old) {
@@ -294,8 +299,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                     }
 
                     if (count($outcomedata) > 0) {
-                        grade_update_outcomes('mod/assignment', $this->course->id, 'mod',
-                                              'assignment', $this->assignment->id, $userid,
+                        grade_update_outcomes('mod/assignment', $assignment->course, 'mod',
+                                              'assignment', $assignment->id, $userid,
                                               $outcomedata);
                     }
                 }
@@ -354,13 +359,13 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                             'return_types'=>FILE_INTERNAL);
                     }
 
-                    $mformdata = file_postupdate_standard_filemanager($data,
-                                                                      'files',
-                                                                      $fileui_options,
-                                                                      $PAGE->context,
-                                                                      'mod_assignment',
-                                                                      'response',
-                                                                      $submission->id);
+                    file_postupdate_standard_filemanager($data,
+                                                         'files',
+                                                         $fileui_options,
+                                                         $PAGE->context,
+                                                         'mod_assignment',
+                                                         'response',
+                                                         $submission->id);
                 }
             }
         }
@@ -429,8 +434,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                 // Not sure we'll ever need this, but just in case...
                 $countwrapper->add_where(array(
                         'type' => 'AND',
-                        'condition' => 'sub.userid = :'.$query->prefix_param('submissionid')));
-                $query->add_param('submissionid', $userid);
+                        'condition' => 'sub.userid = :assignmentuseridfilteruserid'));
+                $query->add_param('assignmentuseridfilteruserid', $userid);
                 break;
 
             case 'countselect':
