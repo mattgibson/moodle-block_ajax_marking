@@ -307,9 +307,11 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         currentfilter,
         modulename,
         iconstyle,
-        seconds = 0, currenttime = Math.round((new Date()).getTime() / 1000), // current unix time
+        seconds = 0,
+        currenttime = Math.round((new Date()).getTime() / 1000), // current unix time
         numberofnodes = nodesarray.length,
         m;
+
     if (typeof(M.block_ajax_marking.parentnodeholder) !== 'object') {
         M.block_ajax_marking.parentnodeholder = this.getRoot();
     }
@@ -337,20 +339,17 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
                 nodedata.displaydata.modulename : false;
         nodedata.returndata.nextnodefilter = this.nextnodetype(currentfilter, modulename, nodedata.configdata);
 
-        // Add a count if we have more than one thing or we're not at the final node
-        // e.g. student name
-        if (typeof(nodedata.displaydata.count) !== 'undefined' &&
-            (nodedata.displaydata.count > 1 || nodedata.returndata.nextnodefilter !== false)) {
-
+        var nodehasacount = typeof(nodedata.displaydata.count) !== 'undefined';
+        var countismorethanone = nodedata.displaydata.count > 1;
+        var islastnode = nodedata.returndata.nextnodefilter !== false;
+        if (nodehasacount && (countismorethanone || islastnode)) {
             nodedata.html = this.node_label(nodedata.html, nodedata.displaydata.count);
         }
 
-        //newnode = new YAHOO.widget.HTMLNode(nodedata, M.block_ajax_marking.parentnodeholder, false);
         newnode = new this.nodetype(nodedata, M.block_ajax_marking.parentnodeholder, false);
 
         // set the node to load data dynamically, unless it has not sent a callback i.e. it's a
         // final node
-
         if (typeof(nodedata.returndata.nextnodefilter) !== 'undefined' &&
                 nodedata.returndata.nextnodefilter !== false) {
 
@@ -405,10 +404,6 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
             newnode.labelStyle = iconstyle;
         }
 
-        // Update the node's appearance based on its config data
-//        if (typeof(newnode.update) === 'function') {
-//            newnode.update();
-//        }
     }
 
 };
@@ -449,8 +444,10 @@ M.block_ajax_marking.tree_base.prototype.request_node_data = function(clickednod
     nodefilters.push('nextnodefilter=' + clickednode.data.returndata.nextnodefilter);
     nodefilters = nodefilters.join('&');
 
-    YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl,
-                                    M.block_ajax_marking.callback, nodefilters);
+    YAHOO.util.Connect.asyncRequest('POST',
+                                    M.block_ajax_marking.ajaxnodesurl,
+                                    M.block_ajax_marking.callback,
+                                    nodefilters);
 };
 
 /**
@@ -534,9 +531,6 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
     nodefilters.push('node=' + node.index);
     popupurl += nodefilters.join('&');
 
-    // AJAX version
-    //    M.block_ajax_marking.show_modal_grading_interface(postdata);
-
     // Pop-up version
     mbam.popupholder = window.open(popupurl, 'ajax_marking_popup', popupargs);
     mbam.popupholder.focus();
@@ -546,7 +540,8 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
 
 /**
  * Recursive function to get the return data from this node and all its parents. Each parent
- * represents a filter e.g. 'only this course', so we need to specify the id numbers for the SQL
+ * represents a filter e.g. 'only this course', so we need to send the id numbers and names for the SQL to use in WHERE
+ * clauses.
  *
  * @param node object
  */
@@ -557,9 +552,6 @@ M.block_ajax_marking.getnodefilters = function(node) {
     if (typeof(node.tree.supplementaryreturndata) !== 'undefined') {
         nodefilters.push(node.tree.supplementaryreturndata);
     }
-
-    // The callback function is the SQL GROUP BY for the next set of nodes, so this is separate
-    //    returndata.push('callbackfunction='+node.data.returndata.callbackfunction);
 
     var nextparentnode = node;
 

@@ -1465,7 +1465,7 @@ SQL;
      * hopefully the inner join will be used by the optimiser to limit the rows that are actually calculated to the ones
      * that the external query needs.
      *
-     * @return string sql
+     * @return array sql and params
      */
     private function get_sql_max_groupid_subquery() {
 
