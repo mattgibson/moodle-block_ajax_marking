@@ -173,7 +173,7 @@ class block_ajax_marking_nodes_factory {
         // nextnodefilter in the superquery
         $countwrapperquery->add_select(array('table' => 'moduleunion',
                                              'column' => 'userid',
-                                             'alias' => 'count',
+                                             'alias' => 'itemcount', // COUNT is a reserved word
                                              'function' => 'COUNT'));
 
         if ($havecoursemodulefilter || $makingcoursemodulenodes) {
@@ -206,7 +206,7 @@ class block_ajax_marking_nodes_factory {
                 'alias'    => $filters['nextnodefilter']));
         $displayquery->add_select(array(
                 'table'    => 'countwrapperquery',
-                'column'   => 'count'));
+                'column'   => 'itemcount'));
         if ($havecoursemodulefilter) { // Need to have this pass through in case we have a mixture
             $displayquery->add_select(array(
                 'table'    => 'countwrapperquery',
@@ -427,14 +427,15 @@ class block_ajax_marking_nodes_factory {
             case 'countselect':
 
                 $countwrapper->add_select(array(
-                        'table' => array('maxgroupidsubquery.groupid', 0),
+                        'table' => array('maxgroupidsubquery' => 'groupid',
+                                         '0'),
                         'function' => 'COALESCE',
                         'alias' => 'id'));
 
                 // This is for the displayquery when we are making course nodes
                 $query->add_from(array(
                     'table' => 'groups',
-                    'on' => 'countwrapperquery.id = group.id'
+                    'on' => 'countwrapperquery.id = groups.id'
                 ));
                 $query->add_select(array(
                     'table'    => 'groups',

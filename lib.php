@@ -262,7 +262,7 @@ function block_ajax_marking_format_node(&$node, $nextnodefilter) {
 
     // The things to go into display are fixed. Stuff for return data varies
     $displayitems = array(
-            'count',
+            'itemcount',
             'description',
             'firstname',
             'lastname',

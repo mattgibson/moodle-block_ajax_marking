@@ -339,11 +339,11 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
                 nodedata.displaydata.modulename : false;
         nodedata.returndata.nextnodefilter = this.nextnodetype(currentfilter, modulename, nodedata.configdata);
 
-        var nodehasacount = typeof(nodedata.displaydata.count) !== 'undefined';
-        var countismorethanone = nodedata.displaydata.count > 1;
+        var nodehasacount = typeof(nodedata.displaydata.itemcount) !== 'undefined';
+        var countismorethanone = nodedata.displaydata.itemcount > 1;
         var islastnode = nodedata.returndata.nextnodefilter !== false;
         if (nodehasacount && (countismorethanone || islastnode)) {
-            nodedata.html = this.node_label(nodedata.html, nodedata.displaydata.count);
+            nodedata.html = this.node_label(nodedata.html, nodedata.displaydata.itemcount);
         }
 
         newnode = new this.nodetype(nodedata, M.block_ajax_marking.parentnodeholder, false);
@@ -465,7 +465,7 @@ M.block_ajax_marking.tree_base.prototype.update_parent_node = function(parentnod
     var nodecount = 0;
     for (var i = 0; i < nodechildrenlength; i++) {
         // stored as a string
-        nodecount += parseInt(parentnodetoupdate.children[i].data.displaydata.count, 10);
+        nodecount += parseInt(parentnodetoupdate.children[i].data.displaydata.itemcount, 10);
     }
 
     // If root, we want to stop recursing, after updating the count
@@ -490,7 +490,7 @@ M.block_ajax_marking.tree_base.prototype.update_parent_node = function(parentnod
 
             var newlabel = this.node_label(parentnodetoupdate.data.displaydata.name, nodecount);
 
-            parentnodetoupdate.data.displaydata.count = nodecount;
+            parentnodetoupdate.data.displaydata.itemcount = nodecount;
             parentnodetoupdate.label = newlabel
         }
 
@@ -561,7 +561,7 @@ M.block_ajax_marking.getnodefilters = function(node) {
         if (typeof (returndata !== 'undefined')) {
             for (varname in returndata) {
                 // Add all the non-callbackfunction stuff e.g. courseid so we can use it to filter the
-                // unmarked work
+                // unmarked work. Approximating an associative array here.
                 if (varname != 'nextnodefilter' && returndata[varname] != '') {
                     nodefilters.push(varname + '=' + returndata[varname]);
                 }
@@ -613,7 +613,7 @@ M.block_ajax_marking.tree_base.prototype.recalculate_total_count = function() {
     var childrenlength = children.length;
 
     for (var i = 0; i < childrenlength; i++) {
-        this.totalcount += parseInt(children[i].data.displaydata.count, 10);
+        this.totalcount += parseInt(children[i].data.displaydata.itemcount, 10);
     }
 };
 
@@ -741,11 +741,11 @@ M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilte
             return false;
 
         case 'coursemoduleid':
-            if (configdata.groupsdisplay == 1) {
+           // if (configdata.groupsdisplay == 1) {
                 nextnodefilter = 'groupid';
-            } else {
-                nextnodefilter = 'userid';
-            }
+          //  } else {
+           //     nextnodefilter = 'userid';
+          //  }
             break;
 
         case 'groupid':

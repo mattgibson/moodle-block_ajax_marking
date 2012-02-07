@@ -131,7 +131,8 @@ class block_ajax_marking_query_base {
             if (isset($select['function']) && strtoupper($select['function']) === 'COALESCE') {
                 $tablesarray = array();
                 foreach ($select['table'] as $tab => $col) {
-                    $tablesarray[] = $tab.'.'.$col;
+                    // COALESCE may have non-SQL defaults, which are just added with numeric keys
+                    $tablesarray[] = is_string($tab) ? $tab.'.'.$col : $col;
                 }
                 $selectstring .= implode(', ', $tablesarray);
             } else {
@@ -151,7 +152,6 @@ class block_ajax_marking_query_base {
             }
 
             $selectarray[] = $selectstring;
-
         }
 
         return 'SELECT '.implode(", \n", $selectarray).' ';
