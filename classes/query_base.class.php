@@ -125,36 +125,43 @@ class block_ajax_marking_query_base {
         $selectarray = array();
 
         foreach ($this->select as $select) {
-            $selectstring = '';
-            // 'column' will not be set if this is COALESCE. We have an associative array of
-            // table=>column pairs
-            if (isset($select['function']) && strtoupper($select['function']) === 'COALESCE') {
-                $tablesarray = array();
-                foreach ($select['table'] as $tab => $col) {
-                    // COALESCE may have non-SQL defaults, which are just added with numeric keys
-                    $tablesarray[] = is_string($tab) ? $tab.'.'.$col : $col;
-                }
-                $selectstring .= implode(', ', $tablesarray);
-            } else {
-                $selectstring = isset($select['column']) ? $select['column'] : '';
-                if (isset($select['table'])) {
-                    $selectstring = $select['table'].'.'.$selectstring;
-                }
-            }
-            if (isset($select['distinct'])) {
-                $selectstring = 'DISTINCT '.$selectstring;
-            }
-            if (isset($select['function'])) {
-                $selectstring = ' '.$select['function'].'('.$selectstring.') ';
-            }
-            if (isset($select['alias'])) {
-                $selectstring .= ' AS '.$select['alias'];
-            }
-
-            $selectarray[] = $selectstring;
+            $selectarray[] = self::build_select_item($select);
         }
 
         return 'SELECT '.implode(", \n", $selectarray).' ';
+    }
+
+    /**
+     * Makes one array of the SELECT options into a string of SQL
+     *
+     * @param $select
+     * @param bool $forgroupby If we are using this to make the COALESCE bit for GROUP BY, we don't want an alias
+     * @return string
+     */
+    protected function build_select_item($select, $forgroupby = false) {
+        $selectstring = '';
+        // 'column' will not be set if this is COALESCE. We have an associative array of
+        // table=>column pairs
+        if (isset($select['function']) && strtoupper($select['function']) === 'COALESCE') {
+            $selectstring = self::get_coalesce_from_table($select['table']);
+        } else {
+            $selectstring = isset($select['column']) ? $select['column'] : '';
+            if (isset($select['table'])) {
+                $selectstring = $select['table'].'.'.$selectstring;
+            }
+        }
+        if (isset($select['distinct'])) {
+            $selectstring = 'DISTINCT '.$selectstring;
+        }
+        if (isset($select['function'])) {
+            $selectstring = ' '.$select['function'].'('.$selectstring.') ';
+        }
+        if (isset($select['alias']) && !$forgroupby) {
+            $selectstring .= ' AS '.$select['alias'];
+        }
+
+        return $selectstring;
+
     }
 
     /**
@@ -280,9 +287,12 @@ class block_ajax_marking_query_base {
 
             foreach ($this->select as $column) {
                 // if the column is not a MAX, COUNT, etc, add it to the groupby
-                if (!isset($column['function']) && $column['column'] !== '*') {
-                    $groupby[] = (isset($column['table']) ? $column['table'].'.' : '').
-                                 $column['column'];
+                $functioniscoalesce = (isset($column['function']) && strtoupper($column['function']) == 'COALESCE');
+                $notafunctioncolumn = !isset($column['function']) && $column['column'] !== '*';
+                if ($functioniscoalesce) {
+                    $groupby[] = self::build_select_item($column, true);
+                } else if ($notafunctioncolumn) {
+                    $groupby[] = (isset($column['table']) ? $column['table'].'.' : '').$column['column'];
                 }
             }
             if ($groupby) {
@@ -293,6 +303,33 @@ class block_ajax_marking_query_base {
         } else {
             return '';
         }
+    }
+
+    /**
+     * If we have been given a COALESCE function as part of the SELECT, we need to construct the sequence of
+     * table.column options and defaults.
+     *
+     * @param array $table
+     * @return string
+     */
+    protected function get_coalesce_from_table($table) {
+
+        if (!is_array($table)) {
+            throw new coding_exception('get_select() has a COALESCE function with a $table that\'s not an array');
+        }
+
+        $tablesarray = array();
+        foreach ($table as $tab => $col) {
+            // COALESCE may have non-SQL defaults, which are just added with numeric keys
+            if (is_string($tab)) {
+                $tablesarray[] = $tab.'.'.$col;
+            } else {
+                // The default value may be a number, or a string, in which case, it needs quotes
+                $tablesarray[] = is_string($col) ? "'".$col."'" : $col;
+            }
+        }
+        return implode(', ', $tablesarray);
+
     }
 
     /**
@@ -310,7 +347,9 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Adds a column to the select. Needs a table, column, function (optional).
+     * Adds a column to the select. Needs a table, column, function (optional). If 'function' is COALESCE, 'table' is
+     * an array of 'table' => 'column' pairs, which can include defaults as strings or integers, which are added as they
+     * are, with no key specified.
      *
      * This one is complex.
      *

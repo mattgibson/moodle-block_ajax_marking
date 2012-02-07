@@ -418,9 +418,9 @@ class block_ajax_marking_nodes_factory {
 
             case 'where':
 
-                $query->add_where(array('type' => 'AND',
+                $countwrapper->add_where(array('type' => 'AND',
                                         'condition' => 'COALESCE(maxgroupidsubquery.groupid, 0) = :groupid'));
-                $query->add_param('groupid', $groupid);
+                $countwrapper->add_param('groupid', $groupid);
                 break;
 
             // This is when we make group nodes and need group name etc
@@ -434,15 +434,20 @@ class block_ajax_marking_nodes_factory {
 
                 // This is for the displayquery when we are making course nodes
                 $query->add_from(array(
+                    'join' => 'LEFT JOIN', // group id 0 will not match anything
                     'table' => 'groups',
                     'on' => 'countwrapperquery.id = groups.id'
                 ));
+                // We may get a load of people in no group
                 $query->add_select(array(
-                    'table'    => 'groups',
-                    'column'   => 'name'));
+                    'function' => 'COALESCE',
+                    'table'    => array('groups' => 'name',
+                                        get_string('notingroup', 'block_ajax_marking')),
+                    'alias' => 'name'));
                 $query->add_select(array(
-                    'table'    => 'groups',
-                    'column'   => 'description',
+                    'function' => 'COALESCE',
+                    'table'    => array('groups' => 'description',
+                                        get_string('notingroupdescription', 'block_ajax_marking')),
                     'alias'    => 'tooltip'));
                 break;
 
