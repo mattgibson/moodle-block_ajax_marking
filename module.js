@@ -87,14 +87,14 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     sb[sb.length] = '"><tr class="ygtvrow block_ajax_marking_label_row">';
 
     // Spacers cells to make indents
-    for (i=0;i<this.depth;++i) {
+    for (i = 0; i < this.depth; ++i) {
         sb[sb.length] = '<td class="ygtvcell ' + this.getDepthStyle(i) + '"><div class="ygtvspacer"></div></td>';
     }
 
     if (this.hasIcon) {
         sb[sb.length] = '<td id="' + this.getToggleElId();
         sb[sb.length] = '" class="ygtvcell ';
-        sb[sb.length] = this.getStyle() ;
+        sb[sb.length] = this.getStyle();
         sb[sb.length] = '"><a href="#" class="ygtvspacer">&#160;</a></td>';
     }
 
@@ -112,7 +112,7 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     sb[sb.length] = '<tr class="ygtvrow block_aax_marking_info_row">';
 
     // depth +1 so we indent. needs dotted line background
-    for (i = 0;i<this.depth;++i) {
+    for (i = 0; i < this.depth; ++i) {
         sb[sb.length] = '<td class="ygtvcell ' + this.getDepthStyle(i) + '"><div class="ygtvspacer"></div></td>';
     }
     var depthclass =  (this.nextSibling) ? "ygtvdepthcell" : "ygtvblankdepthcell";
@@ -130,7 +130,7 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     } else {
         sb[sb.length] = ' disabled ';
     }
-    sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ' ;
+    sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ';
     sb[sb.length] = '"><div class="ygtvspacer">&#160;</div></td>';
 
     // Make groupsdisplay icon
@@ -145,13 +145,13 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     } else {
         sb[sb.length] = ' disabled ';
     }
-    sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groupsdisplay_icon ' ;
+    sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groupsdisplay_icon ';
     sb[sb.length] = '"><div class="ygtvspacer">&#160;</div></td>';
 
     // Make groups icon
     sb[sb.length] = '<td id="' + 'block_ajax_marking_groups_icon' + this.index;
     sb[sb.length] = '" class="ygtvcell ';
-    sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groups_icon ' ;
+    sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groups_icon ';
     sb[sb.length] = '"><div class="ygtvspacer">';
 
     // We want to show how many groups are currently displayed, as well as how many there are
@@ -206,15 +206,12 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     sb[sb.length] = groupscurrentlydisplayed + '/' + numberofgroups + ' ';
     sb[sb.length] = '</div></td>';
 
-
     // Spacer cell
     sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
-
 
     sb[sb.length] = '</table>';
 
     return sb.join("");
-
 
 };
 
@@ -1344,7 +1341,6 @@ M.block_ajax_marking.initialise = function() {
         M.block_ajax_marking.tabview.add(configtab);
         configtab.displaywidget = new M.block_ajax_marking.config_tree();
 
-
         // Make the context menu for the config tree
         // Attach a listener to the root div which will activate the menu
         // menu needs to be repositioned next to the clicked node
@@ -1393,7 +1389,6 @@ M.block_ajax_marking.initialise = function() {
                                                    M.block_ajax_marking.contextmenu_load_settings);
         M.block_ajax_marking.contextmenu.subscribe("beforeHide",
                                                    M.block_ajax_marking.contextmenu_unhighlight);
-
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function() {
@@ -1677,6 +1672,3 @@ M.block_ajax_marking.config_tree.prototype.node_label = function(text, count) {
            '<div class="node-icon inherit-icon"></div>' +
            '<strong>('+count+')</strong> '+text;
 };
-
-
-

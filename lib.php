@@ -347,14 +347,15 @@ function block_ajax_marking_debuggable_query($query,
         $query = $query->to_string();
     }
 
-    // We may have a problem with params being missing. Check here (assuming the params ar in SQL_PARAMS_NAMED format
-    // And tell us the names of the offending params via an exception
+    // We may have a problem with params being missing. Check here (assuming the params ar in
+    // SQL_PARAMS_NAMED format And tell us the names of the offending params via an exception
     $pattern = '/:([A-Za-z0-9]+)/';
     $expectedparams = preg_match_all($pattern, $query, $paramnames);
     if ($expectedparams) {
         if ($expectedparams > count($params)) {
-            // params are indexed by the name we gave, whereas the $paramnames are indexed by numeric position in $query
-            $missingparams = array_diff($paramnames[1], array_keys($params)); // first array has colons at start of keys
+            // params are indexed by the name we gave, whereas the $paramnames are indexed by
+            // numeric position in $query. First array has colons at start of keys.
+            $missingparams = array_diff($paramnames[1], array_keys($params));
             throw new coding_exception('Missing parameters: '.implode(', ', $missingparams));
         } else if ($expectedparams < count($params)) {
             $extraparams = array_diff_key(array_keys($params), $paramnames[1]);

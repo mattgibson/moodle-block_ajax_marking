@@ -135,7 +135,8 @@ class block_ajax_marking_query_base {
      * Makes one array of the SELECT options into a string of SQL
      *
      * @param $select
-     * @param bool $forgroupby If we are using this to make the COALESCE bit for GROUP BY, we don't want an alias
+     * @param bool $forgroupby If we are using this to make the COALESCE bit for GROUP BY, we don't
+     * want an alias
      * @return string
      */
     protected function build_select_item($select, $forgroupby = false) {
@@ -287,12 +288,14 @@ class block_ajax_marking_query_base {
 
             foreach ($this->select as $column) {
                 // if the column is not a MAX, COUNT, etc, add it to the groupby
-                $functioniscoalesce = (isset($column['function']) && strtoupper($column['function']) == 'COALESCE');
+                $functioniscoalesce = (isset($column['function']) &&
+                                       strtoupper($column['function']) == 'COALESCE');
                 $notafunctioncolumn = !isset($column['function']) && $column['column'] !== '*';
                 if ($functioniscoalesce) {
                     $groupby[] = self::build_select_item($column, true);
                 } else if ($notafunctioncolumn) {
-                    $groupby[] = (isset($column['table']) ? $column['table'].'.' : '').$column['column'];
+                    $groupby[] = (isset($column['table']) ? $column['table'].'.' : '').
+                                 $column['column'];
                 }
             }
             if ($groupby) {
@@ -306,8 +309,8 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * If we have been given a COALESCE function as part of the SELECT, we need to construct the sequence of
-     * table.column options and defaults.
+     * If we have been given a COALESCE function as part of the SELECT, we need to construct the
+     * sequence of table.column options and defaults.
      *
      * @param array $table
      * @return string
@@ -315,7 +318,8 @@ class block_ajax_marking_query_base {
     protected function get_coalesce_from_table($table) {
 
         if (!is_array($table)) {
-            throw new coding_exception('get_select() has a COALESCE function with a $table that\'s not an array');
+            $error = 'get_select() has a COALESCE function with a $table that\'s not an array';
+            throw new coding_exception($error);
         }
 
         $tablesarray = array();
@@ -347,9 +351,9 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Adds a column to the select. Needs a table, column, function (optional). If 'function' is COALESCE, 'table' is
-     * an array of 'table' => 'column' pairs, which can include defaults as strings or integers, which are added as they
-     * are, with no key specified.
+     * Adds a column to the select. Needs a table, column, function (optional). If 'function' is
+     * COALESCE, 'table' is an array of 'table' => 'column' pairs, which can include defaults as
+     * strings or integers, which are added as they are, with no key specified.
      *
      * This one is complex.
      *

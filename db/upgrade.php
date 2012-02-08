@@ -455,14 +455,15 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
     }
 
-    // We need to flag whether people who do not have any group memberships should be displayed in an 'orphans'
-    // node if others are being shown in their group nodes or whether they ought to be hidden
+    // We need to flag whether people who do not have any group memberships should be displayed in
+    // an 'orphans' node if others are being shown in their group nodes or whether they ought to
+    // be hidden
     if ($oldversion < 2012020200) {
 
         // Define field showorphans to be added to block_ajax_marking
         $table = new xmldb_table('block_ajax_marking');
-        $field = new xmldb_field('showorphans', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, XMLDB_NOTNULL, null, '1',
-                                 'groupsdisplay');
+        $field = new xmldb_field('showorphans', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED,
+                                 XMLDB_NOTNULL, null, '1', 'groupsdisplay');
 
         // Conditionally launch add field showorphans
         if (!$dbman->field_exists($table, $field)) {
@@ -472,7 +473,6 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
         // ajax_marking savepoint reached
         upgrade_block_savepoint(true, 2012020200, 'ajax_marking');
     }
-
 
     return true;
 }
