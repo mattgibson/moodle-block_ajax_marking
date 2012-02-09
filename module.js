@@ -631,7 +631,8 @@ M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
  */
 M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilter, modulename, configdata) {
     // if nothing else is found, make the node into a final one with no children
-    var nextnodefilter = false;
+    var nextnodefilter = false,
+        moduleoverride;
 
     // Courses tree
     switch (currentfilter) {
@@ -655,11 +656,31 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
             break;
 
         default:
-        // any special nodes that came back from a module addition
+
     }
 
-    // what module do we have? Stored as currentnode.data.displaydata.modulename
-    // possibly we may not have any javascript?
+    // Allow override by modules
+    moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
+                                                                          currentfilter);
+    if (moduleoverride) {
+        return moduleoverride;
+    }
+
+    return nextnodefilter;
+
+};
+
+/**
+ * Finds out whether there is a custom nextnodefilter defined by the specific module e.g.
+ * quiz question. Allows the standard progression of nodes to be overridden.
+ *
+ * @param {string} modulename
+ * @param {string} currentfilter
+ * @return bool|string
+ */
+M.block_ajax_marking.get_next_nodefilter_from_module = function(modulename, currentfilter) {
+
+    var nextnodefilter = false;
     if (typeof(modulename) === 'string') {
         if (typeof(M.block_ajax_marking[modulename]) === 'object') {
             var modulejavascript = M.block_ajax_marking[modulename];
@@ -671,6 +692,7 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
 
     return nextnodefilter;
 };
+
 
 /**
  * This is to control what node the tree asks for next when a user clicks on a node
@@ -729,6 +751,8 @@ M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilte
     //        'coursemoduleid' : 'submissions'};
 
     // Courses tree
+    var moduleoverride;
+
     switch (currentfilter) {
 
         case 'courseid':
@@ -738,11 +762,11 @@ M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilte
             return false;
 
         case 'coursemoduleid':
-           // if (configdata.groupsdisplay == 1) {
+            if (configdata.groupsdisplay == 1) {
                 nextnodefilter = 'groupid';
-          //  } else {
-           //     nextnodefilter = 'userid';
-          //  }
+            } else {
+                nextnodefilter = 'userid';
+            }
             break;
 
         case 'groupid':
@@ -750,18 +774,14 @@ M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilte
             break;
 
         default:
-        // any special nodes that came back from a module addition
+
     }
 
-    // what module do we have? Stored as currentnode.data.displaydata.modulename
-    // possibly we may not have any javascript?
-    if (typeof(modulename) === 'string') {
-        if (typeof(M.block_ajax_marking[modulename]) === 'object') {
-            var modulejavascript = M.block_ajax_marking[modulename];
-            if (typeof(modulejavascript.nextnodetype) === 'function') {
-                nextnodefilter = modulejavascript.nextnodetype(currentfilter);
-            }
-        }
+    // Allow override by modules
+    moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
+                                                                          currentfilter);
+    if (moduleoverride) {
+        return moduleoverride;
     }
 
     return nextnodefilter;
