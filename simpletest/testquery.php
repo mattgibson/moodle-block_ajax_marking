@@ -95,12 +95,16 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                               'grade_categories' => 'lib',
                               'grade_categories_history' => 'lib',
                               'grade_items_history' => 'lib',
+                              'grade_grades' => 'lib',
                               'modules' => 'lib',
                               'scale' => 'lib',
                               'files' => 'lib',
                               'block' => 'lib',
                               'block_instances' => 'lib',
                               'context' => 'lib',
+
+                              'quiz_feedback' => 'mod/quiz',
+                              'quiz_overrides' => 'mod/quiz',
 
                               'workshopform_accumulative' => 'mod/workshop/form/accumulative',
         );
@@ -165,12 +169,13 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         $testcourse = create_course($data, $options);
 
 
-        // Make a new module
+        // Make one instance each of the modules
         /**
          * @var block_ajax_marking_module_base $testmoduleclass
          */
-        $testmoduleclass = reset($this->moduleclasses);
-        $this->make_module($testmodules['workshop'], $testcourse);
+        foreach ($this->moduleclasses as $moduleclass) {
+            $this->make_module($testmodules[$moduleclass->get_module_name()], $testcourse);
+        }
 
 
         // Make some new users
@@ -301,6 +306,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                 $module->shuffleanswers = true;
                 $module->quizpassword = '';
                 $module->questionsperpage = 0;
+                $module->questiondecimalpoints = 0;
                 break;
 
             case 'workshop':
