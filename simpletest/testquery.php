@@ -97,9 +97,12 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                               'grade_items_history' => 'lib',
                               'modules' => 'lib',
                               'scale' => 'lib',
+                              'files' => 'lib',
                               'block' => 'lib',
                               'block_instances' => 'lib',
                               'context' => 'lib',
+
+                              'workshopform_accumulative' => 'mod/workshop/form/accumulative',
         );
         foreach ($tablestomake as $table => $file) {
             $this->create_test_table($table, $file);
@@ -167,7 +170,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
          * @var block_ajax_marking_module_base $testmoduleclass
          */
         $testmoduleclass = reset($this->moduleclasses);
-        $this->make_module($testmodules[$testmoduleclass->get_module_name()], $testcourse);
+        $this->make_module($testmodules['workshop'], $testcourse);
 
 
         // Make some new users
@@ -189,7 +192,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
      * attach it to the supplied course.
      *
      * @param $moduledata
-     * @param $courseid
+     * @param $course
      * @throws coding_exception
      */
     private function make_module($moduledata, $course) {
@@ -308,6 +311,12 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                 $module->strategy = 'accumulative';
                 $module->gradingdecimals = 0;
                 $module->usepeerassessment = 1;
+
+                $grades = workshop::available_maxgrades_list();
+                $module->gradecategory = array_rand($grades);
+                $gradecategories = grade_get_categories_menu($course->id);
+                $module->gradinggradecategory = array_rand($gradecategories);
+
 
                 $module->intro = '<p>Introduction text would go here</p>';
                 $module->instructauthorseditor = array(
