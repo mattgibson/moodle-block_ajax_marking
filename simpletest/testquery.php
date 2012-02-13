@@ -29,8 +29,9 @@ if (!defined('MOODLE_INTERNAL')) {
 }
 
 global $CFG;
+
 /**
- *
+ * @define $CFG->dirroot '../../..'
  */
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_factory.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
@@ -57,7 +58,6 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                                       'fullwithauthor',
                                       'fullwithoutauthor',
                                       'dictionary');
-    private $forum_types = array('general');
     public $scales; // others include 'single', 'eachuser', 'qanda'
 
 
@@ -171,20 +171,28 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
 
         // Make one instance each of the modules
         /**
-         * @var block_ajax_marking_module_base $testmoduleclass
+         * @var block_ajax_marking_module_base $moduleclass
          */
         foreach ($this->moduleclasses as $moduleclass) {
             $this->make_module($testmodules[$moduleclass->get_module_name()], $testcourse);
         }
 
 
-        // Make some new users
+        // Make some new users. 10 will be fine
+        for ($i = 0; $i < 10; $i++) {
+            $this->make_user();
+        }
 
         // Make the current user into the teacher
 
         // Enrol the others
 
         // Make submissions
+        foreach ($this->moduleclasses as $moduleclass) {
+            if (method_exists($moduleclass, 'generate_unit_test_data')) {
+                $moduleclass->generate_unit_test_data();
+            }
+        }
 
     }
 
@@ -452,11 +460,20 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
              */
             $strategy->save_edit_strategy_form($assessmentformdata);
 
-            // Set it to submisions phase
+            // Set it to submissions phase
             $workshop->phase = 20;
             $DB->update_record('workshop', $workshop);
 
         }
+    }
+
+    /**
+     * Makes one user in the test DB. We want to keep the user ids so we can do specific tests
+     */
+    private function make_user() {
+
+
+
     }
 
 

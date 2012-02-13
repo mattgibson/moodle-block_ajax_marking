@@ -72,7 +72,6 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, YAHOO.widget.HTMLNode);
  */
 M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
 
-    this.logger.log("Generating html");
     var sb = [], i;
 
     sb[sb.length] = '<table id="ygtvtableel' + this.index + '" border="0" cellpadding="0" cellspacing="0" class="ygtvtable ygtvdepth' + this.depth;
