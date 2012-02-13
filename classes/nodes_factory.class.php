@@ -732,7 +732,7 @@ SQL;
         // TODO are these joins in use?
         $query->add_from(array('table' => 'block_ajax_marking',
                                'join' => 'LEFT JOIN',
-                               'on' => "cmconfig.tablename = 'coursemodules'
+                               'on' => "cmconfig.tablename = 'course_modules'
                                         AND cmconfig.instanceid = moduleunion.coursemoduleid",
                                'alias' => 'cmconfig' ));
 
