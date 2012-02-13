@@ -250,7 +250,8 @@ class block_ajax_marking_nodes_factory {
         }
 
         // Adds the config options if there are any, so JavaScript knows what to ask for
-        self::apply_config_filter($displayquery, 'configselect');
+//        self::apply_config_filter($displayquery, 'configselect');
+        self::apply_config_filter($displayquery, 'displayselect');
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
         $debugquery = block_ajax_marking_debuggable_query($displayquery);
@@ -727,8 +728,6 @@ SQL;
      * @return void
      */
     private static function apply_sql_display_settings($query) {
-
-        global $DB;
 
         // TODO are these joins in use?
         $query->add_from(array('table' => 'block_ajax_marking',
@@ -1210,6 +1209,40 @@ SQL;
                 break;
 
             case 'displayselect':
+
+                $defaultdisplay = 1;
+                $defaultgroupsdisplay = 0;
+
+                // The inner query joins to the config tables already for the WHERE clauses, so we
+                // make use of them to get the settings for those nodes that are not filtered out
+                $countwrapper = $query->get_subquery('countwrapperquery');
+
+                $countwrapper->add_select(array(
+                                         'function' => 'COALESCE',
+                                         'table' => array('cmconfig' => 'display',
+                                                          'courseconfig' => 'display',
+                                                          $defaultdisplay),
+                                         'alias' => 'display'));
+                $countwrapper->add_select(array(
+                                         'function' => 'COALESCE',
+                                         'table' => array('cmconfig' => 'groupsdisplay',
+                                                          'courseconfig' => 'groupsdisplay',
+                                                          $defaultgroupsdisplay),
+                                         'alias' => 'groupsdisplay'));
+
+                // The outer query (we need one because we have to do a join between the numeric
+                // fields that can be fed into a GROUP BY and the text fields that we display) pulls
+                // through the display fields
+                $query->add_select(array('table' => 'countwrapperquery',
+                                         'column' => 'display'));
+                $query->add_select(array('table' => 'countwrapperquery',
+                                         'column' => 'groupsdisplay'));
+//                COALESCE(cmconfig.showorphans,
+//                                         courseconfig.showorphans,
+//                                         {$sitedefaultnogroup}) = 1
+
+
+
                 break;
         }
 
