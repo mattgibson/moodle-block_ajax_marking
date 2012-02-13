@@ -250,7 +250,6 @@ class block_ajax_marking_nodes_factory {
         }
 
         // Adds the config options if there are any, so JavaScript knows what to ask for
-//        self::apply_config_filter($displayquery, 'configselect');
         self::apply_config_filter($displayquery, 'displayselect');
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
@@ -648,17 +647,30 @@ class block_ajax_marking_nodes_factory {
      * In order to display the right things, we need to work out the visibility of each group for
      * each course module. This subquery lists all submodules once for each coursemodule in the
      * user's courses, along with it's most relevant show/hide setting, i.e. a coursemodule level
-     * override if it's there, other wise a course level setting, or if neither, the site default.
+     * override if it's there, otherwise a course level setting, or if neither, the site default.
      * This is potentially very expensive if there are hundreds of courses as it's effectively a
      * cartesian join between the groups and coursemodules tables, so we filter using the user's
      * courses. This may or may not impact on the query optimiser being able to cache the execution
      * plan between users.
      *
+     * Table we get back:
+     * ----------------------------------------
+     * | course_module_id | groupid | display |
+     * |--------------------------------------|
+     * |        543       |    67   |    0    |
+     * |        342       |    6    |    1    |
+     *
+     * @param string $type We may want to know the combined visibility (coalesce) or just the
+     * visibility at either (course) or (coursemodule) level. The latter two are for getting
+     * the groups in their current settings states so config stuff can be adjusted.
+     *
      * @return array SQL and params
      */
-    private function get_sql_group_visibility_subquery() {
+    private function get_sql_group_visibility_subquery($type = 'coalesce') {
 
-        global $DB, $CFG;
+        // TODO unit test this!!
+
+        global $DB, $CFG, $USER;
 
         /**
          * We may need to reuse this subquery. Because it uses the user's teacher courses as a
@@ -679,36 +691,127 @@ class block_ajax_marking_nodes_factory {
         // TODO use proper constant
         $sitedefault = 1; // configurable in future
 
+        // Query visualisation:
+        /*
+         *    ________________________________________________________________
+         *    |                                                               |
+         * Groups -- coursemodules                                            |
+         *    |   course |   |id_____ block_ajax_marking_settings --- block_ajax_marking_groups
+         *    |          |               (for coursemodules)           (per coursemodule)
+         *    |          |
+         *    |          |_________ block_ajax_marking_settings --- block_ajax_marking_groups
+         *    |                          (for courses)                   (per course)
+         *    |_______________________________________________________________|
+         *
+         */
+
+        // Using heredoc to make the debug query clearer when pasted into a terminal
         $groupdisplaysubquery = <<<SQL
         SELECT group_course_modules.id AS cmid,
                group_groups.id AS groupid,
-               COALESCE(group_cmconfig_groups.display,
-                        group_courseconfig_groups.display,
-                        {$sitedefault}) AS display
+
+SQL;
+        switch ($type) {
+            case 'coalesce':
+                $groupdisplaysubquery .= <<<SQL
+                COALESCE(group_cmconfig_groups.display,
+                         group_courseconfig_groups.display,
+                         {$sitedefault})
+SQL;
+                break;
+
+            case 'course':
+                $groupdisplaysubquery .= <<<SQL
+                group_courseconfig_groups.display
+SQL;
+                break;
+
+
+            case 'coursemodule':
+                $groupdisplaysubquery .= <<<SQL
+                group_cmconfig_groups.display
+SQL;
+                break;
+        }
+
+        $groupdisplaysubquery .= ' AS display';
+
+        $groupdisplaysubquery .= <<<SQL
 
           FROM {course_modules} group_course_modules
     INNER JOIN {groups} group_groups
             ON group_groups.courseid = group_course_modules.course
+SQL;
 
+        // TODO does moving the groupid stuff into a WHERE xx OR IS NULL make it faster?
+        $coursemodulejoin = <<<SQL
      LEFT JOIN {block_ajax_marking} group_cmconfig
             ON group_course_modules.id = group_cmconfig.instanceid
                 AND group_cmconfig.tablename = 'course_modules'
      LEFT JOIN {block_ajax_marking_groups} group_cmconfig_groups
             ON group_cmconfig_groups.configid = group_cmconfig.id
-
+           AND group_cmconfig_groups.groupid = group_groups.id
+SQL;
+        $coursejoin = <<<SQL
      LEFT JOIN {block_ajax_marking} group_courseconfig
             ON group_courseconfig.instanceid = group_course_modules.course
                 AND group_courseconfig.tablename = 'course'
      LEFT JOIN {block_ajax_marking_groups} group_courseconfig_groups
             ON group_courseconfig_groups.configid = group_courseconfig.id
-
-         WHERE group_courseconfig_groups.groupid = group_cmconfig_groups.groupid
-            OR group_courseconfig_groups.groupid IS NULL
-            OR group_cmconfig_groups.groupid IS NULL
-           AND group_course_modules.course {$coursessql}
-
+               AND group_courseconfig_groups.groupid = group_groups.id
 SQL;
-        if ($CFG->debug === DEBUG_DEVELOPER) {
+
+        switch ($type) {
+
+            case 'coalesce':
+                $groupdisplaysubquery .= $coursemodulejoin;
+                $groupdisplaysubquery .= $coursejoin;
+                break;
+
+            case 'course':
+                $groupdisplaysubquery .= $coursejoin;
+                break;
+
+            case 'coursemodule':
+                $groupdisplaysubquery .= $coursemodulejoin;
+                break;
+        }
+
+        $groupdisplaysubquery .= <<<SQL
+         WHERE group_course_modules.course {$coursessql}
+SQL;
+
+        $coursewhere = <<<SQL
+           AND (group_courseconfig.userid = :groupuserid1_{$counter}
+                OR group_courseconfig.userid IS NULL)
+SQL;
+
+        $coursemodulewhere = <<<SQL
+           AND (group_cmconfig.userid = :groupuserid2_{$counter}
+                OR group_cmconfig.userid IS NULL)
+SQL;
+
+        switch ($type) {
+
+            case 'coalesce':
+                $groupdisplaysubquery .= $coursewhere;
+                $groupdisplaysubquery .= $coursemodulewhere;
+                $coursesparams['groupuserid1_'.$counter] = $USER->id;
+                $coursesparams['groupuserid2_'.$counter] = $USER->id;
+                break;
+
+            case 'course':
+                $groupdisplaysubquery .= $coursewhere;
+                $coursesparams['groupuserid1_'.$counter] = $USER->id;
+                break;
+
+            case 'coursemodule':
+                $groupdisplaysubquery .= $coursemodulewhere;
+                $coursesparams['groupuserid2_'.$counter] = $USER->id;
+                break;
+        }
+
+        if ($CFG->debug == DEBUG_DEVELOPER) {
             // only a tiny overhead, but still worth avoiding if not needed
             $debugquery = block_ajax_marking_debuggable_query($groupdisplaysubquery,
                                                               $coursesparams);
@@ -1054,8 +1157,10 @@ SQL;
     }
 
     /**
-     * In order to set the groups display properly, we need to know what groups are available. This
-     * takes the nodes we have and attaches the groups to them if there are any.
+     * In order to adjust the groups display settings properly, we need to know what groups are
+     * available. This takes the nodes we have and attaches the groups to them if there are any.
+     * We only need this for the main tree if we intend to have the ability to adjust settings
+     * via right-click menus
      *
      * @param array $nodes
      * @param array $filters
@@ -1070,9 +1175,7 @@ SQL;
         }
 
         // Need to get all groups for each node. Can't do this in the main query as there are
-        // possibly multiple groups settings for each node. There is a limit to how many things we
-        // can have in an SQL IN statement
-        // Join to the config table and
+        // possibly multiple groups settings for each node.
 
         // Get the ids of the nodes
         $courseids = array();
@@ -1088,13 +1191,16 @@ SQL;
 
         if ($filters['nextnodefilter'] == 'courseid') {
             // Retrieve all groups that we may need. This includes those with no settings yet as
-            // otherwise, we won't be able to offer to create settings for them. Only for courses
+            // otherwise, we won't be able to offer to create settings for them.
             list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
             $sql = <<<SQL
-                 SELECT groups.id, groups.courseid AS courseid,
-                           groups.name, combinedsettings.display
+                    SELECT groups.id,
+                           groups.courseid AS courseid,
+                           groups.name,
+                           combinedsettings.display
                       FROM {groups} groups
-                 LEFT JOIN (SELECT groupssettings.display, settings.instanceid AS courseid,
+                 LEFT JOIN (SELECT groupssettings.display,
+                                   settings.instanceid AS courseid,
                                    groupssettings.groupid
                               FROM {block_ajax_marking} settings
                         INNER JOIN {block_ajax_marking_groups} groupssettings
@@ -1117,12 +1223,17 @@ SQL;
                 $nodes[$group->courseid]->groups[] = $group;
             }
 
-        } else if ($filters['nextnodefilter'] == 'coursemoduleid' && $coursemoduleids) {
-            // Here, we just want data o override the course stuff if necessary
+        } else if ($filters['nextnodefilter'] == 'coursemoduleid'
+            && $coursemoduleids) {
+
+            // Here, we just get the actual settings, as we will know what groups are there with
+            // no specific settings yet from the parent nodes (courses)
             list($cmsql, $params) = $DB->get_in_or_equal($coursemoduleids, SQL_PARAMS_NAMED);
             $sql = <<<SQL
-                 SELECT groups.id, settings.instanceid AS coursemoduleid,
-                           groups.name, groupssettings.display
+                 SELECT groups.id,
+                        settings.instanceid AS coursemoduleid,
+                        groups.name,
+                        groupssettings.display
                    FROM {groups} groups
              INNER JOIN {block_ajax_marking_groups} groupssettings
                      ON groupssettings.groupid = groups.id
@@ -1130,10 +1241,8 @@ SQL;
                      ON settings.id = groupssettings.configid
                   WHERE settings.tablename = 'course_modules'
                     AND settings.userid = :settingsuserid
-                    AND groups.courseid = :settingscourseid
                     AND settings.instanceid {$cmsql}
 SQL;
-            $params['settingscourseid'] = $filters['courseid'];
             $params['settingsuserid'] = $USER->id;
 
             $debugquery = block_ajax_marking_debuggable_query($sql, $params);
@@ -1148,7 +1257,6 @@ SQL;
         }
 
         return $nodes;
-
     }
 
     /**
@@ -1237,11 +1345,6 @@ SQL;
                                          'column' => 'display'));
                 $query->add_select(array('table' => 'countwrapperquery',
                                          'column' => 'groupsdisplay'));
-//                COALESCE(cmconfig.showorphans,
-//                                         courseconfig.showorphans,
-//                                         {$sitedefaultnogroup}) = 1
-
-
 
                 break;
         }

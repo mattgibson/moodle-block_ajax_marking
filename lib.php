@@ -349,7 +349,7 @@ function block_ajax_marking_debuggable_query($query,
 
     // We may have a problem with params being missing. Check here (assuming the params ar in
     // SQL_PARAMS_NAMED format And tell us the names of the offending params via an exception
-    $pattern = '/:([A-Za-z0-9]+)/';
+    $pattern = '/:([\w]+)/';
     $expectedparams = preg_match_all($pattern, $query, $paramnames);
     if ($expectedparams) {
         if ($expectedparams > count($params)) {

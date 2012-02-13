@@ -231,8 +231,8 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         }
 
         // Basically 2 types of text fields: description and content
-        $description =
-            "This $moduledata->name has been randomly generated for unit testing the ajax_marking block";
+        $description = "This $moduledata->name has been randomly generated for unit testing the ".
+                       "ajax_marking block";
         $content = 'Should never be seen';
 
         $module = new stdClass();
@@ -471,6 +471,20 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
      * Makes one user in the test DB. We want to keep the user ids so we can do specific tests
      */
     private function make_user() {
+
+
+
+    }
+
+    protected function test_visible_groups_subquery() {
+
+        // Prerequisites
+        // Some coursemodules
+        // Some groups
+        // Some courses
+        // Some settings
+        // At least one user
+
 
 
 
