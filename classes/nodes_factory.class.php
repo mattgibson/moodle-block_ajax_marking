@@ -250,7 +250,9 @@ class block_ajax_marking_nodes_factory {
         }
 
         // Adds the config options if there are any, so JavaScript knows what to ask for
-        self::apply_config_filter($displayquery, 'displayselect');
+        if (in_array($filters['nextnodefilter'], array('coursemoduleid', 'courseid'))) {
+            self::apply_config_filter($displayquery, 'displayselect');
+        }
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
         $debugquery = block_ajax_marking_debuggable_query($displayquery);
@@ -1193,25 +1195,22 @@ SQL;
             // Retrieve all groups that we may need. This includes those with no settings yet as
             // otherwise, we won't be able to offer to create settings for them.
             list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+            list($visibilitysql, $visibilityparams) = self::get_sql_group_visibility_subquery('course');
+            $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
+
             $sql = <<<SQL
-                    SELECT groups.id,
-                           groups.courseid AS courseid,
-                           groups.name,
-                           combinedsettings.display
-                      FROM {groups} groups
-                 LEFT JOIN (SELECT groupssettings.display,
-                                   settings.instanceid AS courseid,
-                                   groupssettings.groupid
-                              FROM {block_ajax_marking} settings
-                        INNER JOIN {block_ajax_marking_groups} groupssettings
-                                ON groupssettings.configid = settings.id
-                             WHERE settings.tablename = 'course'
-                               AND settings.userid = :settingsuserid) combinedsettings
-                        ON (combinedsettings.courseid = groups.courseid
-                            AND combinedsettings.groupid = groups.id)
-                   WHERE groups.courseid {$coursesql}
+
+             SELECT {$concat} as uniqueid,
+                    groups.id,
+                    groups.courseid AS courseid,
+                    groups.name,
+                    visibilitysubquery.display
+               FROM {groups} groups
+         INNER JOIN ({$visibilitysql}) visibilitysubquery
+                 ON visibilitysubquery.groupid = groups.id
+                AND groups.courseid {$coursesql}
 SQL;
-            $params['settingsuserid'] = $USER->id;
+            $params = array_merge($params, $visibilityparams);
 
             $debugquery = block_ajax_marking_debuggable_query($sql, $params);
             $groups = $DB->get_records_sql($sql, $params);
@@ -1226,24 +1225,24 @@ SQL;
         } else if ($filters['nextnodefilter'] == 'coursemoduleid'
             && $coursemoduleids) {
 
-            // Here, we just get the actual settings, as we will know what groups are there with
-            // no specific settings yet from the parent nodes (courses)
+            // This will include groups that have no settings as we may want to make settings
+            // for them
             list($cmsql, $params) = $DB->get_in_or_equal($coursemoduleids, SQL_PARAMS_NAMED);
+            list($visibilitysql, $visibilityparams) = self::get_sql_group_visibility_subquery('coursemodule');
+            // Can't have repeating groupids in column 1 or it throws an error
+            $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
             $sql = <<<SQL
-                 SELECT groups.id,
-                        settings.instanceid AS coursemoduleid,
+                 SELECT {$concat} as uniqueid,
+                        groups.id,
+                        visibilitysubquery.cmid AS coursemoduleid,
                         groups.name,
-                        groupssettings.display
+                        visibilitysubquery.display
                    FROM {groups} groups
-             INNER JOIN {block_ajax_marking_groups} groupssettings
-                     ON groupssettings.groupid = groups.id
-             INNER JOIN {block_ajax_marking} settings
-                     ON settings.id = groupssettings.configid
-                  WHERE settings.tablename = 'course_modules'
-                    AND settings.userid = :settingsuserid
-                    AND settings.instanceid {$cmsql}
+             INNER JOIN ({$visibilitysql}) visibilitysubquery
+                     ON visibilitysubquery.groupid = groups.id
+                    AND visibilitysubquery.cmid {$cmsql}
 SQL;
-            $params['settingsuserid'] = $USER->id;
+            $params = array_merge($params, $visibilityparams);
 
             $debugquery = block_ajax_marking_debuggable_query($sql, $params);
             $groups = $DB->get_records_sql($sql, $params);
