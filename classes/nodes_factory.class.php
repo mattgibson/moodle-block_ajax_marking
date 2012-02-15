@@ -646,6 +646,17 @@ class block_ajax_marking_nodes_factory {
     }
 
     /**
+     * Returns the SQL needed to get a subquery showing what
+     */
+    private function get_sql_course_group_visibility_subquery() {
+
+
+
+
+
+    }
+
+    /**
      * In order to display the right things, we need to work out the visibility of each group for
      * each course module. This subquery lists all submodules once for each coursemodule in the
      * user's courses, along with it's most relevant show/hide setting, i.e. a coursemodule level
@@ -707,14 +718,21 @@ class block_ajax_marking_nodes_factory {
          *
          */
 
+        $groupdisplaysubquery = '';
         // Using heredoc to make the debug query clearer when pasted into a terminal
-        $groupdisplaysubquery = <<<SQL
+        $coursemodulesselect = <<<SQL
         SELECT group_course_modules.id AS cmid,
+               group_groups.id AS groupid,
+
+SQL;
+        $coursesselect = <<<SQL
+        SELECT group_groups.courseid,
                group_groups.id AS groupid,
 
 SQL;
         switch ($type) {
             case 'coalesce':
+                $groupdisplaysubquery .= $coursemodulesselect;
                 $groupdisplaysubquery .= <<<SQL
                 COALESCE(group_cmconfig_groups.display,
                          group_courseconfig_groups.display,
@@ -723,6 +741,7 @@ SQL;
                 break;
 
             case 'course':
+                $groupdisplaysubquery .= $coursesselect;
                 $groupdisplaysubquery .= <<<SQL
                 group_courseconfig_groups.display
 SQL;
@@ -730,6 +749,7 @@ SQL;
 
 
             case 'coursemodule':
+                $groupdisplaysubquery .= $coursemodulesselect;
                 $groupdisplaysubquery .= <<<SQL
                 group_cmconfig_groups.display
 SQL;
@@ -1198,19 +1218,28 @@ SQL;
             list($visibilitysql, $visibilityparams) = self::get_sql_group_visibility_subquery('course');
             $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
 
+            $sitedisplaydefault = 1; // May wish to make this configurable in future
             $sql = <<<SQL
 
-             SELECT {$concat} as uniqueid,
-                    groups.id,
+             SELECT groups.id,
                     groups.courseid AS courseid,
                     groups.name,
-                    visibilitysubquery.display
-               FROM {groups} groups
-         INNER JOIN ({$visibilitysql}) visibilitysubquery
-                 ON visibilitysubquery.groupid = groups.id
-                AND groups.courseid {$coursesql}
+                    settings.display
+               FROM mdl_groups groups
+
+          LEFT JOIN (SELECT coursesettings.instanceid AS courseid,
+                            groupsettings.groupid,
+                            groupsettings.display
+                       FROM {block_ajax_marking_groups} AS groupsettings
+                 INNER JOIN {block_ajax_marking} coursesettings
+                         ON (coursesettings.tablename = 'course'
+                             AND coursesettings.id = groupsettings.configid) ) settings
+
+                 ON (groups.courseid = settings.courseid
+                     AND groups.id = settings.groupid)
+              WHERE groups.courseid {$coursesql}
+
 SQL;
-            $params = array_merge($params, $visibilityparams);
 
             $debugquery = block_ajax_marking_debuggable_query($sql, $params);
             $groups = $DB->get_records_sql($sql, $params);

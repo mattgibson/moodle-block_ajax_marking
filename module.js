@@ -1241,7 +1241,7 @@ M.block_ajax_marking.ajax_failure_handler = function(o) {
  * If the AJAX connection times out, this will handle things so we know what happened
  */
 M.block_ajax_marking.ajax_timeout_handler = function() {
-    document.getElementById('status').innerHTML = M.str.block_ajax_marking.connecttimeout;
+    M.block_ajax_marking.show_error(M.str.block_ajax_marking.connecttimeout);
     M.block_ajax_marking.get_current_tab().displaywidget.rebuild_tree_after_ajax();
     YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
 };

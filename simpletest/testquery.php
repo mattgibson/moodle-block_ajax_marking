@@ -472,7 +472,33 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
      */
     private function make_user() {
 
+        global $DB, $CFG;
 
+        static $usernumber;
+
+        if (!$usernumber) {
+            // Number = DB id
+            $usernumber = $DB->get_field_sql("SELECT MAX(id) FROM {user}") + 1;
+        }
+
+
+        $user = new stdClass();
+        $user->firstname = 'User'.$usernumber;
+        $user->username = 'unit-user'.$usernumber;
+        $user->lastname = 'Lastname';
+        $user->email = $user->username . '@example.com';
+        $user->mnethostid = 1;
+        $user->city = 'Test City';
+        $user->country = 'AU';
+        $user->password = md5('password');
+        $user->auth        = 'manual';
+        $user->confirmed   = 1;
+        $user->lang        = $CFG->lang;
+        $user->timemodified= time();
+
+        $user->id = $DB->insert_record("user", $user);
+
+        return $usernumber++;
 
     }
 
