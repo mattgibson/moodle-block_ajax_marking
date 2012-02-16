@@ -55,14 +55,26 @@ M.block_ajax_marking.ajaxgradeurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/
 M.block_ajax_marking.showinheritance = true;
 
 /**
- * This subclasses the textnode to make a node that wil have extra icons to show what the current
- * settings are
+ * This subclasses the textnode to make a node that will have an icon, and methods to get
  */
-M.block_ajax_marking.configtree_node = function(oData , oParent , expanded) {
-    M.block_ajax_marking.configtree_node.superclass.constructor.call(this, oData , oParent , expanded);
+M.block_ajax_marking.tree_node = function(oData , oParent , expanded) {
+    M.block_ajax_marking.tree_node.superclass.constructor.call(this, oData ,
+                                                               oParent , expanded);
 };
 
-YAHOO.lang.extend(M.block_ajax_marking.configtree_node, YAHOO.widget.HTMLNode);
+YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode);
+
+/**
+* This subclasses the treenode to make a node that will have extra icons to show what the current
+* settings are for an item in the config tree
+*/
+M.block_ajax_marking.configtree_node = function(oData , oParent , expanded) {
+    M.block_ajax_marking.configtree_node.superclass.constructor.call(this, oData ,
+                                                                     oParent , expanded);
+};
+
+YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tree_node);
+
 
 /**
  * Get the markup for the configtree node.
@@ -120,9 +132,9 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     // Make display icon
     sb[sb.length] = '<td id="' +  "block_ajax_marking_display_icon" + this.index;
     sb[sb.length] = '" class="ygtvcell ';
-    var displaysetting = M.block_ajax_marking.get_node_setting(this, 'display', null);
+    var displaysetting = this.get_setting('display', null);
     if (displaysetting === null) {
-        displaysetting = M.block_ajax_marking.get_node_setting_default(this, 'display', null);
+        displaysetting = this.get_node_setting_default('display', null);
     }
     if (displaysetting == 1) {
         sb[sb.length] = ' enabled ';
@@ -135,9 +147,9 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     // Make groupsdisplay icon
     sb[sb.length] = '<td id="' + 'block_ajax_marking_groupsdisplay_icon' + this.index;
     sb[sb.length] = '" class="ygtvcell ';
-    var groupsdisplaysetting = M.block_ajax_marking.get_node_setting(this, 'groupsdisplay', null);
+    var groupsdisplaysetting = this.get_setting('groupsdisplay', null);
     if (groupsdisplaysetting === null) {
-        groupsdisplaysetting = M.block_ajax_marking.get_node_setting_default(this, 'groupsdisplay', null);
+        groupsdisplaysetting = this.get_node_setting_default('groupsdisplay', null);
     }
     if (groupsdisplaysetting == 1) {
         sb[sb.length] = ' enabled ';
@@ -228,7 +240,7 @@ M.block_ajax_marking.tree_base = function(treediv) {
 
 // make the base class into a subclass of the YUI treeview widget.
 YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView,
-                  {nodetype: YAHOO.widget.HTMLNode});
+                  {nodetype: M.block_ajax_marking.tree_node});
 
 /**
  * Constructor for the courses tree
@@ -436,7 +448,7 @@ M.block_ajax_marking.tree_base.prototype.request_node_data = function(clickednod
     M.block_ajax_marking.oncompletefunctionholder = callbackfunction;
 
     // The callback function is the SQL GROUP BY for the next set of nodes, so this is separate
-    var nodefilters = M.block_ajax_marking.getnodefilters(clickednode);
+    var nodefilters = clickednode.get_filters();
     nodefilters.push('nextnodefilter=' + clickednode.data.returndata.nextnodefilter);
     nodefilters = nodefilters.join('&');
 
@@ -523,7 +535,7 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
     var popupargs = modulejavascript.pop_up_arguments(node);
 
     // New way:
-    var nodefilters = M.block_ajax_marking.getnodefilters(node);
+    var nodefilters = node.get_filters();
     nodefilters.push('node=' + node.index);
     popupurl += nodefilters.join('&');
 
@@ -541,15 +553,15 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
  *
  * @param node object
  */
-M.block_ajax_marking.getnodefilters = function(node) {
+M.block_ajax_marking.tree_node.prototype.get_filters = function() {
 
     var varname, nodefilters = [];
 
-    if (typeof(node.tree.supplementaryreturndata) !== 'undefined') {
-        nodefilters.push(node.tree.supplementaryreturndata);
+    if (typeof(this.tree.supplementaryreturndata) !== 'undefined') {
+        nodefilters.push(this.tree.supplementaryreturndata);
     }
 
-    var nextparentnode = node;
+    var nextparentnode = this;
 
     while (!nextparentnode.isRoot()) {
         // Add the other item
@@ -679,7 +691,7 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
  */
 M.block_ajax_marking.get_next_nodefilter_from_module = function(modulename, currentfilter) {
 
-    var nextnodefilter = false;
+    var nextnodefilter = null;
     if (typeof(modulename) === 'string') {
         if (typeof(M.block_ajax_marking[modulename]) === 'object') {
             var modulejavascript = M.block_ajax_marking[modulename];
@@ -779,7 +791,7 @@ M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilte
     // Allow override by modules
     moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
                                                                           currentfilter);
-    if (moduleoverride) {
+    if (moduleoverride !== null) {
         return moduleoverride;
     }
 
@@ -824,7 +836,7 @@ M.block_ajax_marking.contextmenu_load_settings = function() {
 
     var target = this.contextEventTarget;
     var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
-    var coursenode = M.block_ajax_marking.get_course_node(clickednode);
+    var coursenode = clickednode.get_course_node();
 
     // Make sure the setting items reflect the current settings as stored in the tree node
     M.block_ajax_marking.contextmenu_make_setting(this, 'display', clickednode);
@@ -876,16 +888,14 @@ M.block_ajax_marking.contextmenu_make_setting = function(contextmenu, settingnam
 
     var menuitem = contextmenu.getItem(settingindex);
     var checked = false;
-    var currentsetting = M.block_ajax_marking.get_node_setting(clickednode,
-                                                               settingname);
+    var currentsetting = clickednode.get_setting(settingname);
     if (currentsetting !== null) {
         checked = currentsetting ? true : false;
         if (M.block_ajax_marking.showinheritance) {
             menuitem.cfg.setProperty("classname", 'notinherited');
         }
     } else {
-        var defaultsetting = M.block_ajax_marking.get_node_setting_default(clickednode,
-                                                                           settingname);
+        var defaultsetting = clickednode.get_node_setting_default(settingname);
         checked = defaultsetting ? true : false;
         if (M.block_ajax_marking.showinheritance) {
 
@@ -943,9 +953,7 @@ M.block_ajax_marking.contextmenu_make_groups = function(coursegroups, menu, clic
             // We want to show that this node inherits it's setting for this group
             // newgroup.classname = 'inherited';
             // Now we need to get the right default for it and show it as checked or not
-            groupdefault = M.block_ajax_marking.get_node_setting_default(clickednode,
-                                                                         'group',
-                                                                         coursenodegroupsettings.id);
+            groupdefault = clickednode.get_node_setting_default('group', coursenodegroupsettings.id);
             newgroup.checked = groupdefault ? true : false;
             if (M.block_ajax_marking.showinheritance) {
                newgroup.classname = 'inherited';
@@ -962,7 +970,7 @@ M.block_ajax_marking.contextmenu_make_groups = function(coursegroups, menu, clic
  * @param {string} settingtype
  * @param {int} groupid
  */
-M.block_ajax_marking.get_node_setting = function(clickednode, settingtype, groupid) {
+M.block_ajax_marking.tree_node.prototype.get_setting = function(settingtype, groupid) {
 
     var setting;
 
@@ -972,11 +980,11 @@ M.block_ajax_marking.get_node_setting = function(clickednode, settingtype, group
 
         case 'groupsdisplay':
 
-            setting = clickednode.data.configdata[settingtype];
+            setting = this.data.configdata[settingtype];
             break;
 
         case 'group':
-            var groups = clickednode.data.configdata.groups;
+            var groups = this.data.configdata.groups;
             if (typeof(groups) !== 'undefined') {
                 var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
                 if (group === null) {
@@ -1096,9 +1104,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
     if (newsetting === null) {
         // get default
 
-        var defaultsetting = M.block_ajax_marking.get_node_setting_default(clickednode,
-                                                                           settingtype,
-                                                                           groupid);
+        var defaultsetting = clickednode.get_node_setting_default(settingtype, groupid);
         //set default
         var checked = defaultsetting ? true : false;
         clickeditem.cfg.setProperty("checked", checked);
@@ -1124,7 +1130,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
     // We also need to update the data held in the tree node, so that future requests are not
     // all the same as this one
     if (settingtype === 'group') {
-        M.block_ajax_marking.update_node_group_setting(clickednode, groupid, newsetting);
+        clickednode.set_group_setting(groupid, newsetting);
     } else {
         clickednode.data.configdata[settingtype] = newsetting;
     }
@@ -1136,42 +1142,42 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
 };
 
 /**
- * Helper function to ge the config groups array or return an empty array if it's not there.
+ * Helper function to get the config groups array or return an empty array if it's not there.
  *
  * @param {YAHOO.widget.Node} node
  * @return {Array}
  */
-M.block_ajax_marking.get_node_config_groups = function(node) {
+M.block_ajax_marking.tree_node.prototype.get_groups_settings = function() {
 
-    if (typeof(node.data.configdata) === 'object' &&
-        typeof(node.data.configdata.groups) === 'object') {
+    if (typeof(this.data.configdata) === 'object' &&
+        typeof(this.data.configdata.groups) === 'object') {
 
-        return node.data.configdata.groups;
+        return this.data.configdata.groups;
     } else {
         return [];
     }
 };
 
 /**
- * Helper function to update the display setting stored in a node of the tree
+ * Helper function to update the display setting stored in a node of the tree, so that the tree
+ * stores the settings as the database currently has them
  *
  * @param {YAHOO.widget.Node} node
  */
-M.block_ajax_marking.update_node_group_setting = function(node, groupid, newsetting) {
+M.block_ajax_marking.tree_node.prototype.set_group_setting = function(groupid, newsetting) {
 
-    var groups = M.block_ajax_marking.get_node_config_groups(node);
+    var groups = this.get_groups_settings();
 
     var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
-    // Possibly no group as we may have had a null setting from the DB. Need to create one
+    // Possibly no group as we may have had a null setting from the DB. Need to create one.
     if (group === null) {
-        // TODO should this be an array?
         group = {};
         group.id = groupid;
         group.display = newsetting;
-        if (typeof(node.data.configdata.groups) === 'undefined') {
-            node.data.configdata.groups = [];
+        if (typeof(this.data.configdata.groups) === 'undefined') {
+            this.data.configdata.groups = [];
         }
-        node.data.configdata.groups.push(group);
+        this.data.configdata.groups.push(group);
     } else {
         group.display = newsetting;
     }
@@ -1182,12 +1188,12 @@ M.block_ajax_marking.update_node_group_setting = function(node, groupid, newsett
  *
  * @param {YAHOO.widget.Node} clickednode
  */
-M.block_ajax_marking.get_course_node = function(clickednode) {
+M.block_ajax_marking.tree_node.prototype.get_course_node = function() {
 
-    if (typeof(clickednode.data.returndata.courseid) !== 'undefined') {
-        return clickednode;
+    if (typeof(this.data.returndata.courseid) !== 'undefined') {
+        return this;
     } else {
-        return clickednode.parent;
+        return this.parent;
     }
 };
 
@@ -1486,9 +1492,8 @@ M.block_ajax_marking.contextmenu_setting_onclick = function(event, otherthing, o
     if (settingtype === 'group') {
         groupid = this.value.groupid;
     }
-    var currentsetting = M.block_ajax_marking.get_node_setting(clickednode, settingtype, groupid);
-    var defaultsetting = M.block_ajax_marking.get_node_setting_default(clickednode,
-                                                                       settingtype, groupid);
+    var currentsetting = clickednode.get_setting(settingtype, groupid);
+    var defaultsetting = clickednode.get_node_setting_default(settingtype, groupid);
     var settingtorequest = 1;
     // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
     // This means we want to assume that it needs to be the opposite of the default if there is
@@ -1546,30 +1551,30 @@ M.block_ajax_marking.get_group_by_id = function(groups, groupid) {
  * @param {string} settingtype
  * @param {int} groupid
  */
-M.block_ajax_marking.get_node_setting_default = function(node, settingtype, groupid) {
+M.block_ajax_marking.tree_node.prototype.get_node_setting_default = function(settingtype, groupid) {
 
     var defaultsetting = null;
 
     /**
      * @var {Array} node.data.returndata
      */
-    if (typeof(node.data.returndata) !== 'undefined' &&
-        typeof(node.data.returndata.courseid) === 'undefined') { // Must be a coursemodule
+    if (typeof(this.data.returndata) !== 'undefined' &&
+        typeof(this.data.returndata.courseid) === 'undefined') { // Must be a coursemodule
 
         switch (settingtype) {
 
             case 'group':
-                var groups = node.parent.data.configdata.groups;
+                var groups = this.parent.data.configdata.groups;
                 var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
                 defaultsetting = group.display;
                 break;
 
             case 'display':
-                defaultsetting = node.parent.data.configdata.display;
+                defaultsetting = this.parent.data.configdata.display;
                 break;
 
             case 'groupsdisplay':
-                defaultsetting = node.parent.data.configdata.groupsdisplay;
+                defaultsetting = this.parent.data.configdata.groupsdisplay;
                 break;
         }
     }
@@ -1668,7 +1673,7 @@ M.block_ajax_marking.contextmenu_update_child_nodes = function(node, settingtype
                 break;
 
             case 'group':
-                M.block_ajax_marking.update_node_group_setting(childnodes[i], groupid, null);
+                childnodes[i].set_group_setting(groupid, null);
                 break;
 
             default:
@@ -1691,3 +1696,4 @@ M.block_ajax_marking.config_tree.prototype.node_label = function(text, count) {
            '<div class="node-icon inherit-icon"></div>' +
            '<strong>('+count+')</strong> '+text;
 };
+
