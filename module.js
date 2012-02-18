@@ -62,7 +62,7 @@ M.block_ajax_marking = {
      * Change to true to see what settings are null (inherited) by having them marked in grey on the
      * context menu
      */
-    showinheritance : true,
+    showinheritance : true
 
 };
 
