@@ -386,9 +386,9 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         modulename = (typeof(nodedata.displaydata.modulename) !== 'undefined') ?
                 nodedata.displaydata.modulename : false;
         newnode.data.returndata.nextnodefilter = this.nextnodetype(currentfilter,
-                                                               modulename,
-                                                               nodedata.configdata,
-                                                               newnode);
+                                                                   modulename,
+                                                                   nodedata.configdata,
+                                                                   newnode);
 
         // Set the node to load data dynamically, unless it has not sent a callback i.e. it's a
         // final node
@@ -404,48 +404,7 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         }
 
         // If the node has a time (of oldest submission) show urgency by adding a background colour
-        if (typeof(nodedata.displaydata.time) !== 'undefined') {
-
-            iconstyle = '';
-
-            seconds = currenttime - parseInt(nodedata.displaydata.time, 10);
-
-            if (seconds < 21600) {
-                // less than 6 hours
-                iconstyle = 'icon-user-one';
-
-            } else if (seconds < 43200) {
-                // less than 12 hours
-                iconstyle = 'icon-user-two';
-
-            } else if (seconds < 86400) {
-                // less than 24 hours
-                iconstyle = 'icon-user-three';
-
-            } else if (seconds < 172800) {
-                // less than 48 hours
-                iconstyle = 'icon-user-four';
-
-            } else if (seconds < 432000) {
-                // less than 5 days
-                iconstyle = 'icon-user-five';
-
-            } else if (seconds < 864000) {
-                // less than 10 days
-                iconstyle = 'icon-user-six';
-
-            } else if (seconds < 1209600) {
-                // less than 2 weeks
-                iconstyle = 'icon-user-seven';
-
-            } else {
-                // more than 2 weeks
-                iconstyle = 'icon-user-eight';
-            }
-
-            newnode.labelStyle = iconstyle;
-        }
-
+        newnode.set_time_style();
     }
 };
 
@@ -1927,8 +1886,8 @@ M.block_ajax_marking.tree_node.prototype.get_calculated_groupsdisplay_setting = 
     var node = this;
 
     while (groupsdisplay === null && !node.isRoot()) {
-        groupsdisplay = this.get_config_setting('groupsdisplay');
-        node = this.parentNode;
+        groupsdisplay = node.get_config_setting('groupsdisplay');
+        node = node.parent;
     }
 
     if (groupsdisplay === null) {
@@ -1936,4 +1895,56 @@ M.block_ajax_marking.tree_node.prototype.get_calculated_groupsdisplay_setting = 
     }
 
     return groupsdisplay;
+};
+
+/**
+ * Takes the existing time and makes a css class based on it so we can see how late work is
+ */
+M.block_ajax_marking.tree_node.prototype.set_time_style = function() {
+
+    var iconstyle = '',
+        seconds,
+        currenttime;
+
+    if (typeof(this.displaydata.time) !== 'undefined') {
+
+        seconds = currenttime - parseInt(this.displaydata.time, 10);
+
+        if (seconds < 21600) {
+            // less than 6 hours
+            iconstyle = 'icon-user-one';
+
+        } else if (seconds < 43200) {
+            // less than 12 hours
+            iconstyle = 'icon-user-two';
+
+        } else if (seconds < 86400) {
+            // less than 24 hours
+            iconstyle = 'icon-user-three';
+
+        } else if (seconds < 172800) {
+            // less than 48 hours
+            iconstyle = 'icon-user-four';
+
+        } else if (seconds < 432000) {
+            // less than 5 days
+            iconstyle = 'icon-user-five';
+
+        } else if (seconds < 864000) {
+            // less than 10 days
+            iconstyle = 'icon-user-six';
+
+        } else if (seconds < 1209600) {
+            // less than 2 weeks
+            iconstyle = 'icon-user-seven';
+
+        } else {
+            // more than 2 weeks
+            iconstyle = 'icon-user-eight';
+        }
+
+        this.labelStyle = iconstyle;
+    }
+
+
 };
