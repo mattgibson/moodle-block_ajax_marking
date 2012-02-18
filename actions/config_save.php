@@ -34,12 +34,18 @@ global $DB;
 require_login();
 
 // Get POST data
-$menuitemindex = required_param('menuitemindex', PARAM_INT);
-$tablename     = required_param('tablename',     PARAM_ALPHAEXT);
-$instanceid    = required_param('instanceid',    PARAM_INT);
-$settingtype   = required_param('settingtype',   PARAM_ALPHAEXT);
-$settingvalue  = optional_param('settingvalue',  null, PARAM_INT); // null = inherit
-$groupid       = optional_param('groupid', 0,    PARAM_INT);
+$tablename     = required_param('tablename',        PARAM_ALPHAEXT);
+$instanceid    = required_param('instanceid',       PARAM_INT);
+$settingtype   = required_param('settingtype',      PARAM_ALPHAEXT);
+$settingvalue  = optional_param('settingvalue',     null, PARAM_INT); // null = inherit
+$groupid       = optional_param('groupid', 0,       PARAM_INT);
+// These two are passed through so that the right bit of the tree gets fixed on the way back
+$menuitemindex = optional_param('menuitemindex', 0, PARAM_INT);
+$nodeindex        = optional_param('nodeindex', 0,  PARAM_INT);
+
+if ($nodeindex === 0 && $menuitemindex === 0) {
+    die ('Eitehr menuitem index or node index must be provided');
+}
 
 // Check for validity
 $allowedtables = array('course', 'course_modules');
@@ -168,13 +174,14 @@ switch ($settingtype) {
         }
 
         break;
-
 }
 
 $response = new stdClass();
 $response->configsave = array('menuitemindex' => $menuitemindex,
-                              'settingtype' => $settingtype,
-                              'success' => (bool)$success,
-                              'newsetting' => $settingvalue);
+                              'settingtype'   => $settingtype,
+                              'success'       => (bool)$success,
+                              'newsetting'    => $settingvalue,
+                              'groupid'       => $groupid,
+                              'nodeindex'     => $nodeindex);
 
 echo json_encode($response);

@@ -54,10 +54,18 @@ M.block_ajax_marking.ajaxgradeurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/
  */
 M.block_ajax_marking.showinheritance = true;
 
-/**
- * This subclasses the textnode to make a node that will have an icon, and methods to get
- */
 M.block_ajax_marking.tree_node = function(oData , oParent , expanded) {
+
+    // Prevents IDE complaining abut undefined vars
+    this.data = {};
+    this.data.returndata = {};
+    this.data.displaydata = {};
+    this.data.popupstuff = {};
+    this.data.configdata = {};
+
+    /**
+     * This subclasses the textnode to make a node that will have an icon, and methods to get
+     */
     M.block_ajax_marking.tree_node.superclass.constructor.call(this, oData ,
                                                                oParent , expanded);
 };
@@ -84,9 +92,12 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
  */
 M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
 
-    var sb = [], i;
+    var sb = [],
+        i;
 
-    sb[sb.length] = '<table id="ygtvtableel' + this.index + '" border="0" cellpadding="0" cellspacing="0" class="ygtvtable ygtvdepth' + this.depth;
+    sb[sb.length] = '<table id="ygtvtableel' + this.index +
+                    '" border="0" cellpadding="0" cellspacing="0" class="ygtvtable ygtvdepth' +
+                    this.depth;
     sb[sb.length] = ' ygtv-' + (this.expanded?'expanded':'collapsed');
     if (this.enableHighlight) {
         sb[sb.length] = ' ygtv-highlight' + this.highlightState;
@@ -99,7 +110,8 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
 
     // Spacers cells to make indents
     for (i = 0; i < this.depth; ++i) {
-        sb[sb.length] = '<td class="ygtvcell ' + this.getDepthStyle(i) + '"><div class="ygtvspacer"></div></td>';
+        sb[sb.length] = '<td class="ygtvcell ' + this.getDepthStyle(i) +
+                        '"><div class="ygtvspacer"></div></td>';
     }
 
     if (this.hasIcon) {
@@ -115,26 +127,41 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     sb[sb.length] = this.contentStyle  + ' ygtvcontent" ';
     sb[sb.length] = (this.nowrap) ? ' nowrap="nowrap" ' : '';
     sb[sb.length] = ' colspan="4">';
+
+    sb[sb.length] = '<table class="ygtvtable">'; //new
+    sb[sb.length] = '<tr >';
+    sb[sb.length] = '<td class="ygtvcell" colspan="5">';
+
     sb[sb.length] = this.getContentHtml();
+
     sb[sb.length] = '</td>';
     sb[sb.length] = '</tr>';
+//
+//
+//
+//
+//    sb[sb.length] = '</table>'; //new
+
+//    sb[sb.length] = '</td>';
+//    sb[sb.length] = '</tr>';
 
     // Info row
-    sb[sb.length] = '<tr class="ygtvrow block_aax_marking_info_row">';
+    sb[sb.length] = '<tr class="block_ajax_marking_info_row">';
 
     // depth +1 so we indent. needs dotted line background
-    for (i = 0; i < this.depth; ++i) {
-        sb[sb.length] = '<td class="ygtvcell ' + this.getDepthStyle(i) + '"><div class="ygtvspacer"></div></td>';
-    }
-    var depthclass =  (this.nextSibling) ? "ygtvdepthcell" : "ygtvblankdepthcell";
-    sb[sb.length] = '<td class="ygtvcell '+depthclass+'"><div class="ygtvspacer"></div></td>';
+//    for (i = 0; i < this.depth; ++i) {
+//        sb[sb.length] = '<td class="ygtvcell ' + this.getDepthStyle(i) +
+//                        '"><div class="ygtvspacer"></div></td>';
+//    }
+//    var depthclass =  (this.nextSibling) ? "ygtvdepthcell" : "ygtvblankdepthcell";
+//    sb[sb.length] = '<td class="ygtvcell '+depthclass+'"><div class="ygtvspacer"></div></td>';
 
     // Make display icon
     sb[sb.length] = '<td id="' +  "block_ajax_marking_display_icon" + this.index;
     sb[sb.length] = '" class="ygtvcell ';
-    var displaysetting = this.get_setting('display', null);
+    var displaysetting = this.get_config_setting('display');
     if (displaysetting === null) {
-        displaysetting = this.get_node_setting_default('display', null);
+        displaysetting = this.get_default_setting('display');
     }
     if (displaysetting == 1) {
         sb[sb.length] = ' enabled ';
@@ -147,9 +174,9 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     // Make groupsdisplay icon
     sb[sb.length] = '<td id="' + 'block_ajax_marking_groupsdisplay_icon' + this.index;
     sb[sb.length] = '" class="ygtvcell ';
-    var groupsdisplaysetting = this.get_setting('groupsdisplay', null);
+    var groupsdisplaysetting = this.get_config_setting('groupsdisplay');
     if (groupsdisplaysetting === null) {
-        groupsdisplaysetting = this.get_node_setting_default('groupsdisplay', null);
+        groupsdisplaysetting = this.get_default_setting('groupsdisplay');
     }
     if (groupsdisplaysetting == 1) {
         sb[sb.length] = ' enabled ';
@@ -220,9 +247,16 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     // Spacer cell
     sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
 
+    sb[sb.length] = '</tr>';
     sb[sb.length] = '</table>';
 
-    return sb.join("");
+
+    sb[sb.length] = '</td>';
+    sb[sb.length] = '</tr>';
+    sb[sb.length] = '</table>';
+
+    var htmlstring = sb.join("");
+    return htmlstring;
 
 };
 
@@ -345,21 +379,26 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         // silent errors
         modulename = (typeof(nodedata.displaydata.modulename) !== 'undefined') ?
                 nodedata.displaydata.modulename : false;
-        nodedata.returndata.nextnodefilter = this.nextnodetype(currentfilter, modulename, nodedata.configdata);
+        nodedata.returndata.nextnodefilter = this.nextnodetype(currentfilter,
+                                                               modulename,
+                                                               nodedata.configdata);
 
-        var nodehasacount = typeof(nodedata.displaydata.itemcount) !== 'undefined';
-        var countismorethanone = nodedata.displaydata.itemcount > 1;
-        var islastnode = nodedata.returndata.nextnodefilter !== false;
-        if (nodehasacount && (countismorethanone || islastnode)) {
+        // currently, itemcount is null for config nodes
+//        var itemcount = ( !== 'undefined') ?
+//                        nodedata.displaydata.itemcount : 1;
+        var islastnode = (nodedata.returndata.nextnodefilter === false);
+        // We want counts for all nodes that have childnodes and leaf nodes with more than one
+        if (typeof(nodedata.displaydata.itemcount) !== 'undefined' &&
+            (nodedata.displaydata.itemcount > 1 || !islastnode)) {
             nodedata.html = this.node_label(nodedata.html, nodedata.displaydata.itemcount);
         }
 
         newnode = new this.nodetype(nodedata, M.block_ajax_marking.parentnodeholder, false);
 
-        // set the node to load data dynamically, unless it has not sent a callback i.e. it's a
+        // Set the node to load data dynamically, unless it has not sent a callback i.e. it's a
         // final node
         if (typeof(nodedata.returndata.nextnodefilter) !== 'undefined' &&
-                nodedata.returndata.nextnodefilter !== false) {
+            nodedata.returndata.nextnodefilter !== false) {
 
             newnode.setDynamicLoad(this.request_node_data);
         }
@@ -413,7 +452,6 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         }
 
     }
-
 };
 
 /**
@@ -427,6 +465,7 @@ M.block_ajax_marking.tree_base.prototype.rebuild_tree_after_ajax = function() {
         // Take care - this will be executed in the wrong scope if not careful. it needs this to
         // be the tree
         M.block_ajax_marking.oncompletefunctionholder();
+        M.block_ajax_marking.oncompletefunctionholder = ''; // prevent it firing next time
     }
     // the main tree will need the counts updated, but not the config tree
     this.update_parent_node(M.block_ajax_marking.parentnodeholder);
@@ -507,26 +546,97 @@ M.block_ajax_marking.tree_base.prototype.update_parent_node = function(parentnod
 
 };
 
+/**
+ * Handles the clicks on the config tree icons so that they can toggle settings state
+ *
+ * @param {object} data
+ */
+M.block_ajax_marking.config_treenodeonclick = function(data) {
+
+    var clickednode = data.node,
+        settingtype;
+
+    YAHOO.util.Event.stopEvent(data.event); // Stop it from expanding the tree
+
+    // is the clicked thing an icon that needs to trigger some thing?
+    var target = YAHOO.util.Event.getTarget(data.event); // the spacer <div>
+    target = target.parentNode; // the <td>
+    var coursenodeclicked = false;
+    if (typeof(clickednode.data.returndata.courseid) !== 'undefined') {
+        coursenodeclicked = true;
+    }
+
+    if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_display_icon')) {
+        settingtype = 'display';
+    } else if(YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_groupsdisplay_icon')) {
+        settingtype = 'groupsdisplay';
+    } else if (YAHOO.util.Dom.hasClass(target,'block_ajax_marking_groups_icon')) {
+        settingtype = 'groups';
+        // TODO make context menu just for groups
+        return false;
+    } else {
+        // Not one of the ones we want. ignore this click
+        return false;
+    }
+
+    var currentsetting = clickednode.get_config_setting(settingtype);
+    var defaultsetting = clickednode.get_default_setting(settingtype);
+    var settingtorequest = 1;
+    // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
+    // This means we want to assume that it needs to be the opposite of the default if there is
+    // no current setting.
+    if (currentsetting === null) {
+        settingtorequest = defaultsetting ? 0 : 1;
+    } else {
+        // There is an existing setting. The user toggled from the default last time, so
+        // will want to toggle back to default. No point deliberately making a setting when we can
+        // just use the default, leaving more flexibility if the defaults are changed (rare)
+        settingtorequest = null;
+    }
+
+    // do the AJAX request for the settings change
+    // gather data
+    var requestdata = {};
+    requestdata.nodeindex = clickednode.index;
+    requestdata.settingtype = settingtype;
+    if (settingtorequest !== null) { // leaving out defaults to null on the other end
+        requestdata.settingvalue = settingtorequest;
+    }
+    requestdata.tablename = coursenodeclicked ? 'course' : 'course_modules';
+    requestdata.instanceid = coursenodeclicked ?
+                             clickednode.data.returndata.courseid :
+                             clickednode.data.returndata.coursemoduleid;
+
+    // send request
+    M.block_ajax_marking.save_setting_ajax_request(requestdata);
+
+
+    return false;
+};
+
 
 /**
  * OnClick handler for the nodes of the tree. Attached to the root node in order to catch all events
  * via bubbling. Deals with making the marking popup appear.
+ *
+ * @param {object} oArgs from the YUI event
  */
 M.block_ajax_marking.treenodeonclick = function(oArgs) {
 
     // refs save space
+    /**
+     * @var M.block_ajax_marking.tree_node
+     */
     var node = oArgs.node;
     var mbam = window.M.block_ajax_marking;
 
     // we only need to do anything if the clicked node is one of
     // the final ones with no children to fetch.
-    if (typeof(node.data.returndata.nextnodefilter) !== 'undefined'
-            && node.data.returndata.nextnodefilter !== false) {
-
+    if (node.get_nextnodefilter() !== false) {
         return false;
     }
 
-    // Keep track of what we clicked
+    // Keep track of what we clicked so the user won't wonder what's in the pop up
     node.toggleHighlight();
 
     // Get window size, etc
@@ -548,10 +658,9 @@ M.block_ajax_marking.treenodeonclick = function(oArgs) {
 
 /**
  * Recursive function to get the return data from this node and all its parents. Each parent
- * represents a filter e.g. 'only this course', so we need to send the id numbers and names for the SQL to use in WHERE
- * clauses.
+ * represents a filter e.g. 'only this course', so we need to send the id numbers and names for the
+ * SQL to use in WHERE clauses.
  *
- * @param node object
  */
 M.block_ajax_marking.tree_node.prototype.get_filters = function() {
 
@@ -640,7 +749,9 @@ M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
  * @param modulename can be false or undefined if not there
  * @return string|bool false if nothing
  */
-M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilter, modulename, configdata) {
+M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilter,
+                                                                    modulename,
+                                                                    configdata) {
     // if nothing else is found, make the node into a final one with no children
     var nextnodefilter = false,
         moduleoverride;
@@ -743,7 +854,9 @@ M.block_ajax_marking.config_tree.prototype.update_parent_node = function () {};
  * @param modulename can be false or undefined if not there
  * @return string|bool false if nothing
  */
-M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilter, modulename, configdata) {
+M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilter,
+                                                                    modulename,
+                                                                    configdata) {
     // if nothing else is found, make the node into a final one with no children
     var nextnodefilter = false;
 
@@ -888,14 +1001,14 @@ M.block_ajax_marking.contextmenu_make_setting = function(contextmenu, settingnam
 
     var menuitem = contextmenu.getItem(settingindex);
     var checked = false;
-    var currentsetting = clickednode.get_setting(settingname);
+    var currentsetting = clickednode.get_config_setting(settingname);
     if (currentsetting !== null) {
         checked = currentsetting ? true : false;
         if (M.block_ajax_marking.showinheritance) {
             menuitem.cfg.setProperty("classname", 'notinherited');
         }
     } else {
-        var defaultsetting = clickednode.get_node_setting_default(settingname);
+        var defaultsetting = clickednode.get_default_setting(settingname);
         checked = defaultsetting ? true : false;
         if (M.block_ajax_marking.showinheritance) {
 
@@ -942,7 +1055,8 @@ M.block_ajax_marking.contextmenu_make_groups = function(coursegroups, menu, clic
         }
 
         // Make sure the items' appearance reflect their current settings
-        if (coursenodegroupsettings.display === "1") { // JSON seems to like sending back integerss as strings
+        // JSON seems to like sending back integers as strings
+        if (coursenodegroupsettings.display === "1") {
             // Make sure it is checked
             newgroup.checked = true;
 
@@ -953,7 +1067,7 @@ M.block_ajax_marking.contextmenu_make_groups = function(coursegroups, menu, clic
             // We want to show that this node inherits it's setting for this group
             // newgroup.classname = 'inherited';
             // Now we need to get the right default for it and show it as checked or not
-            groupdefault = clickednode.get_node_setting_default('group', coursenodegroupsettings.id);
+            groupdefault = clickednode.get_default_setting('group', coursenodegroupsettings.id);
             newgroup.checked = groupdefault ? true : false;
             if (M.block_ajax_marking.showinheritance) {
                newgroup.classname = 'inherited';
@@ -966,13 +1080,13 @@ M.block_ajax_marking.contextmenu_make_groups = function(coursegroups, menu, clic
 /**
  * Gets the current setting for the clicked node
  *
- * @param {object} clickednode
  * @param {string} settingtype
  * @param {int} groupid
  */
-M.block_ajax_marking.tree_node.prototype.get_setting = function(settingtype, groupid) {
+M.block_ajax_marking.tree_node.prototype.get_config_setting = function(settingtype, groupid) {
 
-    var setting;
+    var setting,
+        errormessage;
 
     switch (settingtype) {
 
@@ -984,6 +1098,12 @@ M.block_ajax_marking.tree_node.prototype.get_setting = function(settingtype, gro
             break;
 
         case 'group':
+
+            if (typeof(groupid) === 'undefined') {
+                errormessage = 'Trying to get a group setting without specifying groupid';
+                M.block_ajax_marking.show_error(errormessage);
+            }
+
             var groups = this.data.configdata.groups;
             if (typeof(groups) !== 'undefined') {
                 var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
@@ -1002,7 +1122,7 @@ M.block_ajax_marking.tree_node.prototype.get_setting = function(settingtype, gro
 
     }
 
-    // Moodle sends the settings as strings, but we want integerss so we can do proper comparisons
+    // Moodle sends the settings as strings, but we want integers so we can do proper comparisons
     if (setting !== null) {
         setting = parseInt(setting);
     }
@@ -1022,6 +1142,7 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
 
     var errormessage;
     var ajaxresponsearray;
+    var currenttab = M.block_ajax_marking.get_current_tab();
 
     try {
         ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
@@ -1052,7 +1173,7 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
             // M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content);
 
         } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
-            M.block_ajax_marking.get_current_tab().displaywidget.build_nodes(ajaxresponsearray.nodes);
+            currenttab.displaywidget.build_nodes(ajaxresponsearray.nodes);
 
         } else if (typeof(ajaxresponsearray['configsave']) !== 'undefined') {
 
@@ -1061,14 +1182,20 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
                 // TODO handle error gracefully
                 // TODO deal with exceptions
             } else {
-                // We want to toggle the display of the menu item by setting it to the new value.
-                // Don't assume that the default hasn't changed.
-                M.block_ajax_marking.contextmenu_ajax_callback(ajaxresponsearray);
+
+                // Maybe it's a contextmenu settings change, maybe it's an icon click.
+                if (ajaxresponsearray['configsave'].menuitemindex) {
+                    // We want to toggle the display of the menu item by setting it to
+                    // the new value. Don't assume that the default hasn't changed.
+                    M.block_ajax_marking.contextmenu_ajax_callback(ajaxresponsearray);
+                } else { // assume a nodeid
+                    M.block_ajax_marking.config_icon_success_handler(ajaxresponsearray);
+                }
             }
         }
     }
 
-    M.block_ajax_marking.get_current_tab().displaywidget.rebuild_tree_after_ajax();
+    currenttab.displaywidget.rebuild_tree_after_ajax();
     YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
 };
 
@@ -1104,7 +1231,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
     if (newsetting === null) {
         // get default
 
-        var defaultsetting = clickednode.get_node_setting_default(settingtype, groupid);
+        var defaultsetting = clickednode.get_default_setting(settingtype, groupid);
         //set default
         var checked = defaultsetting ? true : false;
         clickeditem.cfg.setProperty("checked", checked);
@@ -1112,20 +1239,20 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
         if (M.block_ajax_marking.showinheritance) {
             clickeditem.cfg.setProperty("classname", 'inherited');
         }
-    } else if (newsetting == 1) {
+    } else if (newsetting === 1) {
         clickeditem.cfg.setProperty("checked", true);
         if (M.block_ajax_marking.showinheritance) {
             clickeditem.cfg.setProperty("classname", 'notinherited');
         }
-    } else if (newsetting == 0) {
+    } else if (newsetting === 0) {
         clickeditem.cfg.setProperty("checked", false);
         if (M.block_ajax_marking.showinheritance) {
             clickeditem.cfg.setProperty("classname", 'notinherited');
         }
     }
 
-    // Update the menu item display value so that if it is clicked again, it will know not to send the
-    // same ajax request and will toggle properly
+    // Update the menu item display value so that if it is clicked again, it will know
+    // not to send the same ajax request and will toggle properly
     clickeditem.value.display = newsetting;
     // We also need to update the data held in the tree node, so that future requests are not
     // all the same as this one
@@ -1137,17 +1264,16 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
 
     // Update any child nodes to be 'inherited' now that this will be the way the settings
     // are on the server
-    M.block_ajax_marking.contextmenu_update_child_nodes(clickednode, settingtype, groupid);
+    clickednode.update_child_nodes_config_settings(settingtype, groupid);
 
 };
 
 /**
  * Helper function to get the config groups array or return an empty array if it's not there.
  *
- * @param {YAHOO.widget.Node} node
  * @return {Array}
  */
-M.block_ajax_marking.tree_node.prototype.get_groups_settings = function() {
+M.block_ajax_marking.tree_node.prototype.get_groups = function() {
 
     if (typeof(this.data.configdata) === 'object' &&
         typeof(this.data.configdata.groups) === 'object') {
@@ -1159,14 +1285,22 @@ M.block_ajax_marking.tree_node.prototype.get_groups_settings = function() {
 };
 
 /**
+ * Saves a new setting into the nodes internal store, so we can keep track of things
+ */
+M.block_ajax_marking.tree_node.prototype.set_config_setting = function(settingtype, newsetting) {
+    this.data.configdata[settingtype] = newsetting;
+};
+
+/**
  * Helper function to update the display setting stored in a node of the tree, so that the tree
  * stores the settings as the database currently has them
  *
- * @param {YAHOO.widget.Node} node
+ * @param {YAHOO.widget.Node} groupid
+ * @param {int} newsetting 1 or 0 or null
  */
 M.block_ajax_marking.tree_node.prototype.set_group_setting = function(groupid, newsetting) {
 
-    var groups = this.get_groups_settings();
+    var groups = this.get_groups();
 
     var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
     // Possibly no group as we may have had a null setting from the DB. Need to create one.
@@ -1186,7 +1320,6 @@ M.block_ajax_marking.tree_node.prototype.set_group_setting = function(groupid, n
 /**
  * If the clicked node is a course node, it is returned, otherwise the parent node is sent back
  *
- * @param {YAHOO.widget.Node} clickednode
  */
 M.block_ajax_marking.tree_node.prototype.get_course_node = function() {
 
@@ -1194,6 +1327,18 @@ M.block_ajax_marking.tree_node.prototype.get_course_node = function() {
         return this;
     } else {
         return this.parent;
+    }
+};
+
+/**
+ * Getter for the name of the filter that will supply the child nodes when the request is sent
+ */
+M.block_ajax_marking.tree_node.prototype.get_nextnodefilter = function() {
+
+    if (typeof(this.data.returndata.nextnodefilter) !== 'undefined') {
+        return this.data.returndata.nextnodefilter;
+    } else {
+        return false;
     }
 };
 
@@ -1307,6 +1452,56 @@ M.block_ajax_marking.callback = {
 };
 
 /**
+ * Makes the show icon reflect the state of the settings
+ */
+M.block_ajax_marking.tree_node.prototype.toggle_show_icon = function() {
+    var iconid = '';
+    var icon = document.getElementById(iconid);
+    if (this.get_config_setting('display')) {
+        // set element to
+    }
+};
+
+
+/**
+ * Handles the process of updating the node's settings and altering the display of the clicked icon.
+ */
+M.block_ajax_marking.config_icon_success_handler = function(ajaxresponsearray) {
+
+    var settingtype = ajaxresponsearray['configsave'].settingtype,
+        nodeindex = ajaxresponsearray['configsave'].nodeindex,
+        newsetting = ajaxresponsearray['configsave'].newsetting,
+        groupid = ajaxresponsearray['configsave'].groupid,
+        menu;
+
+    var configtab = M.block_ajax_marking.get_current_tab();
+    var clickednode = configtab.displaywidget.getNodeByIndex(nodeindex);
+
+    // Update the node's icon to reflect the new status
+    if (settingtype === 'group') {
+        clickednode.set_group_setting(groupid, newsetting);
+    } else {
+        clickednode.set_config_setting(settingtype, newsetting);
+    }
+
+    // Update the menu item display value so that if it is clicked again, it will know not to
+    // send the same ajax request and will toggle properly
+
+    // Update any child nodes to be 'inherited' now that this will be the way the settings
+    // are on the server
+    clickednode.update_child_nodes_config_settings(settingtype, groupid);
+
+    // If the thing has just been hidden, we need to remove the node from the tree
+//    var defaultsetting = clickednode.get_default_setting(settingtype, groupid);
+//
+//    if (settingtype == 'disply' &&
+//        (newsetting === 0 || (newsetting === null && defaultsetting == 0))) {
+//        M.block_ajax_marking.remove_node_from_current_tab(clickednode.id);
+//    }
+
+};
+
+/**
  * Returns the currently selected node from the tabview widget
  *
  * @return object
@@ -1338,7 +1533,8 @@ M.block_ajax_marking.remove_node_from_current_tab = function(nodeid) {
 M.block_ajax_marking.initialise = function() {
 
     YUI().use('tabview', function(Y) {
-        M.block_ajax_marking.tabview = new Y.TabView({ // this waits till much too late.
+        // this waits till much too late. Can we trigger earlier?
+        M.block_ajax_marking.tabview = new Y.TabView({
             srcNode: '#treetabs'
         });
 
@@ -1365,6 +1561,9 @@ M.block_ajax_marking.initialise = function() {
             'content':'<div id="configtree" class="ygtv-highlight"></div>'});
         M.block_ajax_marking.tabview.add(configtab);
         configtab.displaywidget = new M.block_ajax_marking.config_tree();
+        configtab.displaywidget.subscribe('clickEvent',
+                                          M.block_ajax_marking.config_treenodeonclick);
+
 
         // Make the context menu for the config tree
         // Attach a listener to the root div which will activate the menu
@@ -1415,6 +1614,8 @@ M.block_ajax_marking.initialise = function() {
         M.block_ajax_marking.contextmenu.subscribe("beforeHide",
                                                    M.block_ajax_marking.contextmenu_unhighlight);
 
+
+
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function() {
 
@@ -1455,7 +1656,7 @@ M.block_ajax_marking.initialise = function() {
 /**
  * This is to remove the highlight from the tree so we don't have any nodes highlighted whilst the
  * context menu is not shown. The idea of the highlights is so that you know what item you are
- * adjusting the settings for
+ * adjusting the settings for.
  */
 M.block_ajax_marking.contextmenu_unhighlight = function() {
 
@@ -1492,8 +1693,8 @@ M.block_ajax_marking.contextmenu_setting_onclick = function(event, otherthing, o
     if (settingtype === 'group') {
         groupid = this.value.groupid;
     }
-    var currentsetting = clickednode.get_setting(settingtype, groupid);
-    var defaultsetting = clickednode.get_node_setting_default(settingtype, groupid);
+    var currentsetting = clickednode.get_config_setting(settingtype, groupid);
+    var defaultsetting = clickednode.get_default_setting(settingtype, groupid);
     var settingtorequest = 1;
     // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
     // This means we want to assume that it needs to be the opposite of the default if there is
@@ -1521,7 +1722,7 @@ M.block_ajax_marking.contextmenu_setting_onclick = function(event, otherthing, o
                              clickednode.data.returndata.coursemoduleid;
 
     // send request
-    M.block_ajax_marking.contextmenu_ajax_request(requestdata);
+    M.block_ajax_marking.save_setting_ajax_request(requestdata);
 
 };
 
@@ -1547,11 +1748,10 @@ M.block_ajax_marking.get_group_by_id = function(groups, groupid) {
 /**
  * Finds out what the default is for this group node, if it has no display setting
  *
- * @param {object} node
  * @param {string} settingtype
  * @param {int} groupid
  */
-M.block_ajax_marking.tree_node.prototype.get_node_setting_default = function(settingtype, groupid) {
+M.block_ajax_marking.tree_node.prototype.get_default_setting = function(settingtype, groupid) {
 
     var defaultsetting = null;
 
@@ -1603,7 +1803,7 @@ M.block_ajax_marking.tree_node.prototype.get_node_setting_default = function(set
  *
  * @param {object} requestdata
  */
-M.block_ajax_marking.contextmenu_ajax_request = function(requestdata) {
+M.block_ajax_marking.save_setting_ajax_request = function(requestdata) {
 
     // Turn our object into a string that the AJAX stuff likes.
     var poststring;
@@ -1645,29 +1845,29 @@ M.block_ajax_marking.grading_unhighlight = function (node) {
 /**
  * When settings are changed on a course node, the child nodes (coursemodules) need to know about
  * it so that subsequent right-clicks show settings as they currently are, not how the outdated
- * original data was from when the tree first loaded
+ * original data was from when the tree first loaded. The principle is that changing a course
+ * resets all child nodes to the default.
  *
- * @param {object} node
  * @param {string} settingtype either display, groupsdisplay or group
  * @param {int} groupid
  */
-M.block_ajax_marking.contextmenu_update_child_nodes = function(node, settingtype, groupid) {
+M.block_ajax_marking.tree_node.prototype.update_child_nodes_config_settings = function(settingtype,
+                                                                                       groupid) {
 
     // get children
-    var childnodes = node.children;
+    var childnodes = this.children;
     var groups;
 
     // loop
     for (var i = 0; i < childnodes.length; i++) {
         // if the child is a node, recurse
         if (childnodes[i].children.length > 0) {
-            M.block_ajax_marking.contextmenu_update_child_nodes(childnodes[i], settingtype, groupid);
+            childnodes[i].update_child_nodes_config_settings(settingtype, groupid);
         }
         // update node config data
         switch (settingtype) {
 
             case 'display':
-
             case 'groupsdisplay':
                 childnodes[i].data.configdata[settingtype] = null;
                 break;
@@ -1686,7 +1886,6 @@ M.block_ajax_marking.contextmenu_update_child_nodes = function(node, settingtype
  *
  * @param {string} text
  * @param {int} count
- * @param {string} classes
  * @return string
  */
 M.block_ajax_marking.config_tree.prototype.node_label = function(text, count) {
