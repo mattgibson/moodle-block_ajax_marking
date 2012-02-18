@@ -26,33 +26,45 @@
 
 "use strict";
 
-if (typeof(M.block_ajax_marking) === 'undefined') {
-    M.block_ajax_marking = {};
-}
+M.block_ajax_marking = {
 
-// used to determine whether to log everything to console
-// const debugdeveloper = 38911;
-// const debugall       = 6143;
+    // used to determine whether to log everything to console
+    // const debugdeveloper = 38911;
+    // const debugall       = 6143;
 
-//this holds the parent node so it can be referenced by other functions
-M.block_ajax_marking.parentnodeholder = '';
-// this holds the callback function of the parent node so it can be called once all the child
-// nodes have been built
-M.block_ajax_marking.oncompletefunctionholder = '';
-// this is the variable used by the openPopup function on the front page.
-M.block_ajax_marking.popupholder = '';
-// this holds the timer that keeps trying to add the onclick stuff to the pop ups as the pop up
-// loads
-M.block_ajax_marking.popuptimer = '';
+    /**
+     * This holds the parent node so it can be referenced by other functions
+     */
+    parentnodeholder : '',
 
-M.block_ajax_marking.ajaxnodesurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/ajax_nodes.php';
-M.block_ajax_marking.ajaxgradeurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/grading_popup.php';
+    /**
+     * This holds the callback function of the parent node so it can be called once all the child
+     * nodes have been built
+     */
+    oncompletefunctionholder : '',
 
-/**
- * Change to true to see what settings are null (inherited) by having them marked in grey on the
- * context menu
- */
-M.block_ajax_marking.showinheritance = true;
+    /**
+     * This is the variable used by the openPopup function on the front page.
+     */
+    popupholder : '',
+
+    /**
+     *
+     */
+    ajaxnodesurl : M.cfg.wwwroot+'/blocks/ajax_marking/actions/ajax_nodes.php',
+
+    /**
+     *
+     */
+    ajaxgradeurl : M.cfg.wwwroot+'/blocks/ajax_marking/actions/grading_popup.php',
+
+    /**
+     * Change to true to see what settings are null (inherited) by having them marked in grey on the
+     * context menu
+     */
+    showinheritance : true,
+
+};
 
 M.block_ajax_marking.tree_node = function(oData , oParent , expanded) {
 
@@ -69,7 +81,6 @@ M.block_ajax_marking.tree_node = function(oData , oParent , expanded) {
     M.block_ajax_marking.tree_node.superclass.constructor.call(this, oData ,
                                                                oParent , expanded);
 };
-
 YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode);
 
 /**
@@ -80,9 +91,7 @@ M.block_ajax_marking.configtree_node = function(oData , oParent , expanded) {
     M.block_ajax_marking.configtree_node.superclass.constructor.call(this, oData ,
                                                                      oParent , expanded);
 };
-
 YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tree_node);
-
 
 /**
  * Get the markup for the configtree node.
@@ -136,25 +145,9 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
 
     sb[sb.length] = '</td>';
     sb[sb.length] = '</tr>';
-//
-//
-//
-//
-//    sb[sb.length] = '</table>'; //new
-
-//    sb[sb.length] = '</td>';
-//    sb[sb.length] = '</tr>';
 
     // Info row
     sb[sb.length] = '<tr class="block_ajax_marking_info_row">';
-
-    // depth +1 so we indent. needs dotted line background
-//    for (i = 0; i < this.depth; ++i) {
-//        sb[sb.length] = '<td class="ygtvcell ' + this.getDepthStyle(i) +
-//                        '"><div class="ygtvspacer"></div></td>';
-//    }
-//    var depthclass =  (this.nextSibling) ? "ygtvdepthcell" : "ygtvblankdepthcell";
-//    sb[sb.length] = '<td class="ygtvcell '+depthclass+'"><div class="ygtvspacer"></div></td>';
 
     // Make display icon
     sb[sb.length] = '<td id="' +  "block_ajax_marking_display_icon" + this.index;
