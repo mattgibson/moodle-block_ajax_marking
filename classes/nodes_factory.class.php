@@ -249,9 +249,12 @@ class block_ajax_marking_nodes_factory {
             }
         }
 
-        // Adds the config options if there are any, so JavaScript knows what to ask for
-        if (in_array($filters['nextnodefilter'], array('coursemoduleid', 'courseid'))) {
-            self::apply_config_filter($displayquery, 'displayselect');
+        // Adds the config options if there are any, so JavaScript knows what to ask for and we
+        // know what the current settings are for the context menu
+        if ($filters['nextnodefilter'] ==  'courseid') {
+            self::apply_config_filter($displayquery, 'coursedisplayselect');
+        } else if ($filters['nextnodefilter'] ==  'coursemoduleid') {
+            self::apply_config_filter($displayquery, 'coursemoduledisplayselect');
         }
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
@@ -1344,7 +1347,11 @@ SQL;
                 // - what groups actually have settings
                 break;
 
-            case 'displayselect':
+            // this is for the ordinary nodes. We need to work out what to request for the next node
+            // so groupsdisplay has to be sent through. Also for the config context menu to work.
+            // COALESCE is no good here as we need the actual settings, so we work out that stuff
+            // in JavaScript
+            case 'coursedisplayselect':
 
                 $defaultdisplay = 1;
                 $defaultgroupsdisplay = 0;
@@ -1354,17 +1361,38 @@ SQL;
                 $countwrapper = $query->get_subquery('countwrapperquery');
 
                 $countwrapper->add_select(array(
-                                         'function' => 'COALESCE',
-                                         'table' => array('cmconfig' => 'display',
-                                                          'courseconfig' => 'display',
-                                                          $defaultdisplay),
-                                         'alias' => 'display'));
+                                         'table' => 'courseconfig',
+                                         'column' => 'display'));
                 $countwrapper->add_select(array(
-                                         'function' => 'COALESCE',
-                                         'table' => array('cmconfig' => 'groupsdisplay',
-                                                          'courseconfig' => 'groupsdisplay',
-                                                          $defaultgroupsdisplay),
-                                         'alias' => 'groupsdisplay'));
+                                         'table' => 'courseconfig',
+                                         'column' => 'groupsdisplay'));
+
+                // The outer query (we need one because we have to do a join between the numeric
+                // fields that can be fed into a GROUP BY and the text fields that we display) pulls
+                // through the display fields
+                $query->add_select(array('table' => 'countwrapperquery',
+                                         'column' => 'display'));
+                $query->add_select(array('table' => 'countwrapperquery',
+                                         'column' => 'groupsdisplay'));
+
+                break;
+
+            case 'coursemoduledisplayselect':
+
+                $defaultdisplay = 1;
+                $defaultgroupsdisplay = 0;
+
+                // The inner query joins to the config tables already for the WHERE clauses, so we
+                // make use of them to get the settings for those nodes that are not filtered out
+                $countwrapper = $query->get_subquery('countwrapperquery');
+
+                $countwrapper->add_select(array(
+                                         'table' => 'cmconfig',
+                                         'column' => 'display'));
+                $countwrapper->add_select(array(
+                                         'table' => 'cmconfig',
+                                         'column' => 'groupsdisplay'));
+
 
                 // The outer query (we need one because we have to do a join between the numeric
                 // fields that can be fed into a GROUP BY and the text fields that we display) pulls

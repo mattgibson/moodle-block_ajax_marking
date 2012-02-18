@@ -255,8 +255,7 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     sb[sb.length] = '</tr>';
     sb[sb.length] = '</table>';
 
-    var htmlstring = sb.join("");
-    return htmlstring;
+    return sb.join("");
 
 };
 
@@ -375,13 +374,7 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
                 break; // should only be one of them
             }
         }
-        // Some nodes won't be specific to a module, but this needs to be specified to avoid
-        // silent errors
-        modulename = (typeof(nodedata.displaydata.modulename) !== 'undefined') ?
-                nodedata.displaydata.modulename : false;
-        nodedata.returndata.nextnodefilter = this.nextnodetype(currentfilter,
-                                                               modulename,
-                                                               nodedata.configdata);
+
 
         // currently, itemcount is null for config nodes
 //        var itemcount = ( !== 'undefined') ?
@@ -394,6 +387,15 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         }
 
         newnode = new this.nodetype(nodedata, M.block_ajax_marking.parentnodeholder, false);
+
+        // Some nodes won't be specific to a module, but this needs to be specified to avoid
+        // silent errors
+        modulename = (typeof(nodedata.displaydata.modulename) !== 'undefined') ?
+                nodedata.displaydata.modulename : false;
+        newnode.data.returndata.nextnodefilter = this.nextnodetype(currentfilter,
+                                                               modulename,
+                                                               nodedata.configdata,
+                                                               newnode);
 
         // Set the node to load data dynamically, unless it has not sent a callback i.e. it's a
         // final node
@@ -751,10 +753,13 @@ M.block_ajax_marking.tree_base.prototype.update_total_count = function() {
  */
 M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilter,
                                                                     modulename,
-                                                                    configdata) {
+                                                                    configdata,
+                                                                    node) {
+
     // if nothing else is found, make the node into a final one with no children
     var nextnodefilter = false,
-        moduleoverride;
+        moduleoverride,
+        groupsdisplay;
 
     // Courses tree
     switch (currentfilter) {
@@ -766,7 +771,10 @@ M.block_ajax_marking.cohorts_tree.prototype.nextnodetype = function(currentfilte
             return false;
 
         case 'coursemoduleid':
-            if (configdata.groupsdisplay == 1) {
+            // If we don't have a setting for this node (null), keep going up the tree till we find an
+            // ancestor that does, or we hit root, when we use the default.
+            groupsdisplay = node.get_calculated_groupsdisplay_setting();
+            if (groupsdisplay == 1) {
                 nextnodefilter = 'groupid';
             } else {
                 nextnodefilter = 'userid';
@@ -856,9 +864,11 @@ M.block_ajax_marking.config_tree.prototype.update_parent_node = function () {};
  */
 M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilter,
                                                                     modulename,
-                                                                    configdata) {
+                                                                    configdata,
+                                                                    node) {
     // if nothing else is found, make the node into a final one with no children
-    var nextnodefilter = false;
+    var nextnodefilter = false,
+        groupsdisplay;
 
     // these are the standard progressions of nodes in the basic trees. Modules may wish to modify
     // these e.g. by adding extra nodes, stopping early without showing individual students, or by
@@ -886,7 +896,8 @@ M.block_ajax_marking.courses_tree.prototype.nextnodetype = function(currentfilte
             return false;
 
         case 'coursemoduleid':
-            if (configdata.groupsdisplay == 1) {
+            groupsdisplay = node.get_calculated_groupsdisplay_setting();
+            if (groupsdisplay == 1) {
                 nextnodefilter = 'groupid';
             } else {
                 nextnodefilter = 'userid';
@@ -961,7 +972,7 @@ M.block_ajax_marking.contextmenu_load_settings = function() {
         groups = coursenode.data.configdata.groups;
     }
     if (groups.length) {
-        M.block_ajax_marking.contextmenu_make_groups(groups, choosegroupsmenu, clickednode);
+        M.block_ajax_marking.contextmenu_add_groups_to_menu(groups, choosegroupsmenu, clickednode);
         // Enable the menu item, since we have groups in it
         choosegroupsmenu.parent.cfg.setProperty("disabled", false);
     } else {
@@ -1019,19 +1030,25 @@ M.block_ajax_marking.contextmenu_make_setting = function(contextmenu, settingnam
 };
 
 /**
- * Turns the raw groups data from the tree node into menu items and attaches them to the menu
+ * Turns the raw groups data from the tree node into menu items and attaches them to the menu. Uses
+ * the course groups (courses will have all groups even if there are no settings) to make the full
+ * list and combines course defaults and coursemodule settings when it needs to for coursemodules
  *
  * @param {Array} coursegroups
- * @param menu
+ * @param {YAHOO.widget.Menu} menu A pre-existing context menu
  * @param {YAHOO.widget.Node} clickednode
  * @return void
  */
-M.block_ajax_marking.contextmenu_make_groups = function(coursegroups, menu, clickednode) {
+M.block_ajax_marking.contextmenu_add_groups_to_menu = function(coursegroups, menu, clickednode) {
 
-    var newgroup, groupdefault, coursenodegroupsettings, nodesettings = [];
+    var newgroup,
+        groupdefault,
+        coursenodegroupsettings,
+        nodesettings = [];
     var numberofgroups = coursegroups.length;
 
-    // If we clicked a coursemodule, we want to use the settings to override those of the course
+    // If we clicked a coursemodule, we want to use the settings to override those of the course.
+    // TODO this may not be needed any longer as all groups are sent along with coursemodules now
     if (typeof(clickednode.data.returndata.courseid) === 'undefined' &&
         typeof(clickednode.data.configdata.groups) !== 'undefined') {
 
@@ -1184,7 +1201,7 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
             } else {
 
                 // Maybe it's a contextmenu settings change, maybe it's an icon click.
-                if (ajaxresponsearray['configsave'].menuitemindex) {
+                if (ajaxresponsearray['configsave'].menuitemindex !== false) {
                     // We want to toggle the display of the menu item by setting it to
                     // the new value. Don't assume that the default hasn't changed.
                     M.block_ajax_marking.contextmenu_ajax_callback(ajaxresponsearray);
@@ -1202,11 +1219,14 @@ M.block_ajax_marking.ajax_success_handler = function(o) {
 /**
  * Sorts out what needs to happen once a response is received from the server that a setting
  * has been saved for an individual group
+ *
+ * @param {object} ajaxresponsearray
  */
 M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
 
     var settingtype = ajaxresponsearray['configsave'].settingtype,
         menuitemindex = ajaxresponsearray['configsave'].menuitemindex,
+        newsetting = ajaxresponsearray['configsave'].newsetting,
         menu;
 
     if (settingtype === 'group') {
@@ -1221,13 +1241,20 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
     var configtab = M.block_ajax_marking.get_current_tab();
     var clickednode = configtab.displaywidget.getNodeByElement(target);
 
+    if (settingtype == 'display' && newsetting === 0) {
+        // Item set to hide. Hide it!
+        // TODO may also be an issue if sitedefault is set to hide - null here ought to mean 'hide'
+        M.block_ajax_marking.remove_node_from_current_tab(clickednode.index);
+        menu.hide();
+        return;
+    }
+
     var groupid = null;
     if (settingtype === 'group') {
         groupid = clickeditem.value.groupid;
     }
 
     // Update the menu item so the user can see the change
-    var newsetting = ajaxresponsearray['configsave'].newsetting;
     if (newsetting === null) {
         // get default
 
@@ -1549,6 +1576,7 @@ M.block_ajax_marking.initialise = function() {
         coursestab.displaywidget = new M.block_ajax_marking.courses_tree();
         coursestab.displaywidget.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
 
+
         var cohortstab = new Y.Tab({
             'label':'Cohorts',
             'content':'<div id="cohortstree" class="ygtv-highlight"></div>'});
@@ -1565,7 +1593,8 @@ M.block_ajax_marking.initialise = function() {
                                           M.block_ajax_marking.config_treenodeonclick);
 
 
-        // Make the context menu for the config tree
+
+        // Make the context menu for the courses tree
         // Attach a listener to the root div which will activate the menu
         // menu needs to be repositioned next to the clicked node
         // menu
@@ -1578,7 +1607,7 @@ M.block_ajax_marking.initialise = function() {
     	M.block_ajax_marking.contextmenu = new YAHOO.widget.ContextMenu(
             "configcontextmenu",
             {
-                trigger: "configtree",
+                trigger: "coursestree",
                 keepopen: true,
                 lazyload: false,
                 itemdata: [
@@ -1896,3 +1925,22 @@ M.block_ajax_marking.config_tree.prototype.node_label = function(text, count) {
            '<strong>('+count+')</strong> '+text;
 };
 
+/**
+ * Starts with this node and moves up the tree of ancestors until it finds one with a not null value
+ */
+M.block_ajax_marking.tree_node.prototype.get_calculated_groupsdisplay_setting = function() {
+
+    var groupsdisplay = null;
+    var node = this;
+
+    while (groupsdisplay === null && !node.isRoot()) {
+        groupsdisplay = this.get_config_setting('groupsdisplay');
+        node = this.parentNode;
+    }
+
+    if (groupsdisplay === null) {
+        groupsdisplay = 0; // site default
+    }
+
+    return groupsdisplay;
+};

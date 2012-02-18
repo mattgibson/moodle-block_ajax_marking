@@ -40,10 +40,10 @@ $settingtype   = required_param('settingtype',      PARAM_ALPHAEXT);
 $settingvalue  = optional_param('settingvalue',     null, PARAM_INT); // null = inherit
 $groupid       = optional_param('groupid', 0,       PARAM_INT);
 // These two are passed through so that the right bit of the tree gets fixed on the way back
-$menuitemindex = optional_param('menuitemindex', 0, PARAM_INT);
-$nodeindex        = optional_param('nodeindex', 0,  PARAM_INT);
+$menuitemindex = optional_param('menuitemindex', false, PARAM_INT);
+$nodeindex        = optional_param('nodeindex', false,  PARAM_INT);
 
-if ($nodeindex === 0 && $menuitemindex === 0) {
+if ($nodeindex === false && $menuitemindex === false) {
     die ('Eitehr menuitem index or node index must be provided');
 }
 
