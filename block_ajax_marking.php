@@ -43,7 +43,6 @@ class block_ajax_marking extends block_base {
      */
     public function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2010050601;
     }
 
     /**
@@ -75,7 +74,7 @@ class block_ajax_marking extends block_base {
         if (count($courses) > 0) { // Grading permissions exist in at least one course, so display
 
             //start building content output
-            $this->content = new stdClass;
+            $this->content = new stdClass();
             $this->content->footer = '';
 
             // Build the AJAX stuff on top of the plain HTML list

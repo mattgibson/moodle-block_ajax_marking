@@ -340,9 +340,6 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
         nodedata,
         currentfilter,
         modulename,
-        iconstyle,
-        seconds = 0,
-        currenttime = Math.round((new Date()).getTime() / 1000), // current unix time
         numberofnodes = nodesarray.length,
         m;
 
@@ -633,7 +630,7 @@ M.block_ajax_marking.tree_node.prototype.get_filters = function() {
             for (varname in returndata) {
                 // Add all the non-callbackfunction stuff e.g. courseid so we can use it to filter the
                 // unmarked work. Approximating an associative array here.
-                if (varname != 'nextnodefilter' && returndata[varname] != '') {
+                if (varname != 'nextnodefilter' && returndata[varname] !== '') {
                     nodefilters.push(varname + '=' + returndata[varname]);
                 }
             }
@@ -1409,6 +1406,8 @@ M.block_ajax_marking.make_footer = function () {
             M.block_ajax_marking.get_current_tab().displaywidget.initialise();
         }},
         container : 'block_ajax_marking_refresh_button'});
+
+    return refreshbutton;
 };
 
 /**
@@ -1428,17 +1427,6 @@ M.block_ajax_marking.callback = {
     // argument : 1200,
     timeout  : 10000
 
-};
-
-/**
- * Makes the show icon reflect the state of the settings
- */
-M.block_ajax_marking.tree_node.prototype.toggle_show_icon = function() {
-    var iconid = '';
-    var icon = document.getElementById(iconid);
-    if (this.get_config_setting('display')) {
-        // set element to
-    }
 };
 
 
@@ -1550,14 +1538,13 @@ M.block_ajax_marking.initialise = function() {
         // Attach a listener to the root div which will activate the menu
         // menu needs to be repositioned next to the clicked node
         // menu
-
+        //
         // Menu needs to be made of
         // - show/hide toggle
         // - show/hide group nodes
         // - submenu to show/hide specific groups
-
     	M.block_ajax_marking.contextmenu = new YAHOO.widget.ContextMenu(
-            "configcontextmenu",
+            "coursescontextmenu",
             {
                 trigger: "coursestree",
                 keepopen: true,
@@ -1588,12 +1575,28 @@ M.block_ajax_marking.initialise = function() {
         );
         // Initial render makes sure we have something to add and takeaway items from
         M.block_ajax_marking.contextmenu.render(document.body);
-
         // Make sure the menu is updated to be current with the node it matches
         M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
                                                    M.block_ajax_marking.contextmenu_load_settings);
         M.block_ajax_marking.contextmenu.subscribe("beforeHide",
                                                    M.block_ajax_marking.contextmenu_unhighlight);
+
+
+        // Make the groups menu for the config tree nodes. They don't need to have the main
+        // context menu as they have clickable icons, so we just show the groups
+        M.block_ajax_marking.contextmenu = new YAHOO.widget.ContextMenu(
+            "configcontextmenu",
+            {
+                trigger: "configtree",
+                keepopen: true,
+                lazyload: false,
+                itemdata: {} // Filled ynamically with groups as needed
+            }
+        );
+
+
+
+
 
 
 
@@ -1878,7 +1881,11 @@ M.block_ajax_marking.config_tree.prototype.node_label = function(text, count) {
 };
 
 /**
- * Starts with this node and moves up the tree of ancestors until it finds one with a not null value
+ * Starts with this node and moves up the tree of ancestors until it finds one with a not null
+ * value for groupsdisplay. Needed so we know whether to ask for groups nodes or user nodes
+ * when a coursemodule is clicked.
+ *
+ * @return {int} 0 or 1
  */
 M.block_ajax_marking.tree_node.prototype.get_calculated_groupsdisplay_setting = function() {
 
@@ -1904,7 +1911,7 @@ M.block_ajax_marking.tree_node.prototype.set_time_style = function() {
 
     var iconstyle = '',
         seconds,
-        currenttime;
+        currenttime = Math.round((new Date()).getTime() / 1000);
 
     if (typeof(this.data.displaydata.time) !== 'undefined') {
 

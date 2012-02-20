@@ -26,15 +26,9 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// show/hide constants for config settings
-define('BLOCK_AJAX_MARKING_CONF_DEFAULT', 0);
-define('BLOCK_AJAX_MARKING_CONF_SHOW',    1);
-define('BLOCK_AJAX_MARKING_CONF_GROUPS',  2);
-define('BLOCK_AJAX_MARKING_CONF_HIDE',    3);
-
 // include the upgrade file so we have access to amb_update_modules() in case of no settings
-require_once($CFG->dirroot.'/blocks/ajax_marking/db/upgrade.php');
-require_once("$CFG->dirroot/enrol/locallib.php");
+global $CFG;
+require_once("{$CFG->dirroot}/enrol/locallib.php");
 
 
 /**
@@ -60,7 +54,7 @@ function block_ajax_marking_teacherrole_sql() {
  * This is so that left joins can be done that will search up the entire category hierarchy for
  * roles that were assigned at category level that would give someone grading permission in a course
  *
- * @global type $DB
+ * @global moodle_database $DB
  * @param bool $reset clear the cache?
  * @return int
  */
@@ -200,11 +194,10 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
  * Instantiates all plugin classes and returns them as an array
  *
  * @param bool $reset
- * @global type $DB
- * @global type $CFG
+ * @global moodle_database $DB
+ * @global stdClass $CFG
  * @return block_ajax_marking_module_base[] array of objects keyed by modulename, each one being
- * the module plugin for that name.
- * Returns a reference.
+ * the module plugin for that name. Returns a reference.
  */
 function &block_ajax_marking_get_module_classes($reset=false) {
 
@@ -378,6 +371,3 @@ function block_ajax_marking_debuggable_query($query,
 
     return $query;
 }
-
-
-

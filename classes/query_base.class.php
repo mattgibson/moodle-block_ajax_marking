@@ -273,7 +273,7 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Need to construct the groupby here from the SELECT bits as Oracle complains if you have an
+     * Need to construct the GROUP BY here from the SELECT bits as Oracle complains if you have an
      * aggregate and then leave out some of the bits. Possible that Oracle doesn't accept aliases
      * for GROUP BY?
      *
