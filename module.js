@@ -896,54 +896,44 @@ M.block_ajax_marking.contextmenu_load_settings = function() {
 
     // Remove previous groups. If there are none, we don't want to offer the option to show or hide
     // them
-    var submenus = this.getSubmenus();
-    if (submenus.length > 0) {
-        var choosegroupsmenu = submenus[0];
-        var submenuitems = choosegroupsmenu.getItems();
-        var numberofitems = submenuitems.length;
-        for (var k = 0; k < numberofitems; k++) {
-            // This eats array items and renumbers them as it goes, so we keep removing item 0
-            choosegroupsmenu.removeItem(submenuitems[0]);
-        }
-    }
+    var submenus = this.getSubmenus(),
+        groups;
 
     var target = this.contextEventTarget;
     var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
-    var coursenode = clickednode.get_course_node();
 
-    // Make sure the setting items reflect the current settings as stored in the tree node
-    M.block_ajax_marking.contextmenu_make_setting(this, 'display', clickednode);
-    M.block_ajax_marking.contextmenu_make_setting(this, 'groupsdisplay', clickednode);
+    // Make the settings items and make sure they reflect the current settings as stored in the
+    // tree node
+    M.block_ajax_marking.contextmenu_make_setting_menuitem(this, 'display', clickednode);
+    M.block_ajax_marking.contextmenu_make_setting_menuitem(this, 'groupsdisplay', clickednode);
 
-    // We need all of the groups, even if there are no settings
-    var groups = [];
-    if (typeof(coursenode.data.configdata.groups) !== 'undefined') {
-        groups = coursenode.data.configdata.groups;
-    }
-    if (groups.length) {
-        M.block_ajax_marking.contextmenu_add_groups_to_menu(groups, choosegroupsmenu, clickednode);
-        // Enable the menu item, since we have groups in it
-        choosegroupsmenu.parent.cfg.setProperty("disabled", false);
-    } else {
-        // disable it so people can see that this is an option, but there are no groups
-        choosegroupsmenu.parent.cfg.setProperty("disabled", true);
+    if (submenus.length > 0) {
+        var choosegroupsmenu = submenus[0];
+        groups = clickednode.get_groups();
+        if (groups.length) {
+            // Wipe all groups out of the groups sub-menu
+            M.block_ajax_marking.contextmenu_add_groups_to_menu(choosegroupsmenu, clickednode);
+            // Enable the menu item, since we have groups in it
+            choosegroupsmenu.parent.cfg.setProperty("disabled", false);
+        } else {
+            // disable it so people can see that this is an option, but there are no groups
+            choosegroupsmenu.parent.cfg.setProperty("disabled", true);
+        }
     }
 
     this.render();
-
-    clickednode.toggleHighlight();
-//    clickednode.tree.render();
+    clickednode.toggleHighlight(); // so the user knows what node this menu is for
 
 };
 
 /**
  * Make sure the item reflects the current settings as stored in the tree node.
  *
- * @param contextmenu
- * @param settingname
- * @param clickednode
+ * @param {YAHOO.widget.ContextMenu} contextmenu
+ * @param {string} settingname
+ * @param {YAHOO.widget.HTMLNode} clickednode
  */
-M.block_ajax_marking.contextmenu_make_setting = function(contextmenu, settingname, clickednode) {
+M.block_ajax_marking.contextmenu_make_setting_menuitem = function(contextmenu, settingname, clickednode) {
 
     var settingindex = false;
 
@@ -988,52 +978,45 @@ M.block_ajax_marking.contextmenu_make_setting = function(contextmenu, settingnam
  * @param {YAHOO.widget.Node} clickednode
  * @return void
  */
-M.block_ajax_marking.contextmenu_add_groups_to_menu = function(coursegroups, menu, clickednode) {
+M.block_ajax_marking.contextmenu_add_groups_to_menu = function(menu, clickednode) {
 
     var newgroup,
         groupdefault,
-        coursenodegroupsettings,
-        nodesettings = [];
-    var numberofgroups = coursegroups.length;
+        groups,
+        numberofgroups;
 
-    // If we clicked a coursemodule, we want to use the settings to override those of the course.
-    // TODO this may not be needed any longer as all groups are sent along with coursemodules now
-    if (typeof(clickednode.data.returndata.courseid) === 'undefined' &&
-        typeof(clickednode.data.configdata.groups) !== 'undefined') {
-
-        nodesettings = clickednode.data.configdata.groups;
+    // Remove all existing groups
+    var existinggroups = menu.getItems();
+    var numberofitems = existinggroups.length;
+    for (var k = 0; k < numberofitems; k++) {
+        // This eats array items and renumbers them as it goes, so we keep removing item 0
+        menu.removeItem(existinggroups[0]);
     }
+
+    groups = clickednode.get_groups();
+    numberofgroups = groups.length;
 
     for (var i = 0; i < numberofgroups; i++) {
 
-        newgroup = { "text"    : coursegroups[i].name,
-                     "value"   : { "groupid" : coursegroups[i].id},
-                     onclick   : { fn: M.block_ajax_marking.contextmenu_setting_onclick,
-                                   obj: {'settingtype' : 'group'} } };
-
-        coursenodegroupsettings = coursegroups[i];
-        // Awkwardly, the arrays aren't indexed by group id.
-        // If there is a setting for this group on the coursemodule node, we use that instead
-        for (var j = 0; j < nodesettings.length; j++) {
-            if (nodesettings[j].id === coursegroups[i].id) {
-                coursenodegroupsettings = nodesettings[j];
-            }
-        }
+        newgroup = { "text"      : groups[i].name,
+                     "value"     : { "groupid" : groups[i].id},
+                     "onclick"   : { fn: M.block_ajax_marking.contextmenu_setting_onclick,
+                                    obj: {'settingtype' : 'group'} } };
 
         // Make sure the items' appearance reflect their current settings
         // JSON seems to like sending back integers as strings
-        if (coursenodegroupsettings.display === "1") {
+        if (groups[i].display === "1") {
             // Make sure it is checked
             newgroup.checked = true;
 
-        } else if (coursenodegroupsettings.display === "0") {
+        } else if (groups[i].display === "0") {
             newgroup.checked = false;
 
-        } else if (coursenodegroupsettings.display === null) {
+        } else if (groups[i].display === null) {
             // We want to show that this node inherits it's setting for this group
             // newgroup.classname = 'inherited';
             // Now we need to get the right default for it and show it as checked or not
-            groupdefault = clickednode.get_default_setting('group', coursenodegroupsettings.id);
+            groupdefault = clickednode.get_default_setting('group', groups[i].id);
             newgroup.checked = groupdefault ? true : false;
             if (M.block_ajax_marking.showinheritance) {
                newgroup.classname = 'inherited';
@@ -1277,27 +1260,15 @@ M.block_ajax_marking.tree_node.prototype.set_config_setting = function(settingty
 M.block_ajax_marking.tree_node.prototype.set_group_setting = function(groupid, newsetting) {
 
     var groups = this.get_groups();
-
     var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
-    // Possibly no group as we may have had a null setting from the DB. Need to create one.
-    if (group === null) {
-        group = {};
-        group.id = groupid;
-        group.display = newsetting;
-        if (typeof(this.data.configdata.groups) === 'undefined') {
-            this.data.configdata.groups = [];
-        }
-        this.data.configdata.groups.push(group);
-    } else {
-        group.display = newsetting;
-    }
+    group.display = newsetting;
 };
 
 /**
  * If the clicked node is a course node, it is returned, otherwise the parent node is sent back
  *
  */
-M.block_ajax_marking.tree_node.prototype.get_course_node = function() {
+M.block_ajax_marking.tree_node.prototype.get_course_node_ancestor = function() {
 
     if (typeof(this.data.returndata.courseid) !== 'undefined') {
         return this;
@@ -1584,15 +1555,19 @@ M.block_ajax_marking.initialise = function() {
 
         // Make the groups menu for the config tree nodes. They don't need to have the main
         // context menu as they have clickable icons, so we just show the groups
-        M.block_ajax_marking.contextmenu = new YAHOO.widget.ContextMenu(
+        M.block_ajax_marking.configcontextmenu = new YAHOO.widget.ContextMenu(
             "configcontextmenu",
             {
                 trigger: "configtree",
                 keepopen: true,
                 lazyload: false,
-                itemdata: {} // Filled ynamically with groups as needed
+                itemdata: {} // Filled dynamically with groups as needed
             }
         );
+        M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
+                                                   M.block_ajax_marking.config_contextmenu_load_groups);
+        M.block_ajax_marking.contextmenu.subscribe("beforeHide",
+                                                   M.block_ajax_marking.contextmenu_unhighlight);
 
 
 
@@ -1734,31 +1709,34 @@ M.block_ajax_marking.get_group_by_id = function(groups, groupid) {
  *
  * @param {string} settingtype
  * @param {int} groupid
+ * @return {int} the default - 1 or 0
  */
 M.block_ajax_marking.tree_node.prototype.get_default_setting = function(settingtype, groupid) {
 
-    var defaultsetting = null;
+    var defaultsetting = null,
+        errormessage;
 
     /**
      * @var {Array} node.data.returndata
      */
-    if (typeof(this.data.returndata) !== 'undefined' &&
-        typeof(this.data.returndata.courseid) === 'undefined') { // Must be a coursemodule
+    if (!this.parent.isRoot()) { // Must be a coursemodule or lower
 
         switch (settingtype) {
 
             case 'group':
-                var groups = this.parent.data.configdata.groups;
-                var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
-                defaultsetting = group.display;
+                if (typeof(groupid) === 'undefined') {
+                    errormessage = 'Trying to get a group setting without specifying groupid';
+                    M.block_ajax_marking.show_error(errormessage);
+                }
+                defaultsetting = this.parent.get_config_setting('group', groupid);
                 break;
 
             case 'display':
-                defaultsetting = this.parent.data.configdata.display;
+                defaultsetting = this.parent.get_config_setting('display');
                 break;
 
             case 'groupsdisplay':
-                defaultsetting = this.parent.data.configdata.groupsdisplay;
+                defaultsetting = this.parent.get_config_setting('groupsdisplay');
                 break;
         }
     }
@@ -1770,7 +1748,6 @@ M.block_ajax_marking.tree_node.prototype.get_default_setting = function(settingt
     switch (settingtype) {
 
         case 'group':
-
         case 'display':
             return 1;
             break;
@@ -1953,5 +1930,28 @@ M.block_ajax_marking.tree_node.prototype.set_time_style = function() {
         this.labelStyle = iconstyle;
     }
 
+
+};
+
+/**
+ * Updates the config menu context menu so that it has the groups and settings for that particular
+ * node.
+ *
+ * @param {object} eventdata
+ */
+M.block_ajax_marking.config_contextmenu_load_groups = function(eventdata) {
+
+    // this = the contextmenu because it's an event handler calling the function
+
+    var target = this.contextEventTarget;
+    var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
+
+    // add new groups
+    M.block_ajax_marking.contextmenu_add_groups_to_menu(this, clickednode);
+
+    // display
+    this.render();
+
+    clickednode.toggleHighlight();
 
 };
