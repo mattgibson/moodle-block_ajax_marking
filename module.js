@@ -1906,9 +1906,9 @@ M.block_ajax_marking.tree_node.prototype.set_time_style = function() {
         seconds,
         currenttime;
 
-    if (typeof(this.displaydata.time) !== 'undefined') {
+    if (typeof(this.data.displaydata.time) !== 'undefined') {
 
-        seconds = currenttime - parseInt(this.displaydata.time, 10);
+        seconds = currenttime - parseInt(this.data.displaydata.time, 10);
 
         if (seconds < 21600) {
             // less than 6 hours
