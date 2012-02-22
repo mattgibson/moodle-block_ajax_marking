@@ -899,8 +899,7 @@ M.block_ajax_marking.context_menu_base.prototype.load_settings = function() {
 
     // Make the settings items and make sure they reflect the current settings as stored in the
     // tree node
-    var submenus,
-        groups;
+    var groups;
 
     this.clearContent();
 
@@ -916,7 +915,6 @@ M.block_ajax_marking.context_menu_base.prototype.load_settings = function() {
         this.cancel();
         return false;
     }
-
 
     this.make_setting_menuitem('display', clickednode);
     this.make_setting_menuitem('groupsdisplay', clickednode);
@@ -1228,7 +1226,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
     var clickednode = configtab.displaywidget.getNodeByElement(target);
 
     if (settingtype == 'display' && newsetting === 0) {
-        // Item set to hide. Hide it!
+        // Item set to hide. Remove it from the tree.
         // TODO may also be an issue if sitedefault is set to hide - null here ought to mean 'hide'
         M.block_ajax_marking.remove_node_from_current_tab(clickednode.index);
 
@@ -1587,13 +1585,13 @@ M.block_ajax_marking.initialise = function() {
                 ]
             }
         );
-        cohortstab.contextmenu = coursestab.contextmenu;
+//        cohortstab.contextmenu = coursestab.contextmenu;
         // Initial render makes sure we have something to add and takeaway items from
-        cohortstab.contextmenu.render(document.body);
+        coursestab.contextmenu.render(document.body);
         // Make sure the menu is updated to be current with the node it matches
-        cohortstab.contextmenu.subscribe("triggerContextMenu",
-                                         cohortstab.contextmenu.load_settings);
-        cohortstab.contextmenu.subscribe("beforeHide",
+        coursestab.contextmenu.subscribe("triggerContextMenu",
+                                         coursestab.contextmenu.load_settings);
+        coursestab.contextmenu.subscribe("beforeHide",
                                          M.block_ajax_marking.contextmenu_unhighlight);
 
 
