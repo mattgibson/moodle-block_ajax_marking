@@ -54,11 +54,6 @@ M.block_ajax_marking = {
     ajaxnodesurl : M.cfg.wwwroot+'/blocks/ajax_marking/actions/ajax_nodes.php',
 
     /**
-     *
-     */
-    ajaxgradeurl : M.cfg.wwwroot+'/blocks/ajax_marking/actions/grading_popup.php',
-
-    /**
      * Change to true to see what settings are null (inherited) by having them marked in grey on the
      * context menu
      */
@@ -92,6 +87,13 @@ M.block_ajax_marking.configtree_node = function(oData , oParent , expanded) {
                                                                      oParent , expanded);
 };
 YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tree_node);
+
+
+
+M.block_ajax_marking.context_menu_base = function(p_oElement, p_oConfig) {
+    M.block_ajax_marking.context_menu_base.superclass.constructor.call(this, p_oElement, p_oConfig);
+};
+YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMenu);
 
 /**
  * Get the markup for the configtree node.
@@ -626,6 +628,7 @@ M.block_ajax_marking.tree_node.prototype.get_filters = function() {
     while (!nextparentnode.isRoot()) {
         // Add the other item
         var returndata = nextparentnode.data.returndata;
+        // TODO would there ever be more than one?
         if (typeof (returndata !== 'undefined')) {
             for (varname in returndata) {
                 // Add all the non-callbackfunction stuff e.g. courseid so we can use it to filter the
@@ -892,33 +895,44 @@ M.block_ajax_marking.tree_base.prototype.remove_node = function(nodeuniqueid) {
  *
  * Coming from an onclick in the context menu, so 'this' is the contextmenu instance
  */
-M.block_ajax_marking.contextmenu_load_settings = function() {
+M.block_ajax_marking.context_menu_base.prototype.load_settings = function() {
 
-    // Remove previous groups. If there are none, we don't want to offer the option to show or hide
-    // them
-    var submenus = this.getSubmenus(),
+    // Make the settings items and make sure they reflect the current settings as stored in the
+    // tree node
+    var submenus,
         groups;
+
+    this.clearContent();
 
     var target = this.contextEventTarget;
     var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
 
-    // Make the settings items and make sure they reflect the current settings as stored in the
-    // tree node
-    M.block_ajax_marking.contextmenu_make_setting_menuitem(this, 'display', clickednode);
-    M.block_ajax_marking.contextmenu_make_setting_menuitem(this, 'groupsdisplay', clickednode);
+    // We don't want to allow the contextmenu for items that we can't hide yet. Right now it
+    // only applies to courses and coursemodules
+    var currentfilter = clickednode.get_current_filter_name();
+    if (currentfilter !== 'courseid' &&
+        currentfilter !== 'coursemoduleid') {
 
-    if (submenus.length > 0) {
-        var choosegroupsmenu = submenus[0];
-        groups = clickednode.get_groups();
-        if (groups.length) {
-            // Wipe all groups out of the groups sub-menu
-            M.block_ajax_marking.contextmenu_add_groups_to_menu(choosegroupsmenu, clickednode);
-            // Enable the menu item, since we have groups in it
-            choosegroupsmenu.parent.cfg.setProperty("disabled", false);
-        } else {
-            // disable it so people can see that this is an option, but there are no groups
-            choosegroupsmenu.parent.cfg.setProperty("disabled", true);
-        }
+        this.cancel();
+        return false;
+    }
+
+
+    this.make_setting_menuitem('display', clickednode);
+    this.make_setting_menuitem('groupsdisplay', clickednode);
+
+    var choosegroupsmenuitem = this.make_setting_menuitem('groups', clickednode);
+    var choosegroupsmenu = choosegroupsmenuitem.cfg.getProperty('submenu');
+
+    groups = clickednode.get_groups();
+    if (groups.length) {
+        // Wipe all groups out of the groups sub-menu
+        M.block_ajax_marking.contextmenu_add_groups_to_menu(choosegroupsmenu, clickednode);
+        // Enable the menu item, since we have groups in it
+        choosegroupsmenu.parent.cfg.setProperty("disabled", false);
+    } else {
+        // disable it so people can see that this is an option, but there are no groups
+        choosegroupsmenu.parent.cfg.setProperty("disabled", true);
     }
 
     this.render();
@@ -933,39 +947,71 @@ M.block_ajax_marking.contextmenu_load_settings = function() {
  * @param {string} settingname
  * @param {YAHOO.widget.HTMLNode} clickednode
  */
-M.block_ajax_marking.contextmenu_make_setting_menuitem = function(contextmenu, settingname, clickednode) {
+M.block_ajax_marking.context_menu_base.prototype.make_setting_menuitem = function(settingname,
+                                                                                  clickednode) {
 
-    var settingindex = false;
+    var menuitem,
+        title;
 
-    // What item number is this setting in the context menu?
     switch (settingname) {
+
         case 'display':
-            settingindex = 0;
+            title = M.str.block_ajax_marking.show;
+            menuitem =  {
+                onclick: { fn: M.block_ajax_marking.contextmenu_setting_onclick,
+                           obj: {'settingtype' : 'display'} },
+                checked: true,
+                id: 'block_ajax_marking_context_show',
+                value : {}};
             break;
+
         case 'groupsdisplay':
-            settingindex = 1;
+            title = M.str.block_ajax_marking.showgroups;
+            menuitem = {
+                onclick: { fn: M.block_ajax_marking.contextmenu_setting_onclick,
+                           obj: {'settingtype' : 'groupsdisplay'} },
+                checked: false,
+                id: 'block_ajax_marking_context_showgroups',
+                value : {}};
             break;
-        default:
-            M.block_ajax_marking.show_error('No settingindex for '+settingname);
+
+        case 'groups':
+            title = M.str.block_ajax_marking.choosegroups;
+            menuitem = {
+                submenu: {
+                    id : 'choosegroupssubmenu',
+                    keepopen: true,
+                    lazyload: true,
+                    itemdata: []}
+                };
+        break;
     }
 
-    var menuitem = contextmenu.getItem(settingindex);
-    var checked = false;
-    var currentsetting = clickednode.get_config_setting(settingname);
-    if (currentsetting !== null) {
-        checked = currentsetting ? true : false;
-        if (M.block_ajax_marking.showinheritance) {
-            menuitem.cfg.setProperty("classname", 'notinherited');
-        }
-    } else {
-        var defaultsetting = clickednode.get_default_setting(settingname);
-        checked = defaultsetting ? true : false;
-        if (M.block_ajax_marking.showinheritance) {
+    menuitem = new YAHOO.widget.ContextMenuItem(title, menuitem);
+    menuitem = this.addItem(menuitem);
 
-            menuitem.cfg.setProperty("classname", 'inherited');
+//    var menuitem = new YAHOO.widget.ContextMenuItem(configdata);
+// TODO - make these the way they need to be
+    if (settingname !== 'groups') {
+        var checked = false;
+        var currentsetting = clickednode.get_config_setting(settingname);
+        if (currentsetting !== null) {
+            checked = currentsetting ? true : false;
+            if (M.block_ajax_marking.showinheritance) {
+                menuitem.cfg.setProperty("classname", 'notinherited');
+            }
+        } else {
+            var defaultsetting = clickednode.get_default_setting(settingname);
+            checked = defaultsetting ? true : false;
+            if (M.block_ajax_marking.showinheritance) {
+
+                menuitem.cfg.setProperty("classname", 'inherited');
+            }
         }
+        menuitem.cfg.setProperty('checked', checked);
     }
-    menuitem.cfg.setProperty('checked', checked);
+
+    return menuitem;
 };
 
 /**
@@ -973,7 +1019,6 @@ M.block_ajax_marking.contextmenu_make_setting_menuitem = function(contextmenu, s
  * the course groups (courses will have all groups even if there are no settings) to make the full
  * list and combines course defaults and coursemodule settings when it needs to for coursemodules
  *
- * @param {Array} coursegroups
  * @param {YAHOO.widget.Menu} menu A pre-existing context menu
  * @param {YAHOO.widget.Node} clickednode
  * @return void
@@ -1024,6 +1069,14 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function(menu, clickednode
         }
         menu.addItem(newgroup);
     }
+
+    // If there are no groups, we want to show this rather than have the contextmenu fail to
+    // pop up at all, leaving the normal one to apear in it's place
+    if (numberofgroups === 0) {
+        menu.addItem({"text"      : M.str.block_ajax_marking.nogroups,
+                     "value"      : 0 } );
+    }
+
 };
 
 /**
@@ -1177,6 +1230,8 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
         // Item set to hide. Hide it!
         // TODO may also be an issue if sitedefault is set to hide - null here ought to mean 'hide'
         M.block_ajax_marking.remove_node_from_current_tab(clickednode.index);
+
+        // this should only be for the contextmenu
         menu.hide();
         return;
     }
@@ -1259,22 +1314,13 @@ M.block_ajax_marking.tree_node.prototype.set_config_setting = function(settingty
  */
 M.block_ajax_marking.tree_node.prototype.set_group_setting = function(groupid, newsetting) {
 
+    if (typeof(newsetting) === 'undefined') {
+        newsetting = null;
+    }
+
     var groups = this.get_groups();
     var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
     group.display = newsetting;
-};
-
-/**
- * If the clicked node is a course node, it is returned, otherwise the parent node is sent back
- *
- */
-M.block_ajax_marking.tree_node.prototype.get_course_node_ancestor = function() {
-
-    if (typeof(this.data.returndata.courseid) !== 'undefined') {
-        return this;
-    } else {
-        return this.parent;
-    }
 };
 
 /**
@@ -1368,7 +1414,7 @@ M.block_ajax_marking.make_footer = function () {
     // Create all text nodes
 
     // the two links
-    var refreshbutton = new YAHOO.widget.Button({
+    return new YAHOO.widget.Button({
         label     : M.str.block_ajax_marking.refresh,
         id        : 'block_ajax_marking_collapse',
         onclick   : {fn: function() {
@@ -1378,7 +1424,6 @@ M.block_ajax_marking.make_footer = function () {
         }},
         container : 'block_ajax_marking_refresh_button'});
 
-    return refreshbutton;
 };
 
 /**
@@ -1409,8 +1454,7 @@ M.block_ajax_marking.config_icon_success_handler = function(ajaxresponsearray) {
     var settingtype = ajaxresponsearray['configsave'].settingtype,
         nodeindex = ajaxresponsearray['configsave'].nodeindex,
         newsetting = ajaxresponsearray['configsave'].newsetting,
-        groupid = ajaxresponsearray['configsave'].groupid,
-        menu;
+        groupid = ajaxresponsearray['configsave'].groupid;
 
     var configtab = M.block_ajax_marking.get_current_tab();
     var clickednode = configtab.displaywidget.getNodeByIndex(nodeindex);
@@ -1503,8 +1547,6 @@ M.block_ajax_marking.initialise = function() {
         configtab.displaywidget.subscribe('clickEvent',
                                           M.block_ajax_marking.config_treenodeonclick);
 
-
-
         // Make the context menu for the courses tree
         // Attach a listener to the root div which will activate the menu
         // menu needs to be repositioned next to the clicked node
@@ -1514,10 +1556,10 @@ M.block_ajax_marking.initialise = function() {
         // - show/hide toggle
         // - show/hide group nodes
         // - submenu to show/hide specific groups
-    	M.block_ajax_marking.contextmenu = new YAHOO.widget.ContextMenu(
-            "coursescontextmenu",
+    	M.block_ajax_marking.contextmenu = new M.block_ajax_marking.context_menu_base(
+            "maincontextmenu",
             {
-                trigger: "coursestree",
+                trigger: ["coursestree", "cohortstree"],
                 keepopen: true,
                 lazyload: false,
                 itemdata: [
@@ -1538,7 +1580,7 @@ M.block_ajax_marking.initialise = function() {
                             id : 'choosegroupssubmenu',
                             keepopen: true,
                             lazyload: true,
-                            itemdata: {}
+                            itemdata: []
                         }
                     }
                 ]
@@ -1548,26 +1590,28 @@ M.block_ajax_marking.initialise = function() {
         M.block_ajax_marking.contextmenu.render(document.body);
         // Make sure the menu is updated to be current with the node it matches
         M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
-                                                   M.block_ajax_marking.contextmenu_load_settings);
+                                                   M.block_ajax_marking.contextmenu.load_settings);
         M.block_ajax_marking.contextmenu.subscribe("beforeHide",
                                                    M.block_ajax_marking.contextmenu_unhighlight);
 
 
         // Make the groups menu for the config tree nodes. They don't need to have the main
         // context menu as they have clickable icons, so we just show the groups
-        M.block_ajax_marking.configcontextmenu = new YAHOO.widget.ContextMenu(
+        M.block_ajax_marking.configcontextmenu = new M.block_ajax_marking.context_menu_base(
             "configcontextmenu",
             {
                 trigger: "configtree",
                 keepopen: true,
                 lazyload: false,
-                itemdata: {} // Filled dynamically with groups as needed
+                itemdata: [] // Filled dynamically with groups as needed
             }
         );
-        M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
-                                                   M.block_ajax_marking.config_contextmenu_load_groups);
-        M.block_ajax_marking.contextmenu.subscribe("beforeHide",
-                                                   M.block_ajax_marking.contextmenu_unhighlight);
+        M.block_ajax_marking.configcontextmenu.render(document.body);
+
+        M.block_ajax_marking.configcontextmenu.subscribe("triggerContextMenu",
+                                                         M.block_ajax_marking.config_contextmenu_load_groups);
+        M.block_ajax_marking.configcontextmenu.subscribe("beforeHide",
+                                                         M.block_ajax_marking.contextmenu_unhighlight);
 
 
 
@@ -1757,6 +1801,8 @@ M.block_ajax_marking.tree_node.prototype.get_default_setting = function(settingt
             break;
     }
 
+    return 1; // should never get to here
+
 };
 
 /**
@@ -1834,7 +1880,7 @@ M.block_ajax_marking.tree_node.prototype.update_child_nodes_config_settings = fu
                 break;
 
             case 'group':
-                childnodes[i].set_group_setting(groupid, null);
+                childnodes[i].set_group_setting(groupid);
                 break;
 
             default:
@@ -1953,5 +1999,31 @@ M.block_ajax_marking.config_contextmenu_load_groups = function(eventdata) {
     this.render();
 
     clickednode.toggleHighlight();
+
+};
+
+/**
+ * Returns the name of whatever is in return data which isn't nextnodefilter
+ */
+M.block_ajax_marking.tree_node.prototype.get_current_filter_name = function() {
+
+    var varname;
+
+    if (typeof (this.data.returndata !== 'undefined')) {
+        for (varname in this.data.returndata) {
+            // Add all the non-callbackfunction stuff e.g. courseid so we can use it to filter the
+            // unmarked work. Approximating an associative array here.
+            if (varname != 'nextnodefilter' && this.data.returndata[varname] !== '') {
+                // assumes only one filter
+                return varname;
+            }
+        }
+    }
+};
+
+/**
+ * Builds
+ */
+M.block_ajax_marking.context_menu_base.prototype.make_display_setting_items = function () {
 
 };

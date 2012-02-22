@@ -54,7 +54,7 @@ $string['instructions']          = 'What you can do here:<ul><li>Show and hide i
                                   .'this window.';
 $string['marking']               = 'Marking';
 $string['missingsettings']       = 'Block settings are missing for the AJAX marking block. You need to reinstall it (use http://yoursite.com/admin/ if stuck).';
-$string['nogroups']              = 'No groups have been set up for this course yet ';
+$string['nogroups']              = 'No course groups found';
 $string['nojavascript']          = 'Javascript is disabled!';
 $string['nothingtomark']         = 'Hooray - nothing to mark!';
 $string['pluginname']            = 'AJAX marking block';
