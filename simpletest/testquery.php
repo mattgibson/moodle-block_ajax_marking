@@ -51,6 +51,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
      * @var array Shows what modules need to have an mform for the module creation process to work
      */
     private $modules_needing_mform = array('glossary', 'lesson');
+
     private $glossary_formats = array('continuous',
                                       'encyclopedia',
                                       'entrylist',
@@ -58,8 +59,8 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                                       'fullwithauthor',
                                       'fullwithoutauthor',
                                       'dictionary');
-    public $scales; // others include 'single', 'eachuser', 'qanda'
 
+    public $scales; // others include 'single', 'eachuser', 'qanda'
 
     /**
      * This will create a shared test environment with a course, some users, some enrolments, etc
@@ -135,7 +136,6 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         }
         $scales = $DB->get_records_select('scale', "courseid = 0", array());
 
-
         // Put the stuff into the unit test DB
         $this->switch_to_test_db();
         foreach ($retrievedblocks as $block) {
@@ -168,7 +168,6 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         $options = array();
         $testcourse = create_course($data, $options);
 
-
         // Make one instance each of the modules
         /**
          * @var block_ajax_marking_module_base $moduleclass
@@ -176,7 +175,6 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         foreach ($this->moduleclasses as $moduleclass) {
             $this->make_module($testmodules[$moduleclass->get_module_name()], $testcourse);
         }
-
 
         // Make some new users. 10 will be fine
         for ($i = 0; $i < 10; $i++) {
@@ -268,7 +266,8 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
             case 'forum':
                 $module->intro = $description;
                 $forumtypes = array('general');
-                $module->type = $forumtypes[array_rand($forumtypes)]; // others include 'single', 'eachuser', 'qanda'
+                // others include 'single', 'eachuser', 'qanda'
+                $module->type = $forumtypes[array_rand($forumtypes)];
                 $module->forcesubscribe = rand(0, 1);
                 $module->assessed = 1;
                 $module->scale = 5;
@@ -289,7 +288,6 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                 $module->available = mktime();
                 $module->deadline = mktime() + 719891987;
                 $module->grade = 100;
-                //$module->instance = false;
                 break;
 
             case 'quiz':
@@ -330,7 +328,6 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                 $module->gradecategory = array_rand($grades);
                 $gradecategories = grade_get_categories_menu($course->id);
                 $module->gradinggradecategory = array_rand($gradecategories);
-
 
                 $module->intro = '<p>Introduction text would go here</p>';
                 $module->instructauthorseditor = array(
@@ -415,7 +412,6 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         $module->id =
             $DB->get_field('course_modules', 'instance', array('id' => $module->coursemodule));
         $module_record = $DB->get_record($moduledata->name, array('id' => $module->id));
-        //$module_record->instance = $module_instance;
 
         if (empty($modules_array[$moduledata->name])) {
             $modules_array[$moduledata->name] = array();
@@ -481,7 +477,6 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
             $usernumber = $DB->get_field_sql("SELECT MAX(id) FROM {user}") + 1;
         }
 
-
         $user = new stdClass();
         $user->firstname = 'User'.$usernumber;
         $user->username = 'unit-user'.$usernumber;
@@ -510,9 +505,6 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         // Some courses
         // Some settings
         // At least one user
-
-
-
 
     }
 

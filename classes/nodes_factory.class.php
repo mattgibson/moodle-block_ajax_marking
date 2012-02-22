@@ -118,7 +118,7 @@ class block_ajax_marking_nodes_factory {
      * class
      * @return array
      */
-    public static function get_unmarked_nodes($filters = array()) {
+    public static function unmarked_nodes($filters = array()) {
 
         global $DB;
 
@@ -411,7 +411,7 @@ class block_ajax_marking_nodes_factory {
             // the best match i.e. randomly assign the submissions to one of its visible groups
             // (there will usually only be one) so it's not counted twice in case the user is
             // in two groups in this context
-            list($maxgroupidsubquery, $maxgroupidparams) = self::get_sql_max_groupid_subquery();
+            list($maxgroupidsubquery, $maxgroupidparams) = self::sql_max_groupid_subquery();
             $countwrapper->add_params($maxgroupidparams);
             $countwrapper->add_from(array(
                     'join' => 'LEFT JOIN',
@@ -649,17 +649,6 @@ class block_ajax_marking_nodes_factory {
     }
 
     /**
-     * Returns the SQL needed to get a subquery showing what
-     */
-    private function get_sql_course_group_visibility_subquery() {
-
-
-
-
-
-    }
-
-    /**
      * In order to display the right things, we need to work out the visibility of each group for
      * each course module. This subquery lists all submodules once for each coursemodule in the
      * user's courses, along with it's most relevant show/hide setting, i.e. a coursemodule level
@@ -682,7 +671,7 @@ class block_ajax_marking_nodes_factory {
      *
      * @return array SQL and params
      */
-    private function get_sql_group_visibility_subquery($type = 'coalesce') {
+    private function sql_group_visibility_subquery($type = 'coalesce') {
 
         // TODO unit test this!!
 
@@ -749,7 +738,6 @@ SQL;
                 group_courseconfig_groups.display
 SQL;
                 break;
-
 
             case 'coursemodule':
                 $groupdisplaysubquery .= $coursemodulesselect;
@@ -875,7 +863,7 @@ SQL;
         // Second bit (after OR) filters out those who have group memberships, but all of them are
         // set to be hidden
         $sitedefaultnogroup = 1; // what to do with users who have no group membership?
-        list($existsvisibilitysubquery, $existsparams) = self::get_sql_group_visibility_subquery();
+        list($existsvisibilitysubquery, $existsparams) = self::sql_group_visibility_subquery();
         $query->add_params($existsparams);
         $hidden = <<<SQL
     (
@@ -1092,7 +1080,7 @@ SQL;
      *
      * @return array SQL fragment and params
      */
-    private function get_sql_groups_subquery() {
+    private function sql_groups_subquery() {
         global $USER;
 
         static $count = 1; // If we reuse this, we cannot have the same names for the params
@@ -1218,7 +1206,7 @@ SQL;
             // Retrieve all groups that we may need. This includes those with no settings yet as
             // otherwise, we won't be able to offer to create settings for them.
             list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-            list($visibilitysql, $visibilityparams) = self::get_sql_group_visibility_subquery('course');
+            list($subsql, $subparams) = self::sql_group_visibility_subquery('course');
             $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
 
             $sitedisplaydefault = 1; // May wish to make this configurable in future
@@ -1260,7 +1248,7 @@ SQL;
             // This will include groups that have no settings as we may want to make settings
             // for them
             list($cmsql, $params) = $DB->get_in_or_equal($coursemoduleids, SQL_PARAMS_NAMED);
-            list($visibilitysql, $visibilityparams) = self::get_sql_group_visibility_subquery('coursemodule');
+            list($subsql, $subparams) = self::sql_group_visibility_subquery('coursemodule');
             // Can't have repeating groupids in column 1 or it throws an error
             $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
             $sql = <<<SQL
@@ -1270,11 +1258,11 @@ SQL;
                         groups.name,
                         visibilitysubquery.display
                    FROM {groups} groups
-             INNER JOIN ({$visibilitysql}) visibilitysubquery
+             INNER JOIN ({$subsql}) visibilitysubquery
                      ON visibilitysubquery.groupid = groups.id
                     AND visibilitysubquery.cmid {$cmsql}
 SQL;
-            $params = array_merge($params, $visibilityparams);
+            $params = array_merge($params, $subparams);
 
             $debugquery = block_ajax_marking_debuggable_query($sql, $params);
             $groups = $DB->get_records_sql($sql, $params);
@@ -1379,9 +1367,6 @@ SQL;
 
             case 'coursemoduledisplayselect':
 
-                $defaultdisplay = 1;
-                $defaultgroupsdisplay = 0;
-
                 // The inner query joins to the config tables already for the WHERE clauses, so we
                 // make use of them to get the settings for those nodes that are not filtered out
                 $countwrapper = $query->get_subquery('countwrapperquery');
@@ -1393,7 +1378,6 @@ SQL;
                                          'table' => 'cmconfig',
                                          'column' => 'groupsdisplay'));
 
-
                 // The outer query (we need one because we have to do a join between the numeric
                 // fields that can be fed into a GROUP BY and the text fields that we display) pulls
                 // through the display fields
@@ -1404,7 +1388,6 @@ SQL;
 
                 break;
         }
-
     }
 
     /**
@@ -1414,7 +1397,7 @@ SQL;
      *
      * @return string
      */
-    private function get_sql_group_membership_exists() {
+    private function sql_group_membership_exists() {
         $checkmemberships = <<<SQL
     EXISTS (SELECT NULL
               FROM {groups_members} groups_members
@@ -1437,9 +1420,9 @@ SQL;
      *
      * @return array sql and params
      */
-    private function get_sql_max_groupid_subquery() {
+    private function sql_max_groupid_subquery() {
 
-        list($visibilitysubquery, $params) = self::get_sql_group_visibility_subquery();
+        list($visibilitysubquery, $params) = self::sql_group_visibility_subquery();
 
         $maxgroupsql = <<<SQL
          SELECT members.userid,

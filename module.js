@@ -245,7 +245,6 @@ M.block_ajax_marking.configtree_node.prototype.getNodeHtml = function() {
     sb[sb.length] = '</tr>';
     sb[sb.length] = '</table>';
 
-
     sb[sb.length] = '</td>';
     sb[sb.length] = '</tr>';
     sb[sb.length] = '</table>';
@@ -367,10 +366,6 @@ M.block_ajax_marking.tree_base.prototype.build_nodes = function(nodesarray) {
             }
         }
 
-
-        // currently, itemcount is null for config nodes
-//        var itemcount = ( !== 'undefined') ?
-//                        nodedata.displaydata.itemcount : 1;
         var islastnode = (nodedata.returndata.nextnodefilter === false);
         // We want counts for all nodes that have childnodes and leaf nodes with more than one
         if (typeof(nodedata.displaydata.itemcount) !== 'undefined' &&
@@ -562,7 +557,6 @@ M.block_ajax_marking.config_treenodeonclick = function(data) {
 
     // send request
     M.block_ajax_marking.save_setting_ajax_request(requestdata);
-
 
     return false;
 };
@@ -1530,7 +1524,6 @@ M.block_ajax_marking.initialise = function() {
         coursestab.displaywidget = new M.block_ajax_marking.courses_tree();
         coursestab.displaywidget.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
 
-
         var cohortstab = new Y.Tab({
             'label':'Cohorts',
             'content':'<div id="cohortstree" class="ygtv-highlight"></div>'});
@@ -1558,34 +1551,11 @@ M.block_ajax_marking.initialise = function() {
     	coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
             "maincontextmenu",
             {
-                trigger: ["coursestree"],
+                trigger: "coursestree",
                 keepopen: true,
-                lazyload: false,
-                itemdata: [
-                    {   text: M.str.block_ajax_marking.show,
-                        onclick: { fn: M.block_ajax_marking.contextmenu_setting_onclick,
-                                   obj: {'settingtype' : 'display'} },
-                        checked: true,
-                        id: 'block_ajax_marking_context_show',
-                        value : {}},
-                    {   text: M.str.block_ajax_marking.showgroups,
-                        onclick: { fn: M.block_ajax_marking.contextmenu_setting_onclick,
-                                   obj: {'settingtype' : 'groupsdisplay'} },
-                        checked: false,
-                        id: 'block_ajax_marking_context_showgroups',
-                        value : {}},
-                    {   text: M.str.block_ajax_marking.choosegroups,
-                        submenu: {
-                            id : 'choosegroupssubmenu',
-                            keepopen: true,
-                            lazyload: true,
-                            itemdata: []
-                        }
-                    }
-                ]
+                lazyload: false
             }
         );
-//        cohortstab.contextmenu = coursestab.contextmenu;
         // Initial render makes sure we have something to add and takeaway items from
         coursestab.contextmenu.render(document.body);
         // Make sure the menu is updated to be current with the node it matches
@@ -1594,7 +1564,6 @@ M.block_ajax_marking.initialise = function() {
         coursestab.contextmenu.subscribe("beforeHide",
                                          M.block_ajax_marking.contextmenu_unhighlight);
 
-
         // Make the groups menu for the config tree nodes. They don't need to have the main
         // context menu as they have clickable icons, so we just show the groups
         configtab.contextmenu = new M.block_ajax_marking.context_menu_base(
@@ -1602,8 +1571,7 @@ M.block_ajax_marking.initialise = function() {
             {
                 trigger: "configtree",
                 keepopen: true,
-                lazyload: false,
-                itemdata: [] // Filled dynamically with groups as needed
+                lazyload: false
             }
         );
         configtab.contextmenu.render(document.body);
@@ -1612,12 +1580,6 @@ M.block_ajax_marking.initialise = function() {
                                         M.block_ajax_marking.config_contextmenu_load_groups);
         configtab.contextmenu.subscribe("beforeHide",
                                         M.block_ajax_marking.contextmenu_unhighlight);
-
-
-
-
-
-
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function() {
@@ -1975,7 +1937,6 @@ M.block_ajax_marking.tree_node.prototype.set_time_style = function() {
 
         this.labelStyle = iconstyle;
     }
-
 
 };
 

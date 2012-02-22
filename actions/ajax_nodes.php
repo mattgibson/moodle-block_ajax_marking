@@ -58,7 +58,7 @@ if (!isset($params['nextnodefilter'])) {
 if (isset($params['config'])) {
     $nodes = block_ajax_marking_nodes_factory::get_config_nodes($params);
 } else {
-    $nodes = block_ajax_marking_nodes_factory::get_unmarked_nodes($params);
+    $nodes = block_ajax_marking_nodes_factory::unmarked_nodes($params);
 }
 
 foreach ($nodes as &$node) {
