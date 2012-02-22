@@ -1558,7 +1558,7 @@ M.block_ajax_marking.initialise = function() {
     	coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
             "maincontextmenu",
             {
-                trigger: ["coursestree", "cohortstree"],
+                trigger: ["coursestree"],
                 keepopen: true,
                 lazyload: false,
                 itemdata: [
