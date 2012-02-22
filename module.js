@@ -1214,15 +1214,16 @@ M.block_ajax_marking.contextmenu_ajax_callback = function(ajaxresponsearray) {
         newsetting = ajaxresponsearray['configsave'].newsetting,
         menu;
 
-    if (settingtype === 'group') {
-        var submenus = M.block_ajax_marking.contextmenu.getSubmenus();
+    var submenus = M.block_ajax_marking.get_current_tab().contextmenu.getSubmenus();
+    if (settingtype === 'group' && submenus.length > 0) {
+        // groups are only in a submenu for main context menu. The config one, they're in the menu
         menu = submenus[0];
     } else {
-        menu = M.block_ajax_marking.contextmenu;
+        menu = M.block_ajax_marking.get_current_tab().contextmenu;
     }
 
     var clickeditem = menu.getItem(menuitemindex, 0);
-    var target = M.block_ajax_marking.contextmenu.contextEventTarget;
+    var target = M.block_ajax_marking.get_current_tab().contextmenu.contextEventTarget;
     var configtab = M.block_ajax_marking.get_current_tab();
     var clickednode = configtab.displaywidget.getNodeByElement(target);
 
@@ -1556,7 +1557,7 @@ M.block_ajax_marking.initialise = function() {
         // - show/hide toggle
         // - show/hide group nodes
         // - submenu to show/hide specific groups
-    	M.block_ajax_marking.contextmenu = new M.block_ajax_marking.context_menu_base(
+    	coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
             "maincontextmenu",
             {
                 trigger: ["coursestree", "cohortstree"],
@@ -1586,18 +1587,19 @@ M.block_ajax_marking.initialise = function() {
                 ]
             }
         );
+        cohortstab.contextmenu = coursestab.contextmenu;
         // Initial render makes sure we have something to add and takeaway items from
-        M.block_ajax_marking.contextmenu.render(document.body);
+        cohortstab.contextmenu.render(document.body);
         // Make sure the menu is updated to be current with the node it matches
-        M.block_ajax_marking.contextmenu.subscribe("triggerContextMenu",
-                                                   M.block_ajax_marking.contextmenu.load_settings);
-        M.block_ajax_marking.contextmenu.subscribe("beforeHide",
-                                                   M.block_ajax_marking.contextmenu_unhighlight);
+        cohortstab.contextmenu.subscribe("triggerContextMenu",
+                                         cohortstab.contextmenu.load_settings);
+        cohortstab.contextmenu.subscribe("beforeHide",
+                                         M.block_ajax_marking.contextmenu_unhighlight);
 
 
         // Make the groups menu for the config tree nodes. They don't need to have the main
         // context menu as they have clickable icons, so we just show the groups
-        M.block_ajax_marking.configcontextmenu = new M.block_ajax_marking.context_menu_base(
+        configtab.contextmenu = new M.block_ajax_marking.context_menu_base(
             "configcontextmenu",
             {
                 trigger: "configtree",
@@ -1606,12 +1608,12 @@ M.block_ajax_marking.initialise = function() {
                 itemdata: [] // Filled dynamically with groups as needed
             }
         );
-        M.block_ajax_marking.configcontextmenu.render(document.body);
+        configtab.contextmenu.render(document.body);
 
-        M.block_ajax_marking.configcontextmenu.subscribe("triggerContextMenu",
-                                                         M.block_ajax_marking.config_contextmenu_load_groups);
-        M.block_ajax_marking.configcontextmenu.subscribe("beforeHide",
-                                                         M.block_ajax_marking.contextmenu_unhighlight);
+        configtab.contextmenu.subscribe("triggerContextMenu",
+                                        M.block_ajax_marking.config_contextmenu_load_groups);
+        configtab.contextmenu.subscribe("beforeHide",
+                                        M.block_ajax_marking.contextmenu_unhighlight);
 
 
 
@@ -1685,7 +1687,7 @@ M.block_ajax_marking.contextmenu_setting_onclick = function(event, otherthing, o
     var settingtype = obj.settingtype;
 
     var coursenodeclicked = false;
-    var target = M.block_ajax_marking.contextmenu.contextEventTarget;
+    var target = this.parent.contextEventTarget;
     var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
     if (typeof(clickednode.data.returndata.courseid) !== 'undefined') {
         coursenodeclicked = true;
