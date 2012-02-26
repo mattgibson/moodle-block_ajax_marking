@@ -178,6 +178,7 @@ class block_ajax_marking extends block_base {
                 // with, so we do this cheaply to keep overheads low by not using setup.php and
                 // having the js in static functions.
                 $moduledir = opendir($CFG->dirroot.'/blocks/ajax_marking/modules');
+                $modulejavascript = array();
                 if ($moduledir) {
                     // Loop through the module files, including each one
                     while (($moddir = readdir($moduledir)) !== false) {
@@ -190,6 +191,7 @@ class block_ajax_marking extends block_base {
                         }
                     }
                     closedir($moduledir);
+
                 }
             }
 

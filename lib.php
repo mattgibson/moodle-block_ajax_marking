@@ -288,6 +288,7 @@ function block_ajax_marking_format_node(&$node, $nextnodefilter) {
                 $node->configdata->$varname = $value;
             } else if ($varname == $nextnodefilter) {
                 $node->returndata->$varname = $value;
+                $node->returndata->currentfilter = $varname;
             } else {
                 $node->popupstuff->$varname = $value;
             }
