@@ -38,7 +38,7 @@ M.block_ajax_marking.popupholder = '';
 /**
  *
  */
-M.block_ajax_marking.ajaxnodesurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/ajax_nodes.php';
+M.block_ajax_marking.ajaxnodesurl = M.cfg.wwwroot + '/blocks/ajax_marking/actions/ajax_nodes.php';
 
 /**
  * Change to true to see what settings are null (inherited) by having them marked in grey on the
@@ -386,7 +386,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         this.data.displaydata.itemcount = parseInt(newvalue, 10);
     },
 
-
     /**
      * Takes the existing time and makes a css class based on it so we can see how late work is
      */
@@ -449,13 +448,17 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
-     * Makes a label out of the text (name of the node) and the count of unmarked items
-     *
-     * @return bool
+     * Overrides the parent class method so we can ad in the count and icon
      */
-    update_node_label : function () {
-        this.html = '<strong>('+this.get_count()+')</strong> '+this.get_displayname();
-        return true;
+    getContentHtml : function() {
+
+        var islastnode = (this.get_nextnodefilter() === false);
+
+        if (this.get_count() && (this.get_count() > 1 || !islastnode)) {
+            return '<strong>('+this.get_count()+')</strong> '+this.get_displayname();
+        } else {
+            return this.get_displayname();
+        }
     }
 
 
@@ -576,7 +579,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         groups = this.get_groups();
         numberofgroups = groups.length;
 
-        if (this.get_current_filter_name() === 'courseid') { //course node. Easy.
+        if (this.get_current_filter_name() === 'courseid') {
 
             for (var h = 0; h < numberofgroups; h++) {
 
@@ -609,18 +612,30 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
     },
 
 
-    /**
-     * Makes a label out of the text (name of the node) and the count of unmarked items
-     */
-    update_node_label : function () {
-        this.html = '<div class="node-icon display-icon"></div>'+
-            '<div class="node-icon groupsdisplay-icon"></div>'+
-            '<div class="node-icon groups-icon"></div>'+
-            '<div class="node-icon inherit-icon"></div>'+
-            '<strong>('+this.get_count()+')</strong> '+this.get_displayname();
-    }
-
 });
+
+/**
+ * Should add all the groups from a config node to it's menu button
+ *
+ * @param p_sType
+ * @param p_aArgs
+ */
+M.block_ajax_marking.groups_menu_button_render = function(p_sType, p_aArgs) {
+
+    // Get node
+
+    // Get groups from node
+
+    // Add groups to this menu button
+    this.addItems([
+
+          { text : "Four", value : 4 },
+          { text : "Five", value : 5 }
+
+      ]);
+
+
+};
 
 
 M.block_ajax_marking.context_menu_base = function (p_oElement, p_oConfig) {
@@ -812,11 +827,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             newnode.set_nextnodefilter(this.nextnodetype(newnode));
 
             islastnode = (newnode.get_nextnodefilter() === false);
-
-            // We want counts for all nodes that have childnodes and leaf nodes with more than one
-            if (newnode.get_count() && (newnode.get_count() > 1 || !islastnode)) {
-                newnode.update_node_label();
-            }
 
             // Set the node to load data dynamically, unless it has not sent a callback i.e. it's a
             // final node
@@ -1211,6 +1221,43 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
      * Empty function - the config tree has no need to update parent counts.
      */
     update_parent_node : function () {
+    },
+
+    /**
+     * Will attach a YUI menu button to all nodes with all of the groups so that they can be set
+     * to show or hide. Better than a non-obvious context menu.
+     */
+    add_groups_buttons : function () {
+
+        var node,
+            groupsdivs = YAHOO.util.Dom.getElementsByClassName('block_ajax_marking_groups_icon');
+
+        for (var i = 0; i < groupsdivs.length; i++) {
+
+            node = this.getNodeByElement(groupsdivs[i]);
+
+            // Check we don't already have a menu button. Skip if so as groups will not change
+            // TODO destroy these items when refresh is pressed in order to prevent memory leaks.
+            if (typeof node.groupsmenubutton !== 'undefined') {
+                return true;
+            }
+
+            // Instantiate an Overlay instance
+            node.menubuttonoverlay = new YAHOO.widget.Overlay('block_ajax_marking_groups_icon'+node.index,
+                                                              { visible : false });
+            node.menubuttonoverlay.setBody("Groups Button 4 Menu");
+
+            // Instantiate a Menu Button
+            node.groupsmenubutton = new YAHOO.widget.Button({ type : "menu",
+                                                              label : "Menu Button 4",
+                                                              menu : node.menubuttonoverlay,
+                                                              container : groupsdivs[i] });
+
+            M.block_ajax_marking.contextmenu_add_groups_to_menu(node.groupsmenubutton, node);
+
+            // TODO needs to be rendered?
+        }
+
     }
 
 
@@ -1761,6 +1808,8 @@ M.block_ajax_marking.initialise = function () {
         configtab.displaywidget = new M.block_ajax_marking.config_tree();
         configtab.displaywidget.subscribe('clickEvent',
                                           M.block_ajax_marking.config_treenodeonclick);
+        configtab.displaywidget.subscribe('expandComplete',
+                                          configtab.displaywidget.add_groups_buttons);
 
         // Make the context menu for the courses tree
         // Attach a listener to the root div which will activate the menu
