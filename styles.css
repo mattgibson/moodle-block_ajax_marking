@@ -312,3 +312,8 @@ span.ygtvlabel {
     vertical-align: top;
     font-size: 9pt;
 }
+td.block_ajax_marking_groups_icon span.yui-button button {
+    min-height: 0;
+    line-height: normal;
+    padding-left: 0;
+}
