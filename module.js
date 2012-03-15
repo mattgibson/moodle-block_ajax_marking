@@ -716,32 +716,31 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         if (typeof node.renderedmenu !== 'undefined') {
             node.renderedmenu.destroy(); // todo test me
         }
-        var menuconfig = { lazyload : true,
+        var menuconfig = {
+            lazyload : true,
             keepopen : true};
         node.renderedmenu = new YAHOO.widget.Menu('groupsdropdown'+node.index, menuconfig);
         M.block_ajax_marking.contextmenu_add_groups_to_menu(node.renderedmenu, node);
-
-        node.renderedmenu.subscribe('blur', function(event, eventdata) {
-            // YUI makes the blur event bubble, so when we move from one menu item to another, it
-            // hides the menu if don't check the target first
-            var blurtarget = eventdata[1];
-            if (blurtarget instanceof YAHOO.widget.MenuItem) {
-                return false;
-            }
-            node.renderedmenu.hide();
-        });
+//        node.renderedmenu.subscribe('blur', function(event, eventdata) {
+//            // YUI makes the blur event bubble, so when we move from one menu item to another, it
+//            // hides the menu if don't check the target first
+//            var blurtarget = eventdata[1];
+//            if (blurtarget instanceof YAHOO.widget.MenuItem) {
+//                return false;
+//            }
+//            node.renderedmenu.hide();
+//        });
 
         // The strategy here is to keep the menu open if we are doing an AJAX refresh as we may have
         // a dropdown that has just had a group chosen, so we don't want to make poeple open it up
         // again to choose another one. They need to click elsewhere to blur it. However, the node
         // refresh will redraw this node's HTML.
+
         node.renderedmenu.render(node.getEl());
-
-
         groupsdiv = node.get_group_dropdown_div();
+
         nodecontents = groupsdiv.firstChild.innerHTML;
         groupsdiv.removeChild(groupsdiv.firstChild);
-
         var buttonconfig = { type : "menu",
                      label : nodecontents,
                      title : 'Show/hide individual groups',
@@ -749,7 +748,9 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
                      menu : node.renderedmenu,
                      lazyload: false, // can't add events otherwise
                      container : groupsdiv };
+
         node.groupsmenubutton = new YAHOO.widget.Button(buttonconfig);
+        node.renderedmenu.cfg.queueProperty('clicktohide', true);
 
         // click event hides the menu by default for buttons.
         node.renderedmenu.unsubscribe('click', node.groupsmenubutton._onMenuClick);
@@ -1974,6 +1975,9 @@ M.block_ajax_marking.initialise = function () {
         configtab.displaywidget.render();
         configtab.displaywidget.subscribe('clickEvent',
                                           M.block_ajax_marking.config_treenodeonclick);
+        // We want the dropdown for the current node to hide when an expand action happens (if it's
+        // open)
+        configtab.displaywidget.subscribe('expand', M.block_ajax_marking.hide_open_menu);
 
         // Make the context menu for the courses tree
         // Attach a listener to the root div which will activate the menu
@@ -2061,7 +2065,8 @@ M.block_ajax_marking.contextmenu_unhighlight = function () {
  */
 M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, obj) {
 
-    var tree = M.block_ajax_marking.get_current_tab().displaywidget;
+    var clickednode,
+        tree = M.block_ajax_marking.get_current_tab().displaywidget;
 
     M.block_ajax_marking.clickedmenuitem = this;
 
@@ -2070,10 +2075,15 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
     var settingtype = obj.settingtype;
 
     var target = this.parent.contextEventTarget; // main context menu does not work for menu button
-    if (!target) {
+    if (!target && typeof(this.parent.element) !== 'undefined') {
         target = this.parent.element.parentElement; // config tree menu button
     }
-    var clickednode = tree.getNodeByElement(target);
+    if (!target && typeof(this.parent.parent) !== 'undefined') {
+        target = this.parent.parent.parent.contextEventTarget; // groups submenu
+    }
+    // by this point, we should have a target
+    clickednode = tree.getNodeByElement(target);
+
     var coursenodeclicked = false;
     if (clickednode.get_current_filter_name() == 'courseid') {
         coursenodeclicked = true;
@@ -2205,11 +2215,10 @@ M.block_ajax_marking.config_contextmenu_load_groups = function () {
     clickednode.toggleHighlight();
 
 };
-//
-//M.block_ajax_marking.get_node_from_menu = function() {
-//    var target = this.parent.contextEventTarget; // main context menu does not work for menu button
-//    if (!target) {
-//        target = this.parent.element.parentElement; // config tree menu button
-//    }
-//    var clickednode = tree.getNodeByElement(target);
-//};
+
+/**
+ * Hides the dropdown menu that may be open on this node
+ */
+M.block_ajax_marking.hide_open_menu = function(expandednode) {
+    expandednode.renderedmenu.hide();
+};
