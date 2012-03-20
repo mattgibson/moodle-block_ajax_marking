@@ -44,7 +44,7 @@ M.block_ajax_marking.ajaxnodesurl = M.cfg.wwwroot + '/blocks/ajax_marking/action
  * Change to true to see what settings are null (inherited) by having them marked in grey on the
  * context menu
  */
-M.block_ajax_marking.showinheritance = true;
+M.block_ajax_marking.showinheritance = false;
 
 M.block_ajax_marking.tree_node = function (oData, oParent, expanded) {
 
@@ -845,7 +845,8 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
             clickednode,
             currentfilter,
             choosegroupsmenu,
-            choosegroupsmenuitem;
+            choosegroupsmenuitem,
+            isworkshopnode;
 
         this.clearContent();
 
@@ -865,8 +866,10 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
 
         this.make_setting_menuitem('display', clickednode);
 
-        // If there are no groups, no need to show the groups settings.
-        if (groups.length !== 0) {
+
+        // If there are no groups, no need to show the groups settings. Also if there are no
+        // child nodes e.g. for workshop.
+        if (clickednode.isDynamic() && groups.length !== 0) {
 
             this.make_setting_menuitem('groupsdisplay', clickednode);
 
@@ -1259,7 +1262,7 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
         // if nothing else is found, make the node into a final one with no children
         var nextnodefilter = false,
             groupsdisplay,
-            moduleoverride,
+            moduleoverride = null,
             modulename = node.get_modulename(),
             currentfilter = node.get_current_filter_name();
 
@@ -1290,7 +1293,8 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
             case 'coursemoduleid':
                 groupsdisplay = node.get_calculated_groupsdisplay_setting();
                 if (groupsdisplay == 1) {
-                    nextnodefilter = 'groupid';
+                    // This takes precedence over the module override
+                    return 'groupid';
                 } else {
                     nextnodefilter = 'userid';
                 }
@@ -1311,7 +1315,6 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
         }
 
         return nextnodefilter;
-
     },
 
     /**

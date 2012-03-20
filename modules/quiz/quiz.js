@@ -42,18 +42,20 @@ M.block_ajax_marking.quiz = (function() {
          * Handles any module specific overrides for the trees
          */
         nextnodetype : function(defaultnexttype) {
-
-            // TODO this will read from user settings later on
-            var userchoosesquestions = true;
-
             switch (defaultnexttype) {
 
                 case 'coursemoduleid':
                     if (userchoosesquestions === true) {
                         return 'questionid';
                     } else {
-                        return 'userid'; // TODO this will cause duplicates if we're not adjusting it.
+                        // TODO this will cause duplicates if we're not adjusting it.
+                        // TODO can't remember why...
+                        return 'userid';
                     }
+                    break;
+
+                case 'groupid':
+                    return 'questionid';
                     break;
 
                 case 'questionid':
@@ -64,6 +66,11 @@ M.block_ajax_marking.quiz = (function() {
                     return null; // should never happen
 
             }
+
+
+            // TODO this will read from user settings later on
+            // TODO what was this for??
+            var userchoosesquestions = true;
 
         }
 
