@@ -851,6 +851,7 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
 
         target = this.contextEventTarget;
         clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
+        groups = clickednode.get_groups();
 
         // We don't want to allow the contextmenu for items that we can't hide yet. Right now it
         // only applies to courses and coursemodules
@@ -863,20 +864,24 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
         }
 
         this.make_setting_menuitem('display', clickednode);
-        this.make_setting_menuitem('groupsdisplay', clickednode);
 
-        choosegroupsmenuitem = this.make_setting_menuitem('groups', clickednode);
-        choosegroupsmenu = choosegroupsmenuitem.cfg.getProperty('submenu');
+        // If there are no groups, no need to show the groups settings.
+        if (groups.length !== 0) {
 
-        groups = clickednode.get_groups();
-        if (groups.length) {
-            // Wipe all groups out of the groups sub-menu
-            M.block_ajax_marking.contextmenu_add_groups_to_menu(choosegroupsmenu, clickednode);
-            // Enable the menu item, since we have groups in it
-            choosegroupsmenu.parent.cfg.setProperty("disabled", false);
-        } else {
-            // disable it so people can see that this is an option, but there are no groups
-            choosegroupsmenu.parent.cfg.setProperty("disabled", true);
+            this.make_setting_menuitem('groupsdisplay', clickednode);
+
+            choosegroupsmenuitem = this.make_setting_menuitem('groups', clickednode);
+            choosegroupsmenu = choosegroupsmenuitem.cfg.getProperty('submenu');
+
+            if (groups.length) {
+                // Wipe all groups out of the groups sub-menu
+                M.block_ajax_marking.contextmenu_add_groups_to_menu(choosegroupsmenu, clickednode);
+                // Enable the menu item, since we have groups in it
+                choosegroupsmenu.parent.cfg.setProperty("disabled", false);
+            } else {
+                // disable it so people can see that this is an option, but there are no groups
+                choosegroupsmenu.parent.cfg.setProperty("disabled", true);
+            }
         }
 
         this.render();
@@ -1752,7 +1757,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
     if (settingtype == 'display' && newsetting === 0) {
         // Node set to hide. Remove it from the tree.
         // TODO may also be an issue if sitedefault is set to hide - null here ought to mean 'hide'
-        M.block_ajax_marking.remove_node_from_current_tab(clickednode.index);
+        M.block_ajax_marking.remove_node_from_current_tab(clickednode);
 
         // this should only be for the contextmenu - dropdown can't do hide.
         menu.hide();
@@ -1973,9 +1978,11 @@ M.block_ajax_marking.get_current_tab = function () {
  * @param nodeid
  * @return void
  */
-M.block_ajax_marking.remove_node_from_current_tab = function (nodeid) {
+M.block_ajax_marking.remove_node_from_current_tab = function (node) {
     var currenttab = M.block_ajax_marking.tabview.get('selection');
-    currenttab.displaywidget.remove_node(nodeid);
+    var parentnode = node.parent;
+    currenttab.displaywidget.remove_node(node.index);
+    parentnode.refresh();
 };
 
 /**
@@ -2197,7 +2204,10 @@ M.block_ajax_marking.get_group_by_id = function (groups, groupid) {
 M.block_ajax_marking.save_setting_ajax_request = function (requestdata, clickednode) {
 
     M.block_ajax_marking.oncompletefunctionholder = function (justrefreshchildren) {
-        clickednode.refresh(justrefreshchildren)
+        // Sometimes the node will have been removed
+        if (clickednode.tree) {
+            clickednode.refresh(justrefreshchildren)
+        }
     };
 
     // Turn our object into a string that the AJAX stuff likes.
