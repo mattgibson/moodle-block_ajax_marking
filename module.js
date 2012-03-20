@@ -981,6 +981,10 @@ M.block_ajax_marking.tree_base = function (treediv) {
 // make the base class into a subclass of the YUI treeview widget.
 YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
+    // keeps track of whether this tree needs to be refreshed when the tab changes (if config
+    // settings have been altered)
+    needsrefresh : false,
+
     /**
      * Subclasses may wish to have different nodes
      */
@@ -1200,7 +1204,33 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      * Empty function so that different tree subtypes can overrride. Used to initialise any stuff
      * that appears as part of the nodes e.g. groups dropdowns in the config tree.
      */
-    add_groups_buttons : function () {}
+    add_groups_buttons : function () {},
+
+    /**
+     * Tells us whether a flag was set by another tree saying that the rest need a refresh. The tree
+     * that has changed settings notifies the others so that they can lazyload refresh when clicked
+     * on.
+     */
+    needs_refresh : function() {
+        return this.needsrefresh;
+    },
+
+    /**
+     * Sets whether or not the tree ought to be refreshed when the tab changes
+     * @param {bool} value
+     */
+    set_needs_refresh : function(value) {
+        this.needsrefresh = value;
+    },
+
+    /**
+     * Tell other trees they need a refresh. Subclasses to override
+     */
+    notify_refresh_needed : function() {
+
+    }
+
+
 
 });
 
@@ -1282,7 +1312,17 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
 
         return nextnodefilter;
 
+    },
+
+    /**
+     * Tell other trees they need a refresh. Subclasses to override
+     */
+    notify_refresh_needed : function () {
+        M.block_ajax_marking.configtab_tree.set_needs_refresh(true);
+        // M.block_ajax_marking.cohorts_tree.set_refresh_needed(true);
     }
+
+
 });
 
 /**
@@ -1464,6 +1504,14 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
         for (var i = 0; i < root.children.length; i++) {
             root.children[i].add_groups_button();
         }
+    },
+
+    /**
+     * Tell other trees they need a refresh. Subclasses to override
+     */
+    notify_refresh_needed : function () {
+        M.block_ajax_marking.coursestab_tree.set_needs_refresh(true);
+        // M.block_ajax_marking.cohorts_tree.set_refresh_needed(true);
     }
 
 
@@ -1721,6 +1769,9 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
                 } else { // assume a nodeid
                     M.block_ajax_marking.config_icon_success_handler(ajaxresponsearray);
                 }
+
+                // Notify other trees to refresh now that settings have changed
+                M.block_ajax_marking.get_current_tab().displaywidget.notify_refresh_needed();
             }
         }
     }
@@ -1979,7 +2030,7 @@ M.block_ajax_marking.get_current_tab = function () {
  * @return void
  */
 M.block_ajax_marking.remove_node_from_current_tab = function (node) {
-    var currenttab = M.block_ajax_marking.tabview.get('selection');
+    var currenttab = M.block_ajax_marking.get_current_tab();
     var parentnode = node.parent;
     currenttab.displaywidget.remove_node(node.index);
     parentnode.refresh();
@@ -2008,6 +2059,8 @@ M.block_ajax_marking.initialise = function () {
         var coursestab = new Y.Tab(coursetabconfig);
         M.block_ajax_marking.tabview.add(coursestab);
         coursestab.displaywidget = new M.block_ajax_marking.courses_tree();
+        // reference so we can tell the tree to auto-refresh
+        M.block_ajax_marking.coursestab_tree = coursestab.displaywidget;
         coursestab.displaywidget.render();
         coursestab.displaywidget.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
 
@@ -2017,6 +2070,8 @@ M.block_ajax_marking.initialise = function () {
         var cohortstab = new Y.Tab(cohortstabconfig);
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
+        M.block_ajax_marking.cohortstab_tree = cohortstab.displaywidget;
+
         cohortstab.displaywidget.render();
         cohortstab.displaywidget.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
 
@@ -2026,6 +2081,7 @@ M.block_ajax_marking.initialise = function () {
         var configtab = new Y.Tab(configtabconfig);
         M.block_ajax_marking.tabview.add(configtab);
         configtab.displaywidget = new M.block_ajax_marking.config_tree();
+        M.block_ajax_marking.configtab_tree = configtab.displaywidget;
         configtab.displaywidget.render();
         configtab.displaywidget.subscribe('clickEvent',
                                           M.block_ajax_marking.config_treenodeonclick);
@@ -2063,6 +2119,13 @@ M.block_ajax_marking.initialise = function () {
 
             // get current tab and keep a reference to it
             var currenttab = M.block_ajax_marking.get_current_tab();
+
+            // If settings have changed on another tab, we must refresh so that things reflect
+            // the new settings.
+            if (currenttab.displaywidget.needs_refresh()) {
+                currenttab.displaywidget.initialise();
+                currenttab.displaywidget.set_needs_refresh(false);
+            }
 
             if (typeof(currenttab.alreadyinitialised) === 'undefined') {
                 currenttab.displaywidget.initialise();
