@@ -118,7 +118,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                 M.block_ajax_marking.error('Invalid setting type: '+settingtype);
         }
 
-        // Moodle sends the settings as strings, but we want integers so we can do proper comparisons
+        // Moodle sends the settings as strings, but we want integers so we can do proper
+        // comparisons
         if (setting !== null) {
             setting = parseInt(setting, 10);
         }
@@ -223,10 +224,10 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
-     * When settings are changed on a course node, the child nodes (coursemodules) need to know about
-     * it so that subsequent right-clicks show settings as they currently are, not how the outdated
-     * original data was from when the tree first loaded. The principle is that changing a course
-     * resets all child nodes to the default.
+     * When settings are changed on a course node, the child nodes (coursemodules) need to know
+     * about it so that subsequent right-clicks show settings as they currently are, not how the
+     * outdated original data was from when the tree first loaded. The principle is that changing a
+     * course resets all child nodes to the default.
      *
      * @param {string} settingtype either display, groupsdisplay or group
      * @param {int} groupid
@@ -274,7 +275,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
-     * Returns the name of this node as it should be displayed on screen (without the count, icon, etc)
+     * Returns the name of this node as it should be displayed on screen (without the count,
+     * icon, etc)
      */
     get_displayname : function () {
         return this.data.displaydata.name;
@@ -282,8 +284,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
     /**
      * Recursive function to get the return data from this node and all its parents. Each parent
-     * represents a filter e.g. 'only this course', so we need to send the id numbers and names for the
-     * SQL to use in WHERE clauses.
+     * represents a filter e.g. 'only this course', so we need to send the id numbers and names
+     * for the SQL to use in WHERE clauses.
      *
      */
     get_filters : function () {
@@ -327,9 +329,10 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     /**
      * Saves a new setting into the nodes internal store, so we can keep track of things
      */
-    set_config_setting : function (
-        settingtype, newsetting) {
+    set_config_setting : function (settingtype, newsetting) {
+
         this.data.configdata[settingtype] = newsetting;
+
     },
 
     /**
@@ -366,7 +369,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
-     * Getter for the time that this node or it's oldest piece of work was submitted. Oldest = urgency
+     * Getter for the time that this node or it's oldest piece of work was submitted.
+     * Oldest = urgency
      */
     get_time : function () {
         if (typeof(this.data.displaydata.time) === 'undefined') {
@@ -468,6 +472,9 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 M.block_ajax_marking.configtree_node = function (oData, oParent, expanded) {
     M.block_ajax_marking.configtree_node.superclass.constructor.call(this, oData,
                                                                      oParent, expanded);
+
+    // TODO cfg value changed event for changing icons
+
 };
 YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tree_node, {
 
@@ -527,7 +534,8 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
     /**
      * overrides YAHOO.widget.Node
      * If property html is a string, it sets the innerHTML for the node
-     * If it is an HTMLElement, it defers appending it to the tree until the HTML basic structure is built
+     * If it is an HTMLElement, it defers appending it to the tree until the HTML basic
+     * structure is built
      */
     getContentHtml : function () {
 
@@ -550,10 +558,8 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         // Make display icon
         sb[sb.length] = '<td id="'+"block_ajax_marking_display_icon"+this.index;
         sb[sb.length] = '" class="ygtvcell ';
-        displaysetting = this.get_config_setting('display', false);
-        if (displaysetting === null) {
-            displaysetting = this.get_default_setting('display', false);
-        }
+
+        displaysetting = this.get_setting_to_display('display');
         if (displaysetting === 1) {
             sb[sb.length] = ' enabled ';
         } else {
@@ -565,10 +571,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         // Make groupsdisplay icon
         sb[sb.length] = '<td id="'+'block_ajax_marking_groupsdisplay_icon'+this.index;
         sb[sb.length] = '" class="ygtvcell ';
-        groupsdisplaysetting = this.get_config_setting('groupsdisplay', false);
-        if (groupsdisplaysetting === null) {
-            groupsdisplaysetting = this.get_default_setting('groupsdisplay', false);
-        }
+        groupsdisplaysetting = this.get_setting_to_display('groupsdisplay');
         if (groupsdisplaysetting === 1) {
             sb[sb.length] = ' enabled ';
         } else {
@@ -609,16 +612,14 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         // be wanted as it'll destroy the menu button
         if (!justrefreshchildren) {
             var contentelement = this.getContentEl();
-            var newcontenthtml = this.getContentHtml();
-            contentelement.innerHTML = newcontenthtml;
+            contentelement.innerHTML = this.getContentHtml();
             this.add_groups_button();
         }
 
         var childrenelement = this.getChildrenEl();
         // Now add the HTML for the children. This redraws all the HTML to match any updated
         // settings, but will also wipe out the HTML for the button dropdowns.
-        var newchildrenhtml = this.completeRender();
-        childrenelement.innerHTML = newchildrenhtml;
+        childrenelement.innerHTML = this.completeRender();
         this.tree.add_groups_buttons(this);
 
         if (this.hasIcon) {
@@ -647,7 +648,8 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
                 for (i = 0; i < this.children.length; i++) {
                     this.children[i].unhighlight(true);
                 }
-            } // if (highlighState == 2) leave child nodes with whichever highlight state they are set
+            } // if (highlighState == 2) leave child nodes with whichever highlight state
+            // they are set
         }
 
         this.dynamicLoadComplete = true;
@@ -745,10 +747,45 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         return groupscurrentlydisplayed+'/'+numberofgroups;
 
+    },
+
+    /**
+     * Gets the current setting, or the inherited setting as appropriate so we can show the right
+     * thing.
+     */
+    get_setting_to_display: function(settingtype) {
+        setting = this.get_config_setting(settingtype, false);
+        if (setting === null) {
+            setting = this.get_default_setting(settingtype, false);
+        }
+        return setting;
+    },
+
+    /**
+     * Saves a new setting into the nodes internal store, so we can keep track of things
+     */
+    set_config_setting : function (settingtype, newsetting) {
+
+        var iconcontainer,
+            containerid,
+            settingtoshow;
+
+        this.data.configdata[settingtype] = newsetting;
+        // Might be inherited...
+        settingtoshow = this.get_setting_to_display(settingtype);
+
+        // Set the node's appearance. Might need to refer to parent if it's inherit
+        containerid = 'block_ajax_marking_'+settingtype+'_icon'+this.index;
+
+        iconcontainer = document.getElementById(containerid);
+        if (settingtoshow == 1) {
+            YAHOO.util.Dom.addClass(iconcontainer, 'enabled');
+            YAHOO.util.Dom.removeClass(iconcontainer, 'disabled');
+        } else {
+            YAHOO.util.Dom.addClass(iconcontainer, 'disabled');
+            YAHOO.util.Dom.removeClass(iconcontainer, 'enabled');
+        }
     }
-
-
-
 
 });
 
@@ -969,7 +1006,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
                 newnode.setDynamicLoad(this.request_node_data);
             }
 
-            // If the node has a time (of oldest submission) show urgency by adding a background colour
+            // If the node has a time (of oldest submission) show urgency by adding a
+            // background colour
             newnode.set_time_style();
         }
     },
@@ -989,8 +1027,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         // Reload the data for the root node. We keep the tree object intact rather than destroying
         // and recreating in order to improve responsiveness.
         M.block_ajax_marking.parentnodeholder = rootnode;
-        // If we don't do this, then after refresh, we get it trying to run the oncomplete thing from
-        // the last node that was expanded.
+        // If we don't do this, then after refresh, we get it trying to run the oncomplete thing
+        // from the last node that was expanded.
         M.block_ajax_marking.oncompletefunctionholder = null;
 
         // show that the ajax request has been initialised
@@ -1022,8 +1060,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     },
 
     /**
-     * This function is called when a node is clicked (expanded) and makes the ajax request. It sends
-     * thefilters from all parent nodes and the nextnodetype
+     * This function is called when a node is clicked (expanded) and makes the ajax request. It
+     * sends thefilters from all parent nodes and the nextnodetype
      *
      * @param clickednode
      * @param callbackfunction
@@ -1048,9 +1086,9 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     },
 
     /**
-     * function to update the parent node when anything about its children changes. It recalculates the
-     * total count and displays it, then recurses to the next node up until it hits root, when it
-     * updates the total count and stops
+     * function to update the parent node when anything about its children changes. It
+     * recalculates the total count and displays it, then recurses to the next node up until it
+     * hits root, when it updates the total count and stops
      *
      * @param parentnodetoupdate the node of the treeview object to alter the count of
      * @return void
@@ -1123,8 +1161,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
     /**
      * This function updates the tree to remove the node of the pop up that has just been marked,
-     * then it updates the parent nodes and refreshes the tree, then sets a timer so that the popup will
-     * be closed when it goes to the 'changes saved' url.
+     * then it updates the parent nodes and refreshes the tree, then sets a timer so that
+     * the popup will be closed when it goes to the 'changes saved' url.
      *
      * @param nodeuniqueid The id of the node to remove
      * @return void
@@ -1173,9 +1211,9 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
             modulename = node.get_modulename(),
             currentfilter = node.get_current_filter_name();
 
-        // these are the standard progressions of nodes in the basic trees. Modules may wish to modify
-        // these e.g. by adding extra nodes, stopping early without showing individual students, or by
-        // allowing the user to choose a different order.
+        // these are the standard progressions of nodes in the basic trees. Modules may wish
+        // to modify these e.g. by adding extra nodes, stopping early without showing individual
+        // students, or by allowing the user to choose a different order.
         //    var coursesnodes = {
         //        'root'           : 'courseid',
         //        'courseid'       : 'coursemoduleid',
@@ -1268,8 +1306,8 @@ YAHOO.lang.extend(M.block_ajax_marking.cohorts_tree, M.block_ajax_marking.tree_b
                 return false;
 
             case 'coursemoduleid':
-                // If we don't have a setting for this node (null), keep going up the tree till we find an
-                // ancestor that does, or we hit root, when we use the default.
+                // If we don't have a setting for this node (null), keep going up the tree
+                // till we find an ancestor that does, or we hit root, when we use the default.
                 groupsdisplay = node.get_calculated_groupsdisplay_setting();
                 if (groupsdisplay == 1) {
                     nextnodefilter = 'groupid';
@@ -1374,16 +1412,13 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
             // be the tree
             var refreshnotneeded = false;
             if (typeof ajaxresponsearray['configsave'] !== 'undefined') {
-
-                if (ajaxresponsearray['configsave'].settingtype == 'group'
-                    && ajaxresponsearray['configsave'].menuitemindex !== false) {
-                    // If we have a dropdown open on the config tree, we don't want to refresh
-                    // that node as it will wipe out the menu
-                    refreshnotneeded = true;
-                }
+                // Config tree updates it's own nodes as the config things are set via
+                // node.set_config_setting()
+                refreshnotneeded = true;
             }
             if (!refreshnotneeded) { // groups dropdowns refreshed with js
-                M.block_ajax_marking.oncompletefunctionholder(refreshnotneeded); // node.loadComplete()
+                // node.loadComplete()
+                M.block_ajax_marking.oncompletefunctionholder(refreshnotneeded);
             }
             M.block_ajax_marking.oncompletefunctionholder = ''; // prevent it firing next time
         } else {
@@ -1943,25 +1978,28 @@ M.block_ajax_marking.initialise = function () {
         M.block_ajax_marking.tabview.render();
 
         // Define the tabs here and add them dynamically.
-        var coursestab = new Y.Tab({
-                                       'label' : 'Courses',
-                                       'content' : '<div id="coursestree" class="ygtv-highlight"></div>'});
+        var coursetabconfig = {
+                     'label' : 'Courses',
+                     'content' : '<div id="coursestree" class="ygtv-highlight"></div>'};
+        var coursestab = new Y.Tab(coursetabconfig);
         M.block_ajax_marking.tabview.add(coursestab);
         coursestab.displaywidget = new M.block_ajax_marking.courses_tree();
         coursestab.displaywidget.render();
         coursestab.displaywidget.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
 
-        var cohortstab = new Y.Tab({
-                                       'label' : 'Cohorts',
-                                       'content' : '<div id="cohortstree" class="ygtv-highlight"></div>'});
+        var cohortstabconfig = {
+            'label' : 'Cohorts',
+            'content' : '<div id="cohortstree" class="ygtv-highlight"></div>'};
+        var cohortstab = new Y.Tab(cohortstabconfig);
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
         cohortstab.displaywidget.render();
         cohortstab.displaywidget.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
 
-        var configtab = new Y.Tab({
-                                      'label' : 'Config',
-                                      'content' : '<div id="configtree" class="ygtv-highlight"></div>'});
+        var configtabconfig = {
+            'label' : 'Config',
+            'content' : '<div id="configtree" class="ygtv-highlight"></div>'};
+        var configtab = new Y.Tab(configtabconfig);
         M.block_ajax_marking.tabview.add(configtab);
         configtab.displaywidget = new M.block_ajax_marking.config_tree();
         configtab.displaywidget.render();
