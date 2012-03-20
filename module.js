@@ -541,7 +541,8 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         var displaysetting,
             sb = [],
-            groupsdisplaysetting;
+            groupsdisplaysetting,
+            groupscount = this.get_groups_count();
 
         sb[sb.length] = '<table class="ygtvtable">'; //new
         sb[sb.length] = '<tr >';
@@ -571,11 +572,14 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         // Make groupsdisplay icon
         sb[sb.length] = '<td id="'+'block_ajax_marking_groupsdisplay_icon'+this.index;
         sb[sb.length] = '" class="ygtvcell ';
-        groupsdisplaysetting = this.get_setting_to_display('groupsdisplay');
-        if (groupsdisplaysetting === 1) {
-            sb[sb.length] = ' enabled ';
-        } else {
-            sb[sb.length] = ' disabled ';
+
+        if (groupscount) {
+            groupsdisplaysetting = this.get_setting_to_display('groupsdisplay');
+            if (groupsdisplaysetting === 1) {
+                sb[sb.length] = ' enabled ';
+            } else {
+                sb[sb.length] = ' disabled ';
+            }
         }
         sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groupsdisplay_icon ';
         sb[sb.length] = '"><div class="ygtvspacer">&#160;</div></td>';
@@ -586,7 +590,11 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groups_icon ';
         sb[sb.length] = '"><div class="ygtvspacer">';
 
-        sb[sb.length] = this.get_groups_count()+' ';
+
+        // Leave it empty if there's no groups
+        if (groupscount !== false) {
+            sb[sb.length] = groupscount+' ';
+        }
 
         sb[sb.length] = '</div></td>';
 
@@ -681,6 +689,13 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         node = this;
 
+        // We don't want to render a button if there's no groups
+        groupsdiv = node.get_group_dropdown_div();
+        nodecontents = groupsdiv.firstChild.innerHTML;
+        if (nodecontents.trim() === '') {
+            return;
+        }
+
         // Not possible to re-render so we wipe it
         if (typeof node.groupsmenubutton !== 'undefined') {
             node.groupsmenubutton.destroy(); // todo test me
@@ -701,9 +716,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         // refresh will redraw this node's HTML.
 
         node.renderedmenu.render(node.getEl());
-        groupsdiv = node.get_group_dropdown_div();
 
-        nodecontents = groupsdiv.firstChild.innerHTML;
         groupsdiv.removeChild(groupsdiv.firstChild);
         var buttonconfig = {
             type : "menu",
@@ -732,6 +745,10 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             groups = this.get_groups(),
             numberofgroups = groups.length,
             display;
+
+        if (numberofgroups === 0) {
+            return false;
+        }
 
         for (var h = 0; h < numberofgroups; h++) {
 
