@@ -1176,6 +1176,8 @@ SQL;
             }
         }
 
+        $configbasequery->add_orderby('name ASC');
+
         // This is just for copying and pasting from the paused debugger into a DB GUI
         $debugquery = block_ajax_marking_debuggable_query($configbasequery);
 

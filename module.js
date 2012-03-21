@@ -405,7 +405,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             // current unix time
             currenttime = Math.round((new Date()).getTime() / onethousandmilliseconds);
 
-        if (typeof(this.get_time()) === false) {
+        if (this.get_time() === false) {
             return;
         }
 
