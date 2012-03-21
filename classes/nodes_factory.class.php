@@ -271,6 +271,8 @@ class block_ajax_marking_nodes_factory {
         // TODO make this a user option on the UI end
         if ($currentfilter == 'userid') {
             $displayquery->add_orderby('timestamp DESC');
+        } else {
+            $displayquery->add_orderby('name ASC');
         }
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
