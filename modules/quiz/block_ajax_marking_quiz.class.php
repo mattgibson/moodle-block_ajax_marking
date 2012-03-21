@@ -33,7 +33,7 @@ global $CFG;
 /** @define "$blockdir" "../.." */
 $blockdir = $CFG->dirroot.'/blocks/ajax_marking';
 require_once($blockdir.'/classes/query_base.class.php');
-require_once($blockdir.'/classes/query_factory.class.php');
+require_once($blockdir.'/classes/nodes_factory.class.php');
 
 // We only need this file for the constants. Doing this so that we don't have problems including
 // the file from module.js
@@ -86,53 +86,62 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                             $questionid = 0) {
 
         $selects = array();
+        /**
+         * @var block_ajax_marking_query_base $countwrapper
+         */
+        $countwrapper = $query->get_subquery('countwrapperquery');
+        /**
+         * @var block_ajax_marking_query_base $moduleunion
+         */
+        $moduleunion = $countwrapper->get_subquery('moduleunion');
 
         switch ($operation) {
 
             case 'where':
                 // Apply WHERE clause
-                $query->add_where(array(
+                $moduleunion['quiz']->add_select(array(
+                                             'table' => 'question',
+                                             'column' => 'id',
+                                             'alias' => 'questionid'
+                                         ));
+                $countwrapper->add_where(array(
                         'type' => 'AND',
-                        'condition' => 'question.id = :'.$query->prefix_param('questionid')));
-                $query->add_param('questionid', $questionid);
-                break;
-
-            case 'displayselect':
-
-                $query->add_from(array(
-                        'join' => 'INNER JOIN',
-                        'table' => 'question',
-                        'on' => 'question.id = combinedmodulesubquery.id'));
-                $selects = array(
-                        array(
-                            'table' => 'question',
-                            'column' => 'name'),
-                        array(
-                            'table' => 'question',
-                            'column' => 'questiontext',
-                            'alias' => 'tooltip')
-                );
+                        'condition' => 'moduleunion.questionid = :questionidfilterquestionid'));
+                $countwrapper->add_param('questionidfilterquestionid', $questionid);
                 break;
 
             case 'countselect':
 
-                $selects = array(
-                    array(
+                // We can add this as we can be sure that we are only looking at quiz nodes, so
+                // there will be no other modules being added with UNION, so they won't all need
+                // the same columns for the UNION to work.
+                $moduleunion['quiz']->add_select(array(
+                                             'table' => 'question',
+                                             'column' => 'id',
+                                             'alias' => 'questionid'
+                                         ));
+                $countwrapper->add_select(array(
+                        'table' => 'moduleunion',
+                        'column' => 'questionid',
+                        'alias' => 'id'));
+
+                // Outer bit to get display name
+                $query->add_from(array(
+                        'join' => 'INNER JOIN',
                         'table' => 'question',
-                        'column' => 'id',
-                        'alias' => 'questionid'),
-                    array(
-                        'table' => 'sub',
-                        'column' => 'id',
-                        'alias' => 'count',
-                        'function' => 'COUNT',
-                        'distinct' => true),
-                     // This is only needed to add the right callback function.
-                    array(
-                        'column' => "'".$query->get_modulename()."'",
-                        'alias' => 'modulename'
-                        )
-                    );
+                        'on' => 'question.id = countwrapperquery.id'));
+                $query->add_select(array(
+                        'table' => 'question',
+                        'column' => 'name'));
+                $query->add_select(array(
+                        'table' => 'question',
+                        'column' => 'questiontext',
+                        'alias' => 'tooltip'));
+
+                // This is only needed to add the right callback function.
+                $query->add_select(array(
+                        'column' => "'".$this->get_module_name()."'",
+                        'alias' => 'modulename'));
                 break;
         }
 
@@ -339,26 +348,26 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 'alias' => 'moduletable',
         ));
         $query->add_from(array(
-                'join'  => 'INNER JOIN',
                 'table' => 'quiz_attempts',
                 'on'    => 'moduletable.id = quiz_attempts.quiz'
         ));
         $query->add_from(array(
-                'join'  => 'INNER JOIN',
                 'table' => 'question_attempts',
                 'on'    => 'question_attempts.questionusageid = quiz_attempts.uniqueid'
         ));
         $query->add_from(array(
-                'join'  => 'INNER JOIN',
                 'table' => 'question_attempt_steps',
                 'alias' => 'sub',
                 'on'    => 'question_attempts.id = sub.questionattemptid'
         ));
         $query->add_from(array(
-                'join'  => 'INNER JOIN',
                 'table' => 'question',
                 'on'    => 'question_attempts.questionid = question.id'
         ));
+
+        // Standard userid for joins
+        $query->add_select(array('table' => 'quiz_attempts',
+                                 'column' => 'userid'));
 
         $query->add_where(array('type' => 'AND',
                                 'condition' => 'quiz_attempts.timefinish > 0'));
@@ -388,7 +397,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                   AND st.questionattemptid = question_attempts.id)";
         $query->add_where(array('type' => 'AND',
                                 'condition' => $subsql));
-        $query->add_params($gradedparams, false);
+        $query->add_params($gradedparams);
         return $query;
     }
 
@@ -404,49 +413,41 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                         $userid = 0) {
 
         $selects = array();
+        $countwrapper = $query->get_subquery('countwrapperquery');
 
         switch ($operation) {
 
             case 'where':
                 // Applies if users are not the final nodes,
-                $id = $query->prefix_param('submissionid');
                 $query->add_where(array(
                         'type' => 'AND',
-                        'condition' => 'quiz_attempts.userid = :'.$id)
+                        'condition' => 'quiz_attempts.userid = :useridfiltersubmissionid')
                 );
-                $query->add_param('submissionid', $userid);
+                $query->add_param('useridfiltersubmissionid', $userid);
                 break;
 
-            case 'displayselect':
-                $selects = array(
-                        array(
-                            'table'    => 'usertable',
-                            'column'   => 'firstname'),
-                        array(
-                            'table'    => 'usertable',
-                            'column'   => 'lastname'));
+            case 'countselect':
+                $query->add_select(array(
+                    'table'    => 'usertable',
+                    'column'   => 'firstname'));
+                $query->add_select(array(
+                    'table'    => 'usertable',
+                    'column'   => 'lastname'));
 
                 $query->add_from(array(
                         'join'  => 'INNER JOIN',
                         'table' => 'user',
                         'alias' => 'usertable',
-                        'on'    => 'usertable.id = combinedmodulesubquery.id'
+                        'on'    => 'usertable.id = countwrapperquery.id'
                 ));
-                break;
 
-            case 'countselect':
-                $selects = array(
-                    array(
-                        'table'    => 'quiz_attempts',
-                        'column'   => 'userid'),
-                    array( // Count in case we have user as something other than the last node
-                        'function' => 'COUNT',
-                        'table'    => 'sub',
-                        'column'   => 'id',
-                        'alias'    => 'count'),
+                $countwrapper->add_select(array(
+                        'table'    => 'moduleunion',
+                        'column'   => 'userid',
+                        'alias' => 'id'));
                     // This is only needed to add the right callback function.
-                    array(
-                        'column' => "'".$query->get_modulename()."'",
+                $query->add_select(array(
+                        'column' => "'".$this->get_module_name()."'",
                         'alias' => 'modulename'
                         ));
                 break;
@@ -468,7 +469,42 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      */
     protected function get_question_attempts($params) {
 
-        $query = block_ajax_marking_query_factory::get_filtered_module_query($params, $this);
+            // TODO stop using this and write the SQL out here
+            /*
+            SELECT quiz_attempts.userid,
+                   course_modules.id AS coursemoduleid,
+                   moduletable.course,
+                   sub.id            AS subid,
+                   'quiz'            AS modulename
+            FROM   mdl_quiz moduletable
+                   INNER JOIN mdl_quiz_attempts quiz_attempts
+                     ON moduletable.id = quiz_attempts.quiz
+                   INNER JOIN mdl_question_attempts question_attempts
+                     ON question_attempts.questionusageid = quiz_attempts.uniqueid
+                   INNER JOIN mdl_question_attempt_steps sub
+                     ON question_attempts.id = sub.questionattemptid
+                   INNER JOIN mdl_question question
+                     ON question_attempts.questionid = question.id
+                   INNER JOIN mdl_course_modules course_modules
+                     ON course_modules.instance = moduletable.id
+                        AND course_modules.module = 13
+            WHERE  quiz_attempts.timefinish > 0
+                   AND quiz_attempts.preview = 0
+                   AND question_attempts.behaviour = 'manualgraded'
+                   AND sub.state = 'needsgrading'
+                   AND NOT EXISTS(SELECT 1
+                                  FROM   mdl_question_attempt_steps st
+                                  WHERE  st.state IN ( 'gradedwrong', 'gradedpartial',
+                                                       'gradedright',
+                                                       'mangrwrong',
+                                                       'mangrpartial', 'mangrright' )
+                                         AND st.questionattemptid = question_attempts.id)
+
+        */
+
+        $query = block_ajax_marking_nodes_factory::get_unmarked_module_query($params, $this);
+        $newquery = block_ajax_marking_debuggable_query($query);
+
         $query->add_select(array('table' => 'question_attempts',
                                'column' => 'id',
                                'distinct' => true

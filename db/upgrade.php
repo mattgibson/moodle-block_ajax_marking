@@ -28,7 +28,8 @@
 defined('MOODLE_INTERNAL') || die();
 
 // include constants
-require_once($CFG->dirroot . '/blocks/ajax_marking/lib.php');
+global $CFG;
+require_once("{$CFG->dirroot}/blocks/ajax_marking/lib.php");
 
 /**
  * Standard upgrade function run every time the block's version number changes
@@ -46,7 +47,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     // TODO make this only happen on the 2.0 upgrade
     // 1.9 latest version 2010101301
     // actual point where the code was written: 2010061801 (2.0
-    // This should trigger on any verison of 1.9 now, provided 1.9 is not changed again.
+    // This should trigger on any version of 1.9 now, provided 1.9 is not changed again.
     // If people have already installed 2.0 and the upgrade didn't work...
     // If they installed 2.0 and the upgrade did work?
 
@@ -346,7 +347,6 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
     }
 
-
     // Other parts of the xmldb upgrade that were missed as well. Need to takes care to make this
     // conditional as it only applies to a small number of people
     if ($oldversion < 2011112506) {
@@ -426,8 +426,8 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
             }
 
-            // Add a new field for showing whether each group should be displayed. Allows override of
-            // 'show this group' that may have been set at course level.
+            // Add a new field for showing whether each group should be displayed. Allows
+            // override of 'show this group' that may have been set at course level.
             $table = new xmldb_table('block_ajax_marking_groups');
             $field = new xmldb_field('display', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, null,
                                      null, '0', 'groupid');
@@ -440,11 +440,39 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
         // ajax_marking savepoint reached
         upgrade_block_savepoint(true, 2011112506, 'ajax_marking');
 
+    }
+
+    // Allow all settings to be null in case we want to have site level defaults
+    if ($oldversion < 2011112507) {
+
+        $table = new xmldb_table('block_ajax_marking');
+        $field = new xmldb_field('display', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, null,
+                                 null, '1', 'tablename');
+
+        $dbman->change_field_type($table, $field);
+
+        upgrade_block_savepoint(true, 2011112507, 'ajax_marking');
 
     }
 
+    // We need to flag whether people who do not have any group memberships should be displayed in
+    // an 'orphans' node if others are being shown in their group nodes or whether they ought to
+    // be hidden
+    if ($oldversion < 2012020200) {
 
+        // Define field showorphans to be added to block_ajax_marking
+        $table = new xmldb_table('block_ajax_marking');
+        $field = new xmldb_field('showorphans', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED,
+                                 XMLDB_NOTNULL, null, '1', 'groupsdisplay');
 
+        // Conditionally launch add field showorphans
+        if (!$dbman->field_exists($table, $field)) {
+            $dbman->add_field($table, $field);
+        }
+
+        // ajax_marking savepoint reached
+        upgrade_block_savepoint(true, 2012020200, 'ajax_marking');
+    }
 
     return true;
 }

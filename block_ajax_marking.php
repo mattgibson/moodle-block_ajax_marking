@@ -24,6 +24,8 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
 /**
  * This class builds a marking block on the front page which loads assignments and submissions
  * dynamically into a tree structure using AJAX. All marking occurs in pop-up windows and each node
@@ -41,7 +43,6 @@ class block_ajax_marking extends block_base {
      */
     public function init() {
         $this->title = get_string('ajaxmarking', 'block_ajax_marking');
-        $this->version = 2010050601;
     }
 
     /**
@@ -73,14 +74,14 @@ class block_ajax_marking extends block_base {
         if (count($courses) > 0) { // Grading permissions exist in at least one course, so display
 
             //start building content output
-            $this->content = new stdClass;
+            $this->content = new stdClass();
             $this->content->footer = '';
 
             // Build the AJAX stuff on top of the plain HTML list
             if ($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
 
                 // Add a style to hide the HTML list and prevent flicker
-                $s = '<script type="text/javascript" defer="defer">
+                $script = '<script type="text/javascript" defer="defer">
                       /* <![CDATA[ */
                       var styleElement = document.createElement("style");
                       styleElement.type = "text/css";
@@ -97,7 +98,7 @@ class block_ajax_marking extends block_base {
                       document.getElementsByTagName("head")[0].appendChild(styleElement);
                       /* ]]> */</script>';
 
-                $this->content->text .= $s;
+                $this->content->text .= $script;
 
                 // Set up the javascript module, with any data that the JS will need
                 $jsmodule = array(
@@ -129,7 +130,8 @@ class block_ajax_marking extends block_base {
                         array('coursedefault', 'block_ajax_marking'),
                         array('hidethiscourse', 'block_ajax_marking'),
                         array('show', 'block_ajax_marking'),
-                        array('showgroups', 'block_ajax_marking')
+                        array('showgroups', 'block_ajax_marking'),
+                        array('choosegroups', 'block_ajax_marking')
                     )
                 );
 
@@ -156,7 +158,8 @@ class block_ajax_marking extends block_base {
                     </div>
                     <div id="block_ajax_marking_refresh_button"></div>
                     <div id="block_ajax_marking_configure_button"></div>
-                    <div id="block_ajax_marking_error"></div>';
+                    <div id="block_ajax_marking_error"></div>
+                    <div class="block_ajax_marking_spacer"></div>';
 
                 // Don't warn about javascript if the screenreader option is set - it was deliberate
                 $noscript = '<noscript>
@@ -175,6 +178,7 @@ class block_ajax_marking extends block_base {
                 // with, so we do this cheaply to keep overheads low by not using setup.php and
                 // having the js in static functions.
                 $moduledir = opendir($CFG->dirroot.'/blocks/ajax_marking/modules');
+                $modulejavascript = array();
                 if ($moduledir) {
                     // Loop through the module files, including each one
                     while (($moddir = readdir($moduledir)) !== false) {
@@ -187,6 +191,7 @@ class block_ajax_marking extends block_base {
                         }
                     }
                     closedir($moduledir);
+
                 }
             }
 
