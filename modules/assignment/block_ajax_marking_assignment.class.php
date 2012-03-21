@@ -400,6 +400,9 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // Standard userid for joins
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
+        $query->add_select(array('table' => 'sub',
+                                'column' => 'timemodified',
+                                'alias' => 'timestamp'));
 
         $query->add_where(array(
                                'type' => 'AND',

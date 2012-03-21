@@ -46,23 +46,13 @@
 }
 
 /* the following 8 styles give different coloured borders to
-   submissions depending on when they were submitted. The
-   colours may not be the best for your theme so change them
-   below if needs be. The timings are in javascript.js at around line
-   340. If you have colour blind users, you may need to take contrast into account
-   and maybe vary the line style - dotted, dashed, solid.
+   submissions depending on when they were submitted.
 */
 
-.icon-user-one, .icon-user-two, .icon-user-three, .icon-user-four, .icon-user-five, .icon-user-six,
-.icon-user-seven, .icon-user-eight {
-    padding-left: 0;
-    padding-right: 2px;
-    cursor: pointer;
-    border: 2px none;
+td.icon-user-one, td.icon-user-two, td.icon-user-three, td.icon-user-four, td.icon-user-five, td.icon-user-six,
+td.icon-user-seven, td.icon-user-eight {
+    border: 2px solid transparent;
     overflow: hidden;
-    width: 150px;
-    height: 40px;
-    margin: 0;
 }
 .icon-user-one {
     background-color: #ccffcc;
@@ -86,7 +76,7 @@
     background-color: #ffb0bb;
 }
 .icon-user-eight {
-    background-color: #ffb0bb;
+    background-color: #ff9098;
 }
 #loader {
     position: relative;

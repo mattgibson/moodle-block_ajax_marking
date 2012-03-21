@@ -185,6 +185,12 @@ class block_ajax_marking_nodes_factory {
                                                  'column' => 'modulename'));
         }
 
+        // We want all nodes to have an oldest piece of work timestamp for background colours
+        $countwrapperquery->add_select(array('table' => 'moduleunion',
+                                             'column' => 'timestamp',
+                                             'function' => 'MAX',
+                                             'alias' => 'timestamp'));
+
         $countwrapperquery->add_from(array('table' => $modulequeries,
                                            'alias' => 'moduleunion',
                                            'union' => true,
@@ -209,6 +215,9 @@ class block_ajax_marking_nodes_factory {
         $displayquery->add_select(array(
                 'table'    => 'countwrapperquery',
                 'column'   => 'itemcount'));
+        $displayquery->add_select(array(
+               'table'    => 'countwrapperquery',
+               'column'   => 'timestamp'));
         if ($havecoursemodulefilter) { // Need to have this pass through in case we have a mixture
             $displayquery->add_select(array(
                 'table'    => 'countwrapperquery',
@@ -256,6 +265,10 @@ class block_ajax_marking_nodes_factory {
         } else if ($filters['nextnodefilter'] ==  'coursemoduleid') {
             self::apply_config_filter($displayquery, 'coursemoduledisplayselect');
         }
+
+        // We want the oldest work at the top
+        // TODO make this a user option on the UI end
+        $displayquery->add_orderby('timestamp DESC');
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
         $debugquery = block_ajax_marking_debuggable_query($displayquery);

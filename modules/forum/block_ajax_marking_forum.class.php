@@ -407,6 +407,9 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         // Standard userid for joins
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
+        $query->add_select(array('table' => 'sub',
+                                'column' => 'modified',
+                                'alias'  => 'timestamp'));
 
         $query->add_where(array(
                            'type' => 'AND',

@@ -373,8 +373,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      * Oldest = urgency
      */
     get_time : function () {
-        if (typeof(this.data.displaydata.time) === 'undefined') {
-            return parseInt(this.data.displaydata.time, 10);
+        if (typeof(this.data.displaydata.timestamp) !== 'undefined') {
+            return parseInt(this.data.displaydata.timestamp, 10);
         } else {
             return false;
         }
@@ -444,7 +444,9 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             iconstyle = 'icon-user-eight';
         }
 
-        this.labelStyle += ' '+iconstyle;
+//        var contentEl = this.getContentEl();
+//        YAHOO.util.Dom.addClass(contentEl, iconstyle);
+        this.contentStyle += ' '+iconstyle+' ';
 
     },
 
