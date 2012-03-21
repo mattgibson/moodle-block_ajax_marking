@@ -237,6 +237,7 @@ class block_ajax_marking_nodes_factory {
                 // an empty value, so we set the value here.
                 $value = false;
                 $operation = 'countselect';
+                $currentfilter = $value;
             } else {
                 $filterfunctionname = 'apply_'.$name.'_filter';
                 $operation = 'where';
@@ -268,7 +269,9 @@ class block_ajax_marking_nodes_factory {
 
         // We want the oldest work at the top
         // TODO make this a user option on the UI end
-        $displayquery->add_orderby('timestamp DESC');
+        if ($currentfilter == 'userid') {
+            $displayquery->add_orderby('timestamp DESC');
+        }
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
         $debugquery = block_ajax_marking_debuggable_query($displayquery);
