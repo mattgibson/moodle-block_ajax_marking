@@ -458,7 +458,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         var islastnode = (this.get_nextnodefilter() === false);
 
         if (this.get_count() && (this.get_count() > 1 || !islastnode)) {
-            return '<strong>('+this.get_count()+')</strong> '+this.get_displayname();
+            return '<span class="nodecount"<strong>('+this.get_count()+')</strong></span> '+this.get_displayname();
         } else {
             return this.get_displayname();
         }
@@ -1517,6 +1517,13 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
     notify_refresh_needed : function () {
         M.block_ajax_marking.coursestab_tree.set_needs_refresh(true);
         // M.block_ajax_marking.cohorts_tree.set_refresh_needed(true);
+    },
+
+    /**
+     * Should empty the count
+     */
+    update_total_count : function() {
+        document.getElementById('count').innerHTML = this.totalcount.toString();
     }
 
 

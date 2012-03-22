@@ -54,29 +54,30 @@ td.icon-user-seven, td.icon-user-eight {
     border: 2px solid transparent;
     overflow: hidden;
 }
-.icon-user-one {
-    background-color: #ccffcc;
+.icon-user-one .nodecount {
+    background-color: #00ad08;
 }
-.icon-user-two {
-    background-color: #ccffcc;
+.icon-user-two .nodecount {
+    background-color: #00ad08;
 }
-.icon-user-three {
-    background-color: #EEE5AA;
+.icon-user-three .nodecount {
+    background-color: #00ad08;
 }
-.icon-user-four {
-    background-color: #EEE5AA;
+.icon-user-four .nodecount {
+    background-color: #ff6c00;
 }
-.icon-user-five {
-    background-color: #EECAB3;
+.icon-user-five .nodecount {
+    background-color: #ff6c00;
 }
-.icon-user-six {
-    background-color: #EECAB3;
+.icon-user-six .nodecount {
+    background-color: #ff6c00;
 }
-.icon-user-seven {
-    background-color: #ffb0bb;
+.icon-user-seven .nodecount {
+    background-color: #ff000a;
 }
-.icon-user-eight {
-    background-color: #ff9098;
+.icon-user-eight  .nodecount {
+    /*background-color: #ff9098;*/
+    color: #ff000a;
 }
 #loader {
     position: relative;
