@@ -26,6 +26,16 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+/**
+ * Four days, before which, work is considered 'recent', after which things are considered 'medium'
+ */
+define('BLOCK_AJAX_MARKING_FOUR_DAYS', 345600);
+
+/**
+ * Ten days. Later than this is overdue.
+ */
+define('BLOCK_AJAX_MARKING_TEN_DAYS', 864000);
+
 global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 
@@ -178,6 +188,23 @@ class block_ajax_marking_nodes_factory {
                                              'alias' => 'itemcount', // COUNT is a reserved word
                                              'function' => 'COUNT'));
 
+        // TO get the three times for recent, medium and overdue pieces of work, we do three
+        // count operations here
+        $fourdaysago = time() - BLOCK_AJAX_MARKING_FOUR_DAYS;
+        $tendaysago = time() - BLOCK_AJAX_MARKING_TEN_DAYS;
+        $countwrapperquery->add_select(array('column'   => "CASE WHEN (moduleunion.timestamp > {$fourdaysago}) THEN 1 ELSE 0 END",
+                                            'alias'    => 'recentcount',
+                                            // COUNT is a reserved word
+                                            'function' => 'SUM'));
+        $countwrapperquery->add_select(array('column'   => "CASE WHEN (moduleunion.timestamp < {$fourdaysago} AND moduleunion.timestamp > {$tendaysago}) THEN 1 ELSE 0 END",
+                                            'alias'    => 'mediumcount',
+                                            // COUNT is a reserved word
+                                            'function' => 'SUM'));
+        $countwrapperquery->add_select(array('column'   => "CASE WHEN moduleunion.timestamp < $tendaysago THEN 1 ELSE 0 END",
+                                            'alias'    => 'overduecount',
+                                            // COUNT is a reserved word
+                                            'function' => 'SUM'));
+
         if ($havecoursemodulefilter || $makingcoursemodulenodes) {
             // Needed to access the correct javascript so we can open the correct popup, so
             // we include the name of the module
@@ -218,6 +245,15 @@ class block_ajax_marking_nodes_factory {
         $displayquery->add_select(array(
                'table'    => 'countwrapperquery',
                'column'   => 'timestamp'));
+        $displayquery->add_select(array(
+                                       'table'    => 'countwrapperquery',
+                                       'column'   => 'recentcount'));
+        $displayquery->add_select(array(
+                                       'table'    => 'countwrapperquery',
+                                       'column'   => 'mediumcount'));
+        $displayquery->add_select(array(
+                                       'table'    => 'countwrapperquery',
+                                       'column'   => 'overduecount'));
         if ($havecoursemodulefilter) { // Need to have this pass through in case we have a mixture
             $displayquery->add_select(array(
                 'table'    => 'countwrapperquery',
@@ -269,11 +305,11 @@ class block_ajax_marking_nodes_factory {
 
         // We want the oldest work at the top
         // TODO make this a user option on the UI end
-        if ($currentfilter == 'userid') {
-            $displayquery->add_orderby('timestamp DESC');
-        } else {
-            $displayquery->add_orderby('name ASC');
-        }
+//        if ($currentfilter == 'userid') {
+//            $displayquery->add_orderby('timestamp DESC');
+//        } else {
+//            $displayquery->add_orderby('name ASC');
+//        }
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
         $debugquery = block_ajax_marking_debuggable_query($displayquery);

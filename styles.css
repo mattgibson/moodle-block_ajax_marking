@@ -54,29 +54,13 @@ td.icon-user-seven, td.icon-user-eight {
     border: 2px solid transparent;
     overflow: hidden;
 }
-.icon-user-one .nodecount {
-    background-color: #00ad08;
+.nodecount .recent {
+    color: #00ad08;
 }
-.icon-user-two .nodecount {
-    background-color: #00ad08;
+.nodecount .medium {
+    color: #ff6c00;
 }
-.icon-user-three .nodecount {
-    background-color: #00ad08;
-}
-.icon-user-four .nodecount {
-    background-color: #ff6c00;
-}
-.icon-user-five .nodecount {
-    background-color: #ff6c00;
-}
-.icon-user-six .nodecount {
-    background-color: #ff6c00;
-}
-.icon-user-seven .nodecount {
-    background-color: #ff000a;
-}
-.icon-user-eight  .nodecount {
-    /*background-color: #ff9098;*/
+.nodecount .overdue {
     color: #ff000a;
 }
 #loader {

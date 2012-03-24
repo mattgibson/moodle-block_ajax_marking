@@ -394,13 +394,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
         var iconstyle = '',
             onethousandmilliseconds = 1000,
-            sixhours = 21600,
-            twelvehours = 43200,
-            oneday = 86400,
-            twodays = 172800,
-            fivedays = 432000,
+            fourdays = 345600,
             tendays = 864000,
-            twoweeks = 1209600,
             seconds,
             // current unix time
             currenttime = Math.round((new Date()).getTime() / onethousandmilliseconds);
@@ -411,41 +406,14 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
         seconds = currenttime-this.get_time();
 
-        if (seconds < sixhours) {
-            // less than 6 hours
-            iconstyle = 'icon-user-one';
-
-        } else if (seconds < twelvehours) {
-            // less than 12 hours
-            iconstyle = 'icon-user-two';
-
-        } else if (seconds < oneday) {
-            // less than 24 hours
-            iconstyle = 'icon-user-three';
-
-        } else if (seconds < twodays) {
-            // less than 48 hours
-            iconstyle = 'icon-user-four';
-
-        } else if (seconds < fivedays) {
-            // less than 5 days
-            iconstyle = 'icon-user-five';
-
+        if (seconds < fourdays) {
+            iconstyle = 'time-recent';
         } else if (seconds < tendays) {
-            // less than 10 days
-            iconstyle = 'icon-user-six';
-
-        } else if (seconds < twoweeks) {
-            // less than 2 weeks
-            iconstyle = 'icon-user-seven';
-
+            iconstyle = 'time-medium';
         } else {
-            // more than 2 weeks
-            iconstyle = 'icon-user-eight';
+            iconstyle = 'time-overdue';
         }
 
-//        var contentEl = this.getContentEl();
-//        YAHOO.util.Dom.addClass(contentEl, iconstyle);
         this.contentStyle += ' '+iconstyle+' ';
 
     },
@@ -455,15 +423,53 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      */
     getContentHtml : function() {
 
-        var islastnode = (this.get_nextnodefilter() === false);
+        var componentcounts,
+            html,
+            countarray = [],
+            titlearray = [],
+            islastnode = (this.get_nextnodefilter() === false);
 
-        if (this.get_count() && (this.get_count() > 1 || !islastnode)) {
-            return '<span class="nodecount"<strong>('+this.get_count()+')</strong></span> '+this.get_displayname();
+        if (this.get_count()) {
+            componentcounts = this.get_component_counts();
+
+            if (componentcounts.recent) {
+                countarray.push('<span class="recent">'+componentcounts.recent+'</span>');
+                titlearray.push(componentcounts.recent+' '+M.str.block_ajax_marking.recentitems);
+            }
+            if (componentcounts.medium) {
+                countarray.push('<span class="medium">'+componentcounts.medium+'</span>');
+                titlearray.push(componentcounts.medium+' '+M.str.block_ajax_marking.mediumitems);
+            }
+            if (componentcounts.overdue) {
+                countarray.push('<span class="overdue">'+componentcounts.overdue+'</span>');
+                titlearray.push(componentcounts.overdue+' '+M.str.block_ajax_marking.overdueitems);
+            }
+
+            html = '<span class="nodecount" title="'+titlearray.join(', ')+'">'+
+                '<strong>(</strong>';
+
+            html += countarray.join('|');
+
+            html += '<strong>)</strong>'+
+                   '</span> '+
+                   this.get_displayname();
+
+            return html;
         } else {
             return this.get_displayname();
         }
-    }
+    },
 
+    /**
+     * Each node with a count will have three component counts: recent, medium and overdue.
+     * This returns them as an object
+     */
+    get_component_counts : function() {
+        return {
+            recent : parseInt(this.data.displaydata.recentcount),
+            medium : parseInt(this.data.displaydata.mediumcount),
+            overdue : parseInt(this.data.displaydata.overduecount)}
+    }
 
 });
 
@@ -1264,7 +1270,7 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
         // if nothing else is found, make the node into a final one with no children
         var nextnodefilter = false,
             groupsdisplay,
-            moduleoverride = null,
+            moduleoverride,
             modulename = node.get_modulename(),
             currentfilter = node.get_current_filter_name();
 
