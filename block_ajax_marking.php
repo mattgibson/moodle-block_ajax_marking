@@ -70,12 +70,15 @@ class block_ajax_marking extends block_base {
         require_once($CFG->dirroot . '/blocks/ajax_marking/lib.php');
 
         $courses = block_ajax_marking_get_my_teacher_courses();
+        // This function will include all the module class files and instantiate copies
+        $modclasses = block_ajax_marking_get_module_classes();
 
         if (count($courses) > 0) { // Grading permissions exist in at least one course, so display
 
             //start building content output
             $this->content = new stdClass();
             $this->content->footer = '';
+            $this->content->text = '';
 
             // Build the AJAX stuff on top of the plain HTML list
             if ($CFG->enableajax && $USER->ajax && !$USER->screenreader) {
@@ -139,12 +142,20 @@ class block_ajax_marking extends block_base {
                 );
 
                 // Add the basic HTML for the rest of the stuff to fit into
-                $this->content->text .= '
+                $divs= '
                     <div id="block_ajax_marking_hidden">
-                        <div id="coursestabsicons">
-                            <div>
-                                <img src="' . $OUTPUT->pix_url('c/course') . '" alt="" />
-                            </div>
+                        <div id="dynamicicons">';
+                // We need a rendered icon for each node type. We can't rely on CSS to do this
+                // as there is no mechanism for generating it dynamically.
+                foreach ($modclasses as $modname => $modclass) {
+                    $divs .= '  <img id="block_ajax_marking_'.$modname.'_icon"
+                                     src="'.$OUTPUT->pix_url('icon', $modname).'" alt="" />';
+                }
+                $divs .= '      <img id="block_ajax_marking_course_icon"
+                                     src="' . $OUTPUT->pix_url('c/course') . '" alt="" />';
+                $divs .= '      <img id="block_ajax_marking_group_icon"
+                                     src="'.$OUTPUT->pix_url('c/group').'" alt="" />';
+                $divs .= '
                         </div>
                     </div>
                     <div id="block_ajax_marking_top_bar">
@@ -163,6 +174,7 @@ class block_ajax_marking extends block_base {
                     <div id="block_ajax_marking_configure_button"></div>
                     <div id="block_ajax_marking_error"></div>
                     <div class="block_ajax_marking_spacer"></div>';
+                $this->content->text .= $divs;
 
                 // Don't warn about javascript if the screenreader option is set - it was deliberate
                 $noscript = '<noscript>
@@ -180,21 +192,11 @@ class block_ajax_marking extends block_base {
                 // requested as part of a separate http request after the PHP has all been finished
                 // with, so we do this cheaply to keep overheads low by not using setup.php and
                 // having the js in static functions.
-                $moduledir = opendir($CFG->dirroot.'/blocks/ajax_marking/modules');
-                $modulejavascript = array();
-                if ($moduledir) {
-                    // Loop through the module files, including each one
-                    while (($moddir = readdir($moduledir)) !== false) {
-                        // Ignore any that don't fit the pattern, like . and ..
-                        if (preg_match('/^([a-z]*)$/', $moddir, $matches)) {
-                            $filename = '/blocks/ajax_marking/modules/'.$moddir.'/'.$moddir.'.js';
-                            if (file_exists($CFG->dirroot.$filename)) {
-                                $PAGE->requires->js($filename);
-                            }
-                        }
+                foreach ($modclasses as $modname => $moduleclass) {
+                    $filename = '/blocks/ajax_marking/modules/'.$modname.'/'.$modname.'.js';
+                    if (file_exists($CFG->dirroot.$filename)) {
+                        $PAGE->requires->js($filename);
                     }
-                    closedir($moduledir);
-
                 }
             }
 
