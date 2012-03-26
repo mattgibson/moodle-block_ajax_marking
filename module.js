@@ -383,8 +383,25 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     /**
      * Setter for the count of unmarked items for this node
      */
-    set_count : function (newvalue) {
-        this.data.displaydata.itemcount = parseInt(newvalue, 10);
+    set_count : function (newvalue, type) {
+
+        switch (type) {
+            case 'recent':
+                this.data.displaydata.recentcount = parseInt(newvalue, 10);
+                break;
+
+            case 'medium':
+                this.data.displaydata.mediumcount = parseInt(newvalue, 10);
+                break;
+
+            case 'overdue':
+                this.data.displaydata.overduecount = parseInt(newvalue, 10);
+                break;
+
+            default:
+                this.data.displaydata.itemcount = parseInt(newvalue, 10);
+
+        }
     },
 
     /**
@@ -433,15 +450,15 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             componentcounts = this.get_component_counts();
 
             if (componentcounts.recent) {
-                countarray.push('<span class="recent">'+componentcounts.recent+'</span>');
+                countarray.push('<span id="recent"'+this.index+' class="recent">'+componentcounts.recent+'</span>');
                 titlearray.push(componentcounts.recent+' '+M.str.block_ajax_marking.recentitems);
             }
             if (componentcounts.medium) {
-                countarray.push('<span class="medium">'+componentcounts.medium+'</span>');
+                countarray.push('<span id="medium"'+this.index+' class="medium">'+componentcounts.medium+'</span>');
                 titlearray.push(componentcounts.medium+' '+M.str.block_ajax_marking.mediumitems);
             }
             if (componentcounts.overdue) {
-                countarray.push('<span class="overdue">'+componentcounts.overdue+'</span>');
+                countarray.push('<span id="overdue"'+this.index+' class="overdue">'+componentcounts.overdue+'</span>');
                 titlearray.push(componentcounts.overdue+' '+M.str.block_ajax_marking.overdueitems);
             }
 
@@ -469,6 +486,65 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             recent : parseInt(this.data.displaydata.recentcount),
             medium : parseInt(this.data.displaydata.mediumcount),
             overdue : parseInt(this.data.displaydata.overduecount)}
+    },
+
+    /**
+     * When child counts are altered, this needs to be called so that the node updates itself.
+     * Should only be called when a node is marked as it will wipe any existing count. If a node
+     * has no children right now, that will mean it is set to 0 and is removed from the tree.
+     * This will also remove the current node from the tree if it has no children.
+     */
+    recalculate_counts : function() {
+
+        var componentcounts,
+            parentnode = this.parent,
+            recentcount = 0,
+            mediumcount = 0,
+            overduecount = 0,
+            recentspan,
+            mediumspan,
+            overduespan;
+
+        // loop over children, counting to get new totals
+        if (this.children.length) {
+            for (var i = 0; i < this.children.length; i++) {
+
+                componentcounts = this.children[i].get_component_counts();
+
+                recentcount += componentcounts.recent;
+                mediumcount += componentcounts.medium;
+                recentcount += componentcounts.overdue;
+            }
+
+            // Add those totals to the config for this node
+            this.set_count(recentcount, 'recent');
+            this.set_count(mediumcount, 'medium');
+            this.set_count(overduecount, 'overdue');
+            this.set_count(recentcount+mediumcount+overduecount);
+
+            // Alter the node's appearance
+            recentspan = document.getElementById('recent'+this.index);
+            if (recentspan) {
+                recentspan.innerHTML = recentcount;
+            }
+            mediumspan = document.getElementById('medium'+this.index);
+            if (mediumspan) {
+                mediumspan.innerHTML = mediumcount;
+            }
+            overduespan = document.getElementById('overdue'+this.index);
+            if (overduespan) {
+                overduespan.innerHTML = overduecount;
+            }
+        } else {
+            this.tree.removeNode(this, false);
+        }
+
+
+        // Tell the parent to do the same if it's not root
+        if (!parentnode.isRoot()) {
+            parentnode.recalculate_counts();
+        }
+
     }
 
 });
@@ -1087,13 +1163,15 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             // be the tree
             M.block_ajax_marking.oncompletefunctionholder(); // node.loadComplete()
             M.block_ajax_marking.oncompletefunctionholder = ''; // prevent it firing next time
+            M.block_ajax_marking.parentnodeholder.recalculate_counts();
         } else {
             // The initial build doesn't set oncompletefunctionholder for the root node, so
             // we do it manually
             this.getRoot().loadComplete();
         }
         // the main tree will need the counts updated, but not the config tree
-        this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+        //this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+        this.update_total_count();
     },
 
     /**
@@ -1130,44 +1208,43 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      * @param parentnodetoupdate the node of the treeview object to alter the count of
      * @return void
      */
-    update_parent_node : function (parentnodetoupdate) {
-
-        // Sum the counts of all child nodes to get a total
-        var nodechildrenlength = parentnodetoupdate.children.length;
-        var nodecount = 0;
-        for (var i = 0; i < nodechildrenlength; i++) {
-            // stored as a string
-            nodecount += parentnodetoupdate.children[i].get_count();
-        }
-
-        // If root, we want to stop recursing, after updating the count
-        if (parentnodetoupdate.isRoot()) {
-
-            //this.render();
-            // update the tree's HTML after child nodes are added
-            //parentnodetoupdate.loadComplete();
-
-            this.totalcount = nodecount;
-            document.getElementById('count').innerHTML = nodecount.toString();
-
-        } else { // not the root, so update, then recurse
-
-            // get this before the node is (possibly) destroyed:
-            var nextnodeup = parentnodetoupdate.parent;
-            // Dump any nodes with no children, but don't dump the root node - we want to be able to
-            // refresh it
-            if (nodechildrenlength === 0) {
-                this.removeNode(parentnodetoupdate, true);
-            } else { // Update the node with its new total
-
-                parentnodetoupdate.set_count(nodecount);
-
-               // parentnodetoupdate.update_node_label();
-            }
-
-            this.update_parent_node(nextnodeup);
-        }
-    },
+//    update_parent_node : function (parentnodetoupdate) {
+//
+//        // Sum the counts of all child nodes to get a total
+//        var nodechildrenlength = parentnodetoupdate.children.length;
+//        var nodecount = 0;
+//        for (var i = 0; i < nodechildrenlength; i++) {
+//            // stored as a string
+//            nodecount += parentnodetoupdate.children[i].get_count();
+//        }
+//
+//        // If root, we want to stop recursing, after updating the count
+//        if (parentnodetoupdate.isRoot()) {
+//
+//            //this.render();
+//            // update the tree's HTML after child nodes are added
+//            //parentnodetoupdate.loadComplete();
+//
+//            this.totalcount = nodecount;
+//            document.getElementById('count').innerHTML = nodecount.toString();
+//
+//        } else { // not the root, so update, then recurse
+//
+//            // get this before the node is (possibly) destroyed:
+//            var nextnodeup = parentnodetoupdate.parent;
+//            // Dump any nodes with no children, but don't dump the root node - we want to be able to
+//            // refresh it
+//            if (nodechildrenlength === 0) {
+//                this.removeNode(parentnodetoupdate, true);
+//            } else { // Update the node with its new total
+//
+//                parentnodetoupdate.set_count(nodecount);
+//
+//            }
+//
+//            this.update_parent_node(nextnodeup);
+//        }
+//    },
 
     /**
      * Recalculates the total marking count by totalling the node counts of the tree
@@ -1208,7 +1285,9 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         var nodetoremove = this.getNodeByProperty('index', nodeuniqueid);
         var parentnode = nodetoremove.parent;
         this.removeNode(nodetoremove, true);
-        this.update_parent_node(parentnode);
+        parentnode.recalculate_counts();
+        this.update_total_count();
+        //this.update_parent_node(parentnode);
     },
 
     /**
@@ -1470,8 +1549,8 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
     /**
      * Empty function - the config tree has no need to update parent counts.
      */
-    update_parent_node : function (parentnodetoupdate) {
-    },
+//    update_parent_node : function (parentnodetoupdate) {
+//    },
 
     /**
      * Sorts things out after nodes have been added, or an error happened (so refresh still works).
@@ -1501,7 +1580,7 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
             this.add_groups_buttons();
         }
         // the main tree will need the counts updated, but not the config tree
-        this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+       // this.update_parent_node(M.block_ajax_marking.parentnodeholder);
 
     },
 
@@ -1529,7 +1608,7 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
      * Should empty the count
      */
     update_total_count : function() {
-        document.getElementById('count').innerHTML = this.totalcount.toString();
+        document.getElementById('count').innerHTML = '-';
     }
 
 
