@@ -545,6 +545,27 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             parentnode.recalculate_counts();
         }
 
+    },
+
+    /**
+     * Makes the node's icon reflect it's type, which cannot be set through regular CSS
+     */
+    set_icon_style : function() {
+        //
+        var debugpause = '',
+            iconstyle;
+
+        // TODO what about extra ones like question?
+        // TODO make sure this is called from refresh()
+        var currentfilter = this.get_current_filter_name();
+        currentfilter = currentfilter.substr(0, currentfilter.length-2); // remove 'id' from end
+        if (currentfilter === 'coursemodule') {
+            iconstyle = this.get_modulename();
+        } else {
+            iconstyle = currentfilter;
+        }
+
+        this.contentStyle = iconstyle;
     }
 
 });
@@ -1122,6 +1143,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             // If the node has a time (of oldest submission) show urgency by adding a
             // background colour
             newnode.set_time_style();
+            newnode.set_icon_style();
         }
     },
 
@@ -1579,8 +1601,9 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
             this.getRoot().loadComplete();
             this.add_groups_buttons();
         }
-        // the main tree will need the counts updated, but not the config tree
-       // this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+        // the main tree will need the counts updated, but not the config tree. This will hide
+        // the count
+        this.update_total_count();
 
     },
 
@@ -2138,11 +2161,58 @@ M.block_ajax_marking.remove_node_from_current_tab = function (node) {
 };
 
 /**
+ * When the page is loaded, we need to make CSS styles dynamically using the icon urls that
+ * the theme has provided for us. This isn't possible in normal CSS because the Theme has various
+ * defaults and overrides so the icon path is not the same for all modules, users, themes etc.
+ */
+M.block_ajax_marking.make_icon_styles = function() {
+
+    var images,
+        imagediv,
+        style,
+        styletext,
+        iconname,
+        iconidarray;
+
+    // Get all the image urls from the hidden div that holds them
+    imagediv = document.getElementById('dynamicicons');
+    images = YAHOO.util.Dom.getElementsByClassName('dynamicicon', 'img', imagediv);
+
+    // Loop over them making CSS styles with those images as the background
+    for (var i = 0; i < images.length; i++) {
+
+        // e.g. block_ajax_marking_assignment_icon
+        var image = images[i];
+        iconidarray = image.id.split('_');
+        iconname = iconidarray[3];
+
+        style = document.createElement("style");
+        style.type = "text/css";
+
+        var styletext = '.block_ajax_marking td.ygtvcell.'+iconname+' {'+
+                            'background-image: url('+image.src+'); '+
+                            'padding-left: 20px; '+
+                            'background-repeat: no-repeat; '+
+                            'background-position: 0 2px;}';
+        if (style.styleSheet) {
+            style.styleSheet.cssText = styletext;
+        } else {
+            style.appendChild(document.createTextNode(styletext));
+        }
+        document.getElementsByTagName("head")[0].appendChild(style);
+    }
+
+};
+
+
+/**
  * The initialising stuff to get everything started
  *
  * @return void
  */
 M.block_ajax_marking.initialise = function () {
+
+    M.block_ajax_marking.make_icon_styles();
 
     YUI().use('tabview', function (Y) {
         // this waits till much too late. Can we trigger earlier?

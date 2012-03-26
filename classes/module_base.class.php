@@ -310,4 +310,14 @@ abstract class block_ajax_marking_module_base {
     public function grading_popup($params, $coursemodule) {
     }
 
+    /**
+     * If necessary, this hook allows other icons to be generated in the JavaScript for custom nodes
+     * that this module defines e.g. quiz questions
+     *
+     * @return array name => iconpath
+     */
+    public function extra_icons() {
+        return array();
+    }
+
 }
