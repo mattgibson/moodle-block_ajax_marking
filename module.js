@@ -1601,8 +1601,9 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
             this.getRoot().loadComplete();
             this.add_groups_buttons();
         }
-        // the main tree will need the counts updated, but not the config tree
-       // this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+        // the main tree will need the counts updated, but not the config tree. This will hide
+        // the count
+        this.update_total_count();
 
     },
 
