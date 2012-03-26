@@ -147,12 +147,14 @@ class block_ajax_marking extends block_base {
                 // as there is no mechanism for generating it dynamically.
                 foreach ($modclasses as $modname => $modclass) {
                     $divs .= '  <img id="block_ajax_marking_'.$modname.'_icon" class="dynamicicon"
-                                     src="'.$OUTPUT->pix_url('icon', $modname).'" alt="" />';
+                                     src="'.$OUTPUT->pix_url('icon', $modname).'" alt="'.$modname.'" />';
                 }
                 $divs .= '      <img id="block_ajax_marking_course_icon" class="dynamicicon"
-                                     src="' . $OUTPUT->pix_url('c/course') . '" alt="" />';
+                                     src="' . $OUTPUT->pix_url('c/course') . '" alt="course" />';
                 $divs .= '      <img id="block_ajax_marking_group_icon" class="dynamicicon"
-                                     src="'.$OUTPUT->pix_url('c/group').'" alt="" />';
+                                     src="'.$OUTPUT->pix_url('c/group').'" alt="group" />';
+                $divs .= '      <img id="block_ajax_marking_cohort_icon" class="dynamicicon"
+                                     src="'.$OUTPUT->pix_url('c/group').'" alt="cohort" />';
                 $divs .= '
                         </div>
                     </div>
