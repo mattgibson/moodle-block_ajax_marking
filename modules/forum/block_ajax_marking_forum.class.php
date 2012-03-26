@@ -350,6 +350,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         ob_end_clean();
 
         $output .= html_writer::end_tag('div');
+        $output .= html_writer::end_tag('div');
 
         return $output;
 
