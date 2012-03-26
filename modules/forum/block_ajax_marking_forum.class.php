@@ -210,6 +210,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         global $DB, $PAGE, $CFG, $SESSION, $USER, $OUTPUT;
 
+        $output = '';
+
         // Lifted from /mod/forum/discuss.php
 
         //$parent = $params['parent'];       // If set, then display this post and all children.
@@ -321,32 +323,36 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $canreply = false;
 
         // wWithout this, the nesting doesn't work properly as the css isn't picked up
-        echo html_writer::start_tag('div', array('class' => 'path-mod-forum'));
-        echo html_writer::start_tag('div', array('class' => 'discussioncontrols clearfix'));
-        echo html_writer::start_tag('div', array('class' => 'discussioncontrol displaymode'));
+        $output .= html_writer::start_tag('div', array('class' => 'path-mod-forum'));
+        $output .= html_writer::start_tag('div', array('class' => 'discussioncontrols clearfix'));
+        $output .= html_writer::start_tag('div', array('class' => 'discussioncontrol displaymode'));
         // we don't want to have the current mode returned in the url as well as the new one
         unset($params['mode']);
         $newurl = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
         $select = new single_select($newurl, 'mode', forum_get_layout_modes(), $displaymode,
                                     null, "mode");
-        echo $OUTPUT->render($select);
-        echo html_writer::end_tag('div');
+        $output .= $OUTPUT->render($select);
+        $output .= html_writer::end_tag('div');
 
         // If user has not already posted and it's a Q & A forum...
         $forumisqanda = $forum->type == 'qanda';
         $noviewwithoutposting = !has_capability('mod/forum:viewqandawithoutposting', $modcontext);
         $hasnotposted = !forum_user_has_posted($forum->id, $discussion->id, $USER->id);
         if ($forumisqanda && $noviewwithoutposting && $hasnotposted) {
-            echo $OUTPUT->notification(get_string('qandanotify', 'forum'));
+            $output .= $OUTPUT->notification(get_string('qandanotify', 'forum'));
         }
 
         $canrate = has_capability('mod/forum:rate', $modcontext);
+        ob_start();
         forum_print_discussion($course, $cm, $forum, $discussion, $post, $displaymode,
                                $canreply, $canrate);
+        $output .= ob_get_contents();
+        ob_end_clean();
 
-        echo html_writer::end_tag('div');
+        $output .= html_writer::end_tag('div');
+        $output .= html_writer::end_tag('div');
 
-        return true;
+        return $output;
 
     }
 
