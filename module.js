@@ -513,7 +513,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
                 recentcount += componentcounts.recent;
                 mediumcount += componentcounts.medium;
-                recentcount += componentcounts.overdue;
+                overduecount += componentcounts.overdue;
             }
 
             // Add those totals to the config for this node
@@ -1284,10 +1284,10 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     remove_node : function (nodeuniqueid) {
         var nodetoremove = this.getNodeByProperty('index', nodeuniqueid);
         var parentnode = nodetoremove.parent;
-        this.removeNode(nodetoremove, true);
+        this.removeNode(nodetoremove, false); // don't refresh yet because the counts will be wrong
         parentnode.recalculate_counts();
         this.update_total_count();
-        //this.update_parent_node(parentnode);
+        parentnode.refresh();
     },
 
     /**
@@ -2123,14 +2123,18 @@ M.block_ajax_marking.get_current_tab = function () {
  * to make sure that it sticks to the right tree too, in case someone fiddles with the tabs
  * whilst having the popup open.
  *
- * @param nodeid
+ * @param node either a node object, or a nodeid
  * @return void
  */
 M.block_ajax_marking.remove_node_from_current_tab = function (node) {
-    var currenttab = M.block_ajax_marking.get_current_tab();
-    var parentnode = node.parent;
-    currenttab.displaywidget.remove_node(node.index);
-    parentnode.refresh();
+
+    var currenttree = M.block_ajax_marking.get_current_tab().displaywidget;
+
+    if (typeof(node) === 'number') {
+        node = currenttree.getNodeByIndex(node);
+    }
+
+    currenttree.remove_node(node.index);
 };
 
 /**

@@ -39,7 +39,7 @@ foreach ($_GET as $name => $value) {
 }
 
 $cmid = required_param('coursemoduleid', PARAM_INT);
-$node = required_param('node', PARAM_INT);
+$nodeid = required_param('node', PARAM_INT);
 
 $coursemodule = $DB->get_record('course_modules', array('id' => $cmid));
 /** @var string $modname  */
@@ -89,8 +89,9 @@ if ($data && confirm_sesskey()) {
         $PAGE->set_pagelayout('popup');
 
         echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
-        $callfunction = 'window.opener.M.block_ajax_marking.remove_node_from_current_tab';
-        $PAGE->requires->js_function_call($callfunction, array($node));
+        $callfunction = 'window.opener.M.block_ajax_marking.remove_node_from_current_tab('.$nodeid.'); ';
+        $PAGE->requires->js_init_code($callfunction, true);
+
         close_window(1);
     }
 
@@ -114,10 +115,13 @@ $code = "
        var tree = tab.displaywidget;
 
        // get node
-       var node = tree.getNodeByIndex({$node});
+       var node = tree.getNodeByIndex({$nodeid});
 
        // unhighlight node
        node.unhighlight();
+
+       // Don't remove the node here because the window may just have been closed with no marking
+       // done. We want to keep the tree node in this case.
 
    });
 ";
