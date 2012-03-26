@@ -557,20 +557,12 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
         // TODO what about extra ones like question?
         // TODO make sure this is called from refresh()
-        switch (this.data.returndata.currentfilter) {
-
-            case 'courseid':
-                iconstyle = 'course';
-                break;
-
-            case 'groupid':
-                iconstyle = 'group';
-                break;
-
-            default:
-                // coursemoduleid: module of some sort
-                iconstyle = this.data.displaydata.modulename;
-
+        var currentfilter = this.get_current_filter_name();
+        currentfilter = currentfilter.substr(0, currentfilter.length-2); // remove 'id' from end
+        if (currentfilter === 'coursemodule') {
+            iconstyle = this.get_modulename();
+        } else {
+            iconstyle = currentfilter;
         }
 
         this.contentStyle = iconstyle;
@@ -2200,7 +2192,7 @@ M.block_ajax_marking.make_icon_styles = function() {
                             'background-image: url('+image.src+'); '+
                             'padding-left: 20px; '+
                             'background-repeat: no-repeat; '+
-                            'background-position: 0 0;}';
+                            'background-position: 0 2px;}';
         if (style.styleSheet) {
             style.styleSheet.cssText = styletext;
         } else {
@@ -2276,21 +2268,21 @@ M.block_ajax_marking.initialise = function () {
         // - show/hide toggle
         // - show/hide group nodes
         // - submenu to show/hide specific groups
-//        coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
-//            "maincontextmenu",
-//            {
-//                trigger : "coursestree",
-//                keepopen : true,
-//                lazyload : false
-//            }
-//        );
-//        // Initial render makes sure we have something to add and takeaway items from
-//        coursestab.contextmenu.render(document.body);
-//        // Make sure the menu is updated to be current with the node it matches
-//        coursestab.contextmenu.subscribe("triggerContextMenu",
-//                                         coursestab.contextmenu.load_settings);
-//        coursestab.contextmenu.subscribe("beforeHide",
-//                                         M.block_ajax_marking.contextmenu_unhighlight);
+        coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
+            "maincontextmenu",
+            {
+                trigger : "coursestree",
+                keepopen : true,
+                lazyload : false
+            }
+        );
+        // Initial render makes sure we have something to add and takeaway items from
+        coursestab.contextmenu.render(document.body);
+        // Make sure the menu is updated to be current with the node it matches
+        coursestab.contextmenu.subscribe("triggerContextMenu",
+                                         coursestab.contextmenu.load_settings);
+        coursestab.contextmenu.subscribe("beforeHide",
+                                         M.block_ajax_marking.contextmenu_unhighlight);
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function () {
