@@ -68,7 +68,7 @@ class block_ajax_marking_nodes_factory {
      * @param block_ajax_marking_module_base $moduleclass e.g. quiz, assignment
      * @return block_ajax_marking_query_base
      */
-    public static function get_unmarked_module_query(array $filters,
+    private static function get_unmarked_module_query(array $filters,
                                                      block_ajax_marking_module_base $moduleclass) {
 
         // Might be a config nodes query, in which case, we want to leave off the unmarked work
