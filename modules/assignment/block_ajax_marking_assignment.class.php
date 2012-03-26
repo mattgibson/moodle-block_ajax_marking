@@ -30,8 +30,6 @@ if (!defined('MOODLE_INTERNAL')) {
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/modules/assignment/'.
-             'block_ajax_marking_assignment_form.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 
 /**
@@ -199,12 +197,14 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         $PAGE->set_title($course->fullname . ': ' .get_string('feedback', 'assignment').' - '.
                          fullname($user, true));
-        $PAGE->set_heading($course->fullname);
         $heading = get_string('feedback', 'assignment').': '.fullname($user, true);
         $output .= $OUTPUT->heading($heading);
 
         // display mform here...
-        $output .= $submitform->display();
+        ob_start();
+        $submitform->display();
+        $output .= ob_get_contents();
+        ob_end_clean();
 
         // no variation across subclasses
         $customfeedback = $assignmentinstance->custom_feedbackform($submission, true);

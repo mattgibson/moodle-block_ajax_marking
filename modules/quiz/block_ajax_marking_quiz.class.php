@@ -192,6 +192,8 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 
         global $CFG, $PAGE, $DB, $OUTPUT;
 
+        $output = '';
+
         // TODO what params do we get here?
 
         require_once($CFG->dirroot.'/mod/quiz/locallib.php');
@@ -205,7 +207,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                     'class'  => 'mform',
                     'id'     => 'manualgradingform',
                     'action' => block_ajax_marking_form_url($params));
-        echo html_writer::start_tag('form', $formattributes);
+        $output .= html_writer::start_tag('form', $formattributes);
 
         // We could be looking at multiple attempts and/or multiple questions
         // Assume we have a user/quiz combo to get us here. We may have attemptid or questionid too
@@ -244,9 +246,9 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 
         // Now output the summary table, if there are any rows to be shown.
         if (!empty($rows)) {
-            echo '<table class="generaltable generalbox quizreviewsummary"><tbody>', "\n";
-            echo implode("\n", $rows);
-            echo "\n</tbody></table>\n";
+            $output .= '<table class="generaltable generalbox quizreviewsummary"><tbody>'."\n";
+            $output .= implode("\n", $rows);
+            $output .= "\n</tbody></table>\n";
         }
 
         foreach ($questionattempts as $questionattempt) {
@@ -275,24 +277,26 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                        $attemptid . '&question=' . $params['questionid'] ,
                        $quizattempt->get_quizid(), $quizattempt->get_cmid());
             // Now make the actual markup to show one question plus commenting/grading stuff
-            echo $quizattempt->render_question_for_commenting($questionattempt->slot);
+            $output .= $quizattempt->render_question_for_commenting($questionattempt->slot);
 
         }
 
-        echo html_writer::start_tag('div');
-        echo html_writer::empty_tag('input', array('type' => 'submit', 'value' => 'Save'));
+        $output .= html_writer::start_tag('div');
+        $output .= html_writer::empty_tag('input', array('type' => 'submit', 'value' => 'Save'));
 
         foreach ($params as $name => $value) {
-            echo html_writer::empty_tag('input', array('type' => 'hidden',
+            $output .= html_writer::empty_tag('input', array('type' => 'hidden',
                                                        'name' => $name,
                                                        'value' => $value));
         }
-        echo html_writer::empty_tag('input', array('type' => 'hidden',
+        $output .= html_writer::empty_tag('input', array('type' => 'hidden',
                                                   'name' => 'sesskey',
                                                   'value' => sesskey()));
-        echo html_writer::end_tag('div');
+        $output .= html_writer::end_tag('div');
 
-        echo html_writer::end_tag('form');
+        $output .= html_writer::end_tag('form');
+
+        return $output;
     }
 
     /**
