@@ -113,6 +113,9 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         $query->add_select(array('table' => 'sub',
                                  'column' => 'authorid',
                                  'alias' => 'userid'));
+        $query->add_select(array('table' => 'sub',
+                                'column' => 'timemodified',
+                                'alias'  => 'timestamp'));
 
         // Assumes that we want to see stuff that has not been assessed yet. Perhaps we still want
         // this but also ones where we have not reviewed the assessments?

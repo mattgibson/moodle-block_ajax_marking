@@ -192,6 +192,8 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 
         global $CFG, $PAGE, $DB, $OUTPUT;
 
+        $output = '';
+
         // TODO what params do we get here?
 
         require_once($CFG->dirroot.'/mod/quiz/locallib.php');
@@ -205,7 +207,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                     'class'  => 'mform',
                     'id'     => 'manualgradingform',
                     'action' => block_ajax_marking_form_url($params));
-        echo html_writer::start_tag('form', $formattributes);
+        $output .= html_writer::start_tag('form', $formattributes);
 
         // We could be looking at multiple attempts and/or multiple questions
         // Assume we have a user/quiz combo to get us here. We may have attemptid or questionid too
@@ -244,9 +246,9 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 
         // Now output the summary table, if there are any rows to be shown.
         if (!empty($rows)) {
-            echo '<table class="generaltable generalbox quizreviewsummary"><tbody>', "\n";
-            echo implode("\n", $rows);
-            echo "\n</tbody></table>\n";
+            $output .= '<table class="generaltable generalbox quizreviewsummary"><tbody>'."\n";
+            $output .= implode("\n", $rows);
+            $output .= "\n</tbody></table>\n";
         }
 
         foreach ($questionattempts as $questionattempt) {
@@ -275,24 +277,26 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                        $attemptid . '&question=' . $params['questionid'] ,
                        $quizattempt->get_quizid(), $quizattempt->get_cmid());
             // Now make the actual markup to show one question plus commenting/grading stuff
-            echo $quizattempt->render_question_for_commenting($questionattempt->slot);
+            $output .= $quizattempt->render_question_for_commenting($questionattempt->slot);
 
         }
 
-        echo html_writer::start_tag('div');
-        echo html_writer::empty_tag('input', array('type' => 'submit', 'value' => 'Save'));
+        $output .= html_writer::start_tag('div');
+        $output .= html_writer::empty_tag('input', array('type' => 'submit', 'value' => 'Save'));
 
         foreach ($params as $name => $value) {
-            echo html_writer::empty_tag('input', array('type' => 'hidden',
+            $output .= html_writer::empty_tag('input', array('type' => 'hidden',
                                                        'name' => $name,
                                                        'value' => $value));
         }
-        echo html_writer::empty_tag('input', array('type' => 'hidden',
+        $output .= html_writer::empty_tag('input', array('type' => 'hidden',
                                                   'name' => 'sesskey',
                                                   'value' => sesskey()));
-        echo html_writer::end_tag('div');
+        $output .= html_writer::end_tag('div');
 
-        echo html_writer::end_tag('form');
+        $output .= html_writer::end_tag('form');
+
+        return $output;
     }
 
     /**
@@ -368,6 +372,9 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         // Standard userid for joins
         $query->add_select(array('table' => 'quiz_attempts',
                                  'column' => 'userid'));
+        $query->add_select(array('table' => 'sub',
+                                'column' => 'timecreated',
+                                'alias'  => 'timestamp'));
 
         $query->add_where(array('type' => 'AND',
                                 'condition' => 'quiz_attempts.timefinish > 0'));
@@ -469,59 +476,63 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      */
     protected function get_question_attempts($params) {
 
-            // TODO stop using this and write the SQL out here
-            /*
-            SELECT quiz_attempts.userid,
-                   course_modules.id AS coursemoduleid,
-                   moduletable.course,
-                   sub.id            AS subid,
-                   'quiz'            AS modulename
-            FROM   mdl_quiz moduletable
-                   INNER JOIN mdl_quiz_attempts quiz_attempts
-                     ON moduletable.id = quiz_attempts.quiz
-                   INNER JOIN mdl_question_attempts question_attempts
-                     ON question_attempts.questionusageid = quiz_attempts.uniqueid
-                   INNER JOIN mdl_question_attempt_steps sub
-                     ON question_attempts.id = sub.questionattemptid
-                   INNER JOIN mdl_question question
-                     ON question_attempts.questionid = question.id
-                   INNER JOIN mdl_course_modules course_modules
-                     ON course_modules.instance = moduletable.id
-                        AND course_modules.module = 13
-            WHERE  quiz_attempts.timefinish > 0
-                   AND quiz_attempts.preview = 0
-                   AND question_attempts.behaviour = 'manualgraded'
-                   AND sub.state = 'needsgrading'
-                   AND NOT EXISTS(SELECT 1
-                                  FROM   mdl_question_attempt_steps st
-                                  WHERE  st.state IN ( 'gradedwrong', 'gradedpartial',
-                                                       'gradedright',
-                                                       'mangrwrong',
-                                                       'mangrpartial', 'mangrright' )
-                                         AND st.questionattemptid = question_attempts.id)
+        global $DB;
 
-        */
+        $quizmoduleid = $this->get_module_id();
+        $sqlparams = array('quizmoduleid' => $quizmoduleid);
 
-        $query = block_ajax_marking_nodes_factory::get_unmarked_module_query($params, $this);
-        $newquery = block_ajax_marking_debuggable_query($query);
+        $sql = "SELECT question_attempts.id,
+                       quiz_attempts.userid,
+                       sub.timecreated   AS timestamp,
+                       course_modules.id AS coursemoduleid,
+                       moduletable.course,
+                       sub.id            AS subid,
+                       'quiz'            AS modulename,
+                       quiz_attempts.id  AS quizattemptid,
+                       question_attempts.questionid,
+                       question_attempts.slot
+                FROM   mdl_quiz moduletable
+                       INNER JOIN mdl_quiz_attempts quiz_attempts
+                         ON moduletable.id = quiz_attempts.quiz
+                       INNER JOIN mdl_question_attempts question_attempts
+                         ON question_attempts.questionusageid = quiz_attempts.uniqueid
+                       INNER JOIN mdl_question_attempt_steps sub
+                         ON question_attempts.id = sub.questionattemptid
+                       INNER JOIN mdl_question question
+                         ON question_attempts.questionid = question.id
+                       INNER JOIN mdl_course_modules course_modules
+                         ON course_modules.instance = moduletable.id
+                            AND course_modules.module = :quizmoduleid
+                WHERE  quiz_attempts.timefinish > 0
+                       AND quiz_attempts.preview = 0
+                       AND question_attempts.behaviour = 'manualgraded'
+                       AND sub.state = 'needsgrading'
+                       AND NOT EXISTS(SELECT 1
+                                      FROM   mdl_question_attempt_steps st
+                                      WHERE  st.state IN ( 'gradedwrong', 'gradedpartial',
+                                                           'gradedright',
+                                                           'mangrwrong',
+                                                           'mangrpartial', 'mangrright' )
+                                             AND st.questionattemptid = question_attempts.id)";
 
-        $query->add_select(array('table' => 'question_attempts',
-                               'column' => 'id',
-                               'distinct' => true
-                           ));
-        $query->add_select(array('table' => 'quiz_attempts',
-                               'column' => 'id',
-                               'alias' => 'quizattemptid'
-                           ));
-        $query->add_select(array('table' => 'question_attempts',
-                               'column' => 'questionid',
-                           ));
-        $query->add_select(array('table' => 'question_attempts',
-                               'column' => 'slot',
-                           ));
+        if (isset($params['coursemoduleid'])) {
+            $sql .= ' AND course_modules.id = :coursemoduleid ';
+            $sqlparams['coursemoduleid'] = $params['coursemoduleid'];
+        }
+        if (isset($params['questionid'])) {
+            $sql .= ' AND question_attempts.questionid = :questionid ';
+            $sqlparams['questionid'] = $params['questionid'];
+        }
+        if (isset($params['userid'])) {
+            $sql .= ' AND quiz_attempts.userid = :userid ';
+            $sqlparams['userid'] = $params['userid'];
+        }
+
+        $sql .= " ORDER  BY question_attempts.slot,
+                          quiz_attempts.id ASC  ";
+
         // We want the oldest at the top so that the tutor can see how the answer changes over time
-        $query->add_orderby('question_attempts.slot, quiz_attempts.id ASC');
-        $questionattempts = $query->execute();
+        $questionattempts = $DB->get_records_sql($sql, $sqlparams);
         return $questionattempts;
     }
 

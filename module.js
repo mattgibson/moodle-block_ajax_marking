@@ -373,8 +373,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      * Oldest = urgency
      */
     get_time : function () {
-        if (typeof(this.data.displaydata.time) === 'undefined') {
-            return parseInt(this.data.displaydata.time, 10);
+        if (typeof(this.data.displaydata.timestamp) !== 'undefined') {
+            return parseInt(this.data.displaydata.timestamp, 10);
         } else {
             return false;
         }
@@ -383,8 +383,25 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     /**
      * Setter for the count of unmarked items for this node
      */
-    set_count : function (newvalue) {
-        this.data.displaydata.itemcount = parseInt(newvalue, 10);
+    set_count : function (newvalue, type) {
+
+        switch (type) {
+            case 'recent':
+                this.data.displaydata.recentcount = parseInt(newvalue, 10);
+                break;
+
+            case 'medium':
+                this.data.displaydata.mediumcount = parseInt(newvalue, 10);
+                break;
+
+            case 'overdue':
+                this.data.displaydata.overduecount = parseInt(newvalue, 10);
+                break;
+
+            default:
+                this.data.displaydata.itemcount = parseInt(newvalue, 10);
+
+        }
     },
 
     /**
@@ -394,57 +411,27 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
         var iconstyle = '',
             onethousandmilliseconds = 1000,
-            sixhours = 21600,
-            twelvehours = 43200,
-            oneday = 86400,
-            twodays = 172800,
-            fivedays = 432000,
+            fourdays = 345600,
             tendays = 864000,
-            twoweeks = 1209600,
             seconds,
             // current unix time
             currenttime = Math.round((new Date()).getTime() / onethousandmilliseconds);
 
-        if (typeof(this.get_time()) === false) {
+        if (this.get_time() === false) {
             return;
         }
 
         seconds = currenttime-this.get_time();
 
-        if (seconds < sixhours) {
-            // less than 6 hours
-            iconstyle = 'icon-user-one';
-
-        } else if (seconds < twelvehours) {
-            // less than 12 hours
-            iconstyle = 'icon-user-two';
-
-        } else if (seconds < oneday) {
-            // less than 24 hours
-            iconstyle = 'icon-user-three';
-
-        } else if (seconds < twodays) {
-            // less than 48 hours
-            iconstyle = 'icon-user-four';
-
-        } else if (seconds < fivedays) {
-            // less than 5 days
-            iconstyle = 'icon-user-five';
-
+        if (seconds < fourdays) {
+            iconstyle = 'time-recent';
         } else if (seconds < tendays) {
-            // less than 10 days
-            iconstyle = 'icon-user-six';
-
-        } else if (seconds < twoweeks) {
-            // less than 2 weeks
-            iconstyle = 'icon-user-seven';
-
+            iconstyle = 'time-medium';
         } else {
-            // more than 2 weeks
-            iconstyle = 'icon-user-eight';
+            iconstyle = 'time-overdue';
         }
 
-        this.labelStyle += ' '+iconstyle;
+        this.contentStyle += ' '+iconstyle+' ';
 
     },
 
@@ -453,15 +440,112 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      */
     getContentHtml : function() {
 
-        var islastnode = (this.get_nextnodefilter() === false);
+        var componentcounts,
+            html,
+            countarray = [],
+            titlearray = [],
+            islastnode = (this.get_nextnodefilter() === false);
 
-        if (this.get_count() && (this.get_count() > 1 || !islastnode)) {
-            return '<strong>('+this.get_count()+')</strong> '+this.get_displayname();
+        if (this.get_count()) {
+            componentcounts = this.get_component_counts();
+
+            if (componentcounts.recent) {
+                countarray.push('<span id="recent"'+this.index+' class="recent">'+componentcounts.recent+'</span>');
+                titlearray.push(componentcounts.recent+' '+M.str.block_ajax_marking.recentitems);
+            }
+            if (componentcounts.medium) {
+                countarray.push('<span id="medium"'+this.index+' class="medium">'+componentcounts.medium+'</span>');
+                titlearray.push(componentcounts.medium+' '+M.str.block_ajax_marking.mediumitems);
+            }
+            if (componentcounts.overdue) {
+                countarray.push('<span id="overdue"'+this.index+' class="overdue">'+componentcounts.overdue+'</span>');
+                titlearray.push(componentcounts.overdue+' '+M.str.block_ajax_marking.overdueitems);
+            }
+
+            html = '<span class="nodecount" title="'+titlearray.join(', ')+'">'+
+                '<strong>(</strong>';
+
+            html += countarray.join('|');
+
+            html += '<strong>)</strong>'+
+                   '</span> '+
+                   this.get_displayname();
+
+            return html;
         } else {
             return this.get_displayname();
         }
-    }
+    },
 
+    /**
+     * Each node with a count will have three component counts: recent, medium and overdue.
+     * This returns them as an object
+     */
+    get_component_counts : function() {
+        return {
+            recent : parseInt(this.data.displaydata.recentcount),
+            medium : parseInt(this.data.displaydata.mediumcount),
+            overdue : parseInt(this.data.displaydata.overduecount)}
+    },
+
+    /**
+     * When child counts are altered, this needs to be called so that the node updates itself.
+     * Should only be called when a node is marked as it will wipe any existing count. If a node
+     * has no children right now, that will mean it is set to 0 and is removed from the tree.
+     * This will also remove the current node from the tree if it has no children.
+     */
+    recalculate_counts : function() {
+
+        var componentcounts,
+            parentnode = this.parent,
+            recentcount = 0,
+            mediumcount = 0,
+            overduecount = 0,
+            recentspan,
+            mediumspan,
+            overduespan;
+
+        // loop over children, counting to get new totals
+        if (this.children.length) {
+            for (var i = 0; i < this.children.length; i++) {
+
+                componentcounts = this.children[i].get_component_counts();
+
+                recentcount += componentcounts.recent;
+                mediumcount += componentcounts.medium;
+                overduecount += componentcounts.overdue;
+            }
+
+            // Add those totals to the config for this node
+            this.set_count(recentcount, 'recent');
+            this.set_count(mediumcount, 'medium');
+            this.set_count(overduecount, 'overdue');
+            this.set_count(recentcount+mediumcount+overduecount);
+
+            // Alter the node's appearance
+            recentspan = document.getElementById('recent'+this.index);
+            if (recentspan) {
+                recentspan.innerHTML = recentcount;
+            }
+            mediumspan = document.getElementById('medium'+this.index);
+            if (mediumspan) {
+                mediumspan.innerHTML = mediumcount;
+            }
+            overduespan = document.getElementById('overdue'+this.index);
+            if (overduespan) {
+                overduespan.innerHTML = overduecount;
+            }
+        } else {
+            this.tree.removeNode(this, false);
+        }
+
+
+        // Tell the parent to do the same if it's not root
+        if (!parentnode.isRoot()) {
+            parentnode.recalculate_counts();
+        }
+
+    }
 
 });
 
@@ -1079,13 +1163,15 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             // be the tree
             M.block_ajax_marking.oncompletefunctionholder(); // node.loadComplete()
             M.block_ajax_marking.oncompletefunctionholder = ''; // prevent it firing next time
+            M.block_ajax_marking.parentnodeholder.recalculate_counts();
         } else {
             // The initial build doesn't set oncompletefunctionholder for the root node, so
             // we do it manually
             this.getRoot().loadComplete();
         }
         // the main tree will need the counts updated, but not the config tree
-        this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+        //this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+        this.update_total_count();
     },
 
     /**
@@ -1122,44 +1208,43 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      * @param parentnodetoupdate the node of the treeview object to alter the count of
      * @return void
      */
-    update_parent_node : function (parentnodetoupdate) {
-
-        // Sum the counts of all child nodes to get a total
-        var nodechildrenlength = parentnodetoupdate.children.length;
-        var nodecount = 0;
-        for (var i = 0; i < nodechildrenlength; i++) {
-            // stored as a string
-            nodecount += parentnodetoupdate.children[i].get_count();
-        }
-
-        // If root, we want to stop recursing, after updating the count
-        if (parentnodetoupdate.isRoot()) {
-
-            //this.render();
-            // update the tree's HTML after child nodes are added
-            //parentnodetoupdate.loadComplete();
-
-            this.totalcount = nodecount;
-            document.getElementById('count').innerHTML = nodecount.toString();
-
-        } else { // not the root, so update, then recurse
-
-            // get this before the node is (possibly) destroyed:
-            var nextnodeup = parentnodetoupdate.parent;
-            // Dump any nodes with no children, but don't dump the root node - we want to be able to
-            // refresh it
-            if (nodechildrenlength === 0) {
-                this.removeNode(parentnodetoupdate, true);
-            } else { // Update the node with its new total
-
-                parentnodetoupdate.set_count(nodecount);
-
-               // parentnodetoupdate.update_node_label();
-            }
-
-            this.update_parent_node(nextnodeup);
-        }
-    },
+//    update_parent_node : function (parentnodetoupdate) {
+//
+//        // Sum the counts of all child nodes to get a total
+//        var nodechildrenlength = parentnodetoupdate.children.length;
+//        var nodecount = 0;
+//        for (var i = 0; i < nodechildrenlength; i++) {
+//            // stored as a string
+//            nodecount += parentnodetoupdate.children[i].get_count();
+//        }
+//
+//        // If root, we want to stop recursing, after updating the count
+//        if (parentnodetoupdate.isRoot()) {
+//
+//            //this.render();
+//            // update the tree's HTML after child nodes are added
+//            //parentnodetoupdate.loadComplete();
+//
+//            this.totalcount = nodecount;
+//            document.getElementById('count').innerHTML = nodecount.toString();
+//
+//        } else { // not the root, so update, then recurse
+//
+//            // get this before the node is (possibly) destroyed:
+//            var nextnodeup = parentnodetoupdate.parent;
+//            // Dump any nodes with no children, but don't dump the root node - we want to be able to
+//            // refresh it
+//            if (nodechildrenlength === 0) {
+//                this.removeNode(parentnodetoupdate, true);
+//            } else { // Update the node with its new total
+//
+//                parentnodetoupdate.set_count(nodecount);
+//
+//            }
+//
+//            this.update_parent_node(nextnodeup);
+//        }
+//    },
 
     /**
      * Recalculates the total marking count by totalling the node counts of the tree
@@ -1199,8 +1284,10 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     remove_node : function (nodeuniqueid) {
         var nodetoremove = this.getNodeByProperty('index', nodeuniqueid);
         var parentnode = nodetoremove.parent;
-        this.removeNode(nodetoremove, true);
-        this.update_parent_node(parentnode);
+        this.removeNode(nodetoremove, false); // don't refresh yet because the counts will be wrong
+        parentnode.recalculate_counts();
+        this.update_total_count();
+        parentnode.refresh();
     },
 
     /**
@@ -1262,7 +1349,7 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
         // if nothing else is found, make the node into a final one with no children
         var nextnodefilter = false,
             groupsdisplay,
-            moduleoverride = null,
+            moduleoverride,
             modulename = node.get_modulename(),
             currentfilter = node.get_current_filter_name();
 
@@ -1462,8 +1549,8 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
     /**
      * Empty function - the config tree has no need to update parent counts.
      */
-    update_parent_node : function (parentnodetoupdate) {
-    },
+//    update_parent_node : function (parentnodetoupdate) {
+//    },
 
     /**
      * Sorts things out after nodes have been added, or an error happened (so refresh still works).
@@ -1493,7 +1580,7 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
             this.add_groups_buttons();
         }
         // the main tree will need the counts updated, but not the config tree
-        this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+       // this.update_parent_node(M.block_ajax_marking.parentnodeholder);
 
     },
 
@@ -1515,6 +1602,13 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
     notify_refresh_needed : function () {
         M.block_ajax_marking.coursestab_tree.set_needs_refresh(true);
         // M.block_ajax_marking.cohorts_tree.set_refresh_needed(true);
+    },
+
+    /**
+     * Should empty the count
+     */
+    update_total_count : function() {
+        document.getElementById('count').innerHTML = '-';
     }
 
 
@@ -2029,14 +2123,18 @@ M.block_ajax_marking.get_current_tab = function () {
  * to make sure that it sticks to the right tree too, in case someone fiddles with the tabs
  * whilst having the popup open.
  *
- * @param nodeid
+ * @param node either a node object, or a nodeid
  * @return void
  */
 M.block_ajax_marking.remove_node_from_current_tab = function (node) {
-    var currenttab = M.block_ajax_marking.get_current_tab();
-    var parentnode = node.parent;
-    currenttab.displaywidget.remove_node(node.index);
-    parentnode.refresh();
+
+    var currenttree = M.block_ajax_marking.get_current_tab().displaywidget;
+
+    if (typeof(node) === 'number') {
+        node = currenttree.getNodeByIndex(node);
+    }
+
+    currenttree.remove_node(node.index);
 };
 
 /**

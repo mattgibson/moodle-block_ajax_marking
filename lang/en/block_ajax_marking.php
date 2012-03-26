@@ -71,7 +71,9 @@ $string['showgroups']            = 'Show group nodes';
 $string['choosegroups']          = 'Show/hide specific groups';
 $string['notingroup']            = 'Not in any group';
 $string['notingroupdescription'] = 'This activity is set to show students divided into groups. These students have submitted work, but are not currently members of any group';
-
+$string['recentitems']           = 'recent items';
+$string['mediumitems']           = 'medium items';
+$string['overdueitems']          = 'overdue items';
 
 // Specific to modules
 

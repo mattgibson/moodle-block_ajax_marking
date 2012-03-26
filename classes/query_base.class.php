@@ -28,7 +28,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 /**
- * Defines methods needed by the query objects and it's decorators
+ * Defines methods needed by the query objects
  */
 interface block_ajax_marking_query {
 

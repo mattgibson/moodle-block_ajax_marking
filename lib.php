@@ -265,7 +265,10 @@ function block_ajax_marking_format_node(&$node, $nextnodefilter) {
             'style',
             'summary',
             'tooltip',
-            'time'
+            'timestamp',
+            'recentcount',
+            'mediumcount',
+            'overduecount'
     );
 
     $configitems = array(
