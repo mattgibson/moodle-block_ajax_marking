@@ -545,6 +545,35 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             parentnode.recalculate_counts();
         }
 
+    },
+
+    /**
+     * Makes the node's icon reflect it's type, which cannot be set through regular CSS
+     */
+    set_icon_style : function() {
+        //
+        var debugpause = '',
+            iconstyle;
+
+        // TODO what about extra ones like question?
+        // TODO make sure this is called from refresh()
+        switch (this.data.returndata.currentfilter) {
+
+            case 'courseid':
+                iconstyle = 'course';
+                break;
+
+            case 'groupid':
+                iconstyle = 'group';
+                break;
+
+            default:
+                // coursemoduleid: module of some sort
+                iconstyle = this.data.displaydata.modulename;
+
+        }
+
+        this.contentStyle = iconstyle;
     }
 
 });
@@ -1122,6 +1151,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             // If the node has a time (of oldest submission) show urgency by adding a
             // background colour
             newnode.set_time_style();
+            newnode.set_icon_style();
         }
     },
 
@@ -2138,11 +2168,58 @@ M.block_ajax_marking.remove_node_from_current_tab = function (node) {
 };
 
 /**
+ * When the page is loaded, we need to make CSS styles dynamically using the icon urls that
+ * the theme has provided for us. This isn't possible in normal CSS because the Theme has various
+ * defaults and overrides so the icon path is not the same for all modules, users, themes etc.
+ */
+M.block_ajax_marking.make_icon_styles = function() {
+
+    var images,
+        imagediv,
+        style,
+        styletext,
+        iconname,
+        iconidarray;
+
+    // Get all the image urls from the hidden div that holds them
+    imagediv = document.getElementById('dynamicicons');
+    images = YAHOO.util.Dom.getElementsByClassName('dynamicicon', 'img', imagediv);
+
+    // Loop over them making CSS styles with those images as the background
+    for (var i = 0; i < images.length; i++) {
+
+        // e.g. block_ajax_marking_assignment_icon
+        var image = images[i];
+        iconidarray = image.id.split('_');
+        iconname = iconidarray[3];
+
+        style = document.createElement("style");
+        style.type = "text/css";
+
+        var styletext = '.block_ajax_marking td.ygtvcell.'+iconname+' {'+
+                            'background-image: url('+image.src+'); '+
+                            'padding-left: 20px; '+
+                            'background-repeat: no-repeat; '+
+                            'background-position: 0 0;}';
+        if (style.styleSheet) {
+            style.styleSheet.cssText = styletext;
+        } else {
+            style.appendChild(document.createTextNode(styletext));
+        }
+        document.getElementsByTagName("head")[0].appendChild(style);
+    }
+
+};
+
+
+/**
  * The initialising stuff to get everything started
  *
  * @return void
  */
 M.block_ajax_marking.initialise = function () {
+
+    M.block_ajax_marking.make_icon_styles();
 
     YUI().use('tabview', function (Y) {
         // this waits till much too late. Can we trigger earlier?
@@ -2199,21 +2276,21 @@ M.block_ajax_marking.initialise = function () {
         // - show/hide toggle
         // - show/hide group nodes
         // - submenu to show/hide specific groups
-        coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
-            "maincontextmenu",
-            {
-                trigger : "coursestree",
-                keepopen : true,
-                lazyload : false
-            }
-        );
-        // Initial render makes sure we have something to add and takeaway items from
-        coursestab.contextmenu.render(document.body);
-        // Make sure the menu is updated to be current with the node it matches
-        coursestab.contextmenu.subscribe("triggerContextMenu",
-                                         coursestab.contextmenu.load_settings);
-        coursestab.contextmenu.subscribe("beforeHide",
-                                         M.block_ajax_marking.contextmenu_unhighlight);
+//        coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
+//            "maincontextmenu",
+//            {
+//                trigger : "coursestree",
+//                keepopen : true,
+//                lazyload : false
+//            }
+//        );
+//        // Initial render makes sure we have something to add and takeaway items from
+//        coursestab.contextmenu.render(document.body);
+//        // Make sure the menu is updated to be current with the node it matches
+//        coursestab.contextmenu.subscribe("triggerContextMenu",
+//                                         coursestab.contextmenu.load_settings);
+//        coursestab.contextmenu.subscribe("beforeHide",
+//                                         M.block_ajax_marking.contextmenu_unhighlight);
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function () {

@@ -92,11 +92,9 @@ class block_ajax_marking extends block_base {
                                      "#treetabs, "+
                                      "#totalmessage {display: none;}";
                       if (styleElement.styleSheet) {
-                          styleElement.styleSheet.cssText = css;
+                          styleElement.styleSheet.cssText = hidehtml;
                       } else {
                           styleElement.appendChild(document.createTextNode(hidehtml));
-                          var hidetreetabs = "#treetabs {display: none;}";
-                          styleElement.appendChild(document.createTextNode(hidetreetabs));
                       }
                       document.getElementsByTagName("head")[0].appendChild(styleElement);
                       /* ]]> */</script>';
@@ -148,12 +146,12 @@ class block_ajax_marking extends block_base {
                 // We need a rendered icon for each node type. We can't rely on CSS to do this
                 // as there is no mechanism for generating it dynamically.
                 foreach ($modclasses as $modname => $modclass) {
-                    $divs .= '  <img id="block_ajax_marking_'.$modname.'_icon"
+                    $divs .= '  <img id="block_ajax_marking_'.$modname.'_icon" class="dynamicicon"
                                      src="'.$OUTPUT->pix_url('icon', $modname).'" alt="" />';
                 }
-                $divs .= '      <img id="block_ajax_marking_course_icon"
+                $divs .= '      <img id="block_ajax_marking_course_icon" class="dynamicicon"
                                      src="' . $OUTPUT->pix_url('c/course') . '" alt="" />';
-                $divs .= '      <img id="block_ajax_marking_group_icon"
+                $divs .= '      <img id="block_ajax_marking_group_icon" class="dynamicicon"
                                      src="'.$OUTPUT->pix_url('c/group').'" alt="" />';
                 $divs .= '
                         </div>
