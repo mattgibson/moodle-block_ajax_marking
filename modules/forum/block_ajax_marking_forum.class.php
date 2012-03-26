@@ -343,8 +343,11 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         }
 
         $canrate = has_capability('mod/forum:rate', $modcontext);
+        ob_start();
         forum_print_discussion($course, $cm, $forum, $discussion, $post, $displaymode,
                                $canreply, $canrate);
+        $output .= ob_get_contents();
+        ob_end_clean();
 
         $output .= html_writer::end_tag('div');
 
