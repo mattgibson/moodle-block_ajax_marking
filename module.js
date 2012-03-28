@@ -467,10 +467,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
 
             if (icon) {
-                var clonedicon = icon.cloneNode(true);
-                clonedicon.id = '';
-                clonedicon.className += ' nodeicon';
-                html += M.block_ajax_marking.get_dynamic_icon_string(clonedicon);
+                icon.className += ' nodeicon';
+                html += M.block_ajax_marking.get_dynamic_icon_string(icon);
             }
 
             html += '<span class="nodecount" title="'+titlearray.join(', ')+'">'+
@@ -683,7 +681,6 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         displaysetting = this.get_setting_to_display('display');
         var displaytype = displaysetting ? 'hide' : 'show'; // icons are named after their actions
         var displayicon =  M.block_ajax_marking.get_dynamic_icon(displaytype);
-        displayicon = displayicon.cloneNode(true);
         displayicon.id = '';
         displayicon = M.block_ajax_marking.get_dynamic_icon_string(displayicon);
 
@@ -700,7 +697,6 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
             var groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups'; // icons are named after their actions
             var groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
-            groupsicon = groupsicon.cloneNode(true);
             groupsicon.id = '';
             groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
 
@@ -941,10 +937,8 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         }
 
         icon = M.block_ajax_marking.get_dynamic_icon(iconname);
-        iconclone = icon.cloneNode(true);
-
         M.block_ajax_marking.remove_all_child_nodes(spacerdiv);
-        spacerdiv.appendChild(iconclone);
+        spacerdiv.appendChild(icon);
     }
 
 });
@@ -2203,14 +2197,21 @@ M.block_ajax_marking.remove_node_from_current_tab = function (node) {
  */
 M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
 
-//    imagediv = document.getElementById('dynamicicons');
-    var icon = YAHOO.util.Dom.get('block_ajax_marking_'+iconname+'_icon');
-    // TODO error?
-    if (icon && typeof(alttext) !== 'undefined') {
-        icon.alt = alttext;
+    var icon = YAHOO.util.Dom.get('block_ajax_marking_'+iconname+'_icon'),
+        newicon;
+
+    if (!icon) {
+        return false;
     }
 
-    return icon;
+    newicon = icon.cloneNode(true); // avoid altring the original one
+
+    if (newicon && typeof(alttext) !== 'undefined') {
+        newicon.alt = alttext;
+    }
+
+    newicon.id = ''; // avoid collisions
+    return newicon;
 
 };
 
