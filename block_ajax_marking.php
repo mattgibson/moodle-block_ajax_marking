@@ -172,11 +172,11 @@ class block_ajax_marking extends block_base {
                                      alt="'.get_string('show').'"
                                      title="'.get_string('show').'" />';
                 $divs .= '      <img id="block_ajax_marking_showgroups_icon" class="dynamicicon"
-                                     src="'.$OUTPUT->pix_url('i/group').'"
+                                     src="'.$OUTPUT->pix_url('group-disabled', 'block_ajax_marking').'"
                                      alt="'.get_string('showgroups', 'block_ajax_marking').'"
                                      title="'.get_string('showgroups', 'block_ajax_marking').'" />';
                 $divs .= '      <img id="block_ajax_marking_hidegroups_icon" class="dynamicicon"
-                                     src="'.$OUTPUT->pix_url('group-disabled', 'block_ajax_marking').'"
+                                     src="'.$OUTPUT->pix_url('group', 'block_ajax_marking').'"
                                      alt="'.get_string('hidegroups', 'block_ajax_marking').'"
                                      title="'.get_string('hidegroups', 'block_ajax_marking').'" />';
 
