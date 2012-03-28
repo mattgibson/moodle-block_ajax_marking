@@ -683,14 +683,12 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         displaysetting = this.get_setting_to_display('display');
         var displaytype = displaysetting ? 'hide' : 'show'; // icons are named after their actions
         var displayicon =  M.block_ajax_marking.get_dynamic_icon(displaytype);
-        displayicon = displayicon.cloneNode(displayicon);
+        displayicon = displayicon.cloneNode(true);
         displayicon.id = '';
         displayicon = M.block_ajax_marking.get_dynamic_icon_string(displayicon);
 
         sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ';
         sb[sb.length] = '"><div class="ygtvspacer">'+displayicon+'</div></td>';
-
-
 
         // Make groupsdisplay icon
         sb[sb.length] = '<td id="'+'block_ajax_marking_groupsdisplay_icon'+this.index;
@@ -702,7 +700,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
             var groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups'; // icons are named after their actions
             var groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
-            groupsicon = groupsicon.cloneNode(groupsicon);
+            groupsicon = groupsicon.cloneNode(true);
             groupsicon.id = '';
             groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
 
@@ -911,7 +909,11 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         var iconcontainer,
             containerid,
-            settingtoshow;
+            settingtoshow,
+            iconname,
+            icon,
+            spacerdiv,
+            iconclone;
 
         this.data.configdata[settingtype] = newsetting;
         // Might be inherited...
@@ -921,13 +923,28 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         containerid = 'block_ajax_marking_'+settingtype+'_icon'+this.index;
 
         iconcontainer = document.getElementById(containerid);
+        spacerdiv = iconcontainer.firstChild;
         if (settingtoshow == 1) {
-            YAHOO.util.Dom.addClass(iconcontainer, 'enabled');
-            YAHOO.util.Dom.removeClass(iconcontainer, 'disabled');
+            if (settingtype == 'display') {
+                // Names of icons are for the actions on clicking them. Not what they look like
+                iconname = 'hide';
+            } else if (settingtype == 'groupsdisplay') {
+                iconname = 'hidegroups';
+            }
         } else {
-            YAHOO.util.Dom.addClass(iconcontainer, 'disabled');
-            YAHOO.util.Dom.removeClass(iconcontainer, 'enabled');
+            if (settingtype == 'display') {
+                // Names of icons are for the actions on clicking them. Not what they look like
+                iconname = 'show';
+            } else if (settingtype == 'groupsdisplay') {
+                iconname = 'showgroups';
+            }
         }
+
+        icon = M.block_ajax_marking.get_dynamic_icon(iconname);
+        iconclone = icon.cloneNode(true);
+
+        M.block_ajax_marking.remove_all_child_nodes(spacerdiv);
+        spacerdiv.appendChild(iconclone);
     }
 
 });
@@ -1671,8 +1688,8 @@ M.block_ajax_marking.config_treenodeonclick = function (data) {
     YAHOO.util.Event.stopEvent(data.event); // Stop it from expanding the tree
 
     // is the clicked thing an icon that needs to trigger some thing?
-    var target = YAHOO.util.Event.getTarget(data.event); // the spacer <div>
-    target = target.parentNode; // the <td>
+    var target = YAHOO.util.Event.getTarget(data.event); // the img
+    target = target.parentNode.parentNode; // the spacer <div> -> the <td>
     var coursenodeclicked = false;
     if (clickednode.get_current_filter_name() == 'courseid') {
         coursenodeclicked = true;
