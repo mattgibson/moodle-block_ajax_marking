@@ -462,8 +462,19 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                 titlearray.push(componentcounts.overdue+' '+M.str.block_ajax_marking.overdueitems);
             }
 
-            html = '<span class="nodecount" title="'+titlearray.join(', ')+'">'+
-                '<strong>(</strong>';
+            html = '';
+
+            var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
+
+            if (icon) {
+                var clonedicon = icon.cloneNode(true);
+                clonedicon.id = '';
+                clonedicon.className += ' nodeicon';
+                html += M.block_ajax_marking.get_dynamic_icon_string(clonedicon);
+            }
+
+            html += '<span class="nodecount" title="'+titlearray.join(', ')+'">'+
+                    '<strong>(</strong>';
 
             html += countarray.join('|');
 
@@ -550,10 +561,12 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     /**
      * Makes the node's icon reflect it's type, which cannot be set through regular CSS
      */
-    set_icon_style : function() {
+    get_icon_style : function() {
         //
         var debugpause = '',
             iconstyle;
+
+
 
         // TODO what about extra ones like question?
         // TODO make sure this is called from refresh()
@@ -565,7 +578,9 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             iconstyle = currentfilter;
         }
 
-        this.contentStyle = iconstyle;
+       // var icon = M.block_ajax_marking.get_dynamic_icon(iconstyle, 'newalt text');
+
+        return iconstyle;
     }
 
 });
@@ -666,28 +681,34 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         sb[sb.length] = '" class="ygtvcell ';
 
         displaysetting = this.get_setting_to_display('display');
-        if (displaysetting === 1) {
-            sb[sb.length] = ' enabled ';
-        } else {
-            sb[sb.length] = ' disabled ';
-        }
+        var displaytype = displaysetting ? 'hide' : 'show'; // icons are named after their actions
+        var displayicon =  M.block_ajax_marking.get_dynamic_icon(displaytype);
+        displayicon = displayicon.cloneNode(displayicon);
+        displayicon.id = '';
+        displayicon = M.block_ajax_marking.get_dynamic_icon_string(displayicon);
+
         sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ';
-        sb[sb.length] = '"><div class="ygtvspacer">&#160;</div></td>';
+        sb[sb.length] = '"><div class="ygtvspacer">'+displayicon+'</div></td>';
+
+
 
         // Make groupsdisplay icon
         sb[sb.length] = '<td id="'+'block_ajax_marking_groupsdisplay_icon'+this.index;
         sb[sb.length] = '" class="ygtvcell ';
 
+        var groupsicon = '&#160;';
         if (groupscount) {
             groupsdisplaysetting = this.get_setting_to_display('groupsdisplay');
-            if (groupsdisplaysetting === 1) {
-                sb[sb.length] = ' enabled ';
-            } else {
-                sb[sb.length] = ' disabled ';
-            }
+
+            var groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups'; // icons are named after their actions
+            var groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
+            groupsicon = groupsicon.cloneNode(groupsicon);
+            groupsicon.id = '';
+            groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
+
         }
         sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groupsdisplay_icon ';
-        sb[sb.length] = '"><div class="ygtvspacer">&#160;</div></td>';
+        sb[sb.length] = '"><div class="ygtvspacer">'+groupsicon+'</div></td>';
 
         // Make groups icon
         sb[sb.length] = '<td id="'+'block_ajax_marking_groups_icon'+this.index;
@@ -1143,7 +1164,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             // If the node has a time (of oldest submission) show urgency by adding a
             // background colour
             newnode.set_time_style();
-            newnode.set_icon_style();
         }
     },
 
@@ -2158,6 +2178,43 @@ M.block_ajax_marking.remove_node_from_current_tab = function (node) {
     }
 
     currenttree.remove_node(node.index);
+};
+
+/**
+ * Fetches an icon from the hidden div where the theme has rendered them (taking all the theme and
+ * module overrides into account), then returns it, optionally changing the alt text on the way
+ */
+M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
+
+//    imagediv = document.getElementById('dynamicicons');
+    var icon = YAHOO.util.Dom.get('block_ajax_marking_'+iconname+'_icon');
+    // TODO error?
+    if (icon && typeof(alttext) !== 'undefined') {
+        icon.alt = alttext;
+    }
+
+    return icon;
+
+};
+
+/**
+ * Returns a HTML string representation of a dynamic icon
+ */
+M.block_ajax_marking.get_dynamic_icon_string = function (icon) {
+
+    var html = '';
+
+    if (icon) {
+        // hacky way to get a string representation of an icon.
+        // Without cloneNode(), it takes the node away from the original hidden div
+        // so it only works once
+        var tmp = document.createElement("div");
+        tmp.appendChild(icon);
+        html += tmp.innerHTML;
+    }
+
+    return html;
+
 };
 
 /**

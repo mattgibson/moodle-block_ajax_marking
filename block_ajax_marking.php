@@ -114,7 +114,6 @@ class block_ajax_marking extends block_base {
                                         'tabview'),
                     'strings' => array(
                         array('totaltomark', 'block_ajax_marking'),
-                        array('instructions', 'block_ajax_marking'),
                         array('nogradedassessments', 'block_ajax_marking'),
                         array('nothingtomark', 'block_ajax_marking'),
                         array('refresh', 'block_ajax_marking'),
@@ -122,13 +121,11 @@ class block_ajax_marking extends block_base {
                         array('connectfail', 'block_ajax_marking'),
                         array('connecttimeout', 'block_ajax_marking'),
                         array('nogroups', 'block_ajax_marking'),
-                        array('settingsheadertext', 'block_ajax_marking'),
-                        array('showthisassessment', 'block_ajax_marking'),
+                        array('showthisactivity', 'block_ajax_marking'),
                         array('showthiscourse', 'block_ajax_marking'),
                         array('showwithgroups', 'block_ajax_marking'),
-                        array('hidethisassessment', 'block_ajax_marking'),
+                        array('hidethisactivity', 'block_ajax_marking'),
                         array('hidethiscourse', 'block_ajax_marking'),
-                        array('coursedefault', 'block_ajax_marking'),
                         array('hidethiscourse', 'block_ajax_marking'),
                         array('show', 'block_ajax_marking'),
                         array('showgroups', 'block_ajax_marking'),
@@ -144,17 +141,45 @@ class block_ajax_marking extends block_base {
                     <div id="block_ajax_marking_hidden">
                         <div id="dynamicicons">';
                 // We need a rendered icon for each node type. We can't rely on CSS to do this
-                // as there is no mechanism for generating it dynamically.
+                // as there is no mechanism for generating it dynamically, i.e. having an arbitrary
+                // number of CSS rules generated, one for each module plugin. These icons are
+                // transplanted using JS to the nodes as needed
                 foreach ($modclasses as $modname => $modclass) {
-                    $divs .= '  <img id="block_ajax_marking_'.$modname.'_icon" class="dynamicicon"
-                                     src="'.$OUTPUT->pix_url('icon', $modname).'" alt="'.$modname.'" />';
+                    $divs .= '  <img id="block_ajax_marking_'.$modname.'_icon"
+                                     class="dynamicicon"
+                                     src="'.$OUTPUT->pix_url('icon', $modname).'"
+                                     alt="'.$modname.'"
+                                     title="'.$modname.'" />';
                 }
                 $divs .= '      <img id="block_ajax_marking_course_icon" class="dynamicicon"
-                                     src="' . $OUTPUT->pix_url('c/course') . '" alt="course" />';
+                                     src="' . $OUTPUT->pix_url('c/course') . '"
+                                     alt="'.get_string('course').'"
+                                     title="'.get_string('course').'" />';
                 $divs .= '      <img id="block_ajax_marking_group_icon" class="dynamicicon"
-                                     src="'.$OUTPUT->pix_url('c/group').'" alt="group" />';
+                                     src="'.$OUTPUT->pix_url('c/group').'"
+                                     alt="'.get_string('group').'"
+                                     title="'.get_string('group').'" />';
                 $divs .= '      <img id="block_ajax_marking_cohort_icon" class="dynamicicon"
-                                     src="'.$OUTPUT->pix_url('c/group').'" alt="cohort" />';
+                                     src="'.$OUTPUT->pix_url('c/group').'"
+                                     alt="'.get_string('cohort', 'cohort').'"
+                                     title="'.get_string('cohort', 'cohort').'" />';
+                $divs .= '      <img id="block_ajax_marking_hide_icon" class="dynamicicon"
+                                     src="'.$OUTPUT->pix_url('t/hide').'"
+                                     alt="'.get_string('hide').'"
+                                     title="'.get_string('hide').'" />';
+                $divs .= '      <img id="block_ajax_marking_show_icon" class="dynamicicon"
+                                     src="'.$OUTPUT->pix_url('t/show').'"
+                                     alt="'.get_string('show').'"
+                                     title="'.get_string('show').'" />';
+                $divs .= '      <img id="block_ajax_marking_showgroups_icon" class="dynamicicon"
+                                     src="'.$OUTPUT->pix_url('i/group').'"
+                                     alt="'.get_string('showgroups', 'block_ajax_marking').'"
+                                     title="'.get_string('showgroups', 'block_ajax_marking').'" />';
+                $divs .= '      <img id="block_ajax_marking_hidegroups_icon" class="dynamicicon"
+                                     src="'.$OUTPUT->pix_url('group-disabled', 'block_ajax_marking').'"
+                                     alt="'.get_string('hidegroups', 'block_ajax_marking').'"
+                                     title="'.get_string('hidegroups', 'block_ajax_marking').'" />';
+
                 $divs .= '
                         </div>
                     </div>
