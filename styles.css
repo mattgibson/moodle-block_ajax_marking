@@ -292,3 +292,8 @@ td.block_ajax_marking_groups_icon span.yui-button button {
     line-height: normal;
     padding-left: 0;
 }
+
+/* Keeps the icons from being off centre */
+.block_ajax_marking .nodeicon {
+    margin-top: 3px;
+}
