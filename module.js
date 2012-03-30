@@ -471,14 +471,21 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                 html += M.block_ajax_marking.get_dynamic_icon_string(icon);
             }
 
-            html += '<span class="nodecount" title="'+titlearray.join(', ')+'">'+
-                    '<strong>(</strong>';
+            html += '<div class="nodelabelwrapper">';
 
-            html += countarray.join('|');
+            html +=     '<div class="nodecount" title="'+titlearray.join(', ')+'">'+
+                            '<strong>(</strong>';
+            html +=             countarray.join('|');
+            html +=         '<strong>)</strong>'+
+                        '</div> ';
 
-            html += '<strong>)</strong>'+
-                   '</span> '+
-                   this.get_displayname();
+            html +=     '<div class="nodelabel" title="'+this.get_tooltip()+'">'+
+                            this.get_displayname();
+            html +=     '</div>';
+            html +=     '<div class="block_ajax_marking_spacer">';
+            html +=     '</div>';
+
+            html += '</div>'; // end of wrapper
 
             return html;
         } else {
@@ -579,7 +586,16 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
        // var icon = M.block_ajax_marking.get_dynamic_icon(iconstyle, 'newalt text');
 
         return iconstyle;
+    },
+
+    /**
+     * Returns the long name of this node
+     */
+    get_tooltip : function() {
+        return this.data.displaydata.tooltip;
     }
+
+
 
 });
 
@@ -665,8 +681,17 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         sb[sb.length] = '<table class="ygtvtable">'; //new
         sb[sb.length] = '<tr >';
         sb[sb.length] = '<td class="ygtvcell" colspan="5">';
+        var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
 
+
+        if (icon) {
+            icon.className += ' nodeicon';
+            sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
+        }
+
+        sb[sb.length] = '<span class="nodelabel" >';
         sb[sb.length] = this.html;
+        sb[sb.length] = '</span>';
 
         sb[sb.length] = '</td>';
         sb[sb.length] = '</tr>';
@@ -2344,21 +2369,21 @@ M.block_ajax_marking.initialise = function () {
         // - show/hide toggle
         // - show/hide group nodes
         // - submenu to show/hide specific groups
-        coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
-            "maincontextmenu",
-            {
-                trigger : "coursestree",
-                keepopen : true,
-                lazyload : false
-            }
-        );
-        // Initial render makes sure we have something to add and takeaway items from
-        coursestab.contextmenu.render(document.body);
-        // Make sure the menu is updated to be current with the node it matches
-        coursestab.contextmenu.subscribe("triggerContextMenu",
-                                         coursestab.contextmenu.load_settings);
-        coursestab.contextmenu.subscribe("beforeHide",
-                                         M.block_ajax_marking.contextmenu_unhighlight);
+//        coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
+//            "maincontextmenu",
+//            {
+//                trigger : "coursestree",
+//                keepopen : true,
+//                lazyload : false
+//            }
+//        );
+//        // Initial render makes sure we have something to add and takeaway items from
+//        coursestab.contextmenu.render(document.body);
+//        // Make sure the menu is updated to be current with the node it matches
+//        coursestab.contextmenu.subscribe("triggerContextMenu",
+//                                         coursestab.contextmenu.load_settings);
+//        coursestab.contextmenu.subscribe("beforeHide",
+//                                         M.block_ajax_marking.contextmenu_unhighlight);
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function () {
