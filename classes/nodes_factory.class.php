@@ -395,6 +395,9 @@ class block_ajax_marking_nodes_factory {
                     'table'    => 'course',
                     'column'   => 'fullname',
                     'alias'    => 'tooltip'));
+
+                $query->add_orderby('course.shortname ASC');
+
                 break;
 
             case 'configdisplay':
@@ -440,6 +443,9 @@ class block_ajax_marking_nodes_factory {
                     'table'    => 'settings',
                     'column'   => 'id',
                     'alias'    => 'settingsid'));
+
+                $query->add_orderby('course.shortname ASC');
+
                 break;
 
         }
@@ -521,6 +527,9 @@ class block_ajax_marking_nodes_factory {
                                             get_string('notingroupdescription',
                                                        'block_ajax_marking')),
                         'alias'    => 'tooltip'));
+
+                $query->add_orderby("COALESCE(groups.name, '".get_string('notingroup', 'block_ajax_marking')."') ASC");
+
                 break;
 
         }
@@ -594,6 +603,10 @@ class block_ajax_marking_nodes_factory {
                     array(
                         'table'    => 'cohort',
                         'column'   => 'description'));
+
+                $query->add_orderby('cohort.name ASC');
+
+
                 break;
         }
 
@@ -707,7 +720,9 @@ class block_ajax_marking_nodes_factory {
                     'alias'    => 'settingsid'));
 
                 // Same order as they appear on the course pages
-                $query->add_orderby('course_modules.section ASC, course_modules.id ASC');
+                //$query->add_orderby('course_modules.section ASC, course_modules.id ASC');
+                // TODO get them in order of module type first?
+                $query->add_orderby('COALESCE('.implode(',', $namecoalesce).') ASC');
 
                 break;
 

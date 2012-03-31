@@ -142,6 +142,9 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 $query->add_select(array(
                         'column' => "'".$this->get_module_name()."'",
                         'alias' => 'modulename'));
+
+                $query->add_orderby("question.name ASC");
+
                 break;
         }
 
@@ -464,6 +467,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                         'column' => "'".$this->get_module_name()."'",
                         'alias' => 'modulename'
                         ));
+
                 break;
         }
 
