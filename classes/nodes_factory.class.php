@@ -268,6 +268,9 @@ class block_ajax_marking_nodes_factory {
                 'alias'    => 'countwrapperquery',
                 'subquery' => true));
 
+        // Now that the query object has been constructed, we want to add all the filters that will
+        // limit the nodes to just the stuff we want (ignore hidden things, ignore things in other
+        // parts of the tree) and groups the unmarked work by whatever it needs to be grouped by
         foreach ($filters as $name => $value) {
 
             if ($name == 'nextnodefilter') {
@@ -309,6 +312,7 @@ class block_ajax_marking_nodes_factory {
 
         // We want the oldest work at the top
         // TODO make this a user option on the UI end
+        // TODO put sensible defaults into the functions
 //        if ($currentfilter == 'userid') {
 //            $displayquery->add_orderby('timestamp DESC');
 //        } else {
@@ -642,6 +646,8 @@ class block_ajax_marking_nodes_factory {
                 $query->add_select(array(
                         'table'    => 'countwrapperquery',
                         'column'   => 'modulename'));
+
+                // Deliberate fall-through
 
             case 'configdisplay':
 

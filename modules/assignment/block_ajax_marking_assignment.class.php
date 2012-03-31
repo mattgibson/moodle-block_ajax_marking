@@ -450,6 +450,11 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                         'column'   => 'userid',
                         'alias'    => 'id'), true
                 );
+                $query->add_select(array(
+                        'table'  => 'countwrapperquery',
+                        'column' => 'timestamp',
+                        'alias'  => 'tooltip')
+                );
 
                 $selects = array(
                     array(
@@ -458,6 +463,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                     array(
                         'table' => 'usertable',
                         'column' => 'lastname')
+
                 );
 
                 $query->add_from(array(

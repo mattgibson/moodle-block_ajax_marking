@@ -434,6 +434,13 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 break;
 
             case 'countselect':
+
+                $query->add_select(array(
+                        'table'  => 'countwrapperquery',
+                        'column' => 'timestamp',
+                        'alias'  => 'tooltip')
+                );
+
                 $query->add_select(array(
                     'table'    => 'usertable',
                     'column'   => 'firstname'));
