@@ -26,43 +26,6 @@
 * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
 */
 
-.icon-course,
-.icon-assignment,
-.icon-workshop,
-.icon-forum,
-.icon-quiz,
-.icon-quiz_question,
-.icon-journal,
-.icon-group {
-    padding-left: 0;
-    padding-bottom: 0;
-    background: transparent no-repeat;
-    cursor: pointer;
-    margin-left: 0;
-    display: block;
-    float: left;
-}
-.amb-icon {
-    width: 20px;
-    padding-right: 3px;
-    margin-bottom: -5px;
-}
-
-/* the following 8 styles give different coloured borders to
-   submissions depending on when they were submitted.
-*/
-
-td.icon-user-one,
-td.icon-user-two,
-td.icon-user-three,
-td.icon-user-four,
-td.icon-user-five,
-td.icon-user-six,
-td.icon-user-seven,
-td.icon-user-eight {
-    border: 2px solid transparent;
-    overflow: hidden;
-}
 .nodecount .recent {
     color: #00ad08;
 }
@@ -106,8 +69,7 @@ td.icon-user-eight {
     margin-left: 8px;
 }
 
-
-/* change loading icon. Standard one has white background */
+/* change tree loading icon. Standard one has white background and looks bad on some themes */
 .ygtvloading {
     width: 18px;
     height: 22px;
