@@ -706,6 +706,9 @@ class block_ajax_marking_nodes_factory {
                     'column'   => 'id',
                     'alias'    => 'settingsid'));
 
+                // Same order as they appear on the course pages
+                $query->add_orderby('course_modules.section ASC, course_modules.id ASC');
+
                 break;
 
         }
