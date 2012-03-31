@@ -1283,52 +1283,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     },
 
     /**
-     * function to update the parent node when anything about its children changes. It
-     * recalculates the total count and displays it, then recurses to the next node up until it
-     * hits root, when it updates the total count and stops
-     *
-     * @param parentnodetoupdate the node of the treeview object to alter the count of
-     * @return void
-     */
-//    update_parent_node : function (parentnodetoupdate) {
-//
-//        // Sum the counts of all child nodes to get a total
-//        var nodechildrenlength = parentnodetoupdate.children.length;
-//        var nodecount = 0;
-//        for (var i = 0; i < nodechildrenlength; i++) {
-//            // stored as a string
-//            nodecount += parentnodetoupdate.children[i].get_count();
-//        }
-//
-//        // If root, we want to stop recursing, after updating the count
-//        if (parentnodetoupdate.isRoot()) {
-//
-//            //this.render();
-//            // update the tree's HTML after child nodes are added
-//            //parentnodetoupdate.loadComplete();
-//
-//            this.totalcount = nodecount;
-//            document.getElementById('count').innerHTML = nodecount.toString();
-//
-//        } else { // not the root, so update, then recurse
-//
-//            // get this before the node is (possibly) destroyed:
-//            var nextnodeup = parentnodetoupdate.parent;
-//            // Dump any nodes with no children, but don't dump the root node - we want to be able to
-//            // refresh it
-//            if (nodechildrenlength === 0) {
-//                this.removeNode(parentnodetoupdate, true);
-//            } else { // Update the node with its new total
-//
-//                parentnodetoupdate.set_count(nodecount);
-//
-//            }
-//
-//            this.update_parent_node(nextnodeup);
-//        }
-//    },
-
-    /**
      * Recalculates the total marking count by totalling the node counts of the tree
      *
      * @return void
@@ -2373,21 +2327,21 @@ M.block_ajax_marking.initialise = function () {
         // - show/hide toggle
         // - show/hide group nodes
         // - submenu to show/hide specific groups
-//        coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
-//            "maincontextmenu",
-//            {
-//                trigger : "coursestree",
-//                keepopen : true,
-//                lazyload : false
-//            }
-//        );
-//        // Initial render makes sure we have something to add and takeaway items from
-//        coursestab.contextmenu.render(document.body);
-//        // Make sure the menu is updated to be current with the node it matches
-//        coursestab.contextmenu.subscribe("triggerContextMenu",
-//                                         coursestab.contextmenu.load_settings);
-//        coursestab.contextmenu.subscribe("beforeHide",
-//                                         M.block_ajax_marking.contextmenu_unhighlight);
+        coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
+            "maincontextmenu",
+            {
+                trigger : "coursestree",
+                keepopen : true,
+                lazyload : false
+            }
+        );
+        // Initial render makes sure we have something to add and takeaway items from
+        coursestab.contextmenu.render(document.body);
+        // Make sure the menu is updated to be current with the node it matches
+        coursestab.contextmenu.subscribe("triggerContextMenu",
+                                         coursestab.contextmenu.load_settings);
+        coursestab.contextmenu.subscribe("beforeHide",
+                                         M.block_ajax_marking.contextmenu_unhighlight);
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function () {
