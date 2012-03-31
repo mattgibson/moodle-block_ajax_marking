@@ -680,7 +680,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         sb[sb.length] = '<table class="ygtvtable configtreenode">'; //new
         sb[sb.length] = '<tr >';
-        sb[sb.length] = '<td class="ygtvcell" colspan="5">';
+        sb[sb.length] = '<td class="ygtvcell" colspan="8">';
         var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
 
 
@@ -689,9 +689,9 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
         }
 
-        sb[sb.length] = '<span class="nodelabel" title="'+this.get_tooltip()+'">';
+        sb[sb.length] = '<div class="nodelabel" title="'+this.get_tooltip()+'">';
         sb[sb.length] = this.html;
-        sb[sb.length] = '</span>';
+        sb[sb.length] = '</div>';
 
         sb[sb.length] = '</td>';
         sb[sb.length] = '</tr>';
@@ -743,7 +743,11 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         sb[sb.length] = '</div></td>';
 
-        // Spacer cell
+        // Spacer cell - fixed width means we need a few
+        sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
+        sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
+        sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
+        sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
         sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
 
         sb[sb.length] = '</tr>';

@@ -161,4 +161,10 @@ table.ygtvtable {
 .configtreenode .nodelabel {
     margin-left: 3px;
 }
+.configtreenode img.dynamicicon {
+    margin-right: 3px;
+}
+/*table.configtreenode {*/
+    /*table-layout: auto;*/
+/*}*/
 
