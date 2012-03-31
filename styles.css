@@ -21,12 +21,19 @@
 * @package    block
 * @subpackage ajax_marking
 * @copyright  2007 Matt Gibson
-* @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+* @author     Matt Gibson
+* @link       http://moodle.org/user/view.php?id=81450
 * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
 */
 
-.icon-course, .icon-assignment, .icon-workshop, .icon-forum, .icon-quiz, .icon-quiz_question,
-.icon-journal, .icon-group {
+.icon-course,
+.icon-assignment,
+.icon-workshop,
+.icon-forum,
+.icon-quiz,
+.icon-quiz_question,
+.icon-journal,
+.icon-group {
     padding-left: 0;
     padding-bottom: 0;
     background: transparent no-repeat;
@@ -40,17 +47,19 @@
     padding-right: 3px;
     margin-bottom: -5px;
 }
-.icon-course {
-    padding-left: 0;
-
-}
 
 /* the following 8 styles give different coloured borders to
    submissions depending on when they were submitted.
 */
 
-td.icon-user-one, td.icon-user-two, td.icon-user-three, td.icon-user-four, td.icon-user-five, td.icon-user-six,
-td.icon-user-seven, td.icon-user-eight {
+td.icon-user-one,
+td.icon-user-two,
+td.icon-user-three,
+td.icon-user-four,
+td.icon-user-five,
+td.icon-user-six,
+td.icon-user-seven,
+td.icon-user-eight {
     border: 2px solid transparent;
     overflow: hidden;
 }
@@ -92,57 +101,9 @@ td.icon-user-seven, td.icon-user-eight {
 #count {
     font-weight: bold;
 }
-/*#treediv {*/
-    /*clear: both;*/
-    /*margin-bottom: 5px;*/
-    /*padding-bottom: 0;*/
-    /*float: left;*/
-    /*font: 10pt tahoma;*/
-    /*min-width: 150px;*/
-/*}*/
 #mainicon {
     float: left;
     margin-left: 8px;
-}
-
-/*
- styles for the config screen pop up
- */
-
-#block_ajax_marking_refresh_button {
-    float: left;
-    width: 45%;
-    margin-left: 3px;
-}
-
-#configSettings {
-    float: left;
-    width: 190px;
-    padding-left: 10px;
-    font: 10pt tahoma;
-}
-#configgroupsdiv {
-    float: right;
-    width: 190px;
-    background-color: transparent;
-}
-#configicon {
-    position: relative;
-    line-height: 0pt;
-    width: 35px;
-}
-#block_ajax_marking_hidden {
-    display: none;
-}
-div.block_ajax_marking div.footer {
-    border-style: none;
-    padding-bottom: 0;
-    height: 30px;
-}
-#configInstructions {
-    font: 10pt tahoma;
-    float: left;
-    width: 100%;
 }
 
 
@@ -230,7 +191,9 @@ div.nodecount {
 }
 div.nodelabelwrapper {
 }
+/* Keeps the nodes within the block at a uniform length */
 table.ygtvtable {
     width: 100%;
+    table-layout: fixed;
 }
 
