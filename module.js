@@ -706,7 +706,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         displaysetting = this.get_setting_to_display('display');
         var displaytype = displaysetting ? 'hide' : 'show'; // icons are named after their actions
         var displayicon =  M.block_ajax_marking.get_dynamic_icon(displaytype);
-        displayicon.id = '';
+        delete displayicon.id;
         displayicon = M.block_ajax_marking.get_dynamic_icon_string(displayicon);
 
         sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ';
@@ -722,7 +722,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
             var groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups'; // icons are named after their actions
             var groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
-            groupsicon.id = '';
+            delete groupsicon.id;
             groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
 
         }
@@ -1179,7 +1179,11 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
             // Make the display data accessible to the node creation code
             nodedata.html = nodedata.displaydata.name;
-            nodedata.title = nodedata.displaydata.tooltip;
+            if (typeof(nodedata.displaydata.tooltip) !== 'undefined') {
+                nodedata.title = nodedata.displaydata.tooltip;
+            } else {
+                nodedata.title = '';
+            }
 
             newnode = new this.nodetype(nodedata, M.block_ajax_marking.parentnodeholder, false);
             newnode.set_count(newnode.get_count()); // needed to convert to int
@@ -2235,7 +2239,7 @@ M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
         newicon.alt = alttext;
     }
 
-    newicon.id = ''; // avoid collisions
+    delete newicon.id; // avoid collisions
     return newicon;
 
 };
