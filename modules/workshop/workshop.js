@@ -40,9 +40,9 @@ M.block_ajax_marking.workshop = (function() {
         /**
          * Handles any module specific overrides for the trees
          */
-        nextnodetype : function(defaultnexttype) {
+        nextnodetype : function(currenttype) {
 
-            switch (defaultnexttype) {
+            switch (currenttype) {
 
                 case 'coursemoduleid':
                     return false;
