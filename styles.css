@@ -158,4 +158,7 @@ table.ygtvtable {
     width: 100%;
     table-layout: fixed;
 }
+.configtreenode .nodelabel {
+    margin-left: 3px;
+}
 

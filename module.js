@@ -678,7 +678,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             groupsdisplaysetting,
             groupscount = this.get_groups_count();
 
-        sb[sb.length] = '<table class="ygtvtable">'; //new
+        sb[sb.length] = '<table class="ygtvtable configtreenode">'; //new
         sb[sb.length] = '<tr >';
         sb[sb.length] = '<td class="ygtvcell" colspan="5">';
         var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
