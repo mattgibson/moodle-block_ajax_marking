@@ -59,8 +59,6 @@ M.block_ajax_marking.forum = (function() {
                     return null; // should never happen
 
             }
-
         }
-
     };
 })();

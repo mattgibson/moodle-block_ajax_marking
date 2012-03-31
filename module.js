@@ -689,7 +689,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
         }
 
-        sb[sb.length] = '<span class="nodelabel" >';
+        sb[sb.length] = '<span class="nodelabel" title="'+this.get_tooltip()+'">';
         sb[sb.length] = this.html;
         sb[sb.length] = '</span>';
 
