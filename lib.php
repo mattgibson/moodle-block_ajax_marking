@@ -382,10 +382,10 @@ function block_ajax_marking_debuggable_query($query,
 
 /**
  * strip_tags() leaves no spaces between what used to be different paragraphs. This (pinched
- * from a comment in the strip_tags() man page) replaces with spaces
+ * from a comment in the strip_tags() man page) replaces with spaces.
  *
- * @param $text
- * @return mixed
+ * @param string $text
+ * @return string
  */
 function block_ajax_marking_strip_html_tags($text) {
     $text = preg_replace(

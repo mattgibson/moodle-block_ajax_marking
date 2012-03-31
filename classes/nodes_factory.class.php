@@ -188,19 +188,23 @@ class block_ajax_marking_nodes_factory {
                                              'alias' => 'itemcount', // COUNT is a reserved word
                                              'function' => 'COUNT'));
 
-        // TO get the three times for recent, medium and overdue pieces of work, we do three
+        // To get the three times for recent, medium and overdue pieces of work, we do three
         // count operations here
         $fourdaysago = time() - BLOCK_AJAX_MARKING_FOUR_DAYS;
         $tendaysago = time() - BLOCK_AJAX_MARKING_TEN_DAYS;
-        $countwrapperquery->add_select(array('column'   => "CASE WHEN (moduleunion.timestamp > {$fourdaysago}) THEN 1 ELSE 0 END",
+        $recentcolumn = "CASE WHEN (moduleunion.timestamp > {$fourdaysago}) THEN 1 ELSE 0 END";
+        $countwrapperquery->add_select(array('column'   => $recentcolumn,
                                             'alias'    => 'recentcount',
                                             // COUNT is a reserved word
                                             'function' => 'SUM'));
-        $countwrapperquery->add_select(array('column'   => "CASE WHEN (moduleunion.timestamp < {$fourdaysago} AND moduleunion.timestamp > {$tendaysago}) THEN 1 ELSE 0 END",
+        $mediumcolumn = "CASE WHEN (moduleunion.timestamp < {$fourdaysago} AND ".
+                        "moduleunion.timestamp > {$tendaysago}) THEN 1 ELSE 0 END";
+        $countwrapperquery->add_select(array('column'   => $mediumcolumn,
                                             'alias'    => 'mediumcount',
                                             // COUNT is a reserved word
                                             'function' => 'SUM'));
-        $countwrapperquery->add_select(array('column'   => "CASE WHEN moduleunion.timestamp < $tendaysago THEN 1 ELSE 0 END",
+        $overduecolumn = "CASE WHEN moduleunion.timestamp < $tendaysago THEN 1 ELSE 0 END";
+        $countwrapperquery->add_select(array('column'   => $overduecolumn,
                                             'alias'    => 'overduecount',
                                             // COUNT is a reserved word
                                             'function' => 'SUM'));
