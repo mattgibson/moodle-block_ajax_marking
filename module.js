@@ -870,7 +870,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         var buttonconfig = {
             type : "menu",
             label : nodecontents,
-            title : 'Show/hide individual groups',
+            title : M.str.block_ajax_marking.choosegroups,
             name : 'groupsbutton-'+node.index,
             menu : node.renderedmenu,
             lazyload: false, // can't add events otherwise
