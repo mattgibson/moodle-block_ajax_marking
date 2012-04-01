@@ -592,7 +592,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      * Returns the long name of this node
      */
     get_tooltip : function() {
-        return this.data.displaydata.tooltip;
+        return this.data.displaydata.name+': '+this.data.displaydata.tooltip;
     }
 
 

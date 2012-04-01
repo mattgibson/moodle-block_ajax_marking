@@ -146,6 +146,7 @@ div.nodelabel {
     white-space: nowrap;
     overflow-x: hidden;
     overflow-y: visible;
+    text-overflow: ellipsis;
 }
 div.nodecount {
     margin: 0 2px;
