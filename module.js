@@ -592,7 +592,11 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      * Returns the long name of this node
      */
     get_tooltip : function() {
-        return this.data.displaydata.name+': '+this.data.displaydata.tooltip;
+
+        var tooltipexists = typeof(this.data.displaydata.tooltip) !== 'undefined';
+        var tooltip = (tooltipexists) ? this.data.displaydata.tooltip : '';
+
+        return this.data.displaydata.name+': '+tooltip;
     }
 
 
@@ -1183,11 +1187,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
             // Make the display data accessible to the node creation code
             nodedata.html = nodedata.displaydata.name;
-            if (typeof(nodedata.displaydata.tooltip) !== 'undefined') {
-                nodedata.title = nodedata.displaydata.tooltip;
-            } else {
-                nodedata.title = '';
-            }
 
             newnode = new this.nodetype(nodedata, M.block_ajax_marking.parentnodeholder, false);
             newnode.set_count(newnode.get_count()); // needed to convert to int
