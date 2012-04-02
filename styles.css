@@ -152,8 +152,6 @@ div.nodecount {
     margin: 0 2px;
     float: left;
 }
-div.nodelabelwrapper {
-}
 /* Keeps the nodes within the block at a uniform length */
 table.ygtvtable {
     width: 100%;

@@ -333,6 +333,12 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
         this.data.configdata[settingtype] = newsetting;
 
+        // All children now need to be set to 'inherit'
+        var childnodes = this.children;
+        for (var i = 0; i < childnodes.length; i++) {
+            childnodes[i].set_config_setting(settingtype, null);
+        }
+
     },
 
     /**
@@ -354,6 +360,12 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         groups = this.get_groups();
         group = M.block_ajax_marking.get_group_by_id(groups, groupid);
         group.display = newsetting;
+
+        var childnodes = this.children;
+        for (var i = 0; i < childnodes.length; i++) {
+            childnodes[i].set_group_setting(groupid, null);
+        }
+
     },
 
     /**
@@ -597,9 +609,27 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         var tooltip = (tooltipexists) ? this.data.displaydata.tooltip : '';
 
         return this.data.displaydata.name+': '+tooltip;
+    },
+
+    /**
+     * If we want to get the child node for e.g. a group with ID of 567, this function will do it.
+     * The idea is that we may wish to remove some nodes as right-click settings change.
+     */
+    get_child_node_by_filter_id : function(filtername, filtervalue) {
+
+        for (var i = 0; i < this.children.length; i++) {
+
+            if (this.children[i].get_current_filter_name() !== filtername) {
+                continue;
+            }
+            if (this.children[i].get_current_filter_value() !== filtervalue) {
+                continue;
+            }
+            return this.children[i];
+        }
+
+        return false;
     }
-
-
 
 });
 
@@ -687,9 +717,9 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         sb[sb.length] = '<td class="ygtvcell" colspan="8">';
         var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
 
-
         if (icon) {
             icon.className += ' nodeicon';
+            delete icon.id;
             sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
         }
 
@@ -767,28 +797,10 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
      */
     refresh : function (justrefreshchildren) {
 
-        // This was missing code to refresh the node itself in the main YUI library, so I've
-        // added it here so that the icons will continue to reflect the node's actual state.
-        // If we have just clicked an item in a groups dropdown in the config tree, this won't
-        // be wanted as it'll destroy the menu button
-        if (!justrefreshchildren) {
-            var contentelement = this.getContentEl();
-            contentelement.innerHTML = this.getContentHtml();
-            this.add_groups_button();
-        }
+        M.block_ajax_marking.configtree_node.superclass.refresh.call(this);
 
-        var childrenelement = this.getChildrenEl();
-        // Now add the HTML for the children. This redraws all the HTML to match any updated
-        // settings, but will also wipe out the HTML for the button dropdowns.
-        childrenelement.innerHTML = this.completeRender();
         this.tree.add_groups_buttons(this);
 
-        if (this.hasIcon) {
-            var el = this.getToggleEl();
-            if (el) {
-                el.className = el.className.replace(/\bygtv[lt][nmp]h*\b/gi, this.getStyle());
-            }
-        }
     },
 
     /**
@@ -836,7 +848,6 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         var node,
             menu,
-            groups,
             groupsdiv,
             nodecontents;
 
@@ -857,14 +868,13 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             node.renderedmenu.destroy(); // todo test me
         }
         var menuconfig = {
-            lazyload : true,
             keepopen : true};
         node.renderedmenu = new YAHOO.widget.Menu('groupsdropdown'+node.index,
-                                                  menuconfig);
+                                                   menuconfig);
         M.block_ajax_marking.contextmenu_add_groups_to_menu(node.renderedmenu, node);
 
         // The strategy here is to keep the menu open if we are doing an AJAX refresh as we may have
-        // a dropdown that has just had a group chosen, so we don't want to make poeple open it up
+        // a dropdown that has just had a group chosen, so we don't want to make people open it up
         // again to choose another one. They need to click elsewhere to blur it. However, the node
         // refresh will redraw this node's HTML.
 
@@ -923,10 +933,15 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
      * Gets the current setting, or the inherited setting as appropriate so we can show the right
      * thing.
      */
-    get_setting_to_display: function(settingtype) {
-        setting = this.get_config_setting(settingtype, false);
+    get_setting_to_display: function(settingtype, groupid) {
+
+        if (groupid === undefined) {
+            groupid = false;
+        }
+
+        var setting = this.get_config_setting(settingtype, groupid);
         if (setting === null) {
-            setting = this.get_default_setting(settingtype, false);
+            setting = this.get_default_setting(settingtype, groupid);
         }
         return setting;
     },
@@ -941,10 +956,11 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             settingtoshow,
             iconname,
             icon,
-            spacerdiv,
-            iconclone;
+            spacerdiv;
 
-        this.data.configdata[settingtype] = newsetting;
+        // Superclass will store the value and trigger the process in child nodes
+        M.block_ajax_marking.configtree_node.superclass.set_config_setting.call(this, settingtype, newsetting);
+
         // Might be inherited...
         settingtoshow = this.get_setting_to_display(settingtype);
 
@@ -969,9 +985,52 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             }
         }
 
+        // Get he icon, remove the old one and put it in place. Includes the title attribute,
+        // which matters for accessibility.
         icon = M.block_ajax_marking.get_dynamic_icon(iconname);
         M.block_ajax_marking.remove_all_child_nodes(spacerdiv);
         spacerdiv.appendChild(icon);
+    },
+
+    /**
+     * Store the new setting and also update the node's appearance to reflect it
+     *
+     * @param groupid
+     * @param newsetting
+     */
+    set_group_setting : function(groupid, newsetting) {
+
+        var groupsdetails;
+
+        if (typeof(newsetting) === 'undefined') {
+            newsetting = null;
+        }
+
+        // Superclass will store the value and trigger the process in child nodes
+        M.block_ajax_marking.configtree_node.superclass.set_group_setting.call(this, groupid, newsetting);
+
+        // Update the display on the button label
+        groupsdetails = this.get_groups_count();
+        this.groupsmenubutton.set("label", groupsdetails);
+
+        // get menu items
+        var menuitems = this.renderedmenu.getItems();
+
+        for (var i = 0; i < menuitems.length; i++) {
+            if (menuitems[i].value.groupid == groupid) {
+                // might be inherited now, so check parent values
+                var groupdefault = this.get_setting_to_display('group', groupid);
+                var checked = groupdefault ? true : false;
+                menuitems[i].cfg.setProperty("checked", checked);
+
+                // TODO set inherited CSS
+                var inherited = (newsetting === null) ? 'notinherited' : 'inherited';
+                menuitems[i].cfg.setProperty("classname", inherited);
+
+                break; // only one node with a particular groupid
+
+            }
+        }
     }
 
 });
@@ -1553,8 +1612,14 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
 
     nodetype : M.block_ajax_marking.configtree_node,
 
+    /**
+     * Sent when the tree is first loaded in order to get the first nodes
+     */
     initial_nodes_data : 'nextnodefilter=courseid&config=1',
 
+    /**
+     * Sent when the tree asks for any AJAX data
+     */
     supplementaryreturndata : 'config=1',
 
     /**
@@ -1584,13 +1649,6 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
         return nextnodefilter;
     },
 
-
-    /**
-     * Empty function - the config tree has no need to update parent counts.
-     */
-//    update_parent_node : function (parentnodetoupdate) {
-//    },
-
     /**
      * Sorts things out after nodes have been added, or an error happened (so refresh still works).
      * Overriding the main one so we can do the thing to add the buttons to the rendered nodes
@@ -1601,15 +1659,11 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
         if (typeof(M.block_ajax_marking.oncompletefunctionholder) === 'function') {
             // Take care - this will be executed in the wrong scope if not careful. it needs this to
             // be the tree
-            var refreshnotneeded = false;
-            if (typeof ajaxresponsearray['configsave'] !== 'undefined') {
-                // Config tree updates it's own nodes as the config things are set via
-                // node.set_config_setting()
-                refreshnotneeded = true;
-            }
-            if (!refreshnotneeded) { // groups dropdowns refreshed with js
+            if (typeof ajaxresponsearray['configsave'] === 'undefined') {
+                // Config tree updates it's own nodes after ajax saves as the config things are
+                // set via node.set_config_setting()
                 // node.loadComplete()
-                M.block_ajax_marking.oncompletefunctionholder(refreshnotneeded);
+                M.block_ajax_marking.oncompletefunctionholder();
             }
             M.block_ajax_marking.oncompletefunctionholder = ''; // prevent it firing next time
         } else {
@@ -1995,25 +2049,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
     // are on the server
     clickednode.update_child_nodes_config_settings(settingtype, groupid);
 
-    // If this is a dropdown menu, we want to make the display update to reflect the new number
-    // of groups that are visible
-    // TODO this is ugly and this method should be a part of the menu, which should be subclassed
-    // At the very least it should be using instanceof
-    var tab = M.block_ajax_marking.get_current_tab();
 
-    // The dropdown menu needs the menubutton label updated
-    if (tab.displaywidget.id === 'configtree') {
-        // get groups stuff
-        var groupsdetails = clickednode.get_groups_count();
-        clickednode.groupsmenubutton.set("label", groupsdetails);
-
-        // also it's children
-        var childnodes = clickednode.children;
-        for (var i = 0; i < childnodes.length; i++) {
-            var groupsdetails = childnodes[i].get_groups_count();
-            childnodes[i].groupsmenubutton.set("label", groupsdetails);
-        }
-    }
 };
 
 /**
