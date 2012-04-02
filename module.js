@@ -353,17 +353,20 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         var groups,
             group;
 
+        // Allows for lazily not passing a value in
         if (typeof(newsetting) === 'undefined') {
             newsetting = null;
         }
 
         groups = this.get_groups();
         group = M.block_ajax_marking.get_group_by_id(groups, groupid);
-        group.display = newsetting;
+        if (group) { // Some child nodes are groups or users
+            group.display = newsetting;
 
-        var childnodes = this.children;
-        for (var i = 0; i < childnodes.length; i++) {
-            childnodes[i].set_group_setting(groupid, null);
+            var childnodes = this.children;
+            for (var i = 0; i < childnodes.length; i++) {
+                childnodes[i].set_group_setting(groupid, null);
+            }
         }
 
     },
@@ -622,14 +625,32 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             if (this.children[i].get_current_filter_name() !== filtername) {
                 continue;
             }
-            if (this.children[i].get_current_filter_value() !== filtervalue) {
+            var _current_filter_value = this.children[i].get_current_filter_value();
+            if (_current_filter_value !== filtervalue) {
                 continue;
             }
             return this.children[i];
         }
 
         return false;
-    }
+    },
+
+    /**
+     * Gets the current setting, or the inherited setting as appropriate so we can show the right
+     * thing.
+     */
+    get_setting_to_display : function (settingtype, groupid) {
+
+        if (groupid === undefined) {
+            groupid = false;
+        }
+
+        var setting = this.get_config_setting(settingtype, groupid);
+        if (setting === null) {
+            setting = this.get_default_setting(settingtype, groupid);
+        }
+        return setting;
+    },
 
 });
 
@@ -930,23 +951,6 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
     },
 
     /**
-     * Gets the current setting, or the inherited setting as appropriate so we can show the right
-     * thing.
-     */
-    get_setting_to_display: function(settingtype, groupid) {
-
-        if (groupid === undefined) {
-            groupid = false;
-        }
-
-        var setting = this.get_config_setting(settingtype, groupid);
-        if (setting === null) {
-            setting = this.get_default_setting(settingtype, groupid);
-        }
-        return setting;
-    },
-
-    /**
      * Saves a new setting into the nodes internal store, so we can keep track of things
      */
     set_config_setting : function (settingtype, newsetting) {
@@ -1007,7 +1011,8 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         }
 
         // Superclass will store the value and trigger the process in child nodes
-        M.block_ajax_marking.configtree_node.superclass.set_group_setting.call(this, groupid, newsetting);
+        M.block_ajax_marking.configtree_node.superclass.set_group_setting.call(this, groupid,
+                                                                               newsetting);
 
         // Update the display on the button label
         groupsdetails = this.get_groups_count();
@@ -1031,6 +1036,62 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
             }
         }
+    }
+
+});
+
+/**
+ * This subclasses the treenode to make a node that will have extra icons to show what the current
+ * settings are for an item in the config tree
+ */
+M.block_ajax_marking.coursestree_node = function (oData, oParent, expanded) {
+    M.block_ajax_marking.coursestree_node.superclass.constructor.call(this, oData,
+                                                                     oParent, expanded);
+
+
+};
+/**
+ * Mainly so we can use different startegies for updates after config data is saved. Most logic
+ * is in the parent class.
+ */
+YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tree_node, {
+
+    set_config_setting: function(settingtype, newsetting) {
+        M.block_ajax_marking.coursestree_node.superclass.set_config_setting.call(this, settingtype,
+                                                                                newsetting);
+
+    },
+
+    /**
+     * Store the new setting and also update the node's appearance to reflect it
+     *
+     * @param groupid
+     * @param newsetting
+     */
+    set_group_setting : function (groupid, newsetting) {
+
+        var groupsdetails;
+
+        if (typeof(newsetting) === 'undefined') {
+            newsetting = null;
+        }
+
+        // Superclass will store the value and trigger the process in child nodes
+        M.block_ajax_marking.coursestree_node.superclass.set_group_setting.call(this, groupid,
+                                                                               newsetting);
+
+        // get childnode for this group if there is one
+        var childnode = this.get_child_node_by_filter_id('groupid', groupid);
+
+        if (childnode) {
+            // Remove from tree if the inherited setting says 'hide'
+            var notnullsetting = this.get_setting_to_display('group', groupid);
+            if (notnullsetting == 0) {
+                this.tree.remove_node(childnode.index);
+            }
+        }
+
+        // redraw childnodes without it?
     }
 
 });
@@ -1418,8 +1479,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
     }
 
-
-
 });
 
 /**
@@ -1431,6 +1490,11 @@ M.block_ajax_marking.courses_tree = function () {
 
 // make the courses tree into a subclass of the base class
 YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_base, {
+
+    /**
+     * All nodes will be instances of this type
+     */
+    nodetype : M.block_ajax_marking.coursestree_node,
 
     /**
      * Used by initialise() to start the first AJAX call
@@ -1610,6 +1674,9 @@ M.block_ajax_marking.config_tree = function () {
 // make the config tree into a subclass of the base class. Tell it to use custom nodes
 YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_base, {
 
+    /**
+     * All nodes will instances of this
+     */
     nodetype : M.block_ajax_marking.configtree_node,
 
     /**
@@ -2450,6 +2517,7 @@ M.block_ajax_marking.contextmenu_unhighlight = function () {
 M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, obj) {
 
     var clickednode,
+        target,
         tree = M.block_ajax_marking.get_current_tab().displaywidget;
 
     M.block_ajax_marking.clickedmenuitem = this;
@@ -2458,15 +2526,22 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
     // directly set, or whether it is inherited
     var settingtype = obj.settingtype;
 
-    var target = this.parent.contextEventTarget; // main context menu does not work for menu button
-    if (!target && typeof(this.parent.element) !== 'undefined') {
-        target = this.parent.element.parentElement; // config tree menu button
+    if (typeof(this.parent.contextEventTarget) !== 'undefined') {
+        // main context menu does not work for menu button
+        clickednode = tree.getNodeByElement(this.parent.contextEventTarget);
     }
-    if (!target && typeof(this.parent.parent) !== 'undefined') {
-        target = this.parent.parent.parent.contextEventTarget; // groups submenu
+    if (!clickednode && typeof(this.parent.element) !== 'undefined') {
+        // config tree menu button
+        clickednode = tree.getNodeByElement(this.parent.element.parentElement);
     }
-    // by this point, we should have a target
-    clickednode = tree.getNodeByElement(target);
+    if (!clickednode && typeof(this.parent.parent) !== 'undefined') {
+        // groups submenu
+        clickednode = tree.getNodeByElement(this.parent.parent.parent.contextEventTarget);
+    }
+    // by this point, we should have a node.
+    if (!clickednode) {
+        return;
+    }
 
     var coursenodeclicked = false;
     if (clickednode.get_current_filter_name() == 'courseid') {
