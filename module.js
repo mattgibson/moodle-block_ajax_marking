@@ -1515,6 +1515,13 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
             modulename = node.get_modulename(),
             currentfilter = node.get_current_filter_name();
 
+        // Allow override by modules
+        moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
+                                                                              currentfilter);
+        if (moduleoverride !== null) {
+            return moduleoverride;
+        }
+
         // these are the standard progressions of nodes in the basic trees. Modules may wish
         // to modify these e.g. by adding extra nodes, stopping early without showing individual
         // students, or by allowing the user to choose a different order.
@@ -1554,13 +1561,6 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
                 break;
 
             default:
-        }
-
-        // Allow override by modules
-        moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
-                                                                              currentfilter);
-        if (moduleoverride !== null) {
-            return moduleoverride;
         }
 
         return nextnodefilter;
