@@ -650,7 +650,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             setting = this.get_default_setting(settingtype, groupid);
         }
         return setting;
-    },
+    }
 
 });
 
@@ -1059,7 +1059,6 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
     set_config_setting: function(settingtype, newsetting) {
         M.block_ajax_marking.coursestree_node.superclass.set_config_setting.call(this, settingtype,
                                                                                 newsetting);
-
     },
 
     /**
@@ -1079,16 +1078,26 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
         // Superclass will store the value and trigger the process in child nodes
         M.block_ajax_marking.coursestree_node.superclass.set_group_setting.call(this, groupid,
                                                                                newsetting);
-
         // get childnode for this group if there is one
         var childnode = this.get_child_node_by_filter_id('groupid', groupid);
-
-        if (childnode) {
+        var notnullsetting = this.get_setting_to_display('group', groupid);
+        if (childnode && notnullsetting === 0) {
             // Remove from tree if the inherited setting says 'hide'
-            var notnullsetting = this.get_setting_to_display('group', groupid);
-            if (notnullsetting == 0) {
-                this.tree.remove_node(childnode.index);
-            }
+            this.tree.remove_node(childnode.index);
+        } else if (!childnode &&
+                   notnullsetting == 1 &&
+                   this.get_current_filter_name() == 'coursemoduleid' &&
+                   this.expanded) {
+
+            // The group is set to show and it's not there. Refresh children to see if it appears
+            // Trigger AJAX call
+            var loadcompleteclosure = function (node) {
+                return function() {
+                    // node.collapse();
+                    node.loadComplete();
+                }
+            }(this);
+            this.tree.request_node_data(this, loadcompleteclosure);
         }
 
         // redraw childnodes without it?
@@ -1300,6 +1309,9 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             M.block_ajax_marking.parentnodeholder = this.getRoot();
         }
 
+        // Remove nodes here so we avoid lag between reomoval and addition
+        M.block_ajax_marking.get_current_tab().displaywidget.removeChildren(M.block_ajax_marking.parentnodeholder);
+
         // cycle through the array and make the nodes
         for (m = 0; m < numberofnodes; m++) {
 
@@ -1360,7 +1372,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     /**
      * Sorts things out after nodes have been added, or an error happened (so refresh still works)
      */
-    rebuild_tree_after_ajax : function () {
+    rebuild_parent_and_tree_count_after_new_nodes : function () {
         // finally, run the function that updates the original node and adds the children. Won't be
         // there if we have just built the tree
         if (typeof(M.block_ajax_marking.oncompletefunctionholder) === 'function') {
@@ -1386,8 +1398,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      * @param clickednode
      * @param callbackfunction
      */
-    request_node_data : function (
-        clickednode, callbackfunction) {
+    request_node_data : function (clickednode, callbackfunction) {
 
         // store details of the node that has been clicked for reference by later
         // callback function
@@ -1720,7 +1731,7 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
      * Sorts things out after nodes have been added, or an error happened (so refresh still works).
      * Overriding the main one so we can do the thing to add the buttons to the rendered nodes
      */
-    rebuild_tree_after_ajax : function (ajaxresponsearray) {
+    rebuild_parent_and_tree_count_after_new_nodes : function (ajaxresponsearray) {
         // finally, run the function that updates the original node and adds the children. Won't be
         // there if we have just built the tree
         if (typeof(M.block_ajax_marking.oncompletefunctionholder) === 'function') {
@@ -2013,7 +2024,7 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
 
         } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
             currenttab.displaywidget.build_nodes(ajaxresponsearray.nodes);
-
+            currenttab.displaywidget.rebuild_parent_and_tree_count_after_new_nodes(ajaxresponsearray);
         } else if (typeof(ajaxresponsearray['configsave']) !== 'undefined') {
 
             if (ajaxresponsearray['configsave'].success !== true) {
@@ -2034,7 +2045,6 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
         }
     }
 
-    currenttab.displaywidget.rebuild_tree_after_ajax(ajaxresponsearray);
     YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
 };
 
@@ -2160,7 +2170,7 @@ M.block_ajax_marking.ajax_failure_handler = function (o) {
             M.block_ajax_marking.make_footer();
         }
     }
-    M.block_ajax_marking.get_current_tab().displaywidget.rebuild_tree_after_ajax();
+    M.block_ajax_marking.get_current_tab().displaywidget.rebuild_parent_and_tree_count_after_new_nodes();
     YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
 };
 
@@ -2169,19 +2179,20 @@ M.block_ajax_marking.ajax_failure_handler = function (o) {
  */
 M.block_ajax_marking.ajax_timeout_handler = function () {
     M.block_ajax_marking.show_error(M.str.block_ajax_marking.connecttimeout);
-    M.block_ajax_marking.get_current_tab().displaywidget.rebuild_tree_after_ajax();
+    M.block_ajax_marking.get_current_tab().displaywidget.rebuild_parent_and_tree_count_after_new_nodes();
     YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
 };
 
 /**
- * Used by other functions to clear all child nodes from some element.
+ * Used by other functions to clear all child nodes from some element. Also clears all children
+ * from a tree node.
  *
  * @param parentnode a dom reference
  * @return void
  */
 M.block_ajax_marking.remove_all_child_nodes = function (parentnode) {
 
-    if (parentnode.hasChildNodes()) {
+    if (typeof(parentnode.hasChildNodes) === 'function' && parentnode.hasChildNodes()) {
         while (parentnode.childNodes.length >= 1) {
             parentnode.removeChild(parentnode.firstChild);
         }
