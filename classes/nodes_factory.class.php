@@ -130,143 +130,21 @@ class block_ajax_marking_nodes_factory {
      */
     public static function unmarked_nodes($filters = array()) {
 
-        global $DB;
+        $modulequeries = self::get_module_queries_array($filters);
 
-        // if not a union query, we will want to remember which module we are narrowed down to so we
-        // can apply the postprocessing hook later
-
-        $modulequeries = array();
-        $moduleid = false;
-        $moduleclass = '';
-        $moduleclasses = block_ajax_marking_get_module_classes();
-        if (!$moduleclasses) {
-            return array(); // No nodes
-        }
-
-        $filternames = array_keys($filters);
-        $havecoursemodulefilter = in_array('coursemoduleid', $filternames);
-        $makingcoursemodulenodes = ($filters['nextnodefilter'] === 'coursemoduleid');
-
-        // If one of the filters is coursemodule, then we want to avoid querying all of the module
-        // tables and just stick to the one with that coursemodule. If not, we do a UNION of all
-        // the modules
+        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
+        $moduleclass = false;
         if ($havecoursemodulefilter) {
-            // Get the right module id
-            $moduleid = $DB->get_field('course_modules', 'module',
-                                       array('id' => $filters['coursemoduleid']));
+            $moduleclass = self::get_module_object_from_cmid($filters['coursemoduleid']);
         }
 
-        foreach ($moduleclasses as $modname => $moduleclass) {
-            /** @var $moduleclass block_ajax_marking_module_base */
-
-            if ($moduleid && $moduleclass->get_module_id() !== $moduleid) {
-                // We don't want this one as we're filtering by a single coursemodule
-                continue;
-            }
-
-            $modulequeries[$modname] = self::get_unmarked_module_query($filters, $moduleclass);
-
-            if ($moduleid) {
-                break; // No need to carry on once we've got the only one we need
-            }
+        if (empty($modulequeries)) {
+            return array();
         }
 
-        // Make an array of queries to join with UNION ALL. This will get us the counts for each
-        // module. Implode separate subqueries with UNION ALL. Must use ALL to cope with duplicate
-        // rows with same counts and ids across the UNION. Doing it this way keeps the other items
-        // needing to be placed into the SELECT  out of the way of the GROUP BY bit, which makes
-        // Oracle bork up.
+        $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
 
-        // We want the bare minimum here. The idea is to avoid problems with GROUP BY ambiguity,
-        // so we just get the counts as well as the node ids
-
-        $countwrapperquery = new block_ajax_marking_query_base();
-        // We find out how many submissions we have here. Not DISTINCT as we are grouping by
-        // nextnodefilter in the superquery
-        $countwrapperquery->add_select(array('table' => 'moduleunion',
-                                             'column' => 'userid',
-                                             'alias' => 'itemcount', // COUNT is a reserved word
-                                             'function' => 'COUNT'));
-
-        // To get the three times for recent, medium and overdue pieces of work, we do three
-        // count operations here
-        $fourdaysago = time() - BLOCK_AJAX_MARKING_FOUR_DAYS;
-        $tendaysago = time() - BLOCK_AJAX_MARKING_TEN_DAYS;
-        $recentcolumn = "CASE WHEN (moduleunion.timestamp > {$fourdaysago}) THEN 1 ELSE 0 END";
-        $countwrapperquery->add_select(array('column'   => $recentcolumn,
-                                            'alias'    => 'recentcount',
-                                            // COUNT is a reserved word
-                                            'function' => 'SUM'));
-        $mediumcolumn = "CASE WHEN (moduleunion.timestamp < {$fourdaysago} AND ".
-                        "moduleunion.timestamp > {$tendaysago}) THEN 1 ELSE 0 END";
-        $countwrapperquery->add_select(array('column'   => $mediumcolumn,
-                                            'alias'    => 'mediumcount',
-                                            // COUNT is a reserved word
-                                            'function' => 'SUM'));
-        $overduecolumn = "CASE WHEN moduleunion.timestamp < $tendaysago THEN 1 ELSE 0 END";
-        $countwrapperquery->add_select(array('column'   => $overduecolumn,
-                                            'alias'    => 'overduecount',
-                                            // COUNT is a reserved word
-                                            'function' => 'SUM'));
-
-        if ($havecoursemodulefilter || $makingcoursemodulenodes) {
-            // Needed to access the correct javascript so we can open the correct popup, so
-            // we include the name of the module
-            $countwrapperquery->add_select(array('table' => 'moduleunion',
-                                                 'column' => 'modulename'));
-        }
-
-        // We want all nodes to have an oldest piece of work timestamp for background colours
-        $countwrapperquery->add_select(array('table' => 'moduleunion',
-                                             'column' => 'timestamp',
-                                             'function' => 'MAX',
-                                             'alias' => 'timestamp'));
-
-        $countwrapperquery->add_from(array('table' => $modulequeries,
-                                           'alias' => 'moduleunion',
-                                           'union' => true,
-                                           'subquery' => true));
-
-        // Apply all the standard filters. These only make sense when there's unmarked work
-        self::apply_sql_enrolled_students($countwrapperquery, $filters);
-        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid',
-                                'moduleunion.course');
-        self::apply_sql_display_settings($countwrapperquery);
-        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
-
-        // The outermost query just joins the already counted nodes with their display data e.g. we
-        // already have a count for each courseid, now we want course name and course description
-        // but we don't do this in the counting bit so as to avoid weird issues with group by on
-        // oracle
-        $displayquery = new block_ajax_marking_query_base();
-        $displayquery->add_select(array(
-                'table'    => 'countwrapperquery',
-                'column'   => 'id',
-                'alias'    => $filters['nextnodefilter']));
-        $displayquery->add_select(array(
-                'table'    => 'countwrapperquery',
-                'column'   => 'itemcount'));
-        $displayquery->add_select(array(
-               'table'    => 'countwrapperquery',
-               'column'   => 'timestamp'));
-        $displayquery->add_select(array(
-                                       'table'    => 'countwrapperquery',
-                                       'column'   => 'recentcount'));
-        $displayquery->add_select(array(
-                                       'table'    => 'countwrapperquery',
-                                       'column'   => 'mediumcount'));
-        $displayquery->add_select(array(
-                                       'table'    => 'countwrapperquery',
-                                       'column'   => 'overduecount'));
-        if ($havecoursemodulefilter) { // Need to have this pass through in case we have a mixture
-            $displayquery->add_select(array(
-                'table'    => 'countwrapperquery',
-                'column'   => 'modulename'));
-        }
-        $displayquery->add_from(array(
-                'table'    => $countwrapperquery,
-                'alias'    => 'countwrapperquery',
-                'subquery' => true));
+        $displayquery = self::get_display_query($countwrapperquery, $filters);
 
         // Now that the query object has been constructed, we want to add all the filters that will
         // limit the nodes to just the stuff we want (ignore hidden things, ignore things in other
@@ -280,16 +158,16 @@ class block_ajax_marking_nodes_factory {
                 // an empty value, so we set the value here.
                 $value = false;
                 $operation = 'countselect';
-                $currentfilter = $value;
             } else {
                 $filterfunctionname = 'apply_'.$name.'_filter';
                 $operation = 'where';
             }
 
-            // Find the function. Core ones are part of the factory class, others will be methods of
+            // Find the function. Core ones are part of this class, others will be methods of
             // the module object.
             // If we are filtering by a specific module, look there first
-            if (method_exists($moduleclass, $filterfunctionname)) {
+            if ($moduleclass instanceof block_ajax_marking_module_base &&
+                method_exists($moduleclass, $filterfunctionname)) {
                 // All core filters are methods of query_base and module specific ones will be
                 // methods of the module-specific subclass. If we have one of these, it will
                 // always be accompanied by a coursemoduleid, so will only be called on the
@@ -310,15 +188,6 @@ class block_ajax_marking_nodes_factory {
             self::apply_config_filter($displayquery, 'coursemoduledisplayselect');
         }
 
-        // We want the oldest work at the top
-        // TODO make this a user option on the UI end
-        // TODO put sensible defaults into the functions
-//        if ($currentfilter == 'userid') {
-//            $displayquery->add_orderby('timestamp DESC');
-//        } else {
-//            $displayquery->add_orderby('name ASC');
-//        }
-
         // This is just for copying and pasting from the paused debugger into a DB GUI
         $debugquery = block_ajax_marking_debuggable_query($displayquery);
 
@@ -326,7 +195,7 @@ class block_ajax_marking_nodes_factory {
 
         $nodes = self::attach_groups_to_nodes($nodes, $filters);
 
-        if ($moduleid) {
+        if (array_key_exists('coursemoduleid', $filters)) {
             // this does e.g. allowing the forum module to tweak the name depending on forum type
             $moduleclass->postprocess_nodes_hook($nodes, $filters);
         }
@@ -1522,4 +1391,211 @@ SQL;
 
     }
 
+    /**
+     * Gets an array of queries, one for each module, which when UNION ALLed will provide
+     * all marking from across the site. This will get us the counts for each
+     * module. Implode separate subqueries with UNION ALL. Must use ALL to cope with duplicate
+     * rows with same counts and ids across the UNION. Doing it this way keeps the other items
+     * needing to be placed into the SELECT  out of the way of the GROUP BY bit, which makes
+     * Oracle bork up.
+     *
+     * @static
+     * @param $filters
+     * @return array
+     */
+    private static function get_module_queries_array($filters) {
+
+        global $DB;
+
+        // if not a union query, we will want to remember which module we are narrowed down to so we
+        // can apply the postprocessing hook later
+
+        $modulequeries = array();
+        $moduleid = false;
+        $moduleclasses = block_ajax_marking_get_module_classes();
+        if (!$moduleclasses) {
+            return array(); // No nodes
+        }
+
+        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
+
+        // If one of the filters is coursemodule, then we want to avoid querying all of the module
+        // tables and just stick to the one with that coursemodule. If not, we do a UNION of all
+        // the modules
+        if ($havecoursemodulefilter) {
+            // Get the right module id
+            $moduleid = $DB->get_field('course_modules', 'module',
+                                       array('id' => $filters['coursemoduleid']));
+        }
+
+        foreach ($moduleclasses as $modname => $moduleclass) {
+            /** @var $moduleclass block_ajax_marking_module_base */
+
+            if ($moduleid && $moduleclass->get_module_id() !== $moduleid) {
+                // We don't want this one as we're filtering by a single coursemodule
+                continue;
+            }
+
+            $modulequeries[$modname] = self::get_unmarked_module_query($filters, $moduleclass);
+
+            if ($moduleid) {
+                break; // No need to carry on once we've got the only one we need
+            }
+        }
+
+        return $modulequeries;
+    }
+
+    /**
+     * Wraps the array of moduleunion queries in an outer one that will group the submissions
+     * into nodes with counts. We want the bare minimum here. The idea is to avoid problems with
+     * GROUP BY ambiguity, so we just get the counts as well as the node ids.
+     *
+     * @static
+     * @param $modulequeries
+     * @param $filters
+     * @return \block_ajax_marking_query_base
+     */
+    private static function get_count_wrapper_query($modulequeries, $filters) {
+
+        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
+        $makingcoursemodulenodes = ($filters['nextnodefilter'] === 'coursemoduleid');
+
+        $countwrapperquery = new block_ajax_marking_query_base();
+        // We find out how many submissions we have here. Not DISTINCT as we are grouping by
+        // nextnodefilter in the superquery
+        $countwrapperquery->add_select(array('table' => 'moduleunion',
+                                             'column' => 'userid',
+                                             'alias' => 'itemcount',
+                                             // COUNT is a reserved word
+                                             'function' => 'COUNT'));
+
+        // To get the three times for recent, medium and overdue pieces of work, we do three
+        // count operations here
+        $fourdaysago = time() - BLOCK_AJAX_MARKING_FOUR_DAYS;
+        $tendaysago = time() - BLOCK_AJAX_MARKING_TEN_DAYS;
+        $recentcolumn = "CASE WHEN (moduleunion.timestamp > {$fourdaysago}) THEN 1 ELSE 0 END";
+        $countwrapperquery->add_select(array('column' => $recentcolumn,
+                                             'alias' => 'recentcount',
+                                             // COUNT is a reserved word
+                                             'function' => 'SUM'));
+        $mediumcolumn = "CASE WHEN (moduleunion.timestamp < {$fourdaysago} AND ".
+            "moduleunion.timestamp > {$tendaysago}) THEN 1 ELSE 0 END";
+        $countwrapperquery->add_select(array('column' => $mediumcolumn,
+                                             'alias' => 'mediumcount',
+                                             // COUNT is a reserved word
+                                             'function' => 'SUM'));
+        $overduecolumn = "CASE WHEN moduleunion.timestamp < $tendaysago THEN 1 ELSE 0 END";
+        $countwrapperquery->add_select(array('column' => $overduecolumn,
+                                             'alias' => 'overduecount',
+                                             // COUNT is a reserved word
+                                             'function' => 'SUM'));
+
+        if ($havecoursemodulefilter || $makingcoursemodulenodes) {
+            // Needed to access the correct javascript so we can open the correct popup, so
+            // we include the name of the module
+            $countwrapperquery->add_select(array('table' => 'moduleunion',
+                                                 'column' => 'modulename'));
+        }
+
+        // We want all nodes to have an oldest piece of work timestamp for background colours
+        $countwrapperquery->add_select(array('table' => 'moduleunion',
+                                             'column' => 'timestamp',
+                                             'function' => 'MAX',
+                                             'alias' => 'timestamp'));
+
+        $countwrapperquery->add_from(array('table' => $modulequeries,
+                                           'alias' => 'moduleunion',
+                                           'union' => true,
+                                           'subquery' => true));
+
+        // Apply all the standard filters. These only make sense when there's unmarked work
+        self::apply_sql_enrolled_students($countwrapperquery, $filters);
+        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid',
+                                'moduleunion.course');
+        self::apply_sql_display_settings($countwrapperquery);
+        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
+
+        return $countwrapperquery;
+    }
+
+    /**
+     * Wraps the countwrapper query so that a join can be done to the table(s) that hold the name
+     * and other text fields which provide data for the node labels. We can't put the text
+     * fields into the countwrapper because Oracle won't have any of it.
+     *
+     * @static
+     * @param $countwrapperquery
+     * @param $filters
+     * @return block_ajax_marking_query_base
+     */
+    private static function get_display_query($countwrapperquery, $filters) {
+
+        // The outermost query just joins the already counted nodes with their display data e.g. we
+        // already have a count for each courseid, now we want course name and course description
+        // but we don't do this in the counting bit so as to avoid weird issues with group by on
+        // oracle
+        $displayquery = new block_ajax_marking_query_base();
+        $displayquery->add_select(array(
+                                       'table' => 'countwrapperquery',
+                                       'column' => 'id',
+                                       'alias' => $filters['nextnodefilter']));
+        $displayquery->add_select(array(
+                                       'table' => 'countwrapperquery',
+                                       'column' => 'itemcount'));
+        $displayquery->add_select(array(
+                                       'table' => 'countwrapperquery',
+                                       'column' => 'timestamp'));
+        $displayquery->add_select(array(
+                                       'table' => 'countwrapperquery',
+                                       'column' => 'recentcount'));
+        $displayquery->add_select(array(
+                                       'table' => 'countwrapperquery',
+                                       'column' => 'mediumcount'));
+        $displayquery->add_select(array(
+                                       'table' => 'countwrapperquery',
+                                       'column' => 'overduecount'));
+
+        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
+        if ($havecoursemodulefilter) { // Need to have this pass through in case we have a mixture
+            $displayquery->add_select(array(
+                                           'table' => 'countwrapperquery',
+                                           'column' => 'modulename'));
+        }
+        $displayquery->add_from(array(
+                                     'table' => $countwrapperquery,
+                                     'alias' => 'countwrapperquery',
+                                     'subquery' => true));
+
+        return $displayquery;
+    }
+
+    /**
+     * If we have a coursemoduleid, we want to be able to get the module object that corresponds
+     * to it
+     *
+     * @static
+     * @param $coursemoduleid
+     * @return block_ajax_marking_module_base|bool
+     */
+    private static function get_module_object_from_cmid($coursemoduleid) {
+
+        global $DB;
+
+        $moduleclasses = block_ajax_marking_get_module_classes();
+
+        $moduleid = $DB->get_field('course_modules', 'module',
+                                   array('id' => $coursemoduleid));
+
+        foreach ($moduleclasses as $modname => $moduleclass) {
+            /** @var $moduleclass block_ajax_marking_module_base */
+
+            if ($moduleclass->get_module_id() == $moduleid) {
+                // We don't want this one as we're filtering by a single coursemodule
+                return $moduleclass;
+            }
+        }
+
+        return false;
+    }
 }
