@@ -476,15 +476,15 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             componentcounts = this.get_component_counts();
 
             if (componentcounts.recent) {
-                countarray.push('<span id="recent"'+this.index+' class="recent">'+componentcounts.recent+'</span>');
+                countarray.push('<span id="recent'+this.index+'" class="recent">'+componentcounts.recent+'</span>');
                 titlearray.push(componentcounts.recent+' '+M.str.block_ajax_marking.recentitems);
             }
             if (componentcounts.medium) {
-                countarray.push('<span id="medium"'+this.index+' class="medium">'+componentcounts.medium+'</span>');
+                countarray.push('<span id="medium'+this.index+'" class="medium">'+componentcounts.medium+'</span>');
                 titlearray.push(componentcounts.medium+' '+M.str.block_ajax_marking.mediumitems);
             }
             if (componentcounts.overdue) {
-                countarray.push('<span id="overdue"'+this.index+' class="overdue">'+componentcounts.overdue+'</span>');
+                countarray.push('<span id="overdue'+this.index+'" class="overdue">'+componentcounts.overdue+'</span>');
                 titlearray.push(componentcounts.overdue+' '+M.str.block_ajax_marking.overdueitems);
             }
 
