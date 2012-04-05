@@ -1078,6 +1078,7 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
         if (childnode && notnullsetting === 0) {
             // Remove from tree if the inherited setting says 'hide'
             this.tree.remove_node(childnode.index);
+            this.recalculate_counts();
         } else if (!childnode &&
                    notnullsetting == 1 &&
                    this.get_current_filter_name() == 'coursemoduleid' &&
