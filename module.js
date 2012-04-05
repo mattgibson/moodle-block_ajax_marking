@@ -1084,16 +1084,7 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
                    this.get_current_filter_name() == 'coursemoduleid' &&
                    this.expanded) {
 
-            // The group is set to show and it's not there. Refresh children to see if it appears
-            // Trigger AJAX call
-            var loadcompleteclosure = function (node) {
-                // closure makes usre we still have reference to the node that needs
-                // refreshing later
-                return function() {
-                    node.loadComplete();
-                }
-            }(this);
-            this.tree.request_node_data(this, loadcompleteclosure);
+            this.tree.request_node_data(this);
         }
     }
 
@@ -1401,7 +1392,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
     /**
      * This function is called when a node is clicked (expanded) and makes the ajax request. It
-     * sends thefilters from all parent nodes and the nextnodetype
+     * sends the filters from all parent nodes and the nextnodetype
      *
      * @param clickednode
      * @param callbackfunction
