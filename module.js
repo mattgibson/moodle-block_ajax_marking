@@ -400,6 +400,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      */
     set_count : function (newvalue, type) {
 
+        var span;
+
         switch (type) {
             case 'recent':
                 this.data.displaydata.recentcount = parseInt(newvalue, 10);
@@ -417,10 +419,19 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                 this.data.displaydata.itemcount = parseInt(newvalue, 10);
 
         }
+
+        // Make the adjustment
+        if (type) {
+            span = document.getElementById(type+this.index);
+            if (span) {
+                span.innerHTML = newvalue;
+            }
+        }
     },
 
     /**
-     * Takes the existing time and makes a css class based on it so we can see how late work is
+     * Takes the existing time and makes a css class based on it so we can see how late work is.
+     * style is
      */
     set_time_style : function () {
 
@@ -532,13 +543,11 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             recentcount = 0,
             mediumcount = 0,
             overduecount = 0,
-            recentspan,
-            mediumspan,
-            overduespan;
+            numberofchildren = this.children.length;
 
         // loop over children, counting to get new totals
-        if (this.children.length) {
-            for (var i = 0; i < this.children.length; i++) {
+        if (numberofchildren) {
+            for (var i = 0; i < numberofchildren; i++) {
 
                 componentcounts = this.children[i].get_component_counts();
 
@@ -553,23 +562,9 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             this.set_count(overduecount, 'overdue');
             this.set_count(recentcount+mediumcount+overduecount);
 
-            // Alter the node's appearance
-            recentspan = document.getElementById('recent'+this.index);
-            if (recentspan) {
-                recentspan.innerHTML = recentcount;
-            }
-            mediumspan = document.getElementById('medium'+this.index);
-            if (mediumspan) {
-                mediumspan.innerHTML = mediumcount;
-            }
-            overduespan = document.getElementById('overdue'+this.index);
-            if (overduespan) {
-                overduespan.innerHTML = overduecount;
-            }
         } else {
             this.tree.removeNode(this, false);
         }
-
 
         // Tell the parent to do the same if it's not root
         if (!parentnode.isRoot()) {
@@ -814,19 +809,18 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
     /**
      * Regenerates the html for this node and its children.  To be used when the
      * node is expanded and new children have been added.
+     *
      * @method refresh
      */
-    refresh : function (justrefreshchildren) {
-
+    refresh : function () {
         M.block_ajax_marking.configtree_node.superclass.refresh.call(this);
-
         this.tree.add_groups_buttons(this);
-
     },
 
     /**
      * Load complete is the callback function we pass to the data provider
-     * in dynamic load situations.
+     * in dynamic load situations. Altered to add the bit about adding groups.
+     *
      * @method loadComplete
      */
     loadComplete : function (justrefreshchildren) {
@@ -1296,30 +1290,32 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      *
      * @param nodesarray array
      */
-    build_nodes : function (nodesarray) {
+    build_nodes : function (nodesarray, nodeindex) {
 
         var newnode,
             nodedata,
             islastnode,
             numberofnodes = nodesarray.length,
-            m;
+            parentnode;
 
-        if (typeof(M.block_ajax_marking.parentnodeholder) !== 'object') {
-            M.block_ajax_marking.parentnodeholder = this.getRoot();
+        if (nodeindex) {
+            parentnode = this.getNodeByProperty('index', nodeindex)
+        } else {
+            parentnode = this.getRoot();
         }
 
-        // Remove nodes here so we avoid lag between reomoval and addition
-        M.block_ajax_marking.get_current_tab().displaywidget.removeChildren(M.block_ajax_marking.parentnodeholder);
+        // Remove nodes here so we avoid lag due to AJAX between removal and addition
+        this.removeChildren(parentnode);
 
         // cycle through the array and make the nodes
-        for (m = 0; m < numberofnodes; m++) {
+        for (var i = 0; i < numberofnodes; i++) {
 
-            nodedata = nodesarray[m];
+            nodedata = nodesarray[i];
 
             // Make the display data accessible to the node creation code
             nodedata.html = nodedata.displaydata.name;
 
-            newnode = new this.nodetype(nodedata, M.block_ajax_marking.parentnodeholder, false);
+            newnode = new this.nodetype(nodedata, parentnode, false);
             newnode.set_count(newnode.get_count()); // needed to convert to int
 
             // Some nodes won't be specific to a module, but this needs to be specified to avoid
@@ -1339,6 +1335,18 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             // background colour
             newnode.set_time_style();
         }
+
+        // finally, run the function that updates the original node and adds the children. Won't be
+        // there if we have just built the tree
+        parentnode.loadComplete();
+        // update the counts on all the nodes in case extra work has just appeared
+        if (parentnode.recalculate_counts) {
+            parentnode.recalculate_counts()
+        }
+
+        // the main tree will need the counts updated, but not the config tree
+        //this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+        this.update_total_count();
     },
 
     /**
@@ -1397,16 +1405,12 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      * @param clickednode
      * @param callbackfunction
      */
-    request_node_data : function (clickednode, callbackfunction) {
-
-        // store details of the node that has been clicked for reference by later
-        // callback function
-        M.block_ajax_marking.parentnodeholder = clickednode;
-        M.block_ajax_marking.oncompletefunctionholder = callbackfunction;
+    request_node_data : function (clickednode) {
 
         // The callback function is the SQL GROUP BY for the next set of nodes, so this is separate
         var nodefilters = clickednode.get_filters();
         nodefilters.push('nextnodefilter='+clickednode.get_nextnodefilter());
+        // This lets the AJAX success code find the right node to add stuff to
         nodefilters.push('nodeindex='+clickednode.index);
         nodefilters = nodefilters.join('&');
 
@@ -1781,8 +1785,22 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
      */
     update_total_count : function() {
         document.getElementById('count').innerHTML = '-';
-    }
+    },
 
+    /**
+     * Adds the post-build javascript stuff tot make groups buttons
+     *
+     * @param nodesdata
+     * @param nodeindex
+     */
+    build_nodes : function(nodesdata, nodeindex) {
+        M.block_ajax_marking.config_tree.superclass.build_nodes.call(this, nodesdata, nodeindex);
+        if (!nodeindex) { // Only missing for root node
+            // RootNode is built into the tree libray so it cannot be subclassed to add this
+            // function call to it's loadComplete() function.
+            this.add_groups_buttons();
+        }
+    }
 
 });
 
@@ -2023,8 +2041,12 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
             // M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content);
 
         } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
-            currenttab.displaywidget.build_nodes(ajaxresponsearray.nodes);
-            currenttab.displaywidget.rebuild_parent_and_tree_count_after_new_nodes(ajaxresponsearray);
+            var index = false;
+            if (ajaxresponsearray.nodeindex) {
+                index = ajaxresponsearray.nodeindex;
+            }
+            currenttab.displaywidget.build_nodes(ajaxresponsearray.nodes, index);
+            //currenttab.displaywidget.rebuild_parent_and_tree_count_after_new_nodes(ajaxresponsearray);
         } else if (typeof(ajaxresponsearray['configsave']) !== 'undefined') {
 
             if (ajaxresponsearray['configsave'].success !== true) {
