@@ -563,7 +563,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             this.set_count(recentcount+mediumcount+overduecount);
 
         } else {
-            this.tree.removeNode(this, false);
+            this.tree.hide_context_menu_before_node_removal(this);
+            this.tree.removeNode(this, true);
         }
 
         // Tell the parent to do the same if it's not root
@@ -1078,7 +1079,6 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
         if (childnode && notnullsetting === 0) {
             // Remove from tree if the inherited setting says 'hide'
             this.tree.remove_node(childnode.index);
-            this.recalculate_counts();
         } else if (!childnode &&
                    notnullsetting == 1 &&
                    this.get_current_filter_name() == 'coursemoduleid' &&
@@ -1136,6 +1136,7 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
 
         target = this.contextEventTarget;
         clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
+        this.clickednode = clickednode; // makes it easier later
         groups = clickednode.get_groups();
 
         // We don't want to allow the contextmenu for items that we can't hide yet. Right now it
@@ -1450,10 +1451,27 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     remove_node : function (nodeuniqueid) {
         var nodetoremove = this.getNodeByProperty('index', nodeuniqueid);
         var parentnode = nodetoremove.parent;
-        this.removeNode(nodetoremove, false); // don't refresh yet because the counts will be wrong
+        this.hide_context_menu_before_node_removal(nodetoremove);
+        this.removeNode(nodetoremove, true); // don't refresh yet because the counts will be wrong
         parentnode.recalculate_counts();
         this.update_total_count();
-        parentnode.refresh();
+    },
+
+    /**
+     * If a node is removed, it might have it's context menu open. This will check and hide the
+     * context menu if it is. We don't want to hide the context menu if it's a child node of the
+     * contextmenu's node.
+     *
+     * @param nodebeingremoved
+     */
+    hide_context_menu_before_node_removal : function(nodebeingremoved) {
+        var currenttab = M.block_ajax_marking.get_current_tab();
+        if (currenttab.contextmenu &&
+            currenttab.contextmenu.clickednode &&
+            currenttab.contextmenu.clickednode == nodebeingremoved) {
+
+            currenttab.contextmenu.hide();
+        }
     },
 
     /**
@@ -2074,18 +2092,19 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
         newsetting = ajaxresponsearray['configsave'].newsetting,
         menu,
         clickeditem,
-        target;
+        target,
+        clickednode;
 
     clickeditem = M.block_ajax_marking.clickedmenuitem;
     menu = M.block_ajax_marking.clickedmenuitem.parent;
 
     var currenttab = M.block_ajax_marking.get_current_tab();
     if (currenttab.contextmenu) {
-        target = currenttab.contextmenu.contextEventTarget; // main contextmenu
+        clickednode = currenttab.contextmenu.clickednode;
     } else {
         target = menu.element.parentElement; // config dropdown
+        clickednode = currenttab.displaywidget.getNodeByElement(target);
     }
-    var clickednode = currenttab.displaywidget.getNodeByElement(target);
 
     if (settingtype == 'display' && newsetting === 0) {
         // Node set to hide. Remove it from the tree.
@@ -2471,8 +2490,9 @@ M.block_ajax_marking.initialise = function () {
         // Make sure the menu is updated to be current with the node it matches
         coursestab.contextmenu.subscribe("triggerContextMenu",
                                          coursestab.contextmenu.load_settings);
-        coursestab.contextmenu.subscribe("beforeHide",
-                                         M.block_ajax_marking.contextmenu_unhighlight);
+        coursestab.contextmenu.subscribe("beforeHide", function() {
+                                             M.block_ajax_marking.contextmenu_unhighlight();
+                                             coursestab.contextmenu.clickednode = null;});
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function () {
