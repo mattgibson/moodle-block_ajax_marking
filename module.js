@@ -1092,15 +1092,14 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
             // The group is set to show and it's not there. Refresh children to see if it appears
             // Trigger AJAX call
             var loadcompleteclosure = function (node) {
+                // closure makes usre we still have reference to the node that needs
+                // refreshing later
                 return function() {
-                    // node.collapse();
                     node.loadComplete();
                 }
             }(this);
             this.tree.request_node_data(this, loadcompleteclosure);
         }
-
-        // redraw childnodes without it?
     }
 
 });
@@ -1408,6 +1407,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         // The callback function is the SQL GROUP BY for the next set of nodes, so this is separate
         var nodefilters = clickednode.get_filters();
         nodefilters.push('nextnodefilter='+clickednode.get_nextnodefilter());
+        nodefilters.push('nodeindex='+clickednode.index);
         nodefilters = nodefilters.join('&');
 
         YAHOO.util.Connect.asyncRequest('POST',

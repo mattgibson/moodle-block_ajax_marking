@@ -68,5 +68,9 @@ foreach ($nodes as &$node) {
 // reindex array so we pick it up in js as an array and can find the length. Associative arrays
 // with strings for keys are automatically sent as objects
 $nodes = array_values($nodes);
-echo json_encode(array('nodes' => $nodes));
+$data = array('nodes' => $nodes);
+if (isset($params['nodeindex'])) {
+    $data['nodeindex'] = $params['nodeindex'];
+}
+echo json_encode($data);
 
