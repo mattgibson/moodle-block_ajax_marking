@@ -1561,6 +1561,21 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      */
     notify_refresh_needed : function() {
 
+    },
+
+    /**
+     * When a node has requested an updated count via AJAX (because it is not expanded and its
+     * groups settings have changed), this function does the update
+     *
+     * @param newcounts
+     * @param nodeindex
+     */
+    update_node_count : function(newcounts, nodeindex) {
+        var node = this.getNodeByIndex(nodeindex);
+        node.set_count(newcounts.recentcount, 'recent');
+        node.set_count(newcounts.mediumcount, 'medium');
+        node.set_count(newcounts.overduecount, 'overdue');
+        node.set_count(newcounts.itemcount);
     }
 
 });
@@ -2091,8 +2106,14 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
 
     // first object holds data about what kind of nodes we have so we can
     // fire the right function.
-    //var payload = 'default';
     if (typeof(ajaxresponsearray) === 'object') {
+
+        // If we are doing something with a specific node, this will be there
+        var index = false;
+        if (ajaxresponsearray.nodeindex) {
+            index = ajaxresponsearray.nodeindex;
+        }
+
         // If we have a neatly structured Moodle error, we want to display it
         if (typeof(ajaxresponsearray.error) !== 'undefined') {
             errormessage = '<strong>A Moodle error occurred:</strong><br />';
@@ -2108,13 +2129,10 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
             // M.block_ajax_marking.gradinginterface.setHeader('');
             // M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content);
 
+        } else if (typeof(ajaxresponsearray['counts']) !== 'undefined') {
+            currenttab.displaywidget.update_node_count(ajaxresponsearray.counts, index);
         } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
-            var index = false;
-            if (ajaxresponsearray.nodeindex) {
-                index = ajaxresponsearray.nodeindex;
-            }
             currenttab.displaywidget.build_nodes(ajaxresponsearray.nodes, index);
-            //currenttab.displaywidget.rebuild_parent_and_tree_count_after_new_nodes(ajaxresponsearray);
         } else if (typeof(ajaxresponsearray['configsave']) !== 'undefined') {
 
             if (ajaxresponsearray['configsave'].success !== true) {

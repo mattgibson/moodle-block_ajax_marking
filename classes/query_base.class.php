@@ -445,7 +445,7 @@ class block_ajax_marking_query_base {
      *
      * @param array $clause containing 'type' e.g. 'AND' & 'condition' which is something that can
      * be added to other things using AND
-     * @internal param $
+     * @throws coding_exception
      * @return void
      */
     public function add_where(array $clause) {

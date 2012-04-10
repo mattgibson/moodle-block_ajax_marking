@@ -201,6 +201,7 @@ class block_ajax_marking_nodes_factory {
                 // TODO not a very elegant way of telling the filters that the query is different
                 $operation = $config ? 'configdisplay' : 'countselect';
             } else {
+                // We want a single node count
                 $filterfunctionname = 'apply_'.$name.'_filter';
                 $operation = $config ? 'configwhere' : 'where';
             }
@@ -1553,5 +1554,55 @@ SQL;
         }
 
         return false;
+    }
+
+    /**
+     * Called from ajax_node_count.php and returns the counts for a specific node so we can update
+     * it in the tree when groups display stuff is changed and it is not expanded.
+     *
+     * @param array $filters
+     * @return array
+     */
+    public static function get_count_for_single_node($filters) {
+
+        global $CFG;
+
+        $modulequeries = self::get_module_queries_array($filters);
+
+        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
+        $moduleclass = false;
+        if ($havecoursemodulefilter) {
+            $moduleclass = self::get_module_object_from_cmid($filters['coursemoduleid']);
+        }
+
+        if (empty($modulequeries)) {
+            return array();
+        }
+
+        $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
+        $displayquery = self::get_display_query($countwrapperquery, $filters);
+
+        // This will give us a query that will get the relavant node and all its siblings
+        self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
+
+        // Now, add the current node as a WHERE clause, so we only get that one
+
+        $displayquery->add_where(array('type' => 'AND',
+                                       'condition' => 'countwrapperquery.id = :filtervalue '));
+        $displayquery->add_param('filtervalue', $filters['filtervalue']);
+
+        // This is just for copying and pasting from the paused debugger into a DB GUI
+        if ($CFG->debug === DEBUG_DEVELOPER) {
+            $debugquery = block_ajax_marking_debuggable_query($displayquery);
+        }
+
+        $nodes = $displayquery->execute();
+
+        $node = array_pop($nodes); // Single node object
+        return array('recentcount'  => $node->recentcount,
+                     'mediumcount'  => $node->mediumcount,
+                     'overduecount' => $node->overduecount,
+                     'itemcount'    => $node->itemcount);
+
     }
 }

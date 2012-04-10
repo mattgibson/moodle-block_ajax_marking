@@ -66,34 +66,8 @@ if (!isset($params['nodeindex'])) {
 // Makes it easier to reuse the query code.
 $params['nextnodefilter'] = $params['currentfilter'];
 
-$nodes = block_ajax_marking_nodes_factory::unmarked_nodes($params);
-$nodewearecounting = false;
+$nodecounts = block_ajax_marking_nodes_factory::get_count_for_single_node($params);
 
-foreach ($nodes as &$node) {
-    if ($node->$currentfilter == $params['nodeid']) {
-        /**
-         * @var $nodewearecounting stdClass;
-         */
-        $nodewearecounting = $node;
-        break;
-    }
-}
-
-if (!$nodewearecounting) {
-    throw new coding_exception('Relevant node was not returned for counting');
-}
-
-// reindex array so we pick it up in js as an array and can find the length. Associative arrays
-// with strings for keys are automatically sent as objects
-$nodecounts = array(
-    'recentcount' => $nodewearecounting->recentcount,
-    'mediumcount' => $nodewearecounting->mediumcount,
-    'overduecount' => $nodewearecounting->overduecount,
-    'itemcount' => $nodewearecounting->itemcount
-);
-
-$data = array('counts' => $nodecounts);
-if (isset($params['nodeindex'])) {
-    $data['nodeindex'] = $params['nodeindex'];
-}
+$data = array('counts' => $nodecounts,
+              'nodeindex' => $params['nodeindex']);
 echo json_encode($data);
