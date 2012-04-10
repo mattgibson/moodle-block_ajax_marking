@@ -1136,7 +1136,7 @@ SQL;
      */
     private function attach_groups_to_nodes($nodes, $filters) {
 
-        global $DB, $USER;
+        global $DB, $CFG;
 
         if (!$nodes) {
             return array();
@@ -1161,10 +1161,7 @@ SQL;
             // Retrieve all groups that we may need. This includes those with no settings yet as
             // otherwise, we won't be able to offer to create settings for them.
             list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
-            list($subsql, $subparams) = self::sql_group_visibility_subquery('course');
-            $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
 
-            $sitedisplaydefault = 1; // May wish to make this configurable in future
             $sql = <<<SQL
 
              SELECT groups.id,
@@ -1187,7 +1184,9 @@ SQL;
 
 SQL;
 
-            $debugquery = block_ajax_marking_debuggable_query($sql, $params);
+            if ($CFG->debug === DEBUG_DEVELOPER) {
+                $debugquery = block_ajax_marking_debuggable_query($sql, $params);
+            }
             $groups = $DB->get_records_sql($sql, $params);
 
             foreach ($groups as $group) {
@@ -1219,7 +1218,9 @@ SQL;
 SQL;
             $params = array_merge($params, $subparams);
 
-            $debugquery = block_ajax_marking_debuggable_query($sql, $params);
+            if ($CFG->debug === DEBUG_DEVELOPER) {
+                $debugquery = block_ajax_marking_debuggable_query($sql, $params);
+            }
             $groups = $DB->get_records_sql($sql, $params);
 
             foreach ($groups as $group) {
