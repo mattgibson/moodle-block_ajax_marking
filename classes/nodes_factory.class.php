@@ -130,6 +130,8 @@ class block_ajax_marking_nodes_factory {
      */
     public static function unmarked_nodes($filters = array()) {
 
+        global $CFG;
+
         $modulequeries = self::get_module_queries_array($filters);
 
         $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
@@ -143,8 +145,51 @@ class block_ajax_marking_nodes_factory {
         }
 
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
-
         $displayquery = self::get_display_query($countwrapperquery, $filters);
+
+        self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
+
+        // Adds the config settings if there are any, so that we
+        // know what the current settings are for the context menu
+        if ($filters['nextnodefilter'] ==  'courseid') {
+            self::apply_config_filter($displayquery, 'coursedisplayselect');
+        } else if ($filters['nextnodefilter'] ==  'coursemoduleid') {
+            self::apply_config_filter($displayquery, 'coursemoduledisplayselect');
+        }
+
+        // This is just for copying and pasting from the paused debugger into a DB GUI
+        if ($CFG->debug === DEBUG_DEVELOPER) {
+            $debugquery = block_ajax_marking_debuggable_query($displayquery);
+        }
+
+        $nodes = $displayquery->execute();
+
+        $nodes = self::attach_groups_to_nodes($nodes, $filters);
+
+        if (array_key_exists('coursemoduleid', $filters)) {
+            // This e.g. allows the forum module to tweak the name depending on forum type
+            $moduleclass->postprocess_nodes_hook($nodes, $filters);
+        }
+        return $nodes;
+    }
+
+    /**
+     * @static
+     * USes the list of filters supplied by AJAX to find functions within this class and the
+     * module classes which will modify the query
+     *
+     * @param array $filters
+     * @param block_ajax_marking_query_base $query which will have varying levels of nesting
+     * @param bool $config flag to tell us if this is the config tree, which has a differently
+     *                     structured query
+     * @param block_ajax_marking_module_base|bool $moduleclass if we have a coursemoduleid filter,
+     *                                                         this is the corresponding module
+     *                                                         object
+     */
+    private static function apply_filters_to_query($filters,
+                                                   $query,
+                                                   $config = false,
+                                                   $moduleclass = false) {
 
         // Now that the query object has been constructed, we want to add all the filters that will
         // limit the nodes to just the stuff we want (ignore hidden things, ignore things in other
@@ -157,49 +202,30 @@ class block_ajax_marking_nodes_factory {
                 // than 'filtername' => <rowid> We want to pass the name of the filter in with
                 // an empty value, so we set the value here.
                 $value = false;
-                $operation = 'countselect';
+                // TODO not a very elegant way of telling the filters that the query is different
+                $operation = $config ? 'configdisplay' : 'countselect';
             } else {
                 $filterfunctionname = 'apply_'.$name.'_filter';
-                $operation = 'where';
+                $operation = $config ? 'configwhere' : 'where';
             }
 
             // Find the function. Core ones are part of this class, others will be methods of
             // the module object.
             // If we are filtering by a specific module, look there first
             if ($moduleclass instanceof block_ajax_marking_module_base &&
-                method_exists($moduleclass, $filterfunctionname)) {
+                method_exists($moduleclass, $filterfunctionname) ) {
+
                 // All core filters are methods of query_base and module specific ones will be
                 // methods of the module-specific subclass. If we have one of these, it will
                 // always be accompanied by a coursemoduleid, so will only be called on the
                 // relevant module query and not the rest
-                $moduleclass->$filterfunctionname($displayquery, $operation, $value);
+                $moduleclass->$filterfunctionname($query, $operation, $value);
             } else if (method_exists(__CLASS__, $filterfunctionname)) {
                 // config tree needs to have select stuff that doesn't mention sub. Like for the
                 // outer wrappers of the normal query for the unmarked work nodes
-                self::$filterfunctionname($displayquery, $operation, $value);
+                self::$filterfunctionname($query, $operation, $value);
             }
         }
-
-        // Adds the config options if there are any, so JavaScript knows what to ask for and we
-        // know what the current settings are for the context menu
-        if ($filters['nextnodefilter'] ==  'courseid') {
-            self::apply_config_filter($displayquery, 'coursedisplayselect');
-        } else if ($filters['nextnodefilter'] ==  'coursemoduleid') {
-            self::apply_config_filter($displayquery, 'coursemoduledisplayselect');
-        }
-
-        // This is just for copying and pasting from the paused debugger into a DB GUI
-        $debugquery = block_ajax_marking_debuggable_query($displayquery);
-
-        $nodes = $displayquery->execute();
-
-        $nodes = self::attach_groups_to_nodes($nodes, $filters);
-
-        if (array_key_exists('coursemoduleid', $filters)) {
-            // this does e.g. allowing the forum module to tweak the name depending on forum type
-            $moduleclass->postprocess_nodes_hook($nodes, $filters);
-        }
-        return $nodes;
     }
 
     /**
@@ -1074,6 +1100,8 @@ SQL;
      */
     public static function get_config_nodes($filters) {
 
+        global $CFG;
+
         // The logic is that we need to filter the course modules because some of them will be
         // hidden or the user will not have access to them. Then we m,ay or may not group them by
         // course
@@ -1083,36 +1111,14 @@ SQL;
         // Now apply the filters.
         self::apply_sql_owncourses($configbasequery, 'course_modules.course');
         self::apply_sql_visible($configbasequery, '', true);
-
-        // Now we either want the courses, grouped via DISTINCT, or the whole lot
-        foreach ($filters as $name => $value) {
-
-            if ($name == 'nextnodefilter') {
-                $filterfunctionname = 'apply_'.$value.'_filter';
-                // The new node filter is in the form 'nextnodefilter => 'functionname', rather
-                // than 'filtername' => <rowid> We want to pass the name of the filter in with
-                // an empty value, so we set the value here.
-                $value = false;
-                $operation = 'configdisplay';
-            } else {
-                $filterfunctionname = 'apply_'.$name.'_filter';
-                $operation = 'configwhere';
-            }
-
-            // Find the function. Core ones are part of the factory class, others will be methods of
-            // the module object.
-            // If we are filtering by a specific module, look there first
-            if (method_exists(__CLASS__, $filterfunctionname)) {
-                // config tree needs to have select stuff that doesn't mention sub. Like for the
-                // outer wrappers of the normal query for the unmarked work nodes
-                self::$filterfunctionname($configbasequery, $operation, $value);
-            }
-        }
+        self::apply_filters_to_query($filters, $configbasequery, true);
 
         $configbasequery->add_orderby('name ASC');
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
-        $debugquery = block_ajax_marking_debuggable_query($configbasequery);
+        if ($CFG->debug === DEBUG_DEVELOPER) {
+            $debugquery = block_ajax_marking_debuggable_query($configbasequery);
+        }
 
         $nodes = $configbasequery->execute();
 

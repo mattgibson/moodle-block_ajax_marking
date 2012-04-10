@@ -13,6 +13,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+/**
+ * Javascript for the AJAX Marking block
+ *
+ * @package    block
+ * @subpackage ajax_marking
+ * @copyright  2007 Matt Gibson
+ * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 // Modules that add their own javascript will have already defined this, but here just in case.
 
 if (typeof(M.block_ajax_marking) === 'undefined') {
@@ -36,9 +46,16 @@ M.block_ajax_marking.oncompletefunctionholder = '';
 M.block_ajax_marking.popupholder = '';
 
 /**
- *
+ * URL for getting the nodes details
+ * @type {String}
  */
 M.block_ajax_marking.ajaxnodesurl = M.cfg.wwwroot + '/blocks/ajax_marking/actions/ajax_nodes.php';
+
+/**
+ * URL for getting the count for a specific node
+ * @type {String}
+ */
+M.block_ajax_marking.ajaxcounturl = M.cfg.wwwroot + '/blocks/ajax_marking/actions/ajax_node_count.php';
 
 /**
  * Change to true to see what settings are null (inherited) by having them marked in grey on the
@@ -288,12 +305,21 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      * for the SQL to use in WHERE clauses.
      *
      */
-    get_filters : function () {
+    get_filters : function (includethis) {
 
         var filtername,
             filtervalue,
             nodefilters = [],
+            node;
+
+        // If requesting a set of child nodes, we treat this node as a parent. Otherwise, we want
+        // to get a new count or something for this node, so want to include it's current filters
+        // in a different way.
+        if (includethis) {
             node = this;
+        } else {
+            node = this.parent;
+        }
 
         if (typeof(node.tree.supplementaryreturndata) !== 'undefined') {
             nodefilters.push(this.tree.supplementaryreturndata);
@@ -1064,8 +1090,6 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
      */
     set_group_setting : function (groupid, newsetting) {
 
-        var groupsdetails;
-
         if (typeof(newsetting) === 'undefined') {
             newsetting = null;
         }
@@ -1077,16 +1101,51 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
         var childnode = this.get_child_node_by_filter_id('groupid', groupid);
         var notnullsetting = this.get_setting_to_display('group', groupid);
         if (childnode && notnullsetting === 0) {
-            // Remove from tree if the inherited setting says 'hide'
+
+            // Remove this group node from the tree if the inherited setting says 'hide'
             this.tree.remove_node(childnode.index);
+
         } else if (!childnode &&
                    notnullsetting == 1 &&
                    this.get_current_filter_name() == 'coursemoduleid' &&
                    this.expanded) {
 
+            // There are nodes there currently, so we need to refresh them to add the new one
             this.tree.request_node_data(this);
+        } else if (!this.expanded) {
+
+            // We need to update the count via an AJAX call as we don't know how much of the
+            // currrent count is due to which group
+            this.request_new_count();
+
         }
+    },
+
+    /**
+     * Sends an AJAX request that will ask for a new count to be sent back when groups settings
+     * have changed, but the node is not expanded
+     */
+    request_new_count : function() {
+
+        // Get the current ancestors' filters
+        var nodefilters = this.get_filters(false);
+
+        // Add this particular node's filters
+        var currentfilter = this.get_current_filter_name();
+        var filtervalue = this.get_current_filter_value();
+        nodefilters.push('currentfilter='+currentfilter);
+        nodefilters.push('filtervalue='+filtervalue);
+        // This lets the AJAX success code find the right node to add stuff to
+        nodefilters.push('nodeindex='+this.index);
+        nodefilters = nodefilters.join('&');
+
+        YAHOO.util.Connect.asyncRequest('POST',
+                                        M.block_ajax_marking.ajaxcounturl,
+                                        M.block_ajax_marking.callback,
+                                        nodefilters);
     }
+
+
 
 });
 
@@ -1401,7 +1460,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     request_node_data : function (clickednode) {
 
         // The callback function is the SQL GROUP BY for the next set of nodes, so this is separate
-        var nodefilters = clickednode.get_filters();
+        var nodefilters = clickednode.get_filters(true);
         nodefilters.push('nextnodefilter='+clickednode.get_nextnodefilter());
         // This lets the AJAX success code find the right node to add stuff to
         nodefilters.push('nodeindex='+clickednode.index);
@@ -1909,8 +1968,7 @@ M.block_ajax_marking.treenodeonclick = function (oArgs) {
     var modulejavascript = mbam[node.get_modulename()];
     var popupargs = modulejavascript.pop_up_arguments(node);
 
-    // New way:
-    var nodefilters = node.get_filters();
+    var nodefilters = node.get_filters(true);
     nodefilters.push('node='+node.index);
     popupurl += nodefilters.join('&');
 
