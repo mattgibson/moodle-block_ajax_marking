@@ -252,44 +252,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
-     * When settings are changed on a course node, the child nodes (coursemodules) need to know
-     * about it so that subsequent right-clicks show settings as they currently are, not how the
-     * outdated original data was from when the tree first loaded. The principle is that changing a
-     * course resets all child nodes to the default.
-     *
-     * @param {string} settingtype either display, groupsdisplay or group
-     * @param {int} groupid
-     */
-    update_child_nodes_config_settings : function (settingtype, groupid) {
-
-        // get children
-        var childnodes = this.children,
-            groups;
-
-        // loop
-        for (var i = 0; i < childnodes.length; i++) {
-            // if the child is a node, recurse
-            if (childnodes[i].children.length > 0) {
-                childnodes[i].update_child_nodes_config_settings(settingtype, groupid);
-            }
-            // update node config data
-            switch (settingtype) {
-
-                case 'display':
-                case 'groupsdisplay':
-                    childnodes[i].set_config_setting(settingtype, null);
-                    break;
-
-                case 'group':
-                    childnodes[i].set_group_setting(groupid, null, true);
-                    break;
-
-                default:
-            }
-        }
-    },
-
-    /**
      * Coursemodules will have a modulename sent along with the other data. This gets it.
      *
      * @return {string} name of the module
@@ -368,12 +330,21 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      */
     set_config_setting : function (settingtype, newsetting) {
 
+        // Allows for lazily not passing a value in
+        if (typeof(newsetting) === 'undefined') {
+            newsetting = null;
+        }
+
         this.data.configdata[settingtype] = newsetting;
+        // groupsdisplay will alter the type of nodes we should see next.
+        if (settingtype == 'groupsdisplay') {
+            this.set_nextnodefilter(this.tree.nextnodetype(this));
+        }
 
         // All children now need to be set to 'inherit'
         var childnodes = this.children;
         for (var i = 0; i < childnodes.length; i++) {
-            childnodes[i].set_config_setting(settingtype, null);
+            childnodes[i].set_config_setting(settingtype, null, true);
         }
 
     },
@@ -685,6 +656,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     /**
      * Gets the current setting, or the inherited setting as appropriate so we can show the right
      * thing.
+     *
+     * @param settingtype group, display, groupsdisplay
      */
     get_setting_to_display : function (settingtype, groupid) {
 
@@ -1104,9 +1077,39 @@ M.block_ajax_marking.coursestree_node = function (oData, oParent, expanded) {
  */
 YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tree_node, {
 
-    set_config_setting: function(settingtype, newsetting) {
-        M.block_ajax_marking.coursestree_node.superclass.set_config_setting.call(this, settingtype,
-                                                                                newsetting);
+    set_config_setting: function(settingtype, newsetting, childnode) {
+
+        M.block_ajax_marking.coursestree_node.superclass.set_config_setting.call(this,
+                                                                                 settingtype,
+                                                                                 newsetting,
+                                                                                 childnode);
+
+        var currentfiltername = this.get_current_filter_name();
+
+
+        // Remove this node, but don't bother with the childnodes as it will just add CPU cycles
+        // seeing as the removal of the parent will deal with them
+        if (!childnode &&
+            settingtype == 'display' &&
+            newsetting === 0) {
+
+            // Node set to hide. Remove it from the tree.
+            // TODO may also be an issue if sitedefault is set to hide - null here ought to mean 'hide'
+            this.tree.remove_node(this);
+
+            // this should only be for the contextmenu - dropdown can't do hide.
+            if (this.tree.tab && this.tab.contextmenu) {
+                this.tree.tab.contextmenu.hide();
+            }
+
+        } else if (this.expanded &&
+                   settingtype == 'groupsdisplay' &&
+                   currentfiltername == 'coursemoduleid') {
+
+            // Need to reload with groups icons or non-groups icons as appropriate
+            this.tree.request_node_data(this);
+
+        }
     },
 
     /**
@@ -1123,7 +1126,8 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
         }
 
         // Superclass will store the value and trigger the process in child nodes
-        M.block_ajax_marking.coursestree_node.superclass.set_group_setting.call(this, groupid,
+        M.block_ajax_marking.coursestree_node.superclass.set_group_setting.call(this,
+                                                                                groupid,
                                                                                 newsetting);
         // get child node for this group if there is one
         var groupchildnode = this.get_child_node_by_filter_id('groupid', groupid);
@@ -2283,16 +2287,6 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
         clickednode = currenttab.displaywidget.getNodeByElement(target);
     }
 
-    if (settingtype == 'display' && newsetting === 0) {
-        // Node set to hide. Remove it from the tree.
-        // TODO may also be an issue if sitedefault is set to hide - null here ought to mean 'hide'
-        M.block_ajax_marking.remove_node_from_current_tab(clickednode);
-
-        // this should only be for the contextmenu - dropdown can't do hide.
-        menu.hide();
-        return;
-    }
-
     var groupid = null;
     if (settingtype === 'group') {
         groupid = clickeditem.value.groupid;
@@ -2320,12 +2314,12 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
             clickeditem.cfg.setProperty("classname", 'notinherited');
         }
     }
-
     // Update the menu item display value so that if it is clicked again, it will know
     // not to send the same ajax request and will toggle properly
     clickeditem.value.display = newsetting;
+
     // We also need to update the data held in the tree node, so that future requests are not
-    // all the same as this one
+    // all the same as this one. The tree will take care of presentation changes.
     if (settingtype === 'group') {
         clickednode.set_group_setting(groupid, newsetting);
     } else {
@@ -2334,7 +2328,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
 
     // Update any child nodes to be 'inherited' now that this will be the way the settings
     // are on the server
-    clickednode.update_child_nodes_config_settings(settingtype, groupid);
+//    clickednode.update_child_nodes_config_settings(settingtype, groupid);
 
 
 };
@@ -2469,7 +2463,7 @@ M.block_ajax_marking.config_icon_success_handler = function (ajaxresponsearray) 
 
     // Update any child nodes to be 'inherited' now that this will be the way the settings
     // are on the server
-    clickednode.update_child_nodes_config_settings(settingtype, groupid);
+//    clickednode.update_child_nodes_config_settings(settingtype, groupid);
 };
 
 /**
@@ -2619,6 +2613,7 @@ M.block_ajax_marking.initialise = function () {
         M.block_ajax_marking.coursestab_tree = coursestab.displaywidget;
         coursestab.displaywidget.render();
         coursestab.displaywidget.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
+        coursestab.displaywidget.tab = coursestab; // reference to allow links back to tab from tree
 
         var cohortstabconfig = {
             'label' : 'Cohorts',
