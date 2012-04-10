@@ -619,6 +619,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         // Tell the parent to do the same if it's not root and there has been a change
         if (haschanged && !parentnode.isRoot()) {
             parentnode.recalculate_counts();
+        } else if (haschanged && parentnode.isRoot()) {
+            this.tree.update_total_count();
         }
 
     },
@@ -1449,12 +1451,12 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         parentnode.loadComplete();
         // update the counts on all the nodes in case extra work has just appeared
         if (parentnode.recalculate_counts) {
-            parentnode.recalculate_counts()
+            parentnode.recalculate_counts(); // will update total if necessary
+        } else { // root node
+            // the main tree will need the counts updated, but not the config tree
+            //this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+            this.update_total_count();
         }
-
-        // the main tree will need the counts updated, but not the config tree
-        //this.update_parent_node(M.block_ajax_marking.parentnodeholder);
-        this.update_total_count();
     },
 
     /**
@@ -1500,10 +1502,11 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             // The initial build doesn't set oncompletefunctionholder for the root node, so
             // we do it manually
             this.getRoot().loadComplete();
+            // the main tree will need the counts updated, but not the config tree
+            //this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+            this.update_total_count();
         }
-        // the main tree will need the counts updated, but not the config tree
-        //this.update_parent_node(M.block_ajax_marking.parentnodeholder);
-        this.update_total_count();
+
     },
 
     /**
@@ -1569,7 +1572,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         this.hide_context_menu_before_node_removal(nodetoremove);
         this.removeNode(nodetoremove, true); // don't refresh yet because the counts will be wrong
         parentnode.recalculate_counts();
-        this.update_total_count();
     },
 
     /**
@@ -1649,13 +1651,22 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         var childnode,
             childnodedata,
             node = this.getNodeByIndex(nodeindex),
-            nextnodefilter = node.get_nextnodefilter();
+            nextnodefilter = node.get_nextnodefilter(),
+            recent = 0,
+            medium = 0,
+            overdue = 0,
+            total = 0;
 
         for (var i = 0; i < arrayofnodes.length; i++) {
 
             childnodedata = arrayofnodes[i];
             childnode = node.get_child_node_by_filter_id(nextnodefilter,
                                                          childnodedata[nextnodefilter]);
+
+            if (parseInt(childnode.itemcount) === 0) {
+                this.remove_node(childnode);
+                continue;
+            }
 
             childnode.set_count(childnodedata.recentcount, 'recent');
             childnode.set_count(childnodedata.mediumcount, 'medium');
@@ -1664,9 +1675,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         }
 
         node.recalculate_counts();
-        this.update_total_count();
-
-
     }
 
 });
@@ -1952,7 +1960,6 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
      */
     notify_refresh_needed : function () {
         M.block_ajax_marking.coursestab_tree.set_needs_refresh(true);
-        // M.block_ajax_marking.cohorts_tree.set_refresh_needed(true);
     },
 
     /**
