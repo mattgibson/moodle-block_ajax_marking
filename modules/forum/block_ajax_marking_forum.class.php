@@ -565,6 +565,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                         'column'   => 'id'), true
                 );
 
+                $query->add_orderby("timestamp ASC");
+
                 break;
         }
 

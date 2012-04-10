@@ -271,6 +271,8 @@ abstract class block_ajax_marking_module_base {
                     $node->name = fullname($node);
                     unset($node->firstname, $node->lastname);
 
+                    $node->tooltip = userdate($node->tooltip);
+
                     break;
 
                 default:

@@ -471,14 +471,21 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                 html += M.block_ajax_marking.get_dynamic_icon_string(icon);
             }
 
-            html += '<span class="nodecount" title="'+titlearray.join(', ')+'">'+
-                    '<strong>(</strong>';
+            html += '<div class="nodelabelwrapper">';
 
-            html += countarray.join('|');
+            html +=     '<div class="nodecount" title="'+titlearray.join(', ')+'">'+
+                            '<strong>(</strong>';
+            html +=             countarray.join('|');
+            html +=         '<strong>)</strong>'+
+                        '</div> ';
 
-            html += '<strong>)</strong>'+
-                   '</span> '+
-                   this.get_displayname();
+            html +=     '<div class="nodelabel" title="'+this.get_tooltip()+'">'+
+                            this.get_displayname();
+            html +=     '</div>';
+            html +=     '<div class="block_ajax_marking_spacer">';
+            html +=     '</div>';
+
+            html += '</div>'; // end of wrapper
 
             return html;
         } else {
@@ -579,7 +586,20 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
        // var icon = M.block_ajax_marking.get_dynamic_icon(iconstyle, 'newalt text');
 
         return iconstyle;
+    },
+
+    /**
+     * Returns the long name of this node
+     */
+    get_tooltip : function() {
+
+        var tooltipexists = typeof(this.data.displaydata.tooltip) !== 'undefined';
+        var tooltip = (tooltipexists) ? this.data.displaydata.tooltip : '';
+
+        return this.data.displaydata.name+': '+tooltip;
     }
+
+
 
 });
 
@@ -662,11 +682,20 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             groupsdisplaysetting,
             groupscount = this.get_groups_count();
 
-        sb[sb.length] = '<table class="ygtvtable">'; //new
+        sb[sb.length] = '<table class="ygtvtable configtreenode">'; //new
         sb[sb.length] = '<tr >';
-        sb[sb.length] = '<td class="ygtvcell" colspan="5">';
+        sb[sb.length] = '<td class="ygtvcell" colspan="8">';
+        var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
 
+
+        if (icon) {
+            icon.className += ' nodeicon';
+            sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
+        }
+
+        sb[sb.length] = '<div class="nodelabel" title="'+this.get_tooltip()+'">';
         sb[sb.length] = this.html;
+        sb[sb.length] = '</div>';
 
         sb[sb.length] = '</td>';
         sb[sb.length] = '</tr>';
@@ -681,7 +710,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         displaysetting = this.get_setting_to_display('display');
         var displaytype = displaysetting ? 'hide' : 'show'; // icons are named after their actions
         var displayicon =  M.block_ajax_marking.get_dynamic_icon(displaytype);
-        displayicon.id = '';
+        delete displayicon.id;
         displayicon = M.block_ajax_marking.get_dynamic_icon_string(displayicon);
 
         sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ';
@@ -697,7 +726,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
             var groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups'; // icons are named after their actions
             var groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
-            groupsicon.id = '';
+            delete groupsicon.id;
             groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
 
         }
@@ -718,7 +747,11 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         sb[sb.length] = '</div></td>';
 
-        // Spacer cell
+        // Spacer cell - fixed width means we need a few
+        sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
+        sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
+        sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
+        sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
         sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
 
         sb[sb.length] = '</tr>';
@@ -841,7 +874,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         var buttonconfig = {
             type : "menu",
             label : nodecontents,
-            title : 'Show/hide individual groups',
+            title : M.str.block_ajax_marking.choosegroups,
             name : 'groupsbutton-'+node.index,
             menu : node.renderedmenu,
             lazyload: false, // can't add events otherwise
@@ -1154,7 +1187,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
             // Make the display data accessible to the node creation code
             nodedata.html = nodedata.displaydata.name;
-            nodedata.title = nodedata.displaydata.tooltip;
 
             newnode = new this.nodetype(nodedata, M.block_ajax_marking.parentnodeholder, false);
             newnode.set_count(newnode.get_count()); // needed to convert to int
@@ -1252,52 +1284,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
                                         M.block_ajax_marking.callback,
                                         nodefilters);
     },
-
-    /**
-     * function to update the parent node when anything about its children changes. It
-     * recalculates the total count and displays it, then recurses to the next node up until it
-     * hits root, when it updates the total count and stops
-     *
-     * @param parentnodetoupdate the node of the treeview object to alter the count of
-     * @return void
-     */
-//    update_parent_node : function (parentnodetoupdate) {
-//
-//        // Sum the counts of all child nodes to get a total
-//        var nodechildrenlength = parentnodetoupdate.children.length;
-//        var nodecount = 0;
-//        for (var i = 0; i < nodechildrenlength; i++) {
-//            // stored as a string
-//            nodecount += parentnodetoupdate.children[i].get_count();
-//        }
-//
-//        // If root, we want to stop recursing, after updating the count
-//        if (parentnodetoupdate.isRoot()) {
-//
-//            //this.render();
-//            // update the tree's HTML after child nodes are added
-//            //parentnodetoupdate.loadComplete();
-//
-//            this.totalcount = nodecount;
-//            document.getElementById('count').innerHTML = nodecount.toString();
-//
-//        } else { // not the root, so update, then recurse
-//
-//            // get this before the node is (possibly) destroyed:
-//            var nextnodeup = parentnodetoupdate.parent;
-//            // Dump any nodes with no children, but don't dump the root node - we want to be able to
-//            // refresh it
-//            if (nodechildrenlength === 0) {
-//                this.removeNode(parentnodetoupdate, true);
-//            } else { // Update the node with its new total
-//
-//                parentnodetoupdate.set_count(nodecount);
-//
-//            }
-//
-//            this.update_parent_node(nextnodeup);
-//        }
-//    },
 
     /**
      * Recalculates the total marking count by totalling the node counts of the tree
@@ -2210,7 +2196,7 @@ M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
         newicon.alt = alttext;
     }
 
-    newicon.id = ''; // avoid collisions
+    delete newicon.id; // avoid collisions
     return newicon;
 
 };

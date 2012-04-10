@@ -41,11 +41,11 @@ M.block_ajax_marking.quiz = (function() {
         /**
          * Handles any module specific overrides for the trees
          */
-        nextnodetype : function(defaultnexttype) {
+        nextnodetype : function(currenttype) {
 
             userchoosesquestions = true;
 
-            switch (defaultnexttype) {
+            switch (currenttype) {
 
                 case 'coursemoduleid':
                     if (userchoosesquestions === true) {

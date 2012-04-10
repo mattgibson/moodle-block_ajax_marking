@@ -39,11 +39,15 @@ M.block_ajax_marking.forum = (function() {
         /**
          * Handles any module specific overrides for the trees
          */
-        nextnodetype : function(defaultnexttype) {
+        nextnodetype : function(currenttype) {
 
-            switch (defaultnexttype) {
+            switch (currenttype) {
 
                 case 'coursemoduleid':
+                    return 'discussionid';
+                    break;
+
+                case 'groupid':
                     return 'discussionid';
                     break;
 
@@ -55,8 +59,6 @@ M.block_ajax_marking.forum = (function() {
                     return null; // should never happen
 
             }
-
         }
-
     };
 })();

@@ -188,19 +188,23 @@ class block_ajax_marking_nodes_factory {
                                              'alias' => 'itemcount', // COUNT is a reserved word
                                              'function' => 'COUNT'));
 
-        // TO get the three times for recent, medium and overdue pieces of work, we do three
+        // To get the three times for recent, medium and overdue pieces of work, we do three
         // count operations here
         $fourdaysago = time() - BLOCK_AJAX_MARKING_FOUR_DAYS;
         $tendaysago = time() - BLOCK_AJAX_MARKING_TEN_DAYS;
-        $countwrapperquery->add_select(array('column'   => "CASE WHEN (moduleunion.timestamp > {$fourdaysago}) THEN 1 ELSE 0 END",
+        $recentcolumn = "CASE WHEN (moduleunion.timestamp > {$fourdaysago}) THEN 1 ELSE 0 END";
+        $countwrapperquery->add_select(array('column'   => $recentcolumn,
                                             'alias'    => 'recentcount',
                                             // COUNT is a reserved word
                                             'function' => 'SUM'));
-        $countwrapperquery->add_select(array('column'   => "CASE WHEN (moduleunion.timestamp < {$fourdaysago} AND moduleunion.timestamp > {$tendaysago}) THEN 1 ELSE 0 END",
+        $mediumcolumn = "CASE WHEN (moduleunion.timestamp < {$fourdaysago} AND ".
+                        "moduleunion.timestamp > {$tendaysago}) THEN 1 ELSE 0 END";
+        $countwrapperquery->add_select(array('column'   => $mediumcolumn,
                                             'alias'    => 'mediumcount',
                                             // COUNT is a reserved word
                                             'function' => 'SUM'));
-        $countwrapperquery->add_select(array('column'   => "CASE WHEN moduleunion.timestamp < $tendaysago THEN 1 ELSE 0 END",
+        $overduecolumn = "CASE WHEN moduleunion.timestamp < $tendaysago THEN 1 ELSE 0 END";
+        $countwrapperquery->add_select(array('column'   => $overduecolumn,
                                             'alias'    => 'overduecount',
                                             // COUNT is a reserved word
                                             'function' => 'SUM'));
@@ -264,6 +268,9 @@ class block_ajax_marking_nodes_factory {
                 'alias'    => 'countwrapperquery',
                 'subquery' => true));
 
+        // Now that the query object has been constructed, we want to add all the filters that will
+        // limit the nodes to just the stuff we want (ignore hidden things, ignore things in other
+        // parts of the tree) and groups the unmarked work by whatever it needs to be grouped by
         foreach ($filters as $name => $value) {
 
             if ($name == 'nextnodefilter') {
@@ -305,6 +312,7 @@ class block_ajax_marking_nodes_factory {
 
         // We want the oldest work at the top
         // TODO make this a user option on the UI end
+        // TODO put sensible defaults into the functions
 //        if ($currentfilter == 'userid') {
 //            $displayquery->add_orderby('timestamp DESC');
 //        } else {
@@ -387,6 +395,9 @@ class block_ajax_marking_nodes_factory {
                     'table'    => 'course',
                     'column'   => 'fullname',
                     'alias'    => 'tooltip'));
+
+                $query->add_orderby('course.shortname ASC');
+
                 break;
 
             case 'configdisplay':
@@ -432,6 +443,9 @@ class block_ajax_marking_nodes_factory {
                     'table'    => 'settings',
                     'column'   => 'id',
                     'alias'    => 'settingsid'));
+
+                $query->add_orderby('course.shortname ASC');
+
                 break;
 
         }
@@ -513,6 +527,9 @@ class block_ajax_marking_nodes_factory {
                                             get_string('notingroupdescription',
                                                        'block_ajax_marking')),
                         'alias'    => 'tooltip'));
+
+                $query->add_orderby("COALESCE(groups.name, '".get_string('notingroup', 'block_ajax_marking')."') ASC");
+
                 break;
 
         }
@@ -586,6 +603,10 @@ class block_ajax_marking_nodes_factory {
                     array(
                         'table'    => 'cohort',
                         'column'   => 'description'));
+
+                $query->add_orderby('cohort.name ASC');
+
+
                 break;
         }
 
@@ -638,6 +659,8 @@ class block_ajax_marking_nodes_factory {
                 $query->add_select(array(
                         'table'    => 'countwrapperquery',
                         'column'   => 'modulename'));
+
+                // Deliberate fall-through
 
             case 'configdisplay':
 
@@ -695,6 +718,11 @@ class block_ajax_marking_nodes_factory {
                     'table'    => 'settings',
                     'column'   => 'id',
                     'alias'    => 'settingsid'));
+
+                // Same order as they appear on the course pages
+                //$query->add_orderby('course_modules.section ASC, course_modules.id ASC');
+                // TODO get them in order of module type first?
+                $query->add_orderby('COALESCE('.implode(',', $namecoalesce).') ASC');
 
                 break;
 
