@@ -87,10 +87,15 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
     /**
      * Getter for the count of unmarked items for this node
+     *
+     * @param type recent, medium, overdue, or null to get the total
      */
-    get_count : function () {
-        if (typeof this.data.displaydata.itemcount !== 'undefined') {
-            return this.data.displaydata.itemcount;
+    get_count : function (type) {
+
+        if (type && typeof this.data.displaydata[type+'count'] !== 'undefined') {
+            return parseInt(this.data.displaydata[type+'count']);
+        } else if (typeof this.data.displaydata.itemcount !== 'undefined') {
+            return parseInt(this.data.displaydata.itemcount);
         } else {
             return false;
         }
@@ -575,6 +580,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             recentcount = 0,
             mediumcount = 0,
             overduecount = 0,
+            itemcount = 0,
             numberofchildren = this.children.length;
 
         // loop over children, counting to get new totals
@@ -589,18 +595,29 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             }
 
             // Add those totals to the config for this node
-            this.set_count(recentcount, 'recent');
-            this.set_count(mediumcount, 'medium');
-            this.set_count(overduecount, 'overdue');
-            this.set_count(recentcount+mediumcount+overduecount);
+            var haschanged = false;
+            if (recentcount !== this.get_count('recent')) {
+                haschanged = true;
+                this.set_count(recentcount, 'recent');
+            }
+            if (mediumcount !== this.get_count('medium')) {
+                haschanged = true;
+                this.set_count(mediumcount, 'medium');
+            }
+            if (overduecount !== this.get_count('overdue')) {
+                haschanged = true;
+                this.set_count(overduecount, 'overdue');
+            }
+            var itemcount = recentcount+mediumcount+overduecount;
+            this.set_count(itemcount);
 
         } else {
             this.tree.hide_context_menu_before_node_removal(this);
             this.tree.removeNode(this, true);
         }
 
-        // Tell the parent to do the same if it's not root
-        if (!parentnode.isRoot()) {
+        // Tell the parent to do the same if it's not root and there has been a change
+        if (haschanged && !parentnode.isRoot()) {
             parentnode.recalculate_counts();
         }
 
