@@ -643,7 +643,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             if (this.children[i].get_current_filter_name() !== filtername) {
                 continue;
             }
-            var currentfiltervalue = this.children[i].get_current_filter_value();
+            var currentfiltervalue = parseInt(this.children[i].get_current_filter_value());
             if (currentfiltervalue !== filtervalue) {
                 continue;
             }
@@ -1136,8 +1136,14 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
 
         if (this.expanded && groupchildnode && actualsetting === 0) {
 
+            // Might be that the group is being hidden via the context menu on a group child node
+            var currenttab = M.block_ajax_marking.get_current_tab();
+            if (currenttab.contextmenu.clickednode === groupchildnode) {
+                currenttab.contextmenu.hide();
+            }
             // Remove this group node from the tree if the inherited setting says 'hide'
             this.tree.remove_node(groupchildnode.index);
+
 
         } else if (this.expanded &&
                    !groupchildnode &&
@@ -1264,7 +1270,8 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
         // only applies to courses and coursemodules
         currentfilter = clickednode.get_current_filter_name();
         if (currentfilter !== 'courseid' &&
-            currentfilter !== 'coursemoduleid') {
+            currentfilter !== 'coursemoduleid' &&
+            currentfilter !== 'groupid') {
 
             this.cancel();
             return false;
@@ -1272,10 +1279,10 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
 
         this.make_setting_menuitem('display', clickednode);
 
-
         // If there are no groups, no need to show the groups settings. Also if there are no
-        // child nodes e.g. for workshop.
-        if (clickednode.isDynamic() && groups.length !== 0) {
+        // child nodes e.g. for workshop, or if this is a group node itself
+        if (currentfilter !== 'groupid' &&
+            clickednode.isDynamic() && groups.length !== 0) {
 
             this.make_setting_menuitem('groupsdisplay', clickednode);
 
@@ -1310,6 +1317,8 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
             checked,
             currentsetting,
             defaultsetting;
+
+
 
         switch (settingname) {
 
@@ -1347,6 +1356,10 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
 
         menuitem = new YAHOO.widget.ContextMenuItem(title, menuitem);
         menuitem = this.addItem(menuitem);
+
+        if (clickednode.get_current_filter_name() === 'groupid') {
+            clickednode = clickednode.parent;
+        }
 
         if (settingname !== 'groups') {
             checked = false;
@@ -2282,6 +2295,11 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
     var currenttab = M.block_ajax_marking.get_current_tab();
     if (currenttab.contextmenu) {
         clickednode = currenttab.contextmenu.clickednode;
+        // we deal with groups by dealing with the parent node. There's only one operation (hide),
+        // so as long as we hide the contextmenu too, it's fine.
+        if (clickednode.get_current_filter_name() === 'groupid') {
+            clickednode = clickednode.parent;
+        }
     } else {
         target = menu.element.parentElement; // config dropdown
         clickednode = currenttab.displaywidget.getNodeByElement(target);
@@ -2289,7 +2307,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
 
     var groupid = null;
     if (settingtype === 'group') {
-        groupid = clickeditem.value.groupid;
+        groupid = ajaxresponsearray.configsave.groupid;
     }
 
     // Update the menu item so the user can see the change
@@ -2325,11 +2343,6 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
     } else {
         clickednode.set_config_setting(settingtype, newsetting);
     }
-
-    // Update any child nodes to be 'inherited' now that this will be the way the settings
-    // are on the server
-//    clickednode.update_child_nodes_config_settings(settingtype, groupid);
-
 
 };
 
@@ -2734,13 +2747,13 @@ M.block_ajax_marking.contextmenu_unhighlight = function () {
 M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, obj) {
 
     var clickednode,
-        target,
+        settingtorequest = 1,
+        groupid = null,
         tree = M.block_ajax_marking.get_current_tab().displaywidget;
 
+    // Makes it easier to find the menu item later when the AJAX stuff comes back
     M.block_ajax_marking.clickedmenuitem = this;
 
-    // we want to set the class so that we can indicate whether the checked (show) status is
-    // directly set, or whether it is inherited
     var settingtype = obj.settingtype;
 
     if (typeof(this.parent.contextEventTarget) !== 'undefined') {
@@ -2761,21 +2774,27 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
     }
 
     var coursenodeclicked = false;
-    if (clickednode.get_current_filter_name() == 'courseid') {
+    var currentfiltername = clickednode.get_current_filter_name();
+    if (currentfiltername === 'courseid') {
         coursenodeclicked = true;
+    }
+    // For a group, we are really dealing with the parent node
+    if (currentfiltername === 'groupid') {
+        groupid = clickednode.get_current_filter_value();
+        clickednode = clickednode.parent;
+        settingtype = 'group';
     }
 
     // What do we have as the current setting?
-    var groupid = null;
-    if (settingtype === 'group') {
+    if (settingtype === 'group' && groupid === null) {
         // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
         // This means we want to assume that it needs to be the opposite of the default if there is
         // no current setting.
         groupid = this.value.groupid;
     }
+    // Work out what we should be requesting based on parent node, inheritance, etc.
     var currentsetting = clickednode.get_config_setting(settingtype, groupid);
     var defaultsetting = clickednode.get_default_setting(settingtype, groupid);
-    var settingtorequest = 1;
     if (currentsetting === null) {
         settingtorequest = defaultsetting ? 0 : 1;
     } else {
