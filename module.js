@@ -58,6 +58,12 @@ M.block_ajax_marking.ajaxnodesurl = M.cfg.wwwroot + '/blocks/ajax_marking/action
 M.block_ajax_marking.ajaxcounturl = M.cfg.wwwroot + '/blocks/ajax_marking/actions/ajax_node_count.php';
 
 /**
+ * URL for getting the nodes details
+ * @type {String}
+ */
+M.block_ajax_marking.childnodecountsurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/ajax_child_node_counts.php';
+
+/**
  * Change to true to see what settings are null (inherited) by having them marked in grey on the
  * context menu
  */
@@ -270,7 +276,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                     break;
 
                 case 'group':
-                    childnodes[i].set_group_setting(groupid);
+                    childnodes[i].set_group_setting(groupid, null, true);
                     break;
 
                 default:
@@ -391,7 +397,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
             var childnodes = this.children;
             for (var i = 0; i < childnodes.length; i++) {
-                childnodes[i].set_group_setting(groupid, null);
+                childnodes[i].set_group_setting(groupid, null, true);
             }
         }
 
@@ -647,8 +653,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             if (this.children[i].get_current_filter_name() !== filtername) {
                 continue;
             }
-            var _current_filter_value = this.children[i].get_current_filter_value();
-            if (_current_filter_value !== filtervalue) {
+            var currentfiltervalue = this.children[i].get_current_filter_value();
+            if (currentfiltervalue !== filtervalue) {
                 continue;
             }
             return this.children[i];
@@ -673,6 +679,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         }
         return setting;
     }
+
+
 
 });
 
@@ -1087,8 +1095,9 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
      *
      * @param groupid
      * @param newsetting
+     * @param ischildnode was the original call to set this on a parent node? true if so.
      */
-    set_group_setting : function (groupid, newsetting) {
+    set_group_setting : function (groupid, newsetting, ischildnode) {
 
         if (typeof(newsetting) === 'undefined') {
             newsetting = null;
@@ -1096,27 +1105,40 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
 
         // Superclass will store the value and trigger the process in child nodes
         M.block_ajax_marking.coursestree_node.superclass.set_group_setting.call(this, groupid,
-                                                                               newsetting);
-        // get childnode for this group if there is one
-        var childnode = this.get_child_node_by_filter_id('groupid', groupid);
-        var notnullsetting = this.get_setting_to_display('group', groupid);
-        if (childnode && notnullsetting === 0) {
+                                                                                newsetting);
+        // get child node for this group if there is one
+        var groupchildnode = this.get_child_node_by_filter_id('groupid', groupid);
+        var actualsetting = this.get_setting_to_display('group', groupid);
+        var currentfiltername = this.get_current_filter_name();
+
+        if (this.expanded && groupchildnode && actualsetting === 0) {
 
             // Remove this group node from the tree if the inherited setting says 'hide'
-            this.tree.remove_node(childnode.index);
+            this.tree.remove_node(groupchildnode.index);
 
-        } else if (!childnode &&
-                   notnullsetting == 1 &&
-                   this.get_current_filter_name() == 'coursemoduleid' &&
-                   this.expanded) {
+        } else if (this.expanded &&
+                   !groupchildnode &&
+                   actualsetting == 1 &&
+                   currentfiltername == 'coursemoduleid') {
 
             // There are nodes there currently, so we need to refresh them to add the new one
             this.tree.request_node_data(this);
-        } else if (!this.expanded) {
+
+        } else if (!this.expanded &&
+                   !ischildnode &&
+                    (currentfiltername == 'coursemoduleid' ||
+                     currentfiltername == 'courseid')) {
 
             // We need to update the count via an AJAX call as we don't know how much of the
-            // currrent count is due to which group
+            // current count is due to which group
             this.request_new_count();
+
+        } else if (this.expanded &&
+                   !ischildnode &&
+                   currentfiltername == 'courseid') {
+
+            // Need to get all child counts in one go to make it faster for client and server
+            this.request_new_child_counts();
 
         }
     },
@@ -1141,6 +1163,23 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
 
         YAHOO.util.Connect.asyncRequest('POST',
                                         M.block_ajax_marking.ajaxcounturl,
+                                        M.block_ajax_marking.callback,
+                                        nodefilters);
+    },
+
+    /**
+     * Gets new counts for all child nodes so that when a group is hidden, we don't need to redraw.
+     */
+    request_new_child_counts : function () {
+
+        var nodefilters = this.get_filters(true);
+        nodefilters.push('nextnodefilter='+this.get_nextnodefilter());
+        // This lets the AJAX success code find the right node to add stuff to
+        nodefilters.push('nodeindex='+this.index);
+        nodefilters = nodefilters.join('&');
+
+        YAHOO.util.Connect.asyncRequest('POST',
+                                        M.block_ajax_marking.childnodecountsurl,
                                         M.block_ajax_marking.callback,
                                         nodefilters);
     }
@@ -1579,6 +1618,38 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
         node.parent.recalculate_counts();
         node.tree.update_total_count();
+    },
+
+    /**
+     * If all childnodes need the counts updated because grouyps settings have changed, this is
+     * called in order to do it
+     *
+     * @param arrayofnodes
+     * @param nodeindex
+     */
+    update_child_node_counts : function(arrayofnodes, nodeindex) {
+
+        var childnode,
+            childnodedata,
+            node = this.getNodeByIndex(nodeindex),
+            nextnodefilter = node.get_nextnodefilter();
+
+        for (var i = 0; i < arrayofnodes.length; i++) {
+
+            childnodedata = arrayofnodes[i];
+            childnode = node.get_child_node_by_filter_id(nextnodefilter,
+                                                         childnodedata[nextnodefilter]);
+
+            childnode.set_count(childnodedata.recentcount, 'recent');
+            childnode.set_count(childnodedata.mediumcount, 'medium');
+            childnode.set_count(childnodedata.overduecount, 'overdue');
+            childnode.set_count(childnodedata.itemcount);
+        }
+
+        node.recalculate_counts();
+        this.update_total_count();
+
+
     }
 
 });
@@ -2134,6 +2205,9 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
 
         } else if (typeof(ajaxresponsearray['counts']) !== 'undefined') {
             currenttab.displaywidget.update_node_count(ajaxresponsearray.counts, index);
+        } else if (typeof(ajaxresponsearray['childnodecounts']) !== 'undefined') {
+            currenttab.displaywidget.update_child_node_counts(ajaxresponsearray.childnodecounts,
+                                                              index);
         } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
             currenttab.displaywidget.build_nodes(ajaxresponsearray.nodes, index);
         } else if (typeof(ajaxresponsearray['configsave']) !== 'undefined') {
