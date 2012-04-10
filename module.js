@@ -1576,6 +1576,9 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         node.set_count(newcounts.mediumcount, 'medium');
         node.set_count(newcounts.overduecount, 'overdue');
         node.set_count(newcounts.itemcount);
+
+        node.parent.recalculate_counts();
+        node.tree.update_total_count();
     }
 
 });
