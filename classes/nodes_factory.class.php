@@ -151,11 +151,7 @@ class block_ajax_marking_nodes_factory {
 
         // Adds the config settings if there are any, so that we
         // know what the current settings are for the context menu
-        if ($filters['nextnodefilter'] ==  'courseid') {
-            self::apply_config_filter($displayquery, 'coursedisplayselect');
-        } else if ($filters['nextnodefilter'] ==  'coursemoduleid') {
-            self::apply_config_filter($displayquery, 'coursemoduledisplayselect');
-        }
+        self::apply_config_filter($displayquery, $filters['nextnodefilter']);
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
         if ($CFG->debug === DEBUG_DEVELOPER) {
@@ -166,7 +162,7 @@ class block_ajax_marking_nodes_factory {
 
         $nodes = self::attach_groups_to_nodes($nodes, $filters);
 
-        if (array_key_exists('coursemoduleid', $filters)) {
+        if ($havecoursemodulefilter) {
             // This e.g. allows the forum module to tweak the name depending on forum type
             $moduleclass->postprocess_nodes_hook($nodes, $filters);
         }
@@ -823,14 +819,14 @@ SQL;
     private static function apply_sql_display_settings($query) {
 
         // TODO are these joins in use?
-        $query->add_from(array('table' => 'block_ajax_marking',
-                               'join' => 'LEFT JOIN',
+        $query->add_from(array('join' => 'LEFT JOIN',
+                               'table' => 'block_ajax_marking',
                                'on' => "cmconfig.tablename = 'course_modules'
                                         AND cmconfig.instanceid = moduleunion.coursemoduleid",
                                'alias' => 'cmconfig' ));
 
-        $query->add_from(array('table' => 'block_ajax_marking',
-                               'join' => 'LEFT JOIN',
+        $query->add_from(array('join' => 'LEFT JOIN',
+                               'table' => 'block_ajax_marking',
                                'on' => "courseconfig.tablename = 'course'
                                        AND courseconfig.instanceid = moduleunion.course",
                                'alias' => 'courseconfig' ));
@@ -1242,70 +1238,32 @@ SQL;
      * adjusted based on existing values.
      *
      * @param block_ajax_marking_query_base $query
-     * @param $operation
+     * @param string $nextnodefilter
      * @return void
      */
-    private static function apply_config_filter(block_ajax_marking_query_base $query, $operation) {
+    private static function apply_config_filter(block_ajax_marking_query_base $query,
+                                                $nextnodefilter = '') {
 
-        switch ($operation) {
+        if (!$nextnodefilter) {
+            return;
+        }
+        $nodesthatneedconfigsettings = array('courseid',
+                                             'coursemoduleid');
+        if (!in_array($nextnodefilter, $nodesthatneedconfigsettings)) {
+            return;
+        }
 
-            case 'where':
-                break;
+        // The inner query joins to the config tables already for the WHERE clauses, so we
+        // make use of them to get the settings for those nodes that are not filtered out
+        $countwrapper = $query->get_subquery('countwrapperquery');
 
-            case 'countselect':
-                break;
-
-            case 'configselect':
-
-                // Join to config tables so we can have the settings sent along with the nodes
-                // when relevant We need to join to the correct table: course or course_modules
-                $table = '';
-                if ($query->has_join_table('course_modules')) {
-                    $table = 'course_modules';
-                } else if ($query->has_join_table('course')) {
-                    $table = 'course';
-                }
-                if (!$table) {
-                    return;
-                }
-
-                $query->add_from(array(
-                                     'join' => 'LEFT JOIN',
-                                     'table' => 'block_ajax_marking',
-                                     'alias' => 'config',
-                                     'on' => "config.instanceid = {$table}.id AND
-                                              config.tablename = '{$table}'"
-                                 ));
-
-                // Get display setting
-                $query->add_select(array(
-                                       'table' =>'config',
-                                       'column' => 'display'
-                                   ));
-                $query->add_select(array(
-                                       'table' => 'config',
-                                       'column' => 'groupsdisplay'
-                                   ));
-
-                // Get groups display setting
-
-                // Get JSON of current groups settings?
-                // - what groups could have settings
-                // - what groups actually have settings
-                break;
+        switch ($nextnodefilter) {
 
             // this is for the ordinary nodes. We need to work out what to request for the next node
             // so groupsdisplay has to be sent through. Also for the config context menu to work.
             // COALESCE is no good here as we need the actual settings, so we work out that stuff
             // in JavaScript
-            case 'coursedisplayselect':
-
-                $defaultdisplay = 1;
-                $defaultgroupsdisplay = 0;
-
-                // The inner query joins to the config tables already for the WHERE clauses, so we
-                // make use of them to get the settings for those nodes that are not filtered out
-                $countwrapper = $query->get_subquery('countwrapperquery');
+            case 'courseid':
 
                 $countwrapper->add_select(array(
                                          'table' => 'courseconfig',
@@ -1313,18 +1271,9 @@ SQL;
                 $countwrapper->add_select(array(
                                          'table' => 'courseconfig',
                                          'column' => 'groupsdisplay'));
-
-                // The outer query (we need one because we have to do a join between the numeric
-                // fields that can be fed into a GROUP BY and the text fields that we display) pulls
-                // through the display fields
-                $query->add_select(array('table' => 'countwrapperquery',
-                                         'column' => 'display'));
-                $query->add_select(array('table' => 'countwrapperquery',
-                                         'column' => 'groupsdisplay'));
-
                 break;
 
-            case 'coursemoduledisplayselect':
+            case 'coursemoduleid':
 
                 // The inner query joins to the config tables already for the WHERE clauses, so we
                 // make use of them to get the settings for those nodes that are not filtered out
@@ -1336,17 +1285,17 @@ SQL;
                 $countwrapper->add_select(array(
                                          'table' => 'cmconfig',
                                          'column' => 'groupsdisplay'));
-
-                // The outer query (we need one because we have to do a join between the numeric
-                // fields that can be fed into a GROUP BY and the text fields that we display) pulls
-                // through the display fields
-                $query->add_select(array('table' => 'countwrapperquery',
-                                         'column' => 'display'));
-                $query->add_select(array('table' => 'countwrapperquery',
-                                         'column' => 'groupsdisplay'));
-
                 break;
         }
+
+        // The outer query (we need one because we have to do a join between the numeric
+        // fields that can be fed into a GROUP BY and the text fields that we display) pulls
+        // through the display fields, which were sent through from the middle query using the
+        // stuff above
+        $query->add_select(array('table' => 'countwrapperquery',
+                                 'column' => 'display'));
+        $query->add_select(array('table' => 'countwrapperquery',
+                                 'column' => 'groupsdisplay'));
     }
 
     /**
