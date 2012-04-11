@@ -1313,8 +1313,6 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
             currentsetting,
             defaultsetting;
 
-
-
         switch (settingname) {
 
             case 'display':
@@ -1651,7 +1649,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     },
 
     /**
-     * If all childnodes need the counts updated because grouyps settings have changed, this is
+     * If all child nodes need the counts updated because groups settings have changed, this is
      * called in order to do it
      *
      * @param arrayofnodes
@@ -1696,7 +1694,7 @@ M.block_ajax_marking.courses_tree = function () {
     M.block_ajax_marking.tree_base.superclass.constructor.call(this, 'coursestree');
 };
 
-// make the courses tree into a subclass of the base class
+// Make the courses tree into a subclass of the base class
 YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_base, {
 
     /**
@@ -1782,7 +1780,6 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
         // M.block_ajax_marking.cohorts_tree.set_refresh_needed(true);
     }
 
-
 });
 
 /**
@@ -1843,7 +1840,6 @@ YAHOO.lang.extend(M.block_ajax_marking.cohorts_tree, M.block_ajax_marking.tree_b
                 break;
 
             default:
-
         }
 
         // Allow override by modules
@@ -1854,9 +1850,7 @@ YAHOO.lang.extend(M.block_ajax_marking.cohorts_tree, M.block_ajax_marking.tree_b
         }
 
         return nextnodefilter;
-
     }
-
 
 });
 
@@ -1993,9 +1987,7 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
             this.add_groups_buttons();
         }
     }
-
 });
-
 
 /**
  * Handles the clicks on the config tree icons so that they can toggle settings state
@@ -2061,7 +2053,6 @@ M.block_ajax_marking.config_treenodeonclick = function (data) {
     return false;
 };
 
-
 /**
  * OnClick handler for the nodes of the tree. Attached to the root node in order to catch all events
  * via bubbling. Deals with making the marking popup appear.
@@ -2070,7 +2061,6 @@ M.block_ajax_marking.config_treenodeonclick = function (data) {
  */
 M.block_ajax_marking.treenodeonclick = function (oArgs) {
 
-    // refs save space
     /**
      * @var M.block_ajax_marking.tree_node
      */
@@ -2102,7 +2092,6 @@ M.block_ajax_marking.treenodeonclick = function (oArgs) {
     return false;
 };
 
-
 /**
  * Finds out whether there is a custom nextnodefilter defined by the specific module e.g.
  * quiz question. Allows the standard progression of nodes to be overridden.
@@ -2125,7 +2114,6 @@ M.block_ajax_marking.get_next_nodefilter_from_module = function (modulename, cur
 
     return nextnodefilter;
 };
-
 
 /**
  * Turns the raw groups data from the tree node into menu items and attaches them to the menu. Uses
@@ -2152,9 +2140,6 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
             "value" : { "groupid" : groups[i].id},
             "onclick" : { fn : M.block_ajax_marking.contextmenu_setting_onclick,
                           obj : {'settingtype' : 'group'} } };
-
-//        newgroup = { "text" : 'text',
-//                     "value" : 2 };
 
         // Make sure the items' appearance reflect their current settings
         // JSON seems to like sending back integers as strings
@@ -2186,9 +2171,7 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
         menu.addItem({"text" : M.str.block_ajax_marking.nogroups,
                          "value" : 0 });
     }
-
 };
-
 
 /**
  * Ajax success function called when the server responds with valid data, which checks the data
@@ -2336,7 +2319,6 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
     } else {
         clickednode.set_config_setting(settingtype, newsetting);
     }
-
 };
 
 /**
@@ -2380,7 +2362,8 @@ M.block_ajax_marking.ajax_failure_handler = function (o) {
             M.block_ajax_marking.make_footer();
         }
     }
-    M.block_ajax_marking.get_current_tab().displaywidget.rebuild_parent_and_tree_count_after_new_nodes();
+    var tree = M.block_ajax_marking.get_current_tab().displaywidget;
+    tree.rebuild_parent_and_tree_count_after_new_nodes();
     YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
 };
 
@@ -2466,10 +2449,6 @@ M.block_ajax_marking.config_icon_success_handler = function (ajaxresponsearray) 
     } else {
         clickednode.set_config_setting(settingtype, newsetting);
     }
-
-    // Update any child nodes to be 'inherited' now that this will be the way the settings
-    // are on the server
-//    clickednode.update_child_nodes_config_settings(settingtype, groupid);
 };
 
 /**
@@ -2522,7 +2501,6 @@ M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
 
     delete newicon.id; // avoid collisions
     return newicon;
-
 };
 
 /**
@@ -2542,7 +2520,6 @@ M.block_ajax_marking.get_dynamic_icon_string = function (icon) {
     }
 
     return html;
-
 };
 
 /**
@@ -2588,7 +2565,6 @@ M.block_ajax_marking.make_icon_styles = function() {
     }
 
 };
-
 
 /**
  * The initialising stuff to get everything started
