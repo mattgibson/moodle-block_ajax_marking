@@ -477,8 +477,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         var componentcounts,
             html,
             countarray = [],
-            titlearray = [],
-            islastnode = (this.get_nextnodefilter() === false);
+            titlearray = [];
 
         if (this.get_count()) {
             componentcounts = this.get_component_counts();
@@ -579,7 +578,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                 haschanged = true;
                 this.set_count(overduecount, 'overdue');
             }
-            var itemcount = recentcount+mediumcount+overduecount;
+            itemcount = recentcount+mediumcount+overduecount;
             this.set_count(itemcount);
 
         } else {
@@ -601,10 +600,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      */
     get_icon_style : function() {
         //
-        var debugpause = '',
-            iconstyle;
-
-
+        var iconstyle;
 
         // TODO what about extra ones like question?
         // TODO make sure this is called from refresh()
@@ -798,7 +794,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             groupsdisplaysetting = this.get_setting_to_display('groupsdisplay');
 
             var groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups'; // icons are named after their actions
-            var groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
+            groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
             delete groupsicon.id;
             groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
 
@@ -1256,8 +1252,7 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
             clickednode,
             currentfilter,
             choosegroupsmenu,
-            choosegroupsmenuitem,
-            isworkshopnode;
+            choosegroupsmenuitem;
 
         this.clearContent();
 
@@ -1531,7 +1526,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      * sends the filters from all parent nodes and the nextnodetype
      *
      * @param clickednode
-     * @param callbackfunction
      */
     request_node_data : function (clickednode) {
 
@@ -1625,7 +1619,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
     /**
      * Sets whether or not the tree ought to be refreshed when the tab changes
-     * @param {bool} value
+     * @param {boolean} value
      */
     set_needs_refresh : function(value) {
         this.needsrefresh = value;
@@ -1671,8 +1665,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             nextnodefilter = node.get_nextnodefilter(),
             recent = 0,
             medium = 0,
-            overdue = 0,
-            total = 0;
+            overdue = 0;
 
         for (var i = 0; i < arrayofnodes.length; i++) {
 
@@ -2581,7 +2574,7 @@ M.block_ajax_marking.make_icon_styles = function() {
         style = document.createElement("style");
         style.type = "text/css";
 
-        var styletext = '.block_ajax_marking td.ygtvcell.'+iconname+' {'+
+        styletext = '.block_ajax_marking td.ygtvcell.'+iconname+' {'+
                             'background-image: url('+image.src+'); '+
                             'padding-left: 20px; '+
                             'background-repeat: no-repeat; '+
