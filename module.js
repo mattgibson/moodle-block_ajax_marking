@@ -2250,6 +2250,32 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
     YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
 };
 
+M.block_ajax_marking.update_menu_item = function(newsetting,
+                                                 defaultsetting,
+                                                 clickeditem) {
+
+    // Update the menu item so the user can see the change
+    if (newsetting === null) {
+        //set default
+        var checked = defaultsetting ? true : false;
+        clickeditem.cfg.setProperty("checked", checked);
+        // set inherited class
+        if (M.block_ajax_marking.showinheritance) {
+            clickeditem.cfg.setProperty("classname", 'inherited');
+        }
+    } else if (newsetting === 1) {
+        clickeditem.cfg.setProperty("checked", true);
+        if (M.block_ajax_marking.showinheritance) {
+            clickeditem.cfg.setProperty("classname", 'notinherited');
+        }
+    } else if (newsetting === 0) {
+        clickeditem.cfg.setProperty("checked", false);
+        if (M.block_ajax_marking.showinheritance) {
+            clickeditem.cfg.setProperty("classname", 'notinherited');
+        }
+    }
+};
+
 /**
  * Sorts out what needs to happen once a response is received from the server that a setting
  * has been saved for an individual group
@@ -2286,28 +2312,8 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
         groupid = ajaxresponsearray.configsave.groupid;
     }
 
-    // Update the menu item so the user can see the change
-    if (newsetting === null) {
-        // get default
-        var defaultsetting = clickednode.get_default_setting(settingtype, groupid);
-        //set default
-        var checked = defaultsetting ? true : false;
-        clickeditem.cfg.setProperty("checked", checked);
-        // set inherited class
-        if (M.block_ajax_marking.showinheritance) {
-            clickeditem.cfg.setProperty("classname", 'inherited');
-        }
-    } else if (newsetting === 1) {
-        clickeditem.cfg.setProperty("checked", true);
-        if (M.block_ajax_marking.showinheritance) {
-            clickeditem.cfg.setProperty("classname", 'notinherited');
-        }
-    } else if (newsetting === 0) {
-        clickeditem.cfg.setProperty("checked", false);
-        if (M.block_ajax_marking.showinheritance) {
-            clickeditem.cfg.setProperty("classname", 'notinherited');
-        }
-    }
+    var defaultsetting = clickednode.get_default_setting(settingtype, groupid);
+    M.block_ajax_marking.update_menu_item(newsetting, defaultsetting, clickeditem);
     // Update the menu item display value so that if it is clicked again, it will know
     // not to send the same ajax request and will toggle properly
     clickeditem.value.display = newsetting;
@@ -2879,7 +2885,7 @@ M.block_ajax_marking.config_contextmenu_load_groups = function () {
 };
 
 /**
- * Hides the dropdown menu that may be open on this node
+ * Hides the drop-down menu that may be open on this node
  */
 M.block_ajax_marking.hide_open_menu = function(expandednode) {
     expandednode.renderedmenu.hide();
