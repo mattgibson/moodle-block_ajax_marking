@@ -1089,14 +1089,14 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
             settingtype == 'display' &&
             newsetting === 0) {
 
-            // Node set to hide. Remove it from the tree.
-            // TODO may also be an issue if sitedefault is set to hide - null here ought to mean 'hide'
-            this.tree.remove_node(this);
-
             // this should only be for the contextmenu - dropdown can't do hide.
-            if (this.tree.tab && this.tab.contextmenu) {
+            if (this.tree && this.tree.tab && this.tree.tab.contextmenu) {
                 this.tree.tab.contextmenu.hide();
             }
+
+            // Node set to hide. Remove it from the tree.
+            // TODO may also be an issue if sitedefault is set to hide - null here ought to mean 'hide'
+            this.tree.remove_node(this.index);
 
         } else if (this.expanded &&
                    settingtype == 'groupsdisplay' &&
@@ -2121,7 +2121,8 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
 
     var newgroup,
         groups,
-        numberofgroups;
+        numberofgroups,
+        iscontextmenu = menu instanceof YAHOO.widget.ContextMenu;
 
     groups = clickednode.get_groups();
     numberofgroups = groups.length;
@@ -2157,7 +2158,8 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
 
         // Add to group 1 so we can keep it separate from group 0 with the basic settings so that
         // the contextmenu will have these all grouped to gether with a title
-        menu.addItem(newgroup, 1);
+        var groupindex = iscontextmenu ? 1 :0;
+        menu.addItem(newgroup, groupindex);
     }
 
     // If there are no groups, we want to show this rather than have the context menu fail to
@@ -2166,7 +2168,7 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
         // TODO probably don't need this now - never used?
         menu.addItem({"text" : M.str.block_ajax_marking.nogroups,
                          "value" : 0 });
-    } else {
+    } else if (iscontextmenu) {
         menu.setItemGroupTitle(M.str.block_ajax_marking.choosegroups+':', 1);
     }
 };
@@ -2712,9 +2714,6 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
         settingtorequest = 1,
         groupid = null,
         tree = M.block_ajax_marking.get_current_tab().displaywidget;
-
-    // Makes it easier to find the menu item later when the AJAX stuff comes back
-    M.block_ajax_marking.clickedmenuitem = this;
 
     var settingtype = obj.settingtype;
 
