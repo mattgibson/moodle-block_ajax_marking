@@ -29,6 +29,7 @@ if (!defined('MOODLE_INTERNAL')) {
     die();
 }
 
+global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/mod/workshop/locallib.php'); // for constants
 
@@ -90,7 +91,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         global $USER;
 
         $query = new block_ajax_marking_query_base($this);
-        $query->set_userid_column('sub.authorid');
 
         $query->add_from(array(
                 'table' => $this->modulename,
@@ -109,12 +109,20 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
                 'on' => 'sub.id = a.submissionid'
         ));
 
+        // Standard userid for joins
+        $query->add_select(array('table' => 'sub',
+                                 'column' => 'authorid',
+                                 'alias' => 'userid'));
+        $query->add_select(array('table' => 'sub',
+                                'column' => 'timemodified',
+                                'alias'  => 'timestamp'));
+
         // Assumes that we want to see stuff that has not been assessed yet. Perhaps we still want
         // this but also ones where we have not reviewed the assessments?
         $query->add_where(array(
                 'type' => 'AND',
-                'condition' => '(a.reviewerid != :'.$query->prefix_param('userid').'
-                                   OR (a.reviewerid = :'.$query->prefix_param('userid2').'
+                'condition' => '(a.reviewerid != :workshopuserid
+                                   OR (a.reviewerid = :workshopuserid2
                                        AND a.grade = -1))'));
         $query->add_where(array(
             'type' => 'AND',
@@ -125,8 +133,8 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         // If it has, a teacher will have done this manually and will know about the grading work.
         // Unless there are two teachers.
 
-        $query->add_param('userid', $USER->id);
-        $query->add_param('userid2', $USER->id);
+        $query->add_param('workshopuserid', $USER->id);
+        $query->add_param('workshopuserid2', $USER->id);
 
         return $query;
 
@@ -171,8 +179,8 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
                 // Applies if users are not the final nodes
                 $query->add_where(array(
                         'type' => 'AND',
-                        'condition' => 'sub.authorid = :'.$query->prefix_param('submissionid')));
-                $query->add_param('submissionid', $userid);
+                        'condition' => 'sub.authorid = :workshopsubmissionid'));
+                $query->add_param('workshopsubmissionid', $userid);
                 break;
 
             case 'displayselect':
@@ -190,7 +198,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
                         'join'  => 'INNER JOIN',
                         'table' => 'user',
                         'alias' => 'usertable',
-                        'on'    => 'usertable.id = combinedmodulesubquery.id'
+                        'on'    => 'usertable.id = countwrapperquery.id'
                 ));
                 break;
 

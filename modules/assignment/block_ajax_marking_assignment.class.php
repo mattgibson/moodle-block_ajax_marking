@@ -30,9 +30,8 @@ if (!defined('MOODLE_INTERNAL')) {
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/modules/assignment/'.
-             'block_ajax_marking_assignment_form.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
 /**
  * Wrapper for the module_base class which adds the parts that deal with the assignment module.
@@ -133,6 +132,9 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
                      '/assignment.class.php');
         $assignmentclass = 'assignment_'.$assignment->assignmenttype;
+        /**
+         * @var assignment_base $assignmentinstance
+         */
         $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
                                                    $coursemodule, $course);
 
@@ -196,12 +198,14 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         $PAGE->set_title($course->fullname . ': ' .get_string('feedback', 'assignment').' - '.
                          fullname($user, true));
-        $PAGE->set_heading($course->fullname);
         $heading = get_string('feedback', 'assignment').': '.fullname($user, true);
         $output .= $OUTPUT->heading($heading);
 
         // display mform here...
-        $output .= $submitform->display();
+        ob_start();
+        $submitform->display();
+        $output .= ob_get_contents();
+        ob_end_clean();
 
         // no variation across subclasses
         $customfeedback = $assignmentinstance->custom_feedbackform($submission, true);
@@ -254,9 +258,10 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $assignment   = $DB->get_record('assignment', array('id' => $coursemodule->instance));
         $grading_info = grade_get_grades($coursemodule->course, 'mod', 'assignment',
                                          $assignment->id, $data->userid);
+        $userid = $data->userid;
         $submission   = $DB->get_record('assignment_submissions',
                                         array('assignment' => $assignment->id,
-                                              'userid' => $data->userid));
+                                              'userid' => $userid));
 
         if (!$submission) {
             return 'Wrong submission id';
@@ -283,6 +288,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
                 $outcomedata = array();
 
+                // TODO needs sorting out!
                 if (!empty($grading_info->outcomes)) {
 
                     foreach ($grading_info->outcomes as $n => $old) {
@@ -294,8 +300,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                     }
 
                     if (count($outcomedata) > 0) {
-                        grade_update_outcomes('mod/assignment', $this->course->id, 'mod',
-                                              'assignment', $this->assignment->id, $userid,
+                        grade_update_outcomes('mod/assignment', $assignment->course, 'mod',
+                                              'assignment', $assignment->id, $userid,
                                               $outcomedata);
                     }
                 }
@@ -354,13 +360,13 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                             'return_types'=>FILE_INTERNAL);
                     }
 
-                    $mformdata = file_postupdate_standard_filemanager($data,
-                                                                      'files',
-                                                                      $fileui_options,
-                                                                      $PAGE->context,
-                                                                      'mod_assignment',
-                                                                      'response',
-                                                                      $submission->id);
+                    file_postupdate_standard_filemanager($data,
+                                                         'files',
+                                                         $fileui_options,
+                                                         $PAGE->context,
+                                                         'mod_assignment',
+                                                         'response',
+                                                         $submission->id);
                 }
             }
         }
@@ -379,7 +385,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         global $DB;
 
         $query = new block_ajax_marking_query_base($this);
-        $query->set_userid_column('sub.userid');
 
         $query->add_from(array(
                 'table' => 'assignment',
@@ -392,6 +397,13 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                 'alias' => 'sub',
                 'on' => 'sub.assignment = moduletable.id'
         ));
+
+        // Standard userid for joins
+        $query->add_select(array('table' => 'sub',
+                                 'column' => 'userid'));
+        $query->add_select(array('table' => 'sub',
+                                'column' => 'timemodified',
+                                'alias' => 'timestamp'));
 
         $query->add_where(array(
                                'type' => 'AND',
@@ -418,18 +430,31 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                         $userid = false) {
 
         $selects = array();
+        $countwrapper = $query->get_subquery('countwrapperquery');
 
         switch ($operation) {
 
             case 'where':
                 // Not sure we'll ever need this, but just in case...
-                $query->add_where(array(
+                $countwrapper->add_where(array(
                         'type' => 'AND',
-                        'condition' => 'sub.userid = :'.$query->prefix_param('submissionid')));
-                $query->add_param('submissionid', $userid);
+                        'condition' => 'sub.userid = :assignmentuseridfilteruserid'));
+                $query->add_param('assignmentuseridfilteruserid', $userid);
                 break;
 
-            case 'displayselect':
+            case 'countselect':
+
+                // Make the count be grouped by userid
+                $countwrapper->add_select(array(
+                        'table'    => 'moduleunion',
+                        'column'   => 'userid',
+                        'alias'    => 'id'), true
+                );
+                $query->add_select(array(
+                        'table'  => 'countwrapperquery',
+                        'column' => 'timestamp',
+                        'alias'  => 'tooltip')
+                );
 
                 $selects = array(
                     array(
@@ -437,33 +462,15 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                         'column' => 'firstname'),
                     array(
                         'table' => 'usertable',
-                        'column' => 'lastname'),
+                        'column' => 'lastname')
+
                 );
 
                 $query->add_from(array(
-                        'join' => 'INNER JOIN',
                         'table' => 'user',
                         'alias' => 'usertable',
-                        'on' => 'usertable.id = combinedmodulesubquery.id'));
-                break;
+                        'on' => 'usertable.id = countwrapperquery.id'));
 
-            case 'countselect':
-                // We just want the counting stuff for the inner query
-                $selects = array(
-                    array(
-                        'table' => 'sub',
-                        'column' => 'userid'),
-                    array( // Count in case we have user as something other than the last node
-                        'function' => 'COUNT',
-                        'table'    => 'sub',
-                        'column'   => 'id',
-                        'alias'    => 'count',
-                        'distinct' => true),
-                    // This is only needed to add the right callback function.
-                    array(
-                        'column' => "'".$query->get_modulename()."'",
-                        'alias' => 'modulename'
-                        ));
                 break;
         }
 

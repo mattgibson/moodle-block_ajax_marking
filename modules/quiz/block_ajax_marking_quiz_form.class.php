@@ -27,6 +27,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+global $CFG;
 require_once($CFG->dirroot.'/lib/formslib.php');
 
 /**
@@ -51,10 +52,6 @@ class block_ajax_marking_quiz_form extends moodleform {
         $mform->setType('questionid', PARAM_INT);
         $mform->addElement('hidden', 'sesskey', sesskey());
         $mform->setType('sesskey', PARAM_ALPHANUM);
-
-        // User picture and name
-        $student = $DB->get_record('user', array('id' => $attemptobj->get_userid()));
-        $picture = $OUTPUT->user_picture($student, array('courseid'=>$attemptobj->get_courseid()));
 
         $mform->addElement('static', 'picture', $OUTPUT->user_picture($this->_customdata->user),
                             fullname($this->_customdata->user, true) . '<br/>' .
@@ -82,6 +79,7 @@ class block_ajax_marking_quiz_form extends moodleform {
             // Display grade selector
             $grademenu = make_grades_menu($question->grade);
             $grademenu['-1'] = get_string('nograde');
+            // TODO broken!
             $mform->addElement('select', 'grade['.$questionid.']',
                                get_string('grade').':', $grademenu, $attributes);
 

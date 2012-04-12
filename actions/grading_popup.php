@@ -28,6 +28,8 @@
 
 require_once(dirname(__FILE__).'/../../../config.php');
 
+global $DB, $OUTPUT, $CFG, $PAGE;
+
 // Each popup request will have different stuff that we want to pass to
 // $moduleobject->grading_popup()
 $params = array();
@@ -37,7 +39,7 @@ foreach ($_GET as $name => $value) {
 }
 
 $cmid = required_param('coursemoduleid', PARAM_INT);
-$node = required_param('node', PARAM_INT);
+$nodeid = required_param('node', PARAM_INT);
 
 $coursemodule = $DB->get_record('course_modules', array('id' => $cmid));
 /** @var string $modname  */
@@ -87,8 +89,9 @@ if ($data && confirm_sesskey()) {
         $PAGE->set_pagelayout('popup');
 
         echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
-        $callfunction = 'window.opener.M.block_ajax_marking.remove_node_from_current_tab';
-        $PAGE->requires->js_function_call($callfunction, array($node));
+        $callfunction = 'window.opener.M.block_ajax_marking.remove_node_from_current_tab('.$nodeid.'); ';
+        $PAGE->requires->js_init_code($callfunction, true);
+
         close_window(1);
     }
 
@@ -102,6 +105,27 @@ $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params)
 $PAGE->set_url($url);
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('popup');
+
+// Make sure that whatever happens, we lose the tree highlight when the pop up shuts
+$code = "
+    YAHOO.util.Event.addListener(window, 'beforeunload', function(args) {
+
+       // Get tree
+       var tab = window.opener.M.block_ajax_marking.get_current_tab();
+       var tree = tab.displaywidget;
+
+       // get node
+       var node = tree.getNodeByIndex({$nodeid});
+
+       // unhighlight node
+       node.unhighlight();
+
+       // Don't remove the node here because the window may just have been closed with no marking
+       // done. We want to keep the tree node in this case.
+
+   });
+";
+$PAGE->requires->js_init_code($code);
 
 // may involve a redirect if we don't want a form
 $content = $moduleobject->grading_popup($params, $coursemodule);

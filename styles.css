@@ -21,73 +21,22 @@
 * @package    block
 * @subpackage ajax_marking
 * @copyright  2007 Matt Gibson
-* @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+* @author     Matt Gibson
+* @link       http://moodle.org/user/view.php?id=81450
 * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
 */
 
-.icon-course, .icon-assignment, .icon-workshop, .icon-forum, .icon-quiz, .icon-quiz_question,
-.icon-journal, .icon-group {
-    padding-left: 0;
-    padding-bottom: 0;
-    background: transparent no-repeat;
-    cursor: pointer;
-    /* white-space: nowrap; */
-    margin-left: 0;
-    display: block;
-    float: left;
+.nodecount .recent {
+    color: #00ad08;
 }
-.amb-icon {
-    width: 20px;
-    padding-right: 3px;
-    margin-bottom: -5px;
+.nodecount .medium {
+    color: #ff6c00;
 }
-.icon-course {
-    padding-left: 0;
-
+.nodecount .overdue {
+    color: #ff000a;
 }
-
-/* the following 8 styles give different coloured borders to
-   submissions depending on when they were submitted. The
-   colours may not be the best for your theme so change them
-   below if needs be. The timings are in javascript.js at around line
-   340. If you have colour blind users, you may need to take contrast into account
-   and maybe vary the line style - dotted, dashed, solid.
-*/
-
-.icon-user-one, .icon-user-two, .icon-user-three, .icon-user-four, .icon-user-five, .icon-user-six,
-.icon-user-seven, .icon-user-eight {
-    padding-left: 0;
-    padding-right: 2px;
-    cursor: pointer;
-    border: 2px none;
-    overflow: hidden;
-    width: 150px;
-    height: 40px;
-    margin: 0;
-}
-.icon-user-one {
-    background-color: #ccffcc;
-}
-.icon-user-two {
-    background-color: #ccffcc;
-}
-.icon-user-three {
-    background-color: #EEE5AA;
-}
-.icon-user-four {
-    background-color: #EEE5AA;
-}
-.icon-user-five {
-    background-color: #EECAB3;
-}
-.icon-user-six {
-    background-color: #EECAB3;
-}
-.icon-user-seven {
-    background-color: #ffb0bb;
-}
-.icon-user-eight {
-    background-color: #ffb0bb;
+.nodecount {
+    margin: auto;
 }
 #loader {
     position: relative;
@@ -107,7 +56,7 @@
     margin-left: 3px;
 }
 .loaderimage {
-    background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
+    background: url([[pix:block_ajax_marking|ajax-loader]]) 0 0 no-repeat;
     width: 15px;
     height: 15px;
     display: block;
@@ -115,145 +64,16 @@
 #count {
     font-weight: bold;
 }
-#treediv {
-    clear: both;
-    margin-bottom: 5px;
-    padding-bottom: 0;
-    float: left;
-    font: 10pt tahoma;
-    min-width: 150px;
-}
 #mainicon {
     float: left;
     margin-left: 8px;
 }
 
-/*
- styles for the config screen pop up
- */
-
-#block_ajax_marking_refresh_button {
-    float: left;
-    width: 45%;
-    margin-left: 3px;
-}
-#block_ajax_marking_configure_button {
-    float: right;
-    width: 45%;
-    margin-right: 3px;
-    text-align: right;
-}
-#conf-wrapper {
-    float: left;
-    clear: both;
-    background-color: transparent;
-}
-#close {
-    float: right;
-    margin: 0;
-    padding: 0;
-}
-#confname {
-    float: left;
-    font-weight: bold;
-    width: 50%;
-    padding-left: 4px;
-    line-height: 15px;
-}
-#dialog {
-    display: none;
-    z-index: 500;
-    background-color: transparent;
-    padding: 0;
-    font: 10pt tahoma;
-    border: 1px solid gray;
-    width: 420px;
-    position: absolute;
-}
-.dialogheader {
-    line-height: 0;
-    height: 25px;
-    border: 0 solid #000;
-    border-bottom-width: 1px;
-    width: 100%;
-    margin: 0;
-}
-/*#configtree {
-  float: left;
-  width: 220px;
-  height: 480px;
-  max-width: 200px;
-  padding-top: 4px;
-  overflow-y: scroll;
-  font:10pt tahoma;
-  background-color: transparent;
-}*/
-#configSettings {
-    float: left;
-    width: 190px;
-    padding-left: 10px;
-    font: 10pt tahoma;
-}
-#configgroupsdiv {
-    float: right;
-    width: 190px;
-    background-color: transparent;
-}
-#configicon {
-    position: relative;
-    line-height: 0pt;
-    width: 35px;
-}
-#block_ajax_marking_hidden {
-    display: none;
-}
-div.block_ajax_marking div.footer {
-    border-style: none;
-    padding-bottom: 0;
-    height: 30px;
-}
-#configInstructions {
-    font: 10pt tahoma;
-    float: left;
-    width: 100%;
-}
-
-/* Stuff to make the lists display right with AJAX turned off */
-
-ul.AMB_html li {
-    list-style-type: none;
-}
-ul.AMB_html {
-    padding-left: 5px;
-    list-style-type: none;
-    margin: 0;
-}
-li.AMB_html, li.AMB_html_course {
-    padding-top: 3px;
-    padding-bottom: 3px;
-    list-style-type: none;
-}
-li.AMB_html_course {
-    background-color: #ddd;
-    padding-left: 7px;
-}
-ul.AMB_html_items {
-    margin-top: 5px;
-
-    list-style-type: none;
-}
-span.AMB_count {
-    font-weight: bold;
-}
-span.ygtvlabel {
-    background-color: transparent;
-}
-
-/* change loading icon. Standard one has white background */
+/* change tree loading icon. Standard one has white background and looks bad on some themes */
 .ygtvloading {
     width: 18px;
     height: 22px;
-    background: url('/blocks/ajax_marking/images/ajax-loader.gif') 0 0 no-repeat;
+    background: url([[pix:block_ajax_marking|ajax-loader]]) 0 0 no-repeat;
 }
 #block_ajax_marking_hidden {
     display: none;
@@ -282,3 +102,71 @@ span.ygtvlabel {
     padding: 3px;
     width: 100%;
 }
+
+/* Context menu */
+#configcontextmenu .inherited .yuimenuitemlabel,
+#maincontextmenu .inherited .yuimenuitemlabel {
+    color: #999999;
+}
+#configcontextmenu .inherited.yuimenuitem-checked,
+#maincontextmenu .inherited.yuimenuitem-checked {
+    background-image: url("../../lib/yui/2.9.0/build/assets/skins/sam/menuitem_checkbox_disabled.png");
+    color: #999999;
+}
+
+/* Node icons for the config tree */
+.block_ajax_marking_node_icon {
+    width: 20px;
+}
+
+.block_ajax_marking_spacer {
+    clear: both;
+}
+.block_ajax_marking_groups_icon {
+    vertical-align: top;
+    font-size: 9pt;
+}
+td.block_ajax_marking_groups_icon span.yui-button button {
+    min-height: 0;
+    line-height: normal;
+    padding-left: 0;
+}
+
+/* Keeps the icons from being off centre */
+td.ygtvcell {
+    line-height: 1;
+}
+img.dynamicicon {
+    float: left;
+}
+div.nodelabel {
+    display:block;
+    white-space: nowrap;
+    overflow-x: hidden;
+    overflow-y: visible;
+    text-overflow: ellipsis;
+}
+div.nodecount {
+    margin: 0 2px;
+    float: left;
+}
+/* Keeps the nodes within the block at a uniform length */
+table.ygtvtable {
+    width: 100%;
+    table-layout: fixed;
+}
+.configtreenode .nodelabel {
+    margin-left: 3px;
+}
+.configtreenode img.nodeicon {
+    margin-right: 3px;
+}
+/* Makes the 'hide specific groups' contextmenu item go left */
+/*.nocheck a.yuimenuitemlabel {*/
+    /*padding-left: 10px;*/
+/*}*/
+/*li.nocheck.yuimenuitem {*/
+    /*border-top: 1px solid #A6A6A6;*/
+    /*margin-top: 3px;*/
+/*}*/
+

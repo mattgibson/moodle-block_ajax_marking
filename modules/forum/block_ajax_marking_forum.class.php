@@ -29,6 +29,7 @@ if (!defined('MOODLE_INTERNAL')) {
     die();
 }
 
+global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 
 /**
@@ -86,7 +87,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         // get category and course role assignments separately
         // for category level, we look for users with a role assignment where the contextinstance
-        // can be left joined to any category that's a parent of the suplied course
+        // can be left joined to any category that's a parent of the supplied course
         $select = "NOT EXISTS( SELECT 1
                                  FROM {role_assignments} ra
                            INNER JOIN {context} cx
@@ -209,6 +210,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         global $DB, $PAGE, $CFG, $SESSION, $USER, $OUTPUT;
 
+        $output = '';
+
         // Lifted from /mod/forum/discuss.php
 
         //$parent = $params['parent'];       // If set, then display this post and all children.
@@ -320,32 +323,36 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $canreply = false;
 
         // wWithout this, the nesting doesn't work properly as the css isn't picked up
-        echo html_writer::start_tag('div', array('class' => 'path-mod-forum'));
-        echo html_writer::start_tag('div', array('class' => 'discussioncontrols clearfix'));
-        echo html_writer::start_tag('div', array('class' => 'discussioncontrol displaymode'));
+        $output .= html_writer::start_tag('div', array('class' => 'path-mod-forum'));
+        $output .= html_writer::start_tag('div', array('class' => 'discussioncontrols clearfix'));
+        $output .= html_writer::start_tag('div', array('class' => 'discussioncontrol displaymode'));
         // we don't want to have the current mode returned in the url as well as the new one
         unset($params['mode']);
         $newurl = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
         $select = new single_select($newurl, 'mode', forum_get_layout_modes(), $displaymode,
                                     null, "mode");
-        echo $OUTPUT->render($select);
-        echo html_writer::end_tag('div');
+        $output .= $OUTPUT->render($select);
+        $output .= html_writer::end_tag('div');
 
         // If user has not already posted and it's a Q & A forum...
         $forumisqanda = $forum->type == 'qanda';
         $noviewwithoutposting = !has_capability('mod/forum:viewqandawithoutposting', $modcontext);
         $hasnotposted = !forum_user_has_posted($forum->id, $discussion->id, $USER->id);
         if ($forumisqanda && $noviewwithoutposting && $hasnotposted) {
-            echo $OUTPUT->notification(get_string('qandanotify', 'forum'));
+            $output .= $OUTPUT->notification(get_string('qandanotify', 'forum'));
         }
 
         $canrate = has_capability('mod/forum:rate', $modcontext);
+        ob_start();
         forum_print_discussion($course, $cm, $forum, $discussion, $post, $displaymode,
                                $canreply, $canrate);
+        $output .= ob_get_contents();
+        ob_end_clean();
 
-        echo html_writer::end_tag('div');
+        $output .= html_writer::end_tag('div');
+        $output .= html_writer::end_tag('div');
 
-        return true;
+        return $output;
 
     }
 
@@ -373,7 +380,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         $query = new block_ajax_marking_query_base($this);
         $teachersql = $this->get_teacher_sql();
-        $query->set_userid_column('sub.userid');
 
         // TODO this is broken - I think multiple ratings per post will make multiple submissions
         // appear.
@@ -391,27 +397,35 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                 'on' => 'sub.id = r.itemid'
         ));
         $query->add_from(array(
-                'join' => 'INNER JOIN',
                 'table' => 'forum_discussions',
                 'alias' => 'discussions',
                 'on' => 'sub.discussion = discussions.id'
         ));
         $query->add_from(array(
-                'join' => 'INNER JOIN',
                 'table' => $this->modulename,
                 'alias' => 'moduletable',
                 'on' => 'discussions.forum = moduletable.id'
         ));
+        $query->add_from(array(
+                'table' => 'course',
+                'on' => 'discussions.course = course.id'
+        ));
+        // Standard userid for joins
+        $query->add_select(array('table' => 'sub',
+                                 'column' => 'userid'));
+        $query->add_select(array('table' => 'sub',
+                                'column' => 'modified',
+                                'alias'  => 'timestamp'));
 
         $query->add_where(array(
                            'type' => 'AND',
-                           'condition' => 'sub.userid <> :'.$query->prefix_param('userid')));
+                           'condition' => 'sub.userid <> :forumuserid'));
         $query->add_where(array(
                            'type' => 'AND',
                            'condition' => 'moduletable.assessed > 0'));
         $query->add_where(array(
                            'type' => 'AND',
-                           'condition' => '( ( ( r.userid <> :'.$query->prefix_param('userid2').")
+                           'condition' => "( ( ( r.userid <> :forumuserid2 )
                                 AND {$teachersql})
                               OR r.userid IS NULL)
                             AND ( ( ".$DB->sql_compare_text('moduletable.type')." != 'eachuser')
@@ -426,8 +440,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                                'condition' => '( (moduletable.assesstimefinish = 0) OR
                                                  (sub.created <= moduletable.assesstimefinish) )'));
 
-        $query->add_param('userid', $USER->id);
-        $query->add_param('userid2', $USER->id);
+        $query->add_param('forumuserid', $USER->id);
+        $query->add_param('forumuserid2', $USER->id);
 
         return $query;
 
@@ -480,18 +494,18 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     public function apply_discussionid_filter(block_ajax_marking_query_base $query, $operation,
                                               $discussionid = 0) {
 
-        $selects = array();
+        $countwrapper = $query->get_subquery('countwrapperquery');
 
         switch ($operation) {
 
             case 'where':
-                $query->add_where(array(
+                $countwrapper->add_where(array(
                         'type' => 'AND',
-                        'condition' => 'discussion.id = :'.$query->prefix_param('discussionid')));
-                $query->add_param('discussionid', $discussionid);
+                        'condition' => 'discussion.id = :discussionidfilterdiscussionid'));
+                $query->add_param('discussionidfilterdiscussionid', $discussionid);
                 break;
 
-            case 'displayselect':
+            case 'countselect':
 
                 // This will be derived form the coursemoduleid, but how to get it cleanly?
                 // The query will know, but not easy to get it out. Might have been prefixed.
@@ -524,7 +538,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                         'join' => 'INNER JOIN',
                         'table' => 'forum_discussions',
                         'alias' => 'outerdiscussions',
-                        'on' => 'combinedmodulesubquery.id = outerdiscussions.id'
+                        'on' => 'countwrapperquery.id = outerdiscussions.id'
                 ));
 
                 $query->add_from(array(
@@ -533,32 +547,29 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                         'alias' => 'firstpost',
                         'on' => 'firstpost.id = outerdiscussions.firstpost'
                 ));
-                break;
 
-            case 'countselect':
-                // We are in the inner counting bit where module stuff is.
-                $selects = array(
-                    array(
-                        'table' => 'discussions',
-                        'column' => 'id',
-                        'alias' => 'discussionid'),
-                    array(
-                        'table' => 'sub',
-                        'column' => 'id',
-                        'alias' => 'count',
-                        'function' => 'COUNT',
-                        'distinct' => true),
-                    // This is only needed to add the right callback function.
-                    array(
-                        'column' => "'".$query->get_modulename()."'",
-                        'alias' => 'modulename'
-                        ));
+                // We join like this because we can't put extra stuff into the UNION ALL bit
+                // unless all modules have it and this is unique to forums.
+                $countwrapper->add_from(array(
+                        'table'    => 'forum_posts',
+                        'on'       => 'moduleunion.subid = post.id',
+                        'alias'    => 'post')
+                );
+                $countwrapper->add_from(array(
+                        'table'    => 'forum_discussions',
+                        'on'       => 'discussion.id = post.discussion',
+                        'alias'    => 'discussion')
+                );
+                $countwrapper->add_select(array(
+                        'table'    => 'discussion',
+                        'column'   => 'id'), true
+                );
+
+                $query->add_orderby("timestamp ASC");
+
                 break;
         }
 
-        foreach ($selects as $select) {
-            $query->add_select($select);
-        }
     }
 
 

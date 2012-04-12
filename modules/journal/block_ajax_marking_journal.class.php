@@ -29,6 +29,7 @@ if (!defined('MOODLE_INTERNAL')) {
     die();
 }
 
+global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 
 /**
@@ -96,12 +97,12 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
                     ON s.userid = u.id
             INNER JOIN {journal} j
                     ON je.journal = j.id
-            INNER JOIN {course_modules} cm
-                    ON j.id = cm.instance
+            INNER JOIN {course_modules} course_modules
+                    ON j.id = course_modules.instance
             INNER JOIN ({$studentsql}) stsql
                     ON je.userid = stsql.id
-                 WHERE cm.module = :'.$this->prefix_param_name('moduleid')."
-                   AND cm.visible = 1
+                 WHERE course_modules.module = :'.$this->prefix_param_name('moduleid')."
+                   AND course_modules.visible = 1
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
                    AND je.userid '.'$usql.''
@@ -137,7 +138,6 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
     public function query_factory() {
 
         $query = new block_ajax_marking_query_base($this);
-        $query->set_userid_column('sub.userid');
 
         $query->add_from(array(
                 'table' => $this->modulename,
@@ -150,6 +150,9 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
                 'alias' => 'sub',
                 'on' => 'sub.journal = moduletable.id'
         ));
+        // Standard userid for joins
+        $query->add_select(array('table' => 'sub',
+                                 'column' => 'userid'));
 
         $query->add_where(array('type' => 'AND', 'condition' => 'moduletable.assessed <> 0'));
         $query->add_where(array('type' => 'AND', 'condition' => 'sub.modified > sub.timemarked'));
