@@ -2004,6 +2004,7 @@ M.block_ajax_marking.config_treenodeonclick = function (data) {
     // is the clicked thing an icon that needs to trigger some thing?
     var target = YAHOO.util.Event.getTarget(data.event); // the img
     target = target.parentNode.parentNode; // the spacer <div> -> the <td>
+
     var coursenodeclicked = false;
     if (clickednode.get_current_filter_name() == 'courseid') {
         coursenodeclicked = true;
@@ -2287,12 +2288,12 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
     var settingtype = ajaxresponsearray['configsave'].settingtype,
         newsetting = ajaxresponsearray['configsave'].newsetting,
         menu,
-        clickeditem,
+        clickedmenuitem,
         target,
         clickednode;
 
-    clickeditem = M.block_ajax_marking.clickedmenuitem;
-    menu = M.block_ajax_marking.clickedmenuitem.parent;
+    clickedmenuitem = M.block_ajax_marking.clickedmenuitem;
+    menu = clickedmenuitem.parent;
 
     var currenttab = M.block_ajax_marking.get_current_tab();
     if (currenttab.contextmenu) {
@@ -2313,10 +2314,10 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
     }
 
     var defaultsetting = clickednode.get_default_setting(settingtype, groupid);
-    M.block_ajax_marking.update_menu_item(newsetting, defaultsetting, clickeditem);
+    M.block_ajax_marking.update_menu_item(newsetting, defaultsetting, clickedmenuitem);
     // Update the menu item display value so that if it is clicked again, it will know
     // not to send the same ajax request and will toggle properly
-    clickeditem.value.display = newsetting;
+    clickedmenuitem.value.display = newsetting;
 
     // We also need to update the data held in the tree node, so that future requests are not
     // all the same as this one. The tree will take care of presentation changes.
@@ -2748,11 +2749,8 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
         return;
     }
 
-    var coursenodeclicked = false;
     var currentfiltername = clickednode.get_current_filter_name();
-    if (currentfiltername === 'courseid') {
-        coursenodeclicked = true;
-    }
+
     // For a group, we are really dealing with the parent node
     if (currentfiltername === 'groupid') {
         groupid = clickednode.get_current_filter_value();
@@ -2783,11 +2781,14 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
     var requestdata = {};
     requestdata.groupid = groupid;
     requestdata.menuitemindex = this.index;
+    requestdata.nodeindex = clickednode.index;
     requestdata.settingtype = settingtype;
     if (settingtorequest !== null) { // leaving out defaults to null on the other end
         requestdata.settingvalue = settingtorequest;
     }
-    requestdata.tablename = coursenodeclicked ? 'course' : 'course_modules';
+    requestdata.tablename = (currentfiltername === 'courseid') ? 'course' : 'course_modules';
+    var iscontextmenu = this.parent instanceof YAHOO.widget.ContextMenu;
+    requestdata.menutype = iscontextmenu ? 'contextmenu' : 'buttonmenu';
     requestdata.instanceid = clickednode.get_current_filter_value();
 
     // send request
