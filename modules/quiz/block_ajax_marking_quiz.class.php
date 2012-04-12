@@ -33,7 +33,6 @@ global $CFG;
 /** @define "$blockdir" "../.." */
 $blockdir = $CFG->dirroot.'/blocks/ajax_marking';
 require_once($blockdir.'/classes/query_base.class.php');
-require_once($blockdir.'/classes/nodes_factory.class.php');
 
 // We only need this file for the constants. Doing this so that we don't have problems including
 // the file from module.js

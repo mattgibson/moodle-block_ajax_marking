@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
  * This is the file that is called by all the browser's ajax requests.
  *
@@ -51,26 +50,36 @@ foreach ($_POST as $name => $value) {
 }
 
 if (!isset($params['nextnodefilter'])) {
-    print_error('No filter specified for next set of nodes');
+    print_error('No filter specified for child node counts');
+    die();
+}
+if (!isset($params['nodeindex'])) {
+    print_error('No node index specified for the child node counts');
     die();
 }
 
-if (isset($params['config'])) {
-    $nodes = block_ajax_marking_nodes_builder::get_config_nodes($params);
-} else {
-    $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($params);
-}
+$nodes = block_ajax_marking_nodes_builder::unmarked_nodes($params);
+
+// Saving bandwidth by stripping out all but the counts and the ids
+$thingswewant = array(
+    'recentcount',
+    'mediumcount',
+    'overduecount',
+    'itemcount',
+    $params['nextnodefilter']
+);
 
 foreach ($nodes as &$node) {
-    block_ajax_marking_format_node($node, $params['nextnodefilter']);
+    foreach ($node as $key => $value) {
+        if (!in_array($key, $thingswewant)) {
+            unset($node->$key);
+        }
+    }
 }
 
 // reindex array so we pick it up in js as an array and can find the length. Associative arrays
 // with strings for keys are automatically sent as objects
 $nodes = array_values($nodes);
-$data = array('nodes' => $nodes);
-if (isset($params['nodeindex'])) {
-    $data['nodeindex'] = $params['nodeindex'];
-}
+$data = array('childnodecounts' => $nodes,
+              'nodeindex' => $params['nodeindex']);
 echo json_encode($data);
-

@@ -14,9 +14,12 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
- * This is the file that is called by all the browser's ajax requests.
+ * Allows the client to get an updated set of counts so that when groups are shown/hidden on
+ * non-expanded nodes, the count will reflect that.
+ *
+ * General plan is get nodes that would be what you get if you click this node's parent, then pick
+ * out the one we want, then send the counts back. This saves a whole lot of duplicated code.
  *
  * @package    block
  * @subpackage ajax_marking
@@ -44,33 +47,27 @@ $PAGE->set_context(get_context_instance(CONTEXT_SYSTEM));
 // Each ajax request will have different stuff that we want to pass to the callback function. Using
 // required_param() means hard-coding them.
 $params = array();
-
-// Need to get the filters in the right order so that the query receives them in the right order
 foreach ($_POST as $name => $value) {
     $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
 }
 
-if (!isset($params['nextnodefilter'])) {
-    print_error('No filter specified for next set of nodes');
+if (!isset($params['currentfilter'])) {
+    print_error('No filter specified for node count');
     die();
 }
-
-if (isset($params['config'])) {
-    $nodes = block_ajax_marking_nodes_builder::get_config_nodes($params);
-} else {
-    $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($params);
+if (!isset($params['filtervalue'])) {
+    print_error('No filter value specified for node count');
+    die();
 }
-
-foreach ($nodes as &$node) {
-    block_ajax_marking_format_node($node, $params['nextnodefilter']);
+if (!isset($params['nodeindex'])) {
+    print_error('No node index specified for the count');
+    die();
 }
+// Makes it easier to reuse the query code.
+$params['nextnodefilter'] = $params['currentfilter'];
 
-// reindex array so we pick it up in js as an array and can find the length. Associative arrays
-// with strings for keys are automatically sent as objects
-$nodes = array_values($nodes);
-$data = array('nodes' => $nodes);
-if (isset($params['nodeindex'])) {
-    $data['nodeindex'] = $params['nodeindex'];
-}
+$nodecounts = block_ajax_marking_nodes_builder::get_count_for_single_node($params);
+
+$data = array('counts' => $nodecounts,
+              'nodeindex' => $params['nodeindex']);
 echo json_encode($data);
-
