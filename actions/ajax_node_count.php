@@ -39,7 +39,7 @@ require_login(0, false);
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/output.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_factory.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
 
 // TODO might be in a course
 $PAGE->set_context(get_context_instance(CONTEXT_SYSTEM));
@@ -66,7 +66,7 @@ if (!isset($params['nodeindex'])) {
 // Makes it easier to reuse the query code.
 $params['nextnodefilter'] = $params['currentfilter'];
 
-$nodecounts = block_ajax_marking_nodes_factory::get_count_for_single_node($params);
+$nodecounts = block_ajax_marking_nodes_builder::get_count_for_single_node($params);
 
 $data = array('counts' => $nodecounts,
               'nodeindex' => $params['nodeindex']);

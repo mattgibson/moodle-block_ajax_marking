@@ -35,7 +35,7 @@ require_login(0, false);
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/output.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_factory.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
 
 // TODO might be in a course
 $PAGE->set_context(get_context_instance(CONTEXT_SYSTEM));
@@ -58,7 +58,7 @@ if (!isset($params['nodeindex'])) {
     die();
 }
 
-$nodes = block_ajax_marking_nodes_factory::unmarked_nodes($params);
+$nodes = block_ajax_marking_nodes_builder::unmarked_nodes($params);
 
 // Saving bandwidth by stripping out all but the counts and the ids
 $thingswewant = array(

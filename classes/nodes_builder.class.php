@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Class file for the block_ajax_marking_nodes_factory class
+ * Class file for the block_ajax_marking_nodes_builder class
  *
  * @package    block
  * @subpackage ajax_marking
@@ -56,7 +56,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
  * of the coursemodule. This arrangement is needed because Oracle doesn't allow text
  * fields and GROUP BY to be mixed.
  */
-class block_ajax_marking_nodes_factory {
+class block_ajax_marking_nodes_builder {
 
     /**
      * This will take the parameters which were supplied by the clicked node and its ancestors and
