@@ -1281,8 +1281,6 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
 
             this.make_setting_menuitem('groupsdisplay', clickednode);
 
-//            choosegroupsmenuitem = this.make_setting_menuitem('groups', clickednode);
-
             if (groups.length) {
                 // Wipe all groups out of the groups sub-menu
                 M.block_ajax_marking.contextmenu_add_groups_to_menu(this, clickednode);
@@ -1291,7 +1289,7 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
         }
 
         this.render();
-        clickednode.toggleHighlight(); // so the user knows what node this menu is for
+        clickednode.highlight(); // so the user knows what node this menu is for
     },
 
     /**
@@ -2284,13 +2282,14 @@ M.block_ajax_marking.update_menu_item = function(newsetting,
  */
 M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
 
+    var data = ajaxresponsearray.configsave;
     var currenttab = M.block_ajax_marking.get_current_tab(),
-        settingtype = ajaxresponsearray.configsave.settingtype,
-        newsetting = ajaxresponsearray.configsave.newsetting,
-        menutype = ajaxresponsearray.configsave.menutype,
-        clickednodeindex = ajaxresponsearray.configsave.nodeindex,
-        menuitemindex = ajaxresponsearray.configsave.menuitemindex,
-        menugroupindex = ajaxresponsearray.configsave.menugroupindex,
+        settingtype = data.settingtype,
+        newsetting = data.newsetting,
+        menutype = data.menutype,
+        clickednodeindex = data.nodeindex,
+        menuitemindex = data.menuitemindex,
+        menugroupindex = data.menugroupindex,
         clickedmenuitem,
         clickednode,
         groupid = null;
@@ -2310,7 +2309,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
     }
 
     if (settingtype === 'group') {
-        groupid = ajaxresponsearray.configsave.groupid;
+        groupid = data.groupid;
     }
 
     var defaultsetting = clickednode.get_default_setting(settingtype, groupid);
@@ -2652,8 +2651,8 @@ M.block_ajax_marking.initialise = function () {
         coursestab.contextmenu.subscribe("triggerContextMenu",
                                          coursestab.contextmenu.load_settings);
         coursestab.contextmenu.subscribe("beforeHide", function() {
-                                             M.block_ajax_marking.contextmenu_unhighlight();
-                                             coursestab.contextmenu.clickednode = null;});
+                                          coursestab.contextmenu.clickednode.unhighlight();
+                                          coursestab.contextmenu.clickednode = null;});
 
         // Set event that makes a new tree if it's needed when the tabs change
         M.block_ajax_marking.tabview.after('selectionChange', function () {
@@ -2697,19 +2696,6 @@ M.block_ajax_marking.initialise = function () {
     if (!document.getElementById('block_ajax_marking_collapse')) {
         M.block_ajax_marking.make_footer();
     }
-};
-
-/**
- * This is to remove the highlight from the tree so we don't have any nodes highlighted whilst the
- * context menu is not shown. The idea of the highlights is so that you know what item you are
- * adjusting the settings for.
- */
-M.block_ajax_marking.contextmenu_unhighlight = function () {
-
-    var target = this.contextEventTarget;
-    var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
-
-    clickednode.unhighlight();
 };
 
 /**
@@ -2863,27 +2849,6 @@ M.block_ajax_marking.grading_unhighlight = function (node) {
         node.unhighlight();
 
     }, {'nodeid' : node});
-};
-
-/**
- * Updates the config menu context menu so that it has the groups and settings for that particular
- * node.
- *
- */
-M.block_ajax_marking.config_contextmenu_load_groups = function () {
-
-    // this = the contextmenu because it's an event handler calling the function
-
-    var target = this.contextEventTarget;
-    var clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
-
-    // add new groups
-    M.block_ajax_marking.contextmenu_add_groups_to_menu(this, clickednode);
-
-    // display
-    this.render();
-
-    clickednode.toggleHighlight();
 };
 
 /**
