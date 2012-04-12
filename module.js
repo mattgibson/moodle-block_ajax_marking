@@ -1281,7 +1281,7 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
 
             this.make_setting_menuitem('groupsdisplay', clickednode);
 
-            choosegroupsmenuitem = this.make_setting_menuitem('groups', clickednode);
+//            choosegroupsmenuitem = this.make_setting_menuitem('groups', clickednode);
 
             if (groups.length) {
                 // Wipe all groups out of the groups sub-menu
@@ -1333,7 +1333,7 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
             case 'groups':
                 title = M.str.block_ajax_marking.choosegroups+':';
                 menuitem = {
-                        disabled : true
+                    classname : 'nocheck'
                 };
                 break;
         }
@@ -1635,8 +1635,11 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         node.set_count(newcounts.overduecount, 'overdue');
         node.set_count(newcounts.itemcount);
 
-        node.parent.recalculate_counts();
-        node.tree.update_total_count();
+        if (node.parent.recalculate_counts) {
+            node.parent.recalculate_counts();
+        } else {
+            this.update_total_count();
+        }
     },
 
     /**
@@ -2154,14 +2157,19 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
             }
         }
 
-        menu.addItem(newgroup);
+        // Add to group 1 so we can keep it separate from group 0 with the basic settings so that
+        // the contextmenu will have these all grouped to gether with a title
+        menu.addItem(newgroup, 1);
     }
 
-    // If there are no groups, we want to show this rather than have the contextmenu fail to
-    // pop up at all, leaving the normal one to apear in it's place
+    // If there are no groups, we want to show this rather than have the context menu fail to
+    // pop up at all, leaving the normal one to appear in it's place
     if (numberofgroups === 0) {
+        // TODO probably don't need this now - never used?
         menu.addItem({"text" : M.str.block_ajax_marking.nogroups,
                          "value" : 0 });
+    } else {
+        menu.setItemGroupTitle(M.str.block_ajax_marking.choosegroups+':', 1);
     }
 };
 
@@ -2282,7 +2290,7 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
         menutype = ajaxresponsearray.configsave.menutype,
         clickednodeindex = ajaxresponsearray.configsave.nodeindex,
         menuitemindex = ajaxresponsearray.configsave.menuitemindex,
-        menugroup = ajaxresponsearray.configsave.menugroup,
+        menugroupindex = ajaxresponsearray.configsave.menugroupindex,
         clickedmenuitem,
         clickednode,
         groupid = null;
@@ -2290,9 +2298,9 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
     clickednode = currenttab.displaywidget.getNodeByProperty('index', clickednodeindex);
 
     if (menutype == 'buttonmenu') {
-        clickedmenuitem = clickednode.renderedmenu.getItem(menuitemindex, menugroup);
+        clickedmenuitem = clickednode.renderedmenu.getItem(menuitemindex, menugroupindex);
     } else if (menutype == 'contextmenu') {
-        clickedmenuitem = currenttab.contextmenu.getItem(menuitemindex, menugroup);
+        clickedmenuitem = currenttab.contextmenu.getItem(menuitemindex, menugroupindex);
     }
 
     if (menutype == 'contextmenu' && clickednode.get_current_filter_name() === 'groupid') {
