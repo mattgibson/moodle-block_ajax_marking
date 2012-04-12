@@ -1277,21 +1277,16 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
         // If there are no groups, no need to show the groups settings. Also if there are no
         // child nodes e.g. for workshop, or if this is a group node itself
         if (currentfilter !== 'groupid' &&
-            clickednode.isDynamic() && groups.length !== 0) {
+            clickednode.isDynamic() && groups.length) {
 
             this.make_setting_menuitem('groupsdisplay', clickednode);
 
             choosegroupsmenuitem = this.make_setting_menuitem('groups', clickednode);
-            choosegroupsmenu = choosegroupsmenuitem.cfg.getProperty('submenu');
 
             if (groups.length) {
                 // Wipe all groups out of the groups sub-menu
-                M.block_ajax_marking.contextmenu_add_groups_to_menu(choosegroupsmenu, clickednode);
+                M.block_ajax_marking.contextmenu_add_groups_to_menu(this, clickednode);
                 // Enable the menu item, since we have groups in it
-                choosegroupsmenu.parent.cfg.setProperty("disabled", false);
-            } else {
-                // disable it so people can see that this is an option, but there are no groups
-                choosegroupsmenu.parent.cfg.setProperty("disabled", true);
             }
         }
 
@@ -1336,13 +1331,9 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
                 break;
 
             case 'groups':
-                title = M.str.block_ajax_marking.choosegroups;
+                title = M.str.block_ajax_marking.choosegroups+':';
                 menuitem = {
-                    submenu : {
-                        id : 'choosegroupssubmenu',
-                        keepopen : true,
-                        lazyload : true,
-                        itemdata : []}
+                        disabled : true
                 };
                 break;
         }
@@ -2285,30 +2276,31 @@ M.block_ajax_marking.update_menu_item = function(newsetting,
  */
 M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
 
-    var settingtype = ajaxresponsearray['configsave'].settingtype,
-        newsetting = ajaxresponsearray['configsave'].newsetting,
-        menu,
+    var currenttab = M.block_ajax_marking.get_current_tab(),
+        settingtype = ajaxresponsearray.configsave.settingtype,
+        newsetting = ajaxresponsearray.configsave.newsetting,
+        menutype = ajaxresponsearray.configsave.menutype,
+        clickednodeindex = ajaxresponsearray.configsave.nodeindex,
+        menuitemindex = ajaxresponsearray.configsave.menuitemindex,
+        menugroup = ajaxresponsearray.configsave.menugroup,
         clickedmenuitem,
-        target,
-        clickednode;
+        clickednode,
+        groupid = null;
 
-    clickedmenuitem = M.block_ajax_marking.clickedmenuitem;
-    menu = clickedmenuitem.parent;
+    clickednode = currenttab.displaywidget.getNodeByProperty('index', clickednodeindex);
 
-    var currenttab = M.block_ajax_marking.get_current_tab();
-    if (currenttab.contextmenu) {
-        clickednode = currenttab.contextmenu.clickednode;
-        // we deal with groups by dealing with the parent node. There's only one operation (hide),
-        // so as long as we hide the contextmenu too, it's fine.
-        if (clickednode.get_current_filter_name() === 'groupid') {
-            clickednode = clickednode.parent;
-        }
-    } else {
-        target = menu.element.parentElement; // config dropdown
-        clickednode = currenttab.displaywidget.getNodeByElement(target);
+    if (menutype == 'buttonmenu') {
+        clickedmenuitem = clickednode.renderedmenu.getItem(menuitemindex, menugroup);
+    } else if (menutype == 'contextmenu') {
+        clickedmenuitem = currenttab.contextmenu.getItem(menuitemindex, menugroup);
     }
 
-    var groupid = null;
+    if (menutype == 'contextmenu' && clickednode.get_current_filter_name() === 'groupid') {
+        // we deal with groups by dealing with the parent node. There's only one operation (hide),
+        // so as long as we hide the context menu too, it's fine.
+        clickednode = clickednode.parent;
+    }
+
     if (settingtype === 'group') {
         groupid = ajaxresponsearray.configsave.groupid;
     }
@@ -2781,6 +2773,7 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
     var requestdata = {};
     requestdata.groupid = groupid;
     requestdata.menuitemindex = this.index;
+    requestdata.menugroupindex = this.groupIndex;
     requestdata.nodeindex = clickednode.index;
     requestdata.settingtype = settingtype;
     if (settingtorequest !== null) { // leaving out defaults to null on the other end

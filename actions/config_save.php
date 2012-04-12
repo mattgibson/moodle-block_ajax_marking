@@ -34,17 +34,19 @@ global $DB;
 require_login();
 
 // Get POST data
-$tablename     = required_param('tablename',        PARAM_ALPHAEXT);
-$instanceid    = required_param('instanceid',       PARAM_INT);
-$settingtype   = required_param('settingtype',      PARAM_ALPHAEXT);
-$settingvalue  = optional_param('settingvalue',     null, PARAM_INT); // null = inherit
-$groupid       = optional_param('groupid', 0,       PARAM_INT);
-// These two are passed through so that the right bit of the tree gets fixed on the way back
-$menuitemindex = optional_param('menuitemindex', false, PARAM_INT);
-$nodeindex        = optional_param('nodeindex', false,  PARAM_INT);
+$tablename       = required_param('tablename',        PARAM_ALPHAEXT);
+$instanceid      = required_param('instanceid',       PARAM_INT);
+$settingtype     = required_param('settingtype',      PARAM_ALPHAEXT);
+$settingvalue    = optional_param('settingvalue',     null, PARAM_INT); // null = inherit
+$groupid         = optional_param('groupid', 0,       PARAM_INT);
+// These are passed through so that the right bit of the tree/menu gets fixed on the way back
+$menuitemindex   = optional_param('menuitemindex', false, PARAM_INT);
+$nodeindex       = optional_param('nodeindex', false,  PARAM_INT);
+$menutype        = optional_param('menutype', false,  PARAM_ALPHA);
+$menugroupindex  = optional_param('menugroupindex', 0,  PARAM_INT);
 
 if ($nodeindex === false && $menuitemindex === false) {
-    die ('Eitehr menuitem index or node index must be provided');
+    die ('Either menuitem index or node index must be provided');
 }
 
 // Check for validity
@@ -177,11 +179,13 @@ switch ($settingtype) {
 }
 
 $response = new stdClass();
-$response->configsave = array('menuitemindex' => $menuitemindex,
-                              'settingtype'   => $settingtype,
-                              'success'       => (bool)$success,
-                              'newsetting'    => $settingvalue,
-                              'groupid'       => $groupid,
-                              'nodeindex'     => $nodeindex);
+$response->configsave = array('menuitemindex'  => $menuitemindex,
+                              'settingtype'    => $settingtype,
+                              'success'        => (bool)$success,
+                              'newsetting'     => $settingvalue,
+                              'groupid'        => $groupid,
+                              'menutype'       => $menutype,
+                              'menugroupindex' => $menugroupindex,
+                              'nodeindex'      => $nodeindex);
 
 echo json_encode($response);
