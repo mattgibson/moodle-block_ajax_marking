@@ -847,7 +847,6 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
      * @method loadComplete
      */
     loadComplete : function (justrefreshchildren) {
-        this.logger.log(this.index+" loadComplete, children: "+this.children.length);
         this.getChildrenEl().innerHTML = this.completeRender();
         this.tree.add_groups_buttons(this, justrefreshchildren); //groups stuck onto all children.
         if (this.propagateHighlightDown) {
