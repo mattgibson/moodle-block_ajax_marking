@@ -23,6 +23,13 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+// Emulates the trim function if it's not there
+if (typeof String.prototype.trim !== 'function') {
+    String.prototype.trim = function () {
+        return this.replace(/^\s+|\s+$/g, '');
+    }
+}
+
 // Modules that add their own javascript will have already defined this, but here just in case.
 
 if (typeof(M.block_ajax_marking) === 'undefined') {
