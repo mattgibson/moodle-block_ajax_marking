@@ -758,6 +758,13 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         if (icon) {
             icon.className += ' nodeicon';
+            try {
+                delete icon.id;
+            }
+            catch (e) {
+                // keep IE9 happy
+                icon["id"] = undefined;
+            }
             delete icon.id;
             sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
         }
@@ -779,7 +786,13 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         displaysetting = this.get_setting_to_display('display');
         var displaytype = displaysetting ? 'hide' : 'show'; // icons are named after their actions
         var displayicon =  M.block_ajax_marking.get_dynamic_icon(displaytype);
-        delete displayicon.id;
+        try {
+            delete displayicon.id;
+        }
+        catch (e) {
+            // keep IE9 happy
+            displayicon["id"] = undefined;
+        }
         displayicon = M.block_ajax_marking.get_dynamic_icon_string(displayicon);
 
         sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ';
@@ -795,7 +808,13 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
             var groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups'; // icons are named after their actions
             groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
-            delete groupsicon.id;
+            try {
+                delete groupsicon.id;
+            }
+            catch (e) {
+                // keep IE9 happy
+                groupsicon["id"] = undefined;
+            }
             groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
 
         }
@@ -2506,7 +2525,15 @@ M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
         newicon.alt = alttext;
     }
 
-    delete newicon.id; // avoid collisions
+    // avoid collisions
+    try {
+        delete newicon.id;
+    }
+    catch (e) {
+        // keep IE9 happy
+        newicon["id"] = undefined;
+    }
+
     return newicon;
 };
 
