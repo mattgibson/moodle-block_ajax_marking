@@ -563,17 +563,20 @@ class block_ajax_marking_nodes_builder {
                 $moduleclasses = block_ajax_marking_get_module_classes();
                 $introcoalesce = array();
                 $namecoalesce = array();
+                $orderbycoalesce = array();
                 foreach ($moduleclasses as $moduleclass) {
+                    $moduletablename = $moduleclass->get_module_table();
                     $query->add_from(array(
                         'join' => 'LEFT JOIN',
-                        'table' => $moduleclass->get_module_table(),
+                        'table' => $moduletablename,
                         // ids of modules will be constant for one install, so we don't need to
                         // worry about parameterising them for query caching
-                        'on' => "(course_modules.instance = ".$moduleclass->get_module_table().".id
+                        'on' => "(course_modules.instance = ".$moduletablename.".id
                                   AND course_modules.module = '".$moduleclass->get_module_id()."')"
                     ));
-                    $namecoalesce[$moduleclass->get_module_table()] = 'name';
-                    $introcoalesce[$moduleclass->get_module_table()] = 'intro';
+                    $namecoalesce[$moduletablename] = 'name';
+                    $introcoalesce[$moduletablename] = 'intro';
+                    $orderbycoalesce[$moduletablename] = $moduletablename.'.name';
                 }
                 $query->add_select(array(
                         'table'    => 'course_modules',
@@ -614,7 +617,7 @@ class block_ajax_marking_nodes_builder {
                 // Same order as they appear on the course pages
                 //$query->add_orderby('course_modules.section ASC, course_modules.id ASC');
                 // TODO get them in order of module type first?
-                $query->add_orderby('COALESCE('.implode(',', $namecoalesce).') ASC');
+                $query->add_orderby('COALESCE('.implode(', ', $orderbycoalesce).') ASC');
 
                 break;
 
