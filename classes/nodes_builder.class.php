@@ -1113,8 +1113,6 @@ SQL;
         self::apply_sql_visible($configbasequery, '', true);
         self::apply_filters_to_query($filters, $configbasequery, true);
 
-        $configbasequery->add_orderby('name ASC');
-
         // This is just for copying and pasting from the paused debugger into a DB GUI
         if ($CFG->debug === DEBUG_DEVELOPER) {
             $debugquery = block_ajax_marking_debuggable_query($configbasequery);
