@@ -316,6 +316,19 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
+     * Gets the extra stuff that may be necessary for the pop up to be displayed properly.
+     */
+    get_popup_stuff : function () {
+
+        var popupstuff = [];
+
+        for (var thing in this.data.popupstuff) {
+            popupstuff.push(thing+'='+this.data.popupstuff[thing]);
+        }
+        return popupstuff;
+    },
+
+    /**
      * Helper function to get the config groups array or return an empty array if it's not there.
      *
      * @return {Array}
@@ -2101,6 +2114,10 @@ M.block_ajax_marking.treenodeonclick = function (oArgs) {
 
     var nodefilters = node.get_filters(true);
     nodefilters.push('node='+node.index);
+    // Add any extra stuff e.g. assignments always need mode=single to make optional_param() stuff
+    // work internally in assignment classes.
+    var popupstuff = node.get_popup_stuff();
+    nodefilters = nodefilters.concat(popupstuff);
     popupurl += nodefilters.join('&');
 
     // Pop-up version
