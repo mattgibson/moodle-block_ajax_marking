@@ -45,6 +45,9 @@ $coursemodule = $DB->get_record('course_modules', array('id' => $cmid));
 /** @var string $modname  */
 $modname = $DB->get_field('modules', 'name', array('id' => $coursemodule->module));
 
+// Page may need custom javascript.
+//$PAGE->require();
+
 //permissions checks
 if (!$coursemodule) {
     print_error('Bad coursemoduleid');
