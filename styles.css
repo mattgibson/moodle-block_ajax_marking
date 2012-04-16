@@ -133,8 +133,8 @@ td.block_ajax_marking_groups_icon span.yui-button button {
 }
 
 /* Keeps the icons from being off centre */
-td.ygtvcell {
-    line-height: 1;
+img.nodeicon {
+    margin-top: 3px;
 }
 img.dynamicicon {
     float: left;
@@ -161,12 +161,5 @@ table.ygtvtable {
 .configtreenode img.nodeicon {
     margin-right: 3px;
 }
-/* Makes the 'hide specific groups' contextmenu item go left */
-/*.nocheck a.yuimenuitemlabel {*/
-    /*padding-left: 10px;*/
-/*}*/
-/*li.nocheck.yuimenuitem {*/
-    /*border-top: 1px solid #A6A6A6;*/
-    /*margin-top: 3px;*/
-/*}*/
+
 
