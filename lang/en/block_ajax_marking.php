@@ -56,6 +56,9 @@ $string['notingroupdescription'] = 'This activity is set to show students divide
 $string['recentitems']           = 'recent items';
 $string['mediumitems']           = 'medium items';
 $string['overdueitems']          = 'overdue items';
+$string['recentitem']            = 'recent item';
+$string['mediumitem']            = 'medium item';
+$string['overdueitem']           = 'overdue item';
 
 // Specific to modules
 

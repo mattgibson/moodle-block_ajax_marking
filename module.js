@@ -448,13 +448,17 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
         }
 
-        // Make the adjustment
+        // Make the adjustment to the node's count
         if (type) {
             span = document.getElementById(type+this.index);
             if (span) {
                 span.innerHTML = newvalue;
             }
+            // also to the tooltip
+            var suffix = newvalue == 1 ? 'item' : 'items';
+            span.title = newvalue+' '+M.str.block_ajax_marking[type+suffix];
         }
+
     },
 
     /**
@@ -496,6 +500,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
         var componentcounts,
             html,
+            suffix,
             countarray = [],
             titlearray = [];
 
@@ -504,15 +509,18 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
             if (componentcounts.recent) {
                 countarray.push('<span id="recent'+this.index+'" class="recent">'+componentcounts.recent+'</span>');
-                titlearray.push(componentcounts.recent+' '+M.str.block_ajax_marking.recentitems);
+                suffix = componentcounts.recent == 1 ? 'item' : 'items';
+                titlearray.push(componentcounts.recent+' '+M.str.block_ajax_marking['recent'+suffix]);
             }
             if (componentcounts.medium) {
                 countarray.push('<span id="medium'+this.index+'" class="medium">'+componentcounts.medium+'</span>');
-                titlearray.push(componentcounts.medium+' '+M.str.block_ajax_marking.mediumitems);
+                suffix = componentcounts.medium == 1 ? 'item' : 'items';
+                titlearray.push(componentcounts.medium+' '+M.str.block_ajax_marking['medium'+suffix]);
             }
             if (componentcounts.overdue) {
                 countarray.push('<span id="overdue'+this.index+'" class="overdue">'+componentcounts.overdue+'</span>');
-                titlearray.push(componentcounts.overdue+' '+M.str.block_ajax_marking.overdueitems);
+                suffix = componentcounts.overdue == 1 ? 'item' : 'items';
+                titlearray.push(componentcounts.overdue+' '+M.str.block_ajax_marking['overdue'+suffix]);
             }
 
             html = '';

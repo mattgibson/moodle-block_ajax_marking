@@ -129,7 +129,13 @@ class block_ajax_marking extends block_base {
                     array('choosegroups', 'block_ajax_marking'),
                     array('recentitems', 'block_ajax_marking'),
                     array('mediumitems', 'block_ajax_marking'),
-                    array('overdueitems', 'block_ajax_marking')
+                    array('overdueitems', 'block_ajax_marking'),
+                    array('recentitem',
+                          'block_ajax_marking'),
+                    array('mediumitem',
+                          'block_ajax_marking'),
+                    array('overdueitem',
+                          'block_ajax_marking')
                 )
             );
 
