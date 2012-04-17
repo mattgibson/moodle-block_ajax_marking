@@ -678,7 +678,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                 continue;
             }
             var currentfiltervalue = parseInt(this.children[i].get_current_filter_value());
-            if (currentfiltervalue !== filtervalue) {
+            if (currentfiltervalue !== parseInt(filtervalue)) {
                 continue;
             }
             return this.children[i];
