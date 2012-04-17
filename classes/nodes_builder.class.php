@@ -699,6 +699,7 @@ SQL;
                group_groups.id AS groupid,
 
 SQL;
+
         switch ($type) {
             case 'coalesce':
                 $groupdisplaysubquery .= $coursemodulesselect;
@@ -801,6 +802,20 @@ SQL;
                 break;
         }
 
+        $separategroups = SEPARATEGROUPS;
+        $coursesparams['teacheruserid'] = $USER->id;
+        $groupdisplaysubquery .= "
+            AND ( group_course_modules.groupmode != {$separategroups} OR
+                    ( group_course_modules.groupmode = {$separategroups} AND
+                      EXISTS ( SELECT 1
+                                 FROM {groups_members} teachermemberships
+                                WHERE teachermemberships.groupid = group_groups.id
+                                  AND teachermemberships.userid = :teacheruserid
+                             )
+                    )
+                )
+        ";
+
         if ($CFG->debug == DEBUG_DEVELOPER) {
             // only a tiny overhead, but still worth avoiding if not needed
             $debugquery = block_ajax_marking_debuggable_query($groupdisplaysubquery,
@@ -822,6 +837,8 @@ SQL;
      */
     private static function apply_sql_display_settings($query) {
 
+        global $USER;
+
         // TODO are these joins in use?
         $query->add_from(array('join' => 'LEFT JOIN',
                                'table' => 'block_ajax_marking',
@@ -838,7 +855,9 @@ SQL;
         // Here, we filter out the users with no group memberships, where the users without group
         // memberships have been set to be hidden for this coursemodule.
         // Second bit (after OR) filters out those who have group memberships, but all of them are
-        // set to be hidden
+        // set to be hidden. This is done by saying 'are there any visible at all'
+        // The bit after that, talking about separate groups is to make sure users don't see any
+        // of these groups unless they are members of them if separate groups is enabled.
         $sitedefaultnogroup = 1; // what to do with users who have no group membership?
         list($existsvisibilitysubquery, $existsparams) = self::sql_group_visibility_subquery();
         $query->add_params($existsparams);
@@ -867,6 +886,7 @@ SQL;
                      AND existsvisibilitysubquery.cmid = moduleunion.coursemoduleid
                      AND groups.courseid = moduleunion.course
                      AND existsvisibilitysubquery.display = 1)
+
         )
     )
 SQL;
@@ -1239,6 +1259,8 @@ SQL;
     /**
      * Config nodes need some stuff to be returned from the config tables so we can have settings
      * adjusted based on existing values.
+     *
+     * @TODO this isn't really a filter
      *
      * @param block_ajax_marking_query_base $query
      * @param string $nextnodefilter
