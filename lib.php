@@ -436,8 +436,12 @@ function block_ajax_marking_strip_html_tags($text) {
  * We need a proper error message in case of a timed out session, not a dodgy redirect
  */
 function block_ajax_marking_login_error() {
+
+    global $CFG;
+
     if (!isloggedin()) {
-        $response = array('error' => get_string('sessiontimedout', 'block_ajax_marking'),
+        $notloggedin = get_string('sessiontimedout', 'block_ajax_marking', $CFG->wwwroot);
+        $response = array('error' => $notloggedin,
                           'debuginfo' => 'sessiontimedout');
         echo json_encode($response);
         die();

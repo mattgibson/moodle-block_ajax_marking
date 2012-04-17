@@ -61,7 +61,7 @@ $string['mediumitem']            = 'medium item';
 $string['overdueitem']           = 'overdue item';
 $string['errorcontactadmin']     = 'Error: Please contact your administrator.';
 
-$string['sessiontimedout']       = 'Your session has timed out. Please log in again';
+$string['sessiontimedout']       = 'Your session has timed out. Please <a href="{$a}/login/index.php">log in again</a>';
 
 // Specific to modules
 
