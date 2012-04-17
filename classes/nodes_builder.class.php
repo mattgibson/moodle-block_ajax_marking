@@ -675,15 +675,15 @@ class block_ajax_marking_nodes_builder {
 
         // Query visualisation:
         /*
-         *    ________________________________________________________________
-         *    |                                                               |
-         * Groups -- coursemodules                                            |
-         *    |   course |   |id_____ block_ajax_marking_settings --- block_ajax_marking_groups
-         *    |          |               (for coursemodules)           (per coursemodule)
-         *    |          |
-         *    |          |_________ block_ajax_marking_settings --- block_ajax_marking_groups
-         *    |                          (for courses)                   (per course)
-         *    |_______________________________________________________________|
+         *               ______________________________________________________________
+         *               |                                                            |
+         * Course - Groups - coursemodules                                            |
+         *               |   course |  |id__ block_ajax_marking_settings - block_ajax_marking_groups
+         *               |          |            (for coursemodules)           (per coursemodule)
+         *               |          |
+         *               |          |_____ block_ajax_marking_settings --- block_ajax_marking_groups
+         *               |                       (for courses)                   (per course)
+         *               |____________________________________________________________|
          *
          */
 
@@ -730,6 +730,8 @@ SQL;
         $groupdisplaysubquery .= <<<SQL
 
           FROM {course_modules} group_course_modules
+    INNER JOIN {course} group_course
+            ON group_course.id = group_course_modules.course
     INNER JOIN {groups} group_groups
             ON group_groups.courseid = group_course_modules.course
 SQL;
@@ -802,12 +804,20 @@ SQL;
                 break;
         }
 
+        // This is making sure that we hide groups that a teacher is not a member of when the group
+        // mode is set to 'separate groups'
         $separategroups = SEPARATEGROUPS;
         $coursesparams['teacheruserid'] = $USER->id;
+        $groupsmodeisseparate = "";
+        $groupsmodeisnotseparate = "( ( group_course.groupmodeforce = 1 AND
+                                        group_course.groupmode != {$separategroups} )
+                                      OR
+                                      ( group_course.groupmodeforce = 0 AND
+                                        group_course_modules.groupmode != {$separategroups} )
+                                    ) ";
         $groupdisplaysubquery .= "
-            AND ( group_course_modules.groupmode != {$separategroups} OR
-                    ( group_course_modules.groupmode = {$separategroups} AND
-                      EXISTS ( SELECT 1
+            AND ( {$groupsmodeisnotseparate} OR
+                    ( EXISTS ( SELECT 1
                                  FROM {groups_members} teachermemberships
                                 WHERE teachermemberships.groupid = group_groups.id
                                   AND teachermemberships.userid = :teacheruserid
