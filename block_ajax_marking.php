@@ -130,6 +130,7 @@ class block_ajax_marking extends block_base {
                     array('recentitems', 'block_ajax_marking'),
                     array('mediumitems', 'block_ajax_marking'),
                     array('overdueitems', 'block_ajax_marking'),
+                    array('errorcontactadmin', 'block_ajax_marking'),
                     array('recentitem',
                           'block_ajax_marking'),
                     array('mediumitem',
@@ -196,10 +197,8 @@ class block_ajax_marking extends block_base {
                     </div>
                     <div id="status"></div>
                 </div>
-                <div id="treetabs">
-                </div>
+                <div id="treetabs"></div>
                 <div id="block_ajax_marking_refresh_button"></div>
-                <div id="block_ajax_marking_configure_button"></div>
                 <div id="block_ajax_marking_error"></div>
                 <div class="block_ajax_marking_spacer"></div>';
             $this->content->text .= $divs;

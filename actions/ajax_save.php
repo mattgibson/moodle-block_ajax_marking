@@ -29,6 +29,10 @@
 define('AJAX_SCRIPT', true);
 
 require_once(dirname(__FILE__).'/../../../config.php');
+
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+
+block_ajax_marking_login_error();
 require_login(0, false);
 
 // Target = what function is going to be doing the save operation. Either a core thing for

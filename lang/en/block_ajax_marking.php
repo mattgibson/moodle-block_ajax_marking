@@ -59,6 +59,9 @@ $string['overdueitems']          = 'overdue items';
 $string['recentitem']            = 'recent item';
 $string['mediumitem']            = 'medium item';
 $string['overdueitem']           = 'overdue item';
+$string['errorcontactadmin']     = 'Error: Please contact your administrator.';
+
+$string['sessiontimedout']       = 'Your session has timed out. Please log in again';
 
 // Specific to modules
 

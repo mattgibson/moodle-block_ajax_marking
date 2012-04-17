@@ -31,6 +31,9 @@ require_once(dirname(__FILE__).'/../../../config.php');
 
 global $DB;
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+
+block_ajax_marking_login_error();
 require_login();
 
 // Get POST data

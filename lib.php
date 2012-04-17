@@ -431,3 +431,15 @@ function block_ajax_marking_strip_html_tags($text) {
     $text =  strip_tags($text); // lose any remaining tags
     return preg_replace('/\s+/', ' ', trim($text)); // lose duplicate whitespaces
 }
+
+/**
+ * We need a proper error message in case of a timed out session, not a dodgy redirect
+ */
+function block_ajax_marking_login_error() {
+    if (!isloggedin()) {
+        $response = array('error' => get_string('sessiontimedout', 'block_ajax_marking'),
+                          'debuginfo' => 'sessiontimedout');
+        echo json_encode($response);
+        die();
+    }
+}
