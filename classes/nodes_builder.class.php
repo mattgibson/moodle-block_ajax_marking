@@ -808,7 +808,6 @@ SQL;
         // mode is set to 'separate groups'
         $separategroups = SEPARATEGROUPS;
         $coursesparams['teacheruserid'] = $USER->id;
-        $groupsmodeisseparate = "";
         $groupsmodeisnotseparate = "( ( group_course.groupmodeforce = 1 AND
                                         group_course.groupmode != {$separategroups} )
                                       OR
@@ -1168,7 +1167,7 @@ SQL;
      */
     private function attach_groups_to_nodes($nodes, $filters) {
 
-        global $DB, $CFG;
+        global $DB, $CFG, $USER;
 
         if (!$nodes) {
             return array();
@@ -1194,13 +1193,17 @@ SQL;
             // otherwise, we won't be able to offer to create settings for them.
             list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
 
+            $separategroups = SEPARATEGROUPS;
+
             $sql = <<<SQL
 
              SELECT groups.id,
                     groups.courseid AS courseid,
                     groups.name,
                     settings.display
-               FROM mdl_groups groups
+               FROM {groups} groups
+         INNER JOIN {course} course
+                 ON course.id = groups.courseid
 
           LEFT JOIN (SELECT coursesettings.instanceid AS courseid,
                             groupsettings.groupid,
@@ -1212,9 +1215,17 @@ SQL;
 
                  ON (groups.courseid = settings.courseid
                      AND groups.id = settings.groupid)
-              WHERE groups.courseid {$coursesql}
 
+              WHERE groups.courseid {$coursesql}
+                AND (  course.groupmode != {$separategroups} OR
+                       EXISTS ( SELECT 1
+                                   FROM {groups_members} teachermemberships
+                                  WHERE teachermemberships.groupid = groups.id
+                                    AND teachermemberships.userid = :teacheruserid
+                               )
+                    )
 SQL;
+            $params['teacheruserid'] = $USER->id;
 
             if ($CFG->debug === DEBUG_DEVELOPER) {
                 $debugquery = block_ajax_marking_debuggable_query($sql, $params);
