@@ -457,16 +457,17 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             span = document.getElementById(type+this.index);
             if (span) {
                 span.innerHTML = newvalue;
+
+                // also to the tooltip
+                componentcounts = this.get_component_counts();
+                for (var typeofcount in componentcounts) {
+                    suffix = componentcounts[typeofcount] == 1 ? 'item' : 'countstring';
+                    countstring = componentcounts[typeofcount]+' '+
+                                  M.str.block_ajax_marking[typeofcount+suffix];
+                    titlearray.push(countstring);
+                }
+                span.title = titlearray.join(', ');
             }
-            // also to the tooltip
-            componentcounts = this.get_component_counts();
-            for (var typeofcount in componentcounts) {
-                suffix = componentcounts[typeofcount] == 1 ? 'item' : 'countstring';
-                countstring = componentcounts[typeofcount]+' '+
-                              M.str.block_ajax_marking[typeofcount+suffix];
-                titlearray.push(countstring);
-            }
-            span.title = titlearray.join(', ');
         }
 
     },
