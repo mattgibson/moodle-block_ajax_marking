@@ -428,7 +428,11 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      */
     set_count : function (newvalue, type) {
 
-        var span;
+        var span,
+            componentcounts,
+            titlearray = [],
+            suffix,
+            countstring;
 
         switch (type) {
             case 'recent':
@@ -455,8 +459,14 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                 span.innerHTML = newvalue;
             }
             // also to the tooltip
-            var suffix = newvalue == 1 ? 'item' : 'items';
-            span.title = newvalue+' '+M.str.block_ajax_marking[type+suffix];
+            componentcounts = this.get_component_counts();
+            for (var typeofcount in componentcounts) {
+                suffix = componentcounts[typeofcount] == 1 ? 'item' : 'countstring';
+                countstring = componentcounts[typeofcount]+' '+
+                              M.str.block_ajax_marking[typeofcount+suffix];
+                titlearray.push(countstring);
+            }
+            span.title = titlearray.join(', ');
         }
 
     },
