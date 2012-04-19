@@ -804,7 +804,6 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
                 // keep IE9 happy
                 icon["id"] = undefined;
             }
-            delete icon.id;
             sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
         }
 
