@@ -2294,14 +2294,30 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
         }
 
         // If we have a neatly structured Moodle error, we want to display it
-        if (typeof(ajaxresponsearray.error) !== 'undefined') {
-            errormessage = '<strong>A Moodle error occurred:</strong><br />';
-            errormessage += ajaxresponsearray.error+'<br />';
-            errormessage += '<strong>Debug info:</strong><br />';
-            errormessage += ajaxresponsearray.debuginfo+'<br />';
-            errormessage += '<strong>Stacktrace:</strong><br />';
-            errormessage += ajaxresponsearray.stacktrace+'<br />';
-            M.block_ajax_marking.show_error(errormessage);
+        if (ajaxresponsearray.hasOwnProperty('error')) {
+
+            errormessage = '';
+
+            // Special case for 'not logged in' message
+            if (ajaxresponsearray.hasOwnProperty('debuginfo') &&
+                ajaxresponsearray.debuginfo == 'sessiontimedout') {
+
+                M.block_ajax_marking.show_error(ajaxresponsearray.error, true);
+
+            } else {
+                // Developer message.
+                errormessage += '<strong>A Moodle error occurred:</strong><br />';
+                errormessage += ajaxresponsearray.error;
+                if (ajaxresponsearray.hasOwnProperty('debuginfo')) {
+                    errormessage += '<br /><strong>Debug info:</strong><br />';
+                    errormessage += ajaxresponsearray.debuginfo;
+                }
+                if (ajaxresponsearray.hasOwnProperty('stacktrace')) {
+                    errormessage += '<br /><strong>Stacktrace:</strong><br />';
+                    errormessage += ajaxresponsearray.stacktrace;
+                }
+                M.block_ajax_marking.show_error(errormessage);
+            }
 
         } else if (typeof(ajaxresponsearray['gradinginterface']) !== 'undefined') {
             // We have gotten the grading form back. Need to add the HTML to the modal overlay
@@ -2422,18 +2438,22 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
 /**
  * Shows an error message in the div below the tree.
  * @param errormessage
+ * @param notloggedin ignores the fact that a user is not an admin. Used to show 'not logged in'
  */
-M.block_ajax_marking.show_error = function (errormessage) {
+M.block_ajax_marking.show_error = function (errormessage, notloggedin) {
 
-    if (typeof(M.cfg.developerdebug) === 'undefined') {
-        errormessage = 'Error: Please contact your administrator.';
+    if (typeof(M.cfg.developerdebug) === 'undefined' && !notloggedin) {
+        errormessage = M.str.block_ajax_marking.errorcontactadmin;
     }
 
     if (typeof(errormessage) === 'string') {
         document.getElementById('block_ajax_marking_error').innerHTML = errormessage;
     }
     YAHOO.util.Dom.setStyle('block_ajax_marking_error', 'display', 'block');
-    document.getElementById('count').innerHTML = '?';
+    if (notloggedin) {
+        // Login message never needs scrollbars and they mess it up
+        YAHOO.util.Dom.setStyle('block_ajax_marking_error', 'overflow-x', 'auto');
+    }
 };
 
 /**
