@@ -43,7 +43,7 @@ $string['nothingtomark']         = 'Hooray - nothing to mark!';
 $string['pluginname']            = 'AJAX marking block';
 $string['refresh']               = 'Refresh';
 $string['submitted']             = 'Submitted';
-$string['totaltomark']           = 'Total to mark';
+$string['totaltomark']           = 'Total:';
 $string['waiting']               = 'Pieces of work';
 $string['show']                  = 'Show this item';
 $string['showgroups']            = 'Show group nodes';
@@ -59,6 +59,9 @@ $string['overdueitems']          = 'overdue items';
 $string['recentitem']            = 'recent item';
 $string['mediumitem']            = 'medium item';
 $string['overdueitem']           = 'overdue item';
+$string['errorcontactadmin']     = 'Error: Please contact your administrator.';
+$string['cog']                   = 'Configuration icon';
+$string['sessiontimedout']       = 'Your session has timed out. Please <a href="{$a}/login/index.php">log in again</a>';
 
 // Specific to modules
 
