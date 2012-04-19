@@ -59,6 +59,7 @@ $string['overdueitems']          = 'overdue items';
 $string['recentitem']            = 'recent item';
 $string['mediumitem']            = 'medium item';
 $string['overdueitem']           = 'overdue item';
+$string['cog']                   = 'Configuration icon';
 
 // Specific to modules
 

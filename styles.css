@@ -210,6 +210,10 @@ table.ygtvtable {
     margin-top: 3px;
     padding-left: 5px;
 }
+#block_ajax_marking #configtabicon {
+    width: 11px;
+}
+
 
 
 

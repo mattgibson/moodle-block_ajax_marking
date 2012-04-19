@@ -2669,8 +2669,10 @@ M.block_ajax_marking.initialise = function () {
 
         // Courses tab
         var coursetabconfig = {
-                     'label' : 'Courses',
-                     'content' : '<div id="coursessheader" class="treetabheader">'+
+            'label' : 'Courses',
+            id : 'coursestab',
+
+            'content' : '<div id="coursessheader" class="treetabheader">'+
                                     '<div id="coursesrefresh" class="refreshbutton"></div>'+
                                     '<div id="coursesstatus" class="statusdiv">'+
                                         M.str.block_ajax_marking.totaltomark+
@@ -2707,6 +2709,7 @@ M.block_ajax_marking.initialise = function () {
         // Cohorts tab
         var cohortstabconfig = {
             'label' : 'Cohorts',
+            id : 'cohortstab',
             'content' : '<div id="cohortsheader" class="treetabheader">'+
                             '<div id="cohortsrefresh" class="refreshbutton"></div>'+
                             '<div id="cohortsstatus" class="statusdiv">'+
@@ -2741,7 +2744,8 @@ M.block_ajax_marking.initialise = function () {
 
         // Config tab
         var configtabconfig = {
-            'label' : 'Config',
+            'label' : '<img src="blocks/ajax_marking/pix/cog.png" alt="cogs" id="configtabicon" />',
+             id : 'configtab',
             'content' : '<div id="configheader" class="treetabheader">'+
                             '<div id="configrefresh" class="refreshbutton"></div>'+
                             '<div id="configstatus" class="statusdiv"></div>'+
