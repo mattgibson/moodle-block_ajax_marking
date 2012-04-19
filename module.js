@@ -1540,6 +1540,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         // send the ajax request
         YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl,
                                         M.block_ajax_marking.callback, this.initial_nodes_data);
+        this.add_loading_icon();
+
     },
 
     /**
@@ -1584,6 +1586,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
                                         M.block_ajax_marking.ajaxnodesurl,
                                         M.block_ajax_marking.callback,
                                         nodefilters);
+
     },
 
     /**
@@ -1733,7 +1736,29 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         }
 
         node.recalculate_counts();
+    },
+
+    /**
+     * Changes the refresh button into a loading icon button
+     */
+    add_loading_icon : function () {
+        this.tab.refreshbutton.set('label', '<img src="blocks/ajax_marking/pix/ajax-loader.gif"'+
+                                            ' class="refreshicon"'+
+                                            ' alt="'+M.str.block_ajax_marking.refresh+'" />');
+        this.tab.refreshbutton.focus();
+
+    },
+
+    /**
+     * Changes the loading icon button back to a refresh button
+     */
+    remove_loading_icon : function () {
+        this.tab.refreshbutton.set('label', '<img src="blocks/ajax_marking/pix/refresh-arrow.png"' +
+                                           ' class="refreshicon"'+
+                                           ' alt="'+M.str.block_ajax_marking.refresh+'" />');
+        this.tab.refreshbutton.blur();
     }
+
 
 });
 
@@ -2309,7 +2334,9 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
         }
     }
 
-    YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
+    // TODO this needs to get the right tab from the request details in case we switch tabs quickly
+    M.block_ajax_marking.get_current_tab().displaywidget.remove_loading_icon();
+
 };
 
 M.block_ajax_marking.update_menu_item = function(newsetting,
@@ -2640,7 +2667,7 @@ M.block_ajax_marking.initialise = function () {
         // Must render first so treeviews have container divs ready
         M.block_ajax_marking.tabview.render();
 
-        // Define the tabs here and add them dynamically.
+        // Courses tab
         var coursetabconfig = {
                      'label' : 'Courses',
                      'content' : '<div id="coursessheader" class="treetabheader">'+
@@ -2677,6 +2704,7 @@ M.block_ajax_marking.initialise = function () {
             }},
             container : 'coursesrefresh'});
 
+        // Cohorts tab
         var cohortstabconfig = {
             'label' : 'Cohorts',
             'content' : '<div id="cohortsheader" class="treetabheader">'+
@@ -2711,6 +2739,7 @@ M.block_ajax_marking.initialise = function () {
            }},
            container : 'cohortsrefresh'});
 
+        // Config tab
         var configtabconfig = {
             'label' : 'Config',
             'content' : '<div id="configheader" class="treetabheader">'+
@@ -2723,6 +2752,8 @@ M.block_ajax_marking.initialise = function () {
         M.block_ajax_marking.tabview.add(configtab);
         configtab.displaywidget = new M.block_ajax_marking.config_tree();
         M.block_ajax_marking.configtab_tree = configtab.displaywidget;
+        configtab.displaywidget.tab = configtab; // reference to allow links back to tab from tree
+
         configtab.displaywidget.render();
         configtab.displaywidget.subscribe('clickEvent',
                                           M.block_ajax_marking.config_treenodeonclick);
