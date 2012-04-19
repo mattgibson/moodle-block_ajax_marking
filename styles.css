@@ -213,7 +213,33 @@ table.ygtvtable {
 #block_ajax_marking #configtabicon {
     width: 11px;
 }
-
+#block_ajax_marking div.nodelabelwrapper div.nodelabel:hover {
+    position: absolute;
+    float: left;
+    overflow-x: visible;
+    white-space: normal;
+    height: auto;
+    background-color: #fff;
+    color: #000;
+    border: 1px solid #ccc;
+    padding-left: 2px;
+}
+/* Stop the node labels at different levels from overlapping the block when hovered over */
+#block_ajax_marking .ygtvdepth0 div.nodelabelwrapper div.nodelabel:hover {
+    width: 80%;
+}
+#block_ajax_marking .ygtvdepth1 div.nodelabelwrapper div.nodelabel:hover {
+    width: 70%;
+}
+#block_ajax_marking .ygtvdepth2 div.nodelabelwrapper div.nodelabel:hover {
+    width: 60%;
+}
+#block_ajax_marking .ygtvdepth3 div.nodelabelwrapper div.nodelabel:hover {
+    width: 50%;
+}
+#block_ajax_marking .ygtvdepth4 div.nodelabelwrapper div.nodelabel:hover {
+    width: 40%;
+}
 
 
 

@@ -551,7 +551,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             html +=         '<strong>)</strong>'+
                         '</div> ';
 
-            html +=     '<div class="nodelabel" title="'+this.get_tooltip()+'">'+
+            html +=     '<div class="nodelabel" >'+
                             this.get_displayname();
             html +=     '</div>';
             html +=     '<div class="block_ajax_marking_spacer">';
