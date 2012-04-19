@@ -78,7 +78,7 @@ class block_ajax_marking extends block_base {
             //start building content output
             $this->content = new stdClass();
             $this->content->footer = '';
-            $this->content->text = '';
+            $this->content->text = '<div id="block_ajax_marking">';
 
             // Add a style to hide the HTML list and prevent flicker
             $script = '<script type="text/javascript" defer="defer">
@@ -130,6 +130,7 @@ class block_ajax_marking extends block_base {
                     array('recentitems', 'block_ajax_marking'),
                     array('mediumitems', 'block_ajax_marking'),
                     array('overdueitems', 'block_ajax_marking'),
+                    array('errorcontactadmin', 'block_ajax_marking'),
                     array('recentitem',
                           'block_ajax_marking'),
                     array('mediumitem',
@@ -186,20 +187,8 @@ class block_ajax_marking extends block_base {
             $divs .= '
                     </div>
                 </div>
-                <div id="block_ajax_marking_top_bar">
-                    <div id="total">
-                        <div id="totalmessage">
-                            ' . get_string('totaltomark', 'block_ajax_marking') .
-                            ':  <span id="count"></span>
-                        </div>
-                        <div id="mainicon"></div>
-                    </div>
-                    <div id="status"></div>
-                </div>
-                <div id="treetabs">
-                </div>
+                <div id="treetabs"></div>
                 <div id="block_ajax_marking_refresh_button"></div>
-                <div id="block_ajax_marking_configure_button"></div>
                 <div id="block_ajax_marking_error"></div>
                 <div class="block_ajax_marking_spacer"></div>';
             $this->content->text .= $divs;
@@ -211,6 +200,7 @@ class block_ajax_marking extends block_base {
                             '</p>
                          </noscript>';
             $this->content->text .= $noscript;
+            $this->content->this .= '</div>'; // end of #block_ajax_marking container
 
             // Set things going
             $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true,
