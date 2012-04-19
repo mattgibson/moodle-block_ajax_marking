@@ -1770,6 +1770,13 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
             modulename = node.get_modulename(),
             currentfilter = node.get_current_filter_name();
 
+        // Groups first if there are any. Always coursemodule -> group, to keep it consistent
+        groupsdisplay = node.get_calculated_groupsdisplay_setting();
+        if (currentfilter == 'coursemoduleid' && groupsdisplay == 1) {
+            // This takes precedence over the module override
+            return 'groupid'
+        }
+
         // Allow override by modules
         moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
                                                                               currentfilter);
@@ -1802,13 +1809,7 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
                 return false;
 
             case 'coursemoduleid':
-                groupsdisplay = node.get_calculated_groupsdisplay_setting();
-                if (groupsdisplay == 1) {
-                    // This takes precedence over the module override
-                    return 'groupid';
-                } else {
-                    nextnodefilter = 'userid';
-                }
+                nextnodefilter = 'userid';
                 break;
 
             case 'groupid':
