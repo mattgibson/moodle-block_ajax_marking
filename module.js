@@ -551,7 +551,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             html +=         '<strong>)</strong>'+
                         '</div> ';
 
-            html +=     '<div class="nodelabel" title="'+this.get_tooltip()+'">'+
+            html +=     '<div class="nodelabel" >'+
                             this.get_displayname();
             html +=     '</div>';
             html +=     '<div class="block_ajax_marking_spacer">';
@@ -1540,6 +1540,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         // send the ajax request
         YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl,
                                         M.block_ajax_marking.callback, this.initial_nodes_data);
+        this.add_loading_icon();
+
     },
 
     /**
@@ -1584,6 +1586,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
                                         M.block_ajax_marking.ajaxnodesurl,
                                         M.block_ajax_marking.callback,
                                         nodefilters);
+
     },
 
     /**
@@ -1610,7 +1613,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      */
     update_total_count : function () {
         this.recalculate_total_count();
-        document.getElementById('count').innerHTML = this.totalcount.toString();
+        this.countdiv.innerHTML = this.totalcount.toString();
+        var debugpause = '';
     },
 
     /**
@@ -1732,7 +1736,29 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         }
 
         node.recalculate_counts();
+    },
+
+    /**
+     * Changes the refresh button into a loading icon button
+     */
+    add_loading_icon : function () {
+        this.tab.refreshbutton.set('label', '<img src="blocks/ajax_marking/pix/ajax-loader.gif"'+
+                                            ' class="refreshicon"'+
+                                            ' alt="'+M.str.block_ajax_marking.refresh+'" />');
+        this.tab.refreshbutton.focus();
+
+    },
+
+    /**
+     * Changes the loading icon button back to a refresh button
+     */
+    remove_loading_icon : function () {
+        this.tab.refreshbutton.set('label', '<img src="blocks/ajax_marking/pix/refresh-arrow.png"' +
+                                           ' class="refreshicon"'+
+                                           ' alt="'+M.str.block_ajax_marking.refresh+'" />');
+        this.tab.refreshbutton.blur();
     }
+
 
 });
 
@@ -2020,7 +2046,7 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
      * Should empty the count
      */
     update_total_count : function() {
-        document.getElementById('count').innerHTML = '-';
+        // Deliberately empty
     },
 
     /**
@@ -2309,7 +2335,9 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
         }
     }
 
-    YAHOO.util.Dom.removeClass(document.getElementById('mainicon'), 'loaderimage');
+    // TODO this needs to get the right tab from the request details in case we switch tabs quickly
+    M.block_ajax_marking.get_current_tab().displaywidget.remove_loading_icon();
+
 };
 
 M.block_ajax_marking.update_menu_item = function(newsetting,
@@ -2425,12 +2453,10 @@ M.block_ajax_marking.ajax_failure_handler = function (o) {
 
     // communication failure
     if (o.tId === 0) {
+        // TODO set cleaner error
         document.getElementById('status').innerHTML = M.str.block_ajax_marking.connectfail;
         //YAHOO.util.Dom.removeClass(M.block_ajax_marking.markingtree.icon, 'loaderimage');
 
-        if (!document.getElementById('block_ajax_marking_collapse')) {
-            M.block_ajax_marking.make_footer();
-        }
     }
     var tree = M.block_ajax_marking.get_current_tab().displaywidget;
     tree.rebuild_parent_and_tree_count_after_new_nodes();
@@ -2462,26 +2488,6 @@ M.block_ajax_marking.remove_all_child_nodes = function (parentnode) {
     }
 };
 
-/**
- * This is to generate the footer controls once the tree has loaded
- *
- * @return void
- */
-M.block_ajax_marking.make_footer = function () {
-    // Create all text nodes
-
-    // the two links
-    return new YAHOO.widget.Button({
-        label : M.str.block_ajax_marking.refresh,
-        id : 'block_ajax_marking_collapse',
-        onclick : {fn : function () {
-           document.getElementById('status').innerHTML = '';
-           YAHOO.util.Dom.setStyle('block_ajax_marking_error',
-                                   'display', 'none');
-           M.block_ajax_marking.get_current_tab().displaywidget.initialise();
-        }},
-        container : 'block_ajax_marking_refresh_button'});
-};
 
 /**
  * Callback object for the AJAX call, which fires the correct function. Doesn't work when part
@@ -2653,7 +2659,7 @@ M.block_ajax_marking.initialise = function () {
 
     M.block_ajax_marking.make_icon_styles();
 
-    YUI().use('tabview', function (Y) {
+    YUI().use('tabview', 'node', function (Y) {
         // this waits till much too late. Can we trigger earlier?
         M.block_ajax_marking.tabview = new Y.TabView({
                                                          srcNode : '#treetabs'
@@ -2662,43 +2668,115 @@ M.block_ajax_marking.initialise = function () {
         // Must render first so treeviews have container divs ready
         M.block_ajax_marking.tabview.render();
 
-        // Define the tabs here and add them dynamically.
+        // Courses tab
         var coursetabconfig = {
-                     'label' : 'Courses',
-                     'content' : '<div id="coursestree" class="ygtv-highlight"></div>'};
+            'label' : 'Courses',
+            id : 'coursestab',
+
+            'content' : '<div id="coursessheader" class="treetabheader">'+
+                                    '<div id="coursesrefresh" class="refreshbutton"></div>'+
+                                    '<div id="coursesstatus" class="statusdiv">'+
+                                        M.str.block_ajax_marking.totaltomark+
+                                        ' <span id="coursescount" class="countspan"></span>'+
+                                    '</div>'+
+                                    '<div class="block_ajax_marking_spacer"></div>'+
+                                 '</div>'+
+                                 '<div id="coursestree" class="ygtv-highlight markingtree"></div>'};
         var coursestab = new Y.Tab(coursetabconfig);
         M.block_ajax_marking.tabview.add(coursestab);
+
+
         coursestab.displaywidget = new M.block_ajax_marking.courses_tree();
         // reference so we can tell the tree to auto-refresh
         M.block_ajax_marking.coursestab_tree = coursestab.displaywidget;
         coursestab.displaywidget.render();
         coursestab.displaywidget.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
         coursestab.displaywidget.tab = coursestab; // reference to allow links back to tab from tree
+        coursestab.displaywidget.countdiv = document.getElementById('coursescount'); // reference to allow links back to tab from tree
 
+        coursestab.refreshbutton = new YAHOO.widget.Button({
+            label : '<img src="blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon"' +
+                        ' alt="'+M.str.block_ajax_marking.refresh+'" />',
+            id : 'coursesrefresh_button',
+            title : M.str.block_ajax_marking.refresh,
+            onclick : {fn : function () {
+                YAHOO.util.Dom.setStyle('block_ajax_marking_error',
+                                        'display',
+                                        'none');
+                coursestab.displaywidget.initialise();
+            }},
+            container : 'coursesrefresh'});
+
+        // Cohorts tab
         var cohortstabconfig = {
             'label' : 'Cohorts',
-            'content' : '<div id="cohortstree" class="ygtv-highlight"></div>'};
+            id : 'cohortstab',
+            'content' : '<div id="cohortsheader" class="treetabheader">'+
+                            '<div id="cohortsrefresh" class="refreshbutton"></div>'+
+                            '<div id="cohortsstatus" class="statusdiv">'+
+                                M.str.block_ajax_marking.totaltomark+
+                                ' <span id="cohortscount" class="countspan"></span>'+
+                            '</div>'+
+                            '<div class="block_ajax_marking_spacer"></div>'+
+                        '</div>'+
+                        '<div id="cohortstree" class="ygtv-highlight markingtree"></div>'};
         var cohortstab = new Y.Tab(cohortstabconfig);
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
         M.block_ajax_marking.cohortstab_tree = cohortstab.displaywidget;
-
+        cohortstab.displaywidget.tab = cohortstab; // reference to allow links back to tab from tree
         cohortstab.displaywidget.render();
         cohortstab.displaywidget.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
 
+        cohortstab.displaywidget.countdiv = document.getElementById('cohortscount'); // reference to allow links back to tab from tree
+
+        cohortstab.refreshbutton = new YAHOO.widget.Button({
+           label : '<img src="blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon" ' +
+                        'alt="'+M.str.block_ajax_marking.refresh+'" />',
+           id : 'cohortsrefresh_button',
+           title : M.str.block_ajax_marking.refresh,
+           onclick : {fn : function () {
+               YAHOO.util.Dom.setStyle('block_ajax_marking_error',
+                                       'display',
+                                       'none');
+               cohortstab.displaywidget.initialise();
+           }},
+           container : 'cohortsrefresh'});
+
+        // Config tab
         var configtabconfig = {
-            'label' : 'Config',
-            'content' : '<div id="configtree" class="ygtv-highlight"></div>'};
+            'label' : '<img src="blocks/ajax_marking/pix/cog.png" alt="cogs" id="configtabicon" />',
+             id : 'configtab',
+            'content' : '<div id="configheader" class="treetabheader">'+
+                            '<div id="configrefresh" class="refreshbutton"></div>'+
+                            '<div id="configstatus" class="statusdiv"></div>'+
+                            '<div class="block_ajax_marking_spacer"></div>'+
+                        '</div>'+
+                        '<div id="configtree" class="ygtv-highlight markingtree"></div>'};
         var configtab = new Y.Tab(configtabconfig);
         M.block_ajax_marking.tabview.add(configtab);
         configtab.displaywidget = new M.block_ajax_marking.config_tree();
         M.block_ajax_marking.configtab_tree = configtab.displaywidget;
+        configtab.displaywidget.tab = configtab; // reference to allow links back to tab from tree
+
         configtab.displaywidget.render();
         configtab.displaywidget.subscribe('clickEvent',
                                           M.block_ajax_marking.config_treenodeonclick);
         // We want the dropdown for the current node to hide when an expand action happens (if it's
         // open)
         configtab.displaywidget.subscribe('expand', M.block_ajax_marking.hide_open_menu);
+
+        configtab.refreshbutton = new YAHOO.widget.Button({
+               label : '<img src="blocks/ajax_marking/pix/refresh-arrow.png" ' +
+                             'class="refreshicon alt="'+M.str.block_ajax_marking.refresh+'" />',
+               id : 'configrefresh_button',
+               onclick : {fn : function () {
+                   YAHOO.util.Dom.setStyle('block_ajax_marking_error',
+                                           'display',
+                                           'none');
+                   configtab.displaywidget.initialise();
+               }},
+               container : 'configrefresh'});
 
         // Make the context menu for the courses tree
         // Attach a listener to the root div which will activate the menu
@@ -2750,12 +2828,11 @@ M.block_ajax_marking.initialise = function () {
         // TODO use cookies/session to store the one the user wants between sessions
         M.block_ajax_marking.tabview.selectChild(0); // this will initialise the courses tree
 
-    });
+        // Unhide that tabs block - preventing flicker
 
-    // Unhide that tabs block - preventing flicker
-    YUI().use('node', function (Y) {
         Y.one('#treetabs').setStyle('display', 'block');
-        Y.one('#totalmessage').setStyle('display', 'block');
+       // Y.one('#totalmessage').setStyle('display', 'block');
+
     });
 
     // workaround for odd https setups. Probably not needed in most cases, but you can get an error
@@ -2764,10 +2841,6 @@ M.block_ajax_marking.initialise = function () {
         M.cfg.wwwroot = M.cfg.wwwroot.replace('http:', 'https:');
     }
 
-    // Make the footer
-    if (!document.getElementById('block_ajax_marking_collapse')) {
-        M.block_ajax_marking.make_footer();
-    }
 };
 
 /**
@@ -2926,3 +2999,5 @@ M.block_ajax_marking.grading_unhighlight = function (node) {
 M.block_ajax_marking.hide_open_menu = function(expandednode) {
     expandednode.renderedmenu.hide();
 };
+
+

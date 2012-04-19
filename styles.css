@@ -162,4 +162,84 @@ table.ygtvtable {
     margin-right: 3px;
 }
 
+/* Styles for the tree tab headers where the refresh button and counts live */
+.treetabheader {
+    height: 25px;
+    /*border-width: 0 0 1px 0;*/
+    /*border-style: solid;*/
+    /*border-color: #000;*/
+}
+#block_ajax_marking .yui3-tabview-panel {
+    padding: 0;
+}
+#block_ajax_marking .markingtree {
+    margin: 0 7px 3px 7px;
+}
+#block_ajax_marking .refreshbutton {
+    width: 25px;
+    /*border-right: 1px solid #000;*/
+    height: 100%;
+    float: left;
+}
+#block_ajax_marking .statusdiv {
+    padding-left: 4px;
+    padding-top: 2px;
+    float: left;
+}
+#block_ajax_marking img.refreshicon {
+    width: 12px;
+    margin: 2px;
+}
+#block_ajax_marking #coursesrefresh_button-button,
+#block_ajax_marking #configrefresh_button-button,
+#block_ajax_marking #cohortsrefresh_button-button {
+    padding: 2px;
+    height: auto;
+    font-size: 0;
+}
+#block_ajax_marking .countspan {
+    font-weight: bold;
+}
+#block_ajax_marking .treetabheader {
+    border-bottom: 1px solid #c3c3c3;
+}
+#block_ajax_marking .refreshbutton {
+    padding-top: 1px;
+}
+#block_ajax_marking .statusdiv {
+    margin-top: 3px;
+    padding-left: 5px;
+}
+#block_ajax_marking #configtabicon {
+    width: 11px;
+}
+#block_ajax_marking div.nodelabelwrapper div.nodelabel:hover {
+    position: absolute;
+    float: left;
+    overflow-x: visible;
+    white-space: normal;
+    height: auto;
+    background-color: #fff;
+    color: #000;
+    border: 1px solid #ccc;
+    padding-left: 2px;
+}
+/* Stop the node labels at different levels from overlapping the block when hovered over */
+#block_ajax_marking .ygtvdepth0 div.nodelabelwrapper div.nodelabel:hover {
+    width: 80%;
+}
+#block_ajax_marking .ygtvdepth1 div.nodelabelwrapper div.nodelabel:hover {
+    width: 70%;
+}
+#block_ajax_marking .ygtvdepth2 div.nodelabelwrapper div.nodelabel:hover {
+    width: 60%;
+}
+#block_ajax_marking .ygtvdepth3 div.nodelabelwrapper div.nodelabel:hover {
+    width: 50%;
+}
+#block_ajax_marking .ygtvdepth4 div.nodelabelwrapper div.nodelabel:hover {
+    width: 40%;
+}
+
+
 

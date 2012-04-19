@@ -43,7 +43,7 @@ $string['nothingtomark']         = 'Hooray - nothing to mark!';
 $string['pluginname']            = 'AJAX marking block';
 $string['refresh']               = 'Refresh';
 $string['submitted']             = 'Submitted';
-$string['totaltomark']           = 'Total to mark';
+$string['totaltomark']           = 'Total:';
 $string['waiting']               = 'Pieces of work';
 $string['show']                  = 'Show this item';
 $string['showgroups']            = 'Show group nodes';
@@ -59,6 +59,7 @@ $string['overdueitems']          = 'overdue items';
 $string['recentitem']            = 'recent item';
 $string['mediumitem']            = 'medium item';
 $string['overdueitem']           = 'overdue item';
+$string['cog']                   = 'Configuration icon';
 
 // Specific to modules
 
