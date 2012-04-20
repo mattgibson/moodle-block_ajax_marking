@@ -222,6 +222,7 @@ table.ygtvtable {
     color: #000;
     border: 1px solid #ccc;
     padding-left: 2px;
+    z-index: 1000;
 }
 /* Stop the node labels at different levels from overlapping the block when hovered over */
 #block_ajax_marking .ygtvdepth0 div.nodelabelwrapper div.nodelabel:hover {
