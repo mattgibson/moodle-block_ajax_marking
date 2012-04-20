@@ -2600,7 +2600,7 @@ M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
     }
     catch (e) {
         // keep IE9 happy
-        newicon["id"] = undefined;
+        newicon["id"] = null;
     }
 
     return newicon;
@@ -2787,7 +2787,7 @@ M.block_ajax_marking.initialise = function () {
 
         configtab.refreshbutton = new YAHOO.widget.Button({
                label : '<img src="blocks/ajax_marking/pix/refresh-arrow.png" ' +
-                             'class="refreshicon alt="'+M.str.block_ajax_marking.refresh+'" />',
+                             'class="refreshicon" alt="'+M.str.block_ajax_marking.refresh+'" />',
                id : 'configrefresh_button',
                onclick : {fn : function () {
                    YAHOO.util.Dom.setStyle('block_ajax_marking_error',

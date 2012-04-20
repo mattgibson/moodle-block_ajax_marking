@@ -141,7 +141,7 @@ class block_ajax_marking extends block_base {
             );
 
             // Add the basic HTML for the rest of the stuff to fit into
-            $divs= '
+            $divs = '
                 <div id="block_ajax_marking_hidden">
                     <div id="dynamicicons">';
             // We need a rendered icon for each node type. We can't rely on CSS to do this
@@ -149,37 +149,37 @@ class block_ajax_marking extends block_base {
             // number of CSS rules generated, one for each module plugin. These icons are
             // transplanted using JS to the nodes as needed
             foreach ($modclasses as $modname => $modclass) {
-                $divs .= '  <img id="block_ajax_marking_'.$modname.'_icon"
+                $divs .= '<img id="block_ajax_marking_'.$modname.'_icon"
                                  class="dynamicicon"
                                  src="'.$OUTPUT->pix_url('icon', $modname).'"
                                  alt="'.$modname.'"
                                  title="'.$modname.'" />';
             }
-            $divs .= '      <img id="block_ajax_marking_course_icon" class="dynamicicon"
+            $divs .= '<img id="block_ajax_marking_course_icon" class="dynamicicon"
                                  src="' . $OUTPUT->pix_url('c/course') . '"
                                  alt="'.get_string('course').'"
                                  title="'.get_string('course').'" />';
-            $divs .= '      <img id="block_ajax_marking_group_icon" class="dynamicicon"
+            $divs .= '<img id="block_ajax_marking_group_icon" class="dynamicicon"
                                  src="'.$OUTPUT->pix_url('c/group').'"
                                  alt="'.get_string('group').'"
                                  title="'.get_string('group').'" />';
-            $divs .= '      <img id="block_ajax_marking_cohort_icon" class="dynamicicon"
+            $divs .= '<img id="block_ajax_marking_cohort_icon" class="dynamicicon"
                                  src="'.$OUTPUT->pix_url('c/group').'"
                                  alt="'.get_string('cohort', 'cohort').'"
                                  title="'.get_string('cohort', 'cohort').'" />';
-            $divs .= '      <img id="block_ajax_marking_hide_icon" class="dynamicicon"
+            $divs .= '<img id="block_ajax_marking_hide_icon" class="dynamicicon"
                                  src="'.$OUTPUT->pix_url('t/hide').'"
                                  alt="'.get_string('hide').'"
                                  title="'.get_string('hide').'" />';
-            $divs .= '      <img id="block_ajax_marking_show_icon" class="dynamicicon"
+            $divs .= '<img id="block_ajax_marking_show_icon" class="dynamicicon"
                                  src="'.$OUTPUT->pix_url('t/show').'"
                                  alt="'.get_string('show').'"
                                  title="'.get_string('show').'" />';
-            $divs .= '      <img id="block_ajax_marking_showgroups_icon" class="dynamicicon"
+            $divs .= '<img id="block_ajax_marking_showgroups_icon" class="dynamicicon"
                                  src="'.$OUTPUT->pix_url('group-disabled', 'block_ajax_marking').'"
                                  alt="'.get_string('showgroups', 'block_ajax_marking').'"
                                  title="'.get_string('showgroups', 'block_ajax_marking').'" />';
-            $divs .= '      <img id="block_ajax_marking_hidegroups_icon" class="dynamicicon"
+            $divs .= '<img id="block_ajax_marking_hidegroups_icon" class="dynamicicon"
                                  src="'.$OUTPUT->pix_url('group', 'block_ajax_marking').'"
                                  alt="'.get_string('hidegroups', 'block_ajax_marking').'"
                                  title="'.get_string('hidegroups', 'block_ajax_marking').'" />';
@@ -188,9 +188,7 @@ class block_ajax_marking extends block_base {
                     </div>
                 </div>
                 <div id="treetabs"></div>
-                <div id="block_ajax_marking_refresh_button"></div>
-                <div id="block_ajax_marking_error"></div>
-                <div class="block_ajax_marking_spacer"></div>';
+                <div id="block_ajax_marking_error"></div>';
             $this->content->text .= $divs;
 
             // Don't warn about javascript if the screenreader option is set - it was deliberate
@@ -200,7 +198,8 @@ class block_ajax_marking extends block_base {
                             '</p>
                          </noscript>';
             $this->content->text .= $noscript;
-            $this->content->this .= '</div>'; // end of #block_ajax_marking container
+            $this->content->text .= ' <div class="block_ajax_marking_spacer"></div>'.
+                                    '</div>'; // end of #block_ajax_marking container
 
             // Set things going
             $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true,
@@ -223,7 +222,6 @@ class block_ajax_marking extends block_base {
             // otherwise.
             if (has_capability('moodle/course:manageactivities', $PAGE->context)) {
                 $this->content->text .= get_string('nogradedassessments', 'block_ajax_marking');
-                $this->content->footer = '';
             } else {
                 // this will stop the other functions like has_content() from running all the way
                 // through this again
