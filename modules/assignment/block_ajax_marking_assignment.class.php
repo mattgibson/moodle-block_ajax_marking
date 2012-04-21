@@ -102,14 +102,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         global $PAGE, $CFG, $DB, $OUTPUT, $USER;
 
-        require_once($CFG->dirroot.'/grade/grading/lib.php');
 
         $PAGE->requires->js('/mod/assignment/assignment.js');
-//
-//        $module = array('name' => 'mod_assignment_files',
-//                        'fullpath' => '/mod/assignment/assignment.js',
-//                        'requires' => array('yui2-treeview'));
-//        $PAGE->requires->js_module($module);
 
         $output = '';
 
@@ -127,7 +121,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         $course         = $DB->get_record('course', array('id' => $assignment->course));
         $coursemodule   = $DB->get_record('course_modules', array('id' => $coursemodule->id));
-        $context        = context_module::instance($coursemodule->id); // get_context_instance(CONTEXT_MODULE, $coursemodule->id);
+        $context        = get_context_instance(CONTEXT_MODULE, $coursemodule->id); // get_context_instance(CONTEXT_MODULE, $coursemodule->id);
 
         // TODO more sanity and security checks
         $user = $DB->get_record('user', array('id' => $submission->userid));
@@ -202,28 +196,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                     'return_types' => FILE_INTERNAL);
         }
 
-        $advancedgradingwarning = false;
-        $gradingmanager = get_grading_manager($context, 'mod_assignment', 'submission');
-        if ($gradingmethod = $gradingmanager->get_active_method()) {
-            $controller = $gradingmanager->get_controller($gradingmethod);
-            if ($controller->is_form_available()) {
-                $itemid = null;
-                if (!empty($submission->id)) {
-                    $itemid = $submission->id;
-                }
-                if ($gradingdisabled && $itemid) {
-                    $mformdata->advancedgradinginstance =
-                        $controller->get_current_instance($USER->id, $itemid);
-                } else if (!$gradingdisabled) {
-                    $instanceid = optional_param('advancedgradinginstanceid', 0, PARAM_INT);
-                    $mformdata->advancedgradinginstance =
-                        $controller->get_or_create_instance($instanceid, $USER->id, $itemid);
-                }
-            } else {
-                $advancedgradingwarning = $controller->form_unavailable_notification();
-            }
-        }
-
         // Here, we start to make a specific HTML display, rather than just getting data
 
         $submitform = new mod_assignment_grading_form(block_ajax_marking_form_url($params),
@@ -237,9 +209,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         // display mform here...
         ob_start();
-        if ($advancedgradingwarning) {
-            echo $OUTPUT->notification($advancedgradingwarning, 'error');
-        }
         $submitform->display();
         $output .= ob_get_contents();
         ob_end_clean();
