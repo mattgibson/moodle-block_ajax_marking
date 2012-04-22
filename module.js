@@ -692,7 +692,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      * Gets the current setting, or the inherited setting as appropriate so we can show the right
      * thing.
      *
-     * @param settingtype group, display, groupsdisplay
+     * @param {string} settingtype group, display, groupsdisplay
      */
     get_setting_to_display : function (settingtype, groupid) {
 
