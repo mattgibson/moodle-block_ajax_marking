@@ -2811,7 +2811,8 @@ M.block_ajax_marking.initialise = function () {
             {
                 trigger : "coursestree",
                 keepopen : true,
-                lazyload : false
+                lazyload : false,
+                zindex: 1001
             }
         );
         // Initial render makes sure we have something to add and takeaway items from
