@@ -807,7 +807,7 @@ SQL;
         // This is making sure that we hide groups that a teacher is not a member of when the group
         // mode is set to 'separate groups'
         $separategroups = SEPARATEGROUPS;
-        $coursesparams['teacheruserid'] = $USER->id;
+        $coursesparams['teacheruserid'.$counter] = $USER->id;
         $groupsmodeisnotseparate = "( ( group_course.groupmodeforce = 1 AND
                                         group_course.groupmode != {$separategroups} )
                                       OR
@@ -819,7 +819,7 @@ SQL;
                     ( EXISTS ( SELECT 1
                                  FROM {groups_members} teachermemberships
                                 WHERE teachermemberships.groupid = group_groups.id
-                                  AND teachermemberships.userid = :teacheruserid
+                                  AND teachermemberships.userid = :teacheruserid{$counter}
                              )
                     )
                 )
