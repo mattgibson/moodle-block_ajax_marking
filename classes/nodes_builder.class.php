@@ -145,6 +145,11 @@ class block_ajax_marking_nodes_builder {
         }
 
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
+        // This is just for copying and pasting from the paused debugger into a DB GUI
+        if ($CFG->debug == DEBUG_DEVELOPER) {
+            $debugquery = block_ajax_marking_debuggable_query($countwrapperquery);
+        }
+
         $displayquery = self::get_display_query($countwrapperquery, $filters);
 
         self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
@@ -848,18 +853,21 @@ SQL;
 
         global $USER;
 
-        // TODO are these joins in use?
         $query->add_from(array('join' => 'LEFT JOIN',
                                'table' => 'block_ajax_marking',
                                'on' => "cmconfig.tablename = 'course_modules'
-                                        AND cmconfig.instanceid = moduleunion.coursemoduleid",
+                                        AND cmconfig.instanceid = moduleunion.coursemoduleid
+                                        AND cmconfig.userid = :confuserid1 ",
                                'alias' => 'cmconfig' ));
 
         $query->add_from(array('join' => 'LEFT JOIN',
                                'table' => 'block_ajax_marking',
                                'on' => "courseconfig.tablename = 'course'
-                                       AND courseconfig.instanceid = moduleunion.course",
+                                       AND courseconfig.instanceid = moduleunion.course
+                                       AND courseconfig.userid = :confuserid2 ",
                                'alias' => 'courseconfig' ));
+        $query->add_param('confuserid1', $USER->id);
+        $query->add_param('confuserid2', $USER->id);
 
         // Here, we filter out the users with no group memberships, where the users without group
         // memberships have been set to be hidden for this coursemodule.
