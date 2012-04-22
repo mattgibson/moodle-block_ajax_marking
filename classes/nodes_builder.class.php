@@ -154,7 +154,7 @@ class block_ajax_marking_nodes_builder {
         self::apply_config_filter($displayquery, $filters['nextnodefilter']);
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
-        if ($CFG->debug === DEBUG_DEVELOPER) {
+        if ($CFG->debug == DEBUG_DEVELOPER) {
             $debugquery = block_ajax_marking_debuggable_query($displayquery);
         }
 
@@ -1143,7 +1143,7 @@ SQL;
         self::apply_filters_to_query($filters, $configbasequery, true);
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
-        if ($CFG->debug === DEBUG_DEVELOPER) {
+        if ($CFG->debug == DEBUG_DEVELOPER) {
             $debugquery = block_ajax_marking_debuggable_query($configbasequery);
         }
 
@@ -1192,6 +1192,7 @@ SQL;
             // Retrieve all groups that we may need. This includes those with no settings yet as
             // otherwise, we won't be able to offer to create settings for them.
             list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
+            $params['userid'] = $USER->id;
 
             $separategroups = SEPARATEGROUPS;
 
@@ -1211,7 +1212,8 @@ SQL;
                        FROM {block_ajax_marking_groups} AS groupsettings
                  INNER JOIN {block_ajax_marking} coursesettings
                          ON (coursesettings.tablename = 'course'
-                             AND coursesettings.id = groupsettings.configid) ) settings
+                             AND coursesettings.id = groupsettings.configid)
+                      WHERE coursesettings.userid = :userid ) settings
 
                  ON (groups.courseid = settings.courseid
                      AND groups.id = settings.groupid)
@@ -1227,7 +1229,7 @@ SQL;
 SQL;
             $params['teacheruserid'] = $USER->id;
 
-            if ($CFG->debug === DEBUG_DEVELOPER) {
+            if ($CFG->debug == DEBUG_DEVELOPER) {
                 $debugquery = block_ajax_marking_debuggable_query($sql, $params);
             }
             $groups = $DB->get_records_sql($sql, $params);
@@ -1261,7 +1263,7 @@ SQL;
 SQL;
             $params = array_merge($params, $subparams);
 
-            if ($CFG->debug === DEBUG_DEVELOPER) {
+            if ($CFG->debug == DEBUG_DEVELOPER) {
                 $debugquery = block_ajax_marking_debuggable_query($sql, $params);
             }
             $groups = $DB->get_records_sql($sql, $params);
@@ -1636,7 +1638,7 @@ SQL;
         $displayquery->add_param('filtervalue', $filters['filtervalue']);
 
         // This is just for copying and pasting from the paused debugger into a DB GUI
-        if ($CFG->debug === DEBUG_DEVELOPER) {
+        if ($CFG->debug == DEBUG_DEVELOPER) {
             $debugquery = block_ajax_marking_debuggable_query($displayquery);
         }
 
