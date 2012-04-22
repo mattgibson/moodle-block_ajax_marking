@@ -675,15 +675,15 @@ class block_ajax_marking_nodes_builder {
 
         // Query visualisation:
         /*
-         *    ________________________________________________________________
-         *    |                                                               |
-         * Groups -- coursemodules                                            |
-         *    |   course |   |id_____ block_ajax_marking_settings --- block_ajax_marking_groups
-         *    |          |               (for coursemodules)           (per coursemodule)
-         *    |          |
-         *    |          |_________ block_ajax_marking_settings --- block_ajax_marking_groups
-         *    |                          (for courses)                   (per course)
-         *    |_______________________________________________________________|
+         *               ______________________________________________________________
+         *               |                                                            |
+         * Course - Groups - coursemodules                                            |
+         *               |   course |  |id__ block_ajax_marking_settings - block_ajax_marking_groups
+         *               |          |            (for coursemodules)           (per coursemodule)
+         *               |          |
+         *               |          |_____ block_ajax_marking_settings --- block_ajax_marking_groups
+         *               |                       (for courses)                   (per course)
+         *               |____________________________________________________________|
          *
          */
 
@@ -699,6 +699,7 @@ SQL;
                group_groups.id AS groupid,
 
 SQL;
+
         switch ($type) {
             case 'coalesce':
                 $groupdisplaysubquery .= $coursemodulesselect;
@@ -729,6 +730,8 @@ SQL;
         $groupdisplaysubquery .= <<<SQL
 
           FROM {course_modules} group_course_modules
+    INNER JOIN {course} group_course
+            ON group_course.id = group_course_modules.course
     INNER JOIN {groups} group_groups
             ON group_groups.courseid = group_course_modules.course
 SQL;
@@ -801,6 +804,27 @@ SQL;
                 break;
         }
 
+        // This is making sure that we hide groups that a teacher is not a member of when the group
+        // mode is set to 'separate groups'
+        $separategroups = SEPARATEGROUPS;
+        $coursesparams['teacheruserid'] = $USER->id;
+        $groupsmodeisnotseparate = "( ( group_course.groupmodeforce = 1 AND
+                                        group_course.groupmode != {$separategroups} )
+                                      OR
+                                      ( group_course.groupmodeforce = 0 AND
+                                        group_course_modules.groupmode != {$separategroups} )
+                                    ) ";
+        $groupdisplaysubquery .= "
+            AND ( {$groupsmodeisnotseparate} OR
+                    ( EXISTS ( SELECT 1
+                                 FROM {groups_members} teachermemberships
+                                WHERE teachermemberships.groupid = group_groups.id
+                                  AND teachermemberships.userid = :teacheruserid
+                             )
+                    )
+                )
+        ";
+
         if ($CFG->debug == DEBUG_DEVELOPER) {
             // only a tiny overhead, but still worth avoiding if not needed
             $debugquery = block_ajax_marking_debuggable_query($groupdisplaysubquery,
@@ -822,6 +846,8 @@ SQL;
      */
     private static function apply_sql_display_settings($query) {
 
+        global $USER;
+
         // TODO are these joins in use?
         $query->add_from(array('join' => 'LEFT JOIN',
                                'table' => 'block_ajax_marking',
@@ -838,7 +864,9 @@ SQL;
         // Here, we filter out the users with no group memberships, where the users without group
         // memberships have been set to be hidden for this coursemodule.
         // Second bit (after OR) filters out those who have group memberships, but all of them are
-        // set to be hidden
+        // set to be hidden. This is done by saying 'are there any visible at all'
+        // The bit after that, talking about separate groups is to make sure users don't see any
+        // of these groups unless they are members of them if separate groups is enabled.
         $sitedefaultnogroup = 1; // what to do with users who have no group membership?
         list($existsvisibilitysubquery, $existsparams) = self::sql_group_visibility_subquery();
         $query->add_params($existsparams);
@@ -867,6 +895,7 @@ SQL;
                      AND existsvisibilitysubquery.cmid = moduleunion.coursemoduleid
                      AND groups.courseid = moduleunion.course
                      AND existsvisibilitysubquery.display = 1)
+
         )
     )
 SQL;
@@ -1165,13 +1194,17 @@ SQL;
             list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
             $params['userid'] = $USER->id;
 
+            $separategroups = SEPARATEGROUPS;
+
             $sql = <<<SQL
 
              SELECT groups.id,
                     groups.courseid AS courseid,
                     groups.name,
                     settings.display
-               FROM mdl_groups groups
+               FROM {groups} groups
+         INNER JOIN {course} course
+                 ON course.id = groups.courseid
 
           LEFT JOIN (SELECT coursesettings.instanceid AS courseid,
                             groupsettings.groupid,
@@ -1184,9 +1217,17 @@ SQL;
 
                  ON (groups.courseid = settings.courseid
                      AND groups.id = settings.groupid)
-              WHERE groups.courseid {$coursesql}
 
+              WHERE groups.courseid {$coursesql}
+                AND (  course.groupmode != {$separategroups} OR
+                       EXISTS ( SELECT 1
+                                   FROM {groups_members} teachermemberships
+                                  WHERE teachermemberships.groupid = groups.id
+                                    AND teachermemberships.userid = :teacheruserid
+                               )
+                    )
 SQL;
+            $params['teacheruserid'] = $USER->id;
 
             if ($CFG->debug == DEBUG_DEVELOPER) {
                 $debugquery = block_ajax_marking_debuggable_query($sql, $params);
@@ -1241,6 +1282,8 @@ SQL;
     /**
      * Config nodes need some stuff to be returned from the config tables so we can have settings
      * adjusted based on existing values.
+     *
+     * @TODO this isn't really a filter
      *
      * @param block_ajax_marking_query_base $query
      * @param string $nextnodefilter
