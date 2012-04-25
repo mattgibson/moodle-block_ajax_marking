@@ -41,10 +41,25 @@ function block_ajax_marking_teacherrole_sql() {
 
     global $DB;
 
+    $mods = block_ajax_marking_get_module_classes();
+    $capabilities = array();
+    foreach ($mods as $mod) {
+        $capabilities[] = $mod->get_capability();
+    }
+    list($capsql, $capparams) = $DB->get_in_or_equal($capabilities);
+
+    $sql = "
+        SELECT DISTINCT(role.id)
+          FROM {role} role
+    INNER JOIN {role_capabilities} rc
+         WHERE rc.contextid = 1
+           AND rc.capability $capsql
+
+    ";
+
     // TODO should be a site wide or block level setting
-    $teacherroles = $DB->get_records('role', array('archetype' => 'teacher'));
-    $editingteacherroles = $DB->get_records('role', array('archetype' => 'editingteacher'));
-    $teacherroleids = array_keys($teacherroles + $editingteacherroles);
+    $teacherroles = $DB->get_records_sql($sql, $capparams);
+    $teacherroleids = array_keys($teacherroles);
 
     return $DB->get_in_or_equal($teacherroleids);
 }
