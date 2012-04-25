@@ -126,15 +126,14 @@ $code = "
         var node = tree.getNodeByIndex({$nodeid});
 
         if (node !== null) {
-        // un-highlight node
-        node.unhighlight();
-
+            // un-highlight node
+            node.unhighlight();
         }
 
         // Don't remove the node here because the window may just have been closed with no marking
         // done. We want to keep the tree node in this case.
 
-   };
+    };
 ";
 $PAGE->requires->js_init_code($code);
 
