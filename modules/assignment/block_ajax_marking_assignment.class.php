@@ -410,13 +410,22 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                 'column' => 'timemodified',
                                 'alias' => 'timestamp'));
 
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => 'sub.timemarked < sub.timemodified'));
-        $query->add_where(array('type' => 'AND', 'condition' =>
-                "NOT ( (moduletable.resubmit = 0 AND sub.timemarked > 0)
-                       OR (".$DB->sql_compare_text('moduletable.assignmenttype')." = 'upload'
-                           AND ".$DB->sql_compare_text('sub.data2')." != 'submitted') )"));
+        // First bit: not graded
+        // Second bit of first bit: has been resubmitted
+        // Third bit: if it's advanced upload, only care about the first bit if 'send for marking'
+        // was clicked
+        $query->add_where(array('type' => 'AND',
+                                'condition' =>
+                                "( (sub.grade = -1 AND sub.submissioncomment = '') OR
+                                   (moduletable.resubmit = 1 AND (sub.timemodified > sub.timemarked)) )
+                                 AND ( moduletable.assignmenttype != 'upload'
+                                       OR (moduletable.assignmenttype = 'upload' AND sub.data2 = 'submitted')) "));
+
+        // TODO only sent for marking
+
+        // Advanced upload: data2 will be 'submitted' and grade will be -1, but if 'save changes'
+        // is clicked, timemarked will be set to time(), but actually, grade and comment may
+        // still be empty
 
         return $query;
     }
