@@ -111,22 +111,29 @@ $PAGE->set_pagelayout('popup');
 
 // Make sure that whatever happens, we lose the tree highlight when the pop up shuts
 $code = "
-    YAHOO.util.Event.addListener(window, 'beforeunload', function(args) {
+    window.onbeforeunload = function(e) {
+        // YAHOO.util.Event.addListener(window, 'beforeunload', function(args) {
 
-       // Get tree
-       var tab = window.opener.M.block_ajax_marking.get_current_tab();
-       var tree = tab.displaywidget;
+        // Apparently no standard way to do this in YUI: http://yuilibrary.com/projects/yui3/ticket/2528059
+        // e.returnValue = msg; // most browsers
+        // return msg; // safari
 
-       // get node
-       var node = tree.getNodeByIndex({$nodeid});
+        // Get tree
+        var tab = window.opener.M.block_ajax_marking.get_current_tab();
+        var tree = tab.displaywidget;
 
-       // unhighlight node
-       node.unhighlight();
+        // get node
+        var node = tree.getNodeByIndex({$nodeid});
 
-       // Don't remove the node here because the window may just have been closed with no marking
-       // done. We want to keep the tree node in this case.
+        if (node !== null) {
+            // un-highlight node
+            node.unhighlight();
+        }
 
-   });
+        // Don't remove the node here because the window may just have been closed with no marking
+        // done. We want to keep the tree node in this case.
+
+    };
 ";
 $PAGE->requires->js_init_code($code);
 
