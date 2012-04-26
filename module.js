@@ -2992,32 +2992,8 @@ M.block_ajax_marking.save_setting_ajax_request = function (requestdata, clickedn
 };
 
 /**
- * Attaches a listener to the pop up so that we will have the relevant node unhighlighted when
- * the pop up shuts
- *
- * @param {int} node
- */
-M.block_ajax_marking.grading_unhighlight = function (node) {
-
-    YAHOO.util.Event.addListener(window, 'unload', function (args) {
-
-        // Get tree
-        var tree = window.opener.M.block_ajax_marking.currenttab().displaywidget;
-
-        // get node
-        var node = tree.getNodeById(args.nodeid);
-
-        // unhighlight node
-        node.unhighlight();
-
-    }, {'nodeid' : node});
-};
-
-/**
  * Hides the drop-down menu that may be open on this node
  */
 M.block_ajax_marking.hide_open_menu = function(expandednode) {
     expandednode.renderedmenu.hide();
 };
-
-
