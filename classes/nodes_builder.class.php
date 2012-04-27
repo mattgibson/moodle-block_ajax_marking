@@ -964,7 +964,7 @@ SQL;
          * @var array $contexts PHPDoc needs updating for get_context_instance()
          */
         $contexts = array();
-        foreach (array_keys($coursemoduleids) as $cmid) {
+        foreach(array_keys($coursemoduleids) as $cmid) {
             $contexts[] = context_module::instance($cmid);
         }
         // Use has_capability to loop through them finding out which are blocked. Unset all that we
