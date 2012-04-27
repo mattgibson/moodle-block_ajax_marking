@@ -81,7 +81,7 @@ if ($data && confirm_sesskey()) {
     $error = $moduleobject->process_data($data, $params);
 
     // If success, notify and print a close button.
-    if (!is_string($error)) {
+    if (empty($error)) {
 
         $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php',
                               array('module' => $modname));
