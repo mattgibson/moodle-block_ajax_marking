@@ -1741,7 +1741,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      * Changes the refresh button into a loading icon button
      */
     add_loading_icon : function () {
-        this.tab.refreshbutton.set('label', '<img src="blocks/ajax_marking/pix/ajax-loader.gif"'+
+        this.tab.refreshbutton.set('label', '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/ajax-loader.gif"'+
                                             ' class="refreshicon"'+
                                             ' alt="'+M.str.block_ajax_marking.refresh+'" />');
         this.tab.refreshbutton.focus();
@@ -1752,7 +1752,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      * Changes the loading icon button back to a refresh button
      */
     remove_loading_icon : function () {
-        this.tab.refreshbutton.set('label', '<img src="blocks/ajax_marking/pix/refresh-arrow.png"' +
+        this.tab.refreshbutton.set('label', '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/refresh-arrow.png"' +
                                            ' class="refreshicon"'+
                                            ' alt="'+M.str.block_ajax_marking.refresh+'" />');
         this.tab.refreshbutton.blur();
@@ -2714,7 +2714,7 @@ M.block_ajax_marking.initialise = function () {
         coursestab.displaywidget.countdiv = document.getElementById('coursescount'); // reference to allow links back to tab from tree
 
         coursestab.refreshbutton = new YAHOO.widget.Button({
-            label : '<img src="blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon"' +
+            label : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon"' +
                         ' alt="'+M.str.block_ajax_marking.refresh+'" />',
             id : 'coursesrefresh_button',
             title : M.str.block_ajax_marking.refresh,
@@ -2750,7 +2750,7 @@ M.block_ajax_marking.initialise = function () {
         cohortstab.displaywidget.countdiv = document.getElementById('cohortscount'); // reference to allow links back to tab from tree
 
         cohortstab.refreshbutton = new YAHOO.widget.Button({
-           label : '<img src="blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon" ' +
+           label : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon" ' +
                         'alt="'+M.str.block_ajax_marking.refresh+'" />',
            id : 'cohortsrefresh_button',
            title : M.str.block_ajax_marking.refresh,
@@ -2764,7 +2764,7 @@ M.block_ajax_marking.initialise = function () {
 
         // Config tab
         var configtabconfig = {
-            'label' : '<img src="blocks/ajax_marking/pix/cog.png" alt="cogs" id="configtabicon" />',
+            'label' : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/cog.png" alt="cogs" id="configtabicon" />',
              id : 'configtab',
             'content' : '<div id="configheader" class="treetabheader">'+
                             '<div id="configrefresh" class="refreshbutton"></div>'+
@@ -2786,7 +2786,7 @@ M.block_ajax_marking.initialise = function () {
         configtab.displaywidget.subscribe('expand', M.block_ajax_marking.hide_open_menu);
 
         configtab.refreshbutton = new YAHOO.widget.Button({
-               label : '<img src="blocks/ajax_marking/pix/refresh-arrow.png" ' +
+               label : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/refresh-arrow.png" ' +
                              'class="refreshicon" alt="'+M.str.block_ajax_marking.refresh+'" />',
                id : 'configrefresh_button',
                onclick : {fn : function () {
