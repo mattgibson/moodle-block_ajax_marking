@@ -269,7 +269,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      *
      * @param object $data from the feedback form
      * @param $params
-     * @return string|void
+     * @return string
      */
     public function process_data($data, $params) {
 
@@ -416,6 +416,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                                  'response',
                                                  $submission->id);
         }
+        return '';
     }
 
     /**
