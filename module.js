@@ -1741,7 +1741,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
      * Changes the refresh button into a loading icon button
      */
     add_loading_icon : function () {
-        this.tab.refreshbutton.set('label', '<img src="blocks/ajax_marking/pix/ajax-loader.gif"'+
+        this.tab.refreshbutton.set('label', '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/ajax-loader.gif"'+
                                             ' class="refreshicon"'+
                                             ' alt="'+M.str.block_ajax_marking.refresh+'" />');
         this.tab.refreshbutton.focus();
