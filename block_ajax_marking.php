@@ -57,7 +57,7 @@ class block_ajax_marking extends block_base {
     /**
      * Standard get content function returns $this->content containing the block HTML etc
      *
-     * @return \stdObject
+     * @return stdClass
      */
     public function get_content() {
 
@@ -70,17 +70,17 @@ class block_ajax_marking extends block_base {
         require_once($CFG->dirroot . '/blocks/ajax_marking/lib.php');
 
         $courses = block_ajax_marking_get_my_teacher_courses();
-        // This function will include all the module class files and instantiate copies
+        // This function will include all the module class files and instantiate copies.
         $modclasses = block_ajax_marking_get_module_classes();
 
-        if (count($courses) > 0) { // Grading permissions exist in at least one course, so display
+        if (count($courses) > 0) { // Grading permissions exist in at least one course, so display.
 
-            //start building content output
+            // Start building content output.
             $this->content = new stdClass();
             $this->content->footer = '';
             $this->content->text = '<div id="block_ajax_marking">';
 
-            // Add a style to hide the HTML list and prevent flicker
+            // Add a style to hide the HTML list and prevent flicker.
             $script = '<script type="text/javascript" defer="defer">
                   /* <![CDATA[ */
                   var styleElement = document.createElement("style");
@@ -98,7 +98,7 @@ class block_ajax_marking extends block_base {
 
             $this->content->text .= $script;
 
-            // Set up the javascript module, with any data that the JS will need
+            // Set up the javascript module, with any data that the JS will need.
             $jsmodule = array(
                 'name' => 'block_ajax_marking',
                 'fullpath' => '/blocks/ajax_marking/module.js',
@@ -140,14 +140,14 @@ class block_ajax_marking extends block_base {
                 )
             );
 
-            // Add the basic HTML for the rest of the stuff to fit into
+            // Add the basic HTML for the rest of the stuff to fit into.
             $divs = '
                 <div id="block_ajax_marking_hidden">
                     <div id="dynamicicons">';
             // We need a rendered icon for each node type. We can't rely on CSS to do this
             // as there is no mechanism for generating it dynamically, i.e. having an arbitrary
             // number of CSS rules generated, one for each module plugin. These icons are
-            // transplanted using JS to the nodes as needed
+            // transplanted using JS to the nodes as needed.
             foreach ($modclasses as $modname => $modclass) {
                 $divs .= '<img id="block_ajax_marking_'.$modname.'_icon"
                                  class="dynamicicon"
@@ -191,7 +191,7 @@ class block_ajax_marking extends block_base {
                 <div id="block_ajax_marking_error"></div>';
             $this->content->text .= $divs;
 
-            // Don't warn about javascript if the screenreader option is set - it was deliberate
+            // Don't warn about javascript if the screenreader option is set - it was deliberate.
             $noscript = '<noscript>
                              <p>'.
                                  get_string('nojavascript', 'block_ajax_marking').
@@ -199,9 +199,9 @@ class block_ajax_marking extends block_base {
                          </noscript>';
             $this->content->text .= $noscript;
             $this->content->text .= ' <div class="block_ajax_marking_spacer"></div>'.
-                                    '</div>'; // end of #block_ajax_marking container
+                                    '</div>'; // End of #block_ajax_marking container.
 
-            // Set things going
+            // Set things going.
             $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true,
                                           $jsmodule);
 
@@ -217,14 +217,14 @@ class block_ajax_marking extends block_base {
             }
 
         } else {
-            // no grading permissions in any courses - don't display the block (student). Exception
+            // No grading permissions in any courses - don't display the block (student). Exception.
             // for when the block is just installed and the user can edit. Might look broken
             // otherwise.
             if (has_capability('moodle/course:manageactivities', $PAGE->context)) {
                 $this->content->text .= get_string('nogradedassessments', 'block_ajax_marking');
             } else {
-                // this will stop the other functions like has_content() from running all the way
-                // through this again
+                // This will stop the other functions like has_content() from running all the way
+                // through this again.
                 $this->content = false;
             }
         }

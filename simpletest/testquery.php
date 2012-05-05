@@ -113,7 +113,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
             $this->create_test_table($table, $file);
         }
 
-        // Make a copy of the basic site stuff from the main DB
+        // Make a copy of the basic site stuff from the main DB.
         $blocktoget = array('site_main_menu',
                             'course_summary',
                             'news_items',
@@ -136,7 +136,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         }
         $scales = $DB->get_records_select('scale', "courseid = 0", array());
 
-        // Put the stuff into the unit test DB
+        // Put the stuff into the unit test DB.
         $this->switch_to_test_db();
         foreach ($retrievedblocks as $block) {
             $DB->insert_record('block', $block);
@@ -156,10 +156,10 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         $this->scales = $scales;
         $misccategory->id = $DB->insert_record('course_categories', $misccategory);
         $sitecontext->id = $DB->insert_record('context', $sitecontext);
-        $misccontext = create_context(CONTEXT_COURSECAT, $misccategory->id);
+        $misccontext = get_context_instance(CONTEXT_COURSECAT, $misccategory->id);
         $frontcourse->id = $DB->insert_record('course', $frontcourse);
 
-        // Make a new course
+        // Make a new course.
         $count = 0;
         $data = new stdClass();
         $data->category = $misccategory->id;
@@ -168,24 +168,24 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         $options = array();
         $testcourse = create_course($data, $options);
 
-        // Make one instance each of the modules
-        /**
+        // Make one instance each of the modules.
+        /*
          * @var block_ajax_marking_module_base $moduleclass
          */
         foreach ($this->moduleclasses as $moduleclass) {
             $this->make_module($testmodules[$moduleclass->get_module_name()], $testcourse);
         }
 
-        // Make some new users. 10 will be fine
+        // Make some new users. 10 will be fine.
         for ($i = 0; $i < 10; $i++) {
             $this->make_user();
         }
 
-        // Make the current user into the teacher
+        // Make the current user into the teacher.
 
-        // Enrol the others
+        // Enrol the others.
 
-        // Make submissions
+        // Make submissions.
         foreach ($this->moduleclasses as $moduleclass) {
             if (method_exists($moduleclass, 'generate_unit_test_data')) {
                 $moduleclass->generate_unit_test_data();
@@ -216,7 +216,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
 
             require_once($libfile);
 
-            // some need a dummy mform for the instance_add method. Include the library here
+            // Some need a dummy mform for the instance_add method. Include the library here.
             if (array_search($moduledata->name, $this->modules_needing_mform) !== false) {
                 $mod_form_lib = $CFG->dirroot.'/mod/'.$moduledata->name.'/mod_form.php';
 
@@ -228,14 +228,14 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
             throw new coding_exception("Could not load lib file for module $moduledata->name!");
         }
 
-        // Basically 2 types of text fields: description and content
+        // Basically 2 types of text fields: description and content.
         $description = "This $moduledata->name has been randomly generated for unit testing the ".
                        "ajax_marking block";
         $content = 'Should never be seen';
 
         $module = new stdClass();
 
-        // Special module-specific config
+        // Special module-specific config.
         switch ($moduledata->name) {
 
             case 'assignment':
@@ -266,7 +266,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
             case 'forum':
                 $module->intro = $description;
                 $forumtypes = array('general');
-                // others include 'single', 'eachuser', 'qanda'
+                // Others include 'single', 'eachuser', 'qanda'.
                 $module->type = $forumtypes[array_rand($forumtypes)];
                 $module->forcesubscribe = rand(0, 1);
                 $module->assessed = 1;
@@ -306,7 +306,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                 $module->feedbackboundaries = array(2);
                 $module->grade = 10;
                 $module->timeopen = time();
-                // Close quiz after a week
+                // Close quiz after a week.
                 $module->timeclose = time() + 604800;
                 $module->shufflequestions = true;
                 $module->shuffleanswers = true;
@@ -317,7 +317,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
 
             case 'workshop':
                 // Not marked as required in the Moodle form, but causes error without it.
-                // needs to be an array in the new editors format
+                // needs to be an array in the new editors format.
                 $module->grade = rand(50, 100);
                 $module->gradinggrade = rand(0, $module->grade);
                 $module->strategy = 'accumulative';
@@ -343,7 +343,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                 break;
         }
 
-        // Standard stuff
+        // Standard stuff.
         $module->introformat = FORMAT_MOODLE;
         $module->messageformat = FORMAT_MOODLE;
         $module->completion = COMPLETION_DISABLED;
@@ -355,17 +355,17 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         $module->module = $moduledata->id;
         $module->modulename = $moduledata->name;
         $module->add = $moduledata->name;
-        $module->section = 1; // only need one section in use as it's a test
+        $module->section = 1; // Only need one section in use as it's a test.
         $module->groupmode = 0;
         $module->groupingid = 0;
         $module->groupmembersonly = 0;
 
-        // first add course_module record because we need the context.
-        // Lifted from /course/modedit.php
+        // First add course_module record because we need the context.
+        // Lifted from /course/modedit.php.
         $newcm = new stdClass();
         $newcm->course = $course->id;
         $newcm->module = $moduledata->id;
-        $newcm->instance = 0; // not known yet, will be updated after instance is created
+        $newcm->instance = 0; // Not known yet, will be updated after instance is created.
         $newcm->visible = 1;
 
         $module->coursemodule = $newcm->id = add_course_module($newcm);
@@ -380,7 +380,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
             // Don't always make the form as some modules e.g. assignment look for GET
             // parameters, which it doesn't have when called from this script.
             if (array_search($moduledata->name, $this->modules_needing_mform) !== false) {
-                // needed to stand in for the module edit form
+                // Needed to stand in for the module edit form.
                 $mformclassname = 'mod_'.$moduledata->name.'_mod_form';
 
                 if (class_exists($mformclassname)) {
@@ -391,7 +391,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                 }
             }
 
-            // Make the module instance
+            // Make the module instance.
             $module->instance = $add_instance_function($module, $dummymform);
             $newcm->instance = $DB->set_field('course_modules', 'instance', $module->instance,
                                               array('id' => $module->coursemodule));
@@ -400,8 +400,8 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
             throw new coding_exception("Function $add_instance_function does not exist!");
         }
 
-        // needs section as number in course, not id in section.
-        // expects coursemodule id as the coursemodule property
+        // Needs section as number in course, not id in section.
+        // expects coursemodule id as the coursemodule property.
         $module->section = add_mod_to_section($module);
 
         $DB->set_field('course_modules', 'section', $module->section,
@@ -417,11 +417,11 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
             $modules_array[$moduledata->name] = array();
         }
 
-        // Extra stuff needed for specific modules, currently workshop
+        // Extra stuff needed for specific modules, currently workshop.
 
         if ($moduledata->name == 'workshop') {
 
-            // This is to make the dimensions for the workshop
+            // This is to make the dimensions for the workshop.
 
             $workshop = $DB->get_record('workshop', array('id' => $module->id), '*', MUST_EXIST);
             $workshopobject = new workshop($workshop, $newcm, $course);
@@ -451,12 +451,12 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                 $assessmentformdata->{$propertyname} = 1;
             }
 
-            /**
+            /*
              * @var workshop_strategy $strategy
              */
             $strategy->save_edit_strategy_form($assessmentformdata);
 
-            // Set it to submissions phase
+            // Set it to submissions phase.
             $workshop->phase = 20;
             $DB->update_record('workshop', $workshop);
 
@@ -473,7 +473,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         static $usernumber;
 
         if (!$usernumber) {
-            // Number = DB id
+            // Number = DB id.
             $usernumber = $DB->get_field_sql("SELECT MAX(id) FROM {user}") + 1;
         }
 
@@ -504,7 +504,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
         // Some groups
         // Some courses
         // Some settings
-        // At least one user
+        // At least one user.
 
     }
 

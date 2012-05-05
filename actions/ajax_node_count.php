@@ -32,7 +32,7 @@ define('AJAX_SCRIPT', true);
 
 require_once(dirname(__FILE__).'/../../../config.php');
 
-// For unit tests to work
+// For unit tests to work.
 global $CFG, $PAGE;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
@@ -43,7 +43,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php
 block_ajax_marking_login_error();
 require_login(0, false);
 
-// TODO might be in a course
+// TODO might be in a course.
 $PAGE->set_context(get_context_instance(CONTEXT_SYSTEM));
 
 // Each ajax request will have different stuff that we want to pass to the callback function. Using

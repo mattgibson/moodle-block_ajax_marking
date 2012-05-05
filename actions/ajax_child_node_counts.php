@@ -28,7 +28,7 @@ define('AJAX_SCRIPT', true);
 
 require_once(dirname(__FILE__).'/../../../config.php');
 
-// For unit tests to work
+// For unit tests to work.
 global $CFG, $PAGE;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
@@ -39,14 +39,14 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php
 block_ajax_marking_login_error();
 require_login(0, false);
 
-// TODO might be in a course
+// TODO might be in a course.
 $PAGE->set_context(get_context_instance(CONTEXT_SYSTEM));
 
 // Each ajax request will have different stuff that we want to pass to the callback function. Using
 // required_param() means hard-coding them.
 $params = array();
 
-// Need to get the filters in the right order so that the query receives them in the right order
+// Need to get the filters in the right order so that the query receives them in the right order.
 foreach ($_POST as $name => $value) {
     $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
 }
@@ -62,7 +62,7 @@ if (!isset($params['nodeindex'])) {
 
 $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($params);
 
-// Saving bandwidth by stripping out all but the counts and the ids
+// Saving bandwidth by stripping out all but the counts and the ids.
 $thingswewant = array(
     'recentcount',
     'mediumcount',
@@ -79,8 +79,8 @@ foreach ($nodes as &$node) {
     }
 }
 
-// reindex array so we pick it up in js as an array and can find the length. Associative arrays
-// with strings for keys are automatically sent as objects
+// Reindex array so we pick it up in js as an array and can find the length. Associative arrays
+// with strings for keys are automatically sent as objects.
 $nodes = array_values($nodes);
 $data = array('childnodecounts' => $nodes,
               'nodeindex' => $params['nodeindex']);

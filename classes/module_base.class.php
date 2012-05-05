@@ -261,13 +261,13 @@ abstract class block_ajax_marking_module_base {
 
         foreach ($nodes as &$node) {
 
-            // just so we know (for styling and accessing js in the client)
+            // Just so we know (for styling and accessing js in the client).
             $node->modulename = $this->modulename;
 
             switch ($filters['nextnodefilter']) {
 
                 case 'userid':
-                    // Sort out the firstname/lastname thing
+                    // Sort out the firstname/lastname thing.
                     $node->name = fullname($node);
                     unset($node->firstname, $node->lastname);
 
@@ -296,10 +296,10 @@ abstract class block_ajax_marking_module_base {
      * This function will take the data returned by the grading popup and process it. Not always
      * implemented as not all modules have a grading popup yet
      *
-     * @return void
+     * @return string
      */
     public function process_data() {
-
+        return '';
     }
 
     /**
