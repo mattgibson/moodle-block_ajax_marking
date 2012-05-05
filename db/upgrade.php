@@ -199,9 +199,9 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
                       FROM {block_ajax_marking} b
                 INNER JOIN {course_modules} course_modules
                         ON course_modules.instance = b.assessmentid
-                INNER JOIN {modules} mod
-                        ON (course_modules.module = mod.id
-                       AND " . $DB->sql_compare_text('mod.name') . " = '{$module}')
+                INNER JOIN {modules} modules
+                        ON (course_modules.module = modules.id
+                       AND " . $DB->sql_compare_text('modules.name') . " = '{$module}')
                      WHERE b.assessmenttype = '{$module}'
                         ";
             $modids = $DB->get_records_sql($sql, array());
