@@ -53,10 +53,10 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      */
     public function __construct() {
 
-        // call parent constructor with the same arguments
+        // Call parent constructor with the same arguments.
         parent::__construct();
 
-        // must be the same as the DB modulename
+        // Must be the same as the DB modulename.
         $this->modulename  = $this->moduletable = 'forum';
         $this->capability  = 'mod/forum:viewhiddentimedposts';
         $this->icon        = 'mod/forum/icon.gif';
@@ -74,20 +74,22 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      */
     private function get_teacher_sql() {
 
-        // making a where not exists to make sure the rating is not a teacher.
-        // assume that the main query has a 'course c' and 'ratings r' clause in FROM
+        // Making a where not exists to make sure the rating is not a teacher.
+        // assume that the main query has a 'course c' and 'ratings r' clause in FROM.
 
-        // correlated sub query for the where should be OK if the joins only give a small number of
-        // rows
+        // Correlated sub query for the where should be OK if the joins only give a small number of
+        // rows.
 
-        // role_assignment -> context -> cat1 -> coursecategory
-        //                            -> cat1 -> coursecategory
+        /*
+          Role_assignment -> context -> cat1 -> coursecategory
+                                     -> cat1 -> coursecategory
+        */
 
         $categorylevels = block_ajax_marking_get_number_of_category_levels();
 
-        // get category and course role assignments separately
-        // for category level, we look for users with a role assignment where the contextinstance
-        // can be left joined to any category that's a parent of the supplied course
+        // Get category and course role assignments separately.
+        // For category level, we look for users with a role assignment where the contextinstance
+        // can be left joined to any category that's a parent of the supplied course.
         $select = "NOT EXISTS( SELECT 1
                                  FROM {role_assignments} ra
                            INNER JOIN {context} cx
@@ -162,7 +164,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
             return fullname($submission);
         }
 
-        // Keep the $submission object clean
+        // Keep the $submission object clean.
         $label = $submission->label;
         unset($submission->label);
 
@@ -198,11 +200,11 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * @param array $params
      * @param $coursemodule
      * @global moodle_database $DB
-     * @global type $PAGE
-     * @global stfClass $CFG
-     * @global type $SESSION
-     * @global type $USER
-     * @global type $OUTPUT
+     * @global $PAGE
+     * @global stdClass $CFG
+     * @global $SESSION
+     * @global $USER
+     * @global $OUTPUT
      * @params object $coursemodule
      * @return string HTML
      */
@@ -212,13 +214,15 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         $output = '';
 
-        // Lifted from /mod/forum/discuss.php
+        // Lifted from /mod/forum/discuss.php...
 
-        //$parent = $params['parent'];       // If set, then display this post and all children.
-        //$mode   = $params['mode'];         // If set, changes the layout of the thread
-        //$move   = $params['move'];         // If set, moves this discussion to another forum
-        //$mark   = $params['mark'];       // Used for tracking read posts if user initiated.
-        //$postid = $params['postid'];       // Used for tracking read posts if user initiated.
+        /*
+         $parent = $params['parent'];       // If set, then display this post and all children.
+         $mode   = $params['mode'];         // If set, changes the layout of the thread
+         $move   = $params['move'];         // If set, moves this discussion to another forum
+         $mark   = $params['mark'];       // Used for tracking read posts if user initiated.
+         $postid = $params['postid'];       // Used for tracking read posts if user initiated.
+        */
 
         $discussion = $DB->get_record('forum_discussions', array('id' => $params['discussionid']),
                                       '*', MUST_EXIST);
@@ -229,19 +233,19 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $cm         = get_coursemodule_from_instance('forum', $forum->id, $course->id,
                                                      false, MUST_EXIST);
 
-        // security - cmid is used to check context permissions earlier on, so it must match when
-        // derived from the discussion
+        // Security - cmid is used to check context permissions earlier on, so it must match when
+        // derived from the discussion.
         if (!($cm->id == $params['coursemoduleid'])) {
             print_error('Bad params!');
             return false;
         }
 
-        // Add ajax-related libs
+        // Add ajax-related libs.
         $PAGE->requires->yui2_lib('event');
         $PAGE->requires->yui2_lib('connection');
         $PAGE->requires->yui2_lib('json');
 
-        // move this down fix for MDL-6926
+        // Move this down fix for MDL-6926.
         require_once($CFG->dirroot.'/mod/forum/lib.php');
 
         // Possibly, the view permission is being used to prevent certain forums from being
@@ -250,7 +254,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         require_capability('mod/forum:viewdiscussion', $modcontext, null, true,
                            'noviewdiscussionspermission', 'forum');
 
-        // restrict news to allowed times
+        // Restrict news to allowed times.
         if ($forum->type == 'news') {
             if (!($USER->id == $discussion->userid || (($discussion->timestart == 0
                 || $discussion->timestart <= time())
@@ -297,7 +301,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         // Check to see if groups are being used in this forum
         // If so, make sure the current person is allowed to see this discussion
         // Also, if we know they should be able to reply, then explicitly set $canreply for
-        // performance reasons
+        // performance reasons.
 
         // DO NOT DELETE (yet)/////////////////////////////////////////////////////////
         // Do we want to allow replies? might break the ajax bit?
@@ -317,16 +321,15 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                 $canreply = enrol_selfenrol_available($course->id);
             }
         }*/
-        /////////////////////////////////////////////////////////////////////////////////
 
-        // For now, restrict to rating only
+        // For now, restrict to rating only.
         $canreply = false;
 
-        // wWithout this, the nesting doesn't work properly as the css isn't picked up
+        // Without this, the nesting doesn't work properly as the css isn't picked up.
         $output .= html_writer::start_tag('div', array('class' => 'path-mod-forum'));
         $output .= html_writer::start_tag('div', array('class' => 'discussioncontrols clearfix'));
         $output .= html_writer::start_tag('div', array('class' => 'discussioncontrol displaymode'));
-        // we don't want to have the current mode returned in the url as well as the new one
+        // We don't want to have the current mode returned in the url as well as the new one.
         unset($params['mode']);
         $newurl = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
         $select = new single_select($newurl, 'mode', forum_get_layout_modes(), $displaymode,
@@ -360,18 +363,18 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * This will save the data for the finished forums. Namely that they are now not to be shown as
      * in need of marking unless the posts date from beyond this point in time.
      *
-     * @param type $data
+     * @param $data
      */
     public function process_data($data) {
 
-        // Validate everything
+        // Validate everything.
 
     }
 
     /**
      * Returns a query object with the basics all set up to get assignment stuff
      *
-     * @global type $DB
+     * @global moodle_database $DB
      * @return block_ajax_marking_query_base
      */
     public function query_factory() {
@@ -410,7 +413,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                 'table' => 'course',
                 'on' => 'discussions.course = course.id'
         ));
-        // Standard userid for joins
+        // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
         $query->add_select(array('table' => 'sub',
@@ -462,7 +465,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         foreach ($nodes as &$node) {
 
-            // just so we know (for styling and accessing js in the client)
+            // Just so we know (for styling and accessing js in the client).
             $node->modulename = $this->modulename;
 
             switch ($filters['nextnodefilter']) {
@@ -509,11 +512,11 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
                 // This will be derived form the coursemoduleid, but how to get it cleanly?
                 // The query will know, but not easy to get it out. Might have been prefixed.
-                // TODO pass this properly somehow
+                // TODO pass this properly somehow.
                 $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
-                // normal forum needs discussion title as label, participant usernames as
+                // Normal forum needs discussion title as label, participant usernames as
                 // description eachuser needs username as title and discussion subject as
-                // description
+                // description.
                 if ($this->forum_is_eachuser($coursemoduleid)) {
                     $query->add_select(array(
                             'table' => 'firstpost',
@@ -526,7 +529,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                             'column' => 'subject',
                             'alias' => 'label'
                     ));
-                    // TODO need a SELECT bit to get all userids of people in the discussion instead
+                    // TODO need a SELECT bit to get all userids of people in the discussion
+                    // instead.
                     $query->add_select(array(
                             'table' => 'firstpost',
                             'column' => 'message',

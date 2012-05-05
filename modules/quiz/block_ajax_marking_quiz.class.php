@@ -30,12 +30,12 @@ if (!defined('MOODLE_INTERNAL')) {
 
 global $CFG;
 
-/** @define "$blockdir" "../.." */
+/* @define "$blockdir" "../.." */
 $blockdir = $CFG->dirroot.'/blocks/ajax_marking';
 require_once($blockdir.'/classes/query_base.class.php');
 
 // We only need this file for the constants. Doing this so that we don't have problems including
-// the file from module.js
+// the file from module.js.
 
 
 if (isset($CFG) && !empty($CFG)) {
@@ -64,10 +64,10 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      */
     public function __construct() {
 
-        // call parent constructor with the same arguments
+        // Call parent constructor with the same arguments.
         parent::__construct();
 
-        // must be the same as the DB modulename
+        // Must be the same as the DB modulename.
         $this->modulename = $this->moduletable = 'quiz';
         $this->capability           = 'mod/quiz:grade';
         $this->icon                 = 'mod/quiz/icon.gif';
@@ -76,7 +76,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
     /**
      * This will alter a query to send back the stuff needed for quiz questions
      *
-     * @param \block_ajax_marking_query_base|\type $query
+     * @param \block_ajax_marking_query_base $query
      * @param $operation
      * @param int $questionid the id to filter by
      * @return void
@@ -85,11 +85,11 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                             $questionid = 0) {
 
         $selects = array();
-        /**
+        /*
          * @var block_ajax_marking_query_base $countwrapper
          */
         $countwrapper = $query->get_subquery('countwrapperquery');
-        /**
+        /*
          * @var block_ajax_marking_query_base $moduleunion
          */
         $moduleunion = $countwrapper->get_subquery('moduleunion');
@@ -97,7 +97,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         switch ($operation) {
 
             case 'where':
-                // Apply WHERE clause
+                // Apply WHERE clause.
                 $moduleunion['quiz']->add_select(array(
                                              'table' => 'question',
                                              'column' => 'id',
@@ -124,7 +124,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                         'column' => 'questionid',
                         'alias' => 'id'));
 
-                // Outer bit to get display name
+                // Outer bit to get display name.
                 $query->add_from(array(
                         'join' => 'INNER JOIN',
                         'table' => 'question',
@@ -200,7 +200,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 
         require_once($CFG->dirroot.'/mod/quiz/locallib.php');
 
-         //TODO feed in all dynamic variables here
+         //TODO feed in all dynamic variables here.
         $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
         $PAGE->set_url($url);
 
@@ -212,27 +212,27 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         $output .= html_writer::start_tag('form', $formattributes);
 
         // We could be looking at multiple attempts and/or multiple questions
-        // Assume we have a user/quiz combo to get us here. We may have attemptid or questionid too
+        // Assume we have a user/quiz combo to get us here. We may have attemptid or questionid too.
 
         // Get all attempts with unmarked questions. We may or may not have a questionid, but
-        // this comes later so we can use the quiz's internal functions
+        // this comes later so we can use the quiz's internal functions.
         $questionattempts = $this->get_question_attempts($params);
 
         if (!$questionattempts) {
             die('Could not retrieve question attempts. Maybe someone else marked them just now');
         }
 
-        // cache the attempt objects for reuse.
+        // Cache the attempt objects for reuse..
         $quizattempts = array();
-        // We want to get the first one ready, so we can use it to print the info box
+        // We want to get the first one ready, so we can use it to print the info box.
         $firstattempt = reset($questionattempts);
         $quizattempt = quiz_attempt::create($firstattempt->quizattemptid);
         $quizattempts[$firstattempt->quizattemptid] = $quizattempt;
 
-        // Print infobox
+        // Print infobox.
         $rows = array();
 
-        // Print user picture and name
+        // Print user picture and name.
         $student = $DB->get_record('user', array('id' => $quizattempt->get_userid()));
         $courseid = $quizattempt->get_courseid();
         $picture = $OUTPUT->user_picture($student, array('courseid' => $courseid));
@@ -256,15 +256,17 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         foreach ($questionattempts as $questionattempt) {
 
             // Everything should already be in the right order:
-            // Question 1
-            // - Attempt 1
-            // - Attempt 2
-            // Question 2
-            // - Attempt 1
-            // - Attempt 2
+            /*
+             Question 1
+             - Attempt 1
+             - Attempt 2
+             Question 2
+             - Attempt 1
+             - Attempt 2
+            */
 
             // N.B. Using the proper quiz functions in an attempt to make this more robust
-            // against future changes
+            // against future changes.
             if (!isset($quizattempts[$questionattempt->quizattemptid])) {
                 $quizattempt = quiz_attempt::create($questionattempt->quizattemptid);
                 $quizattempts[$questionattempt->quizattemptid] = $quizattempt;
@@ -278,7 +280,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                        'reviewquestion.php?attempt=' .
                        $attemptid . '&question=' . $params['questionid'] ,
                        $quizattempt->get_quizid(), $quizattempt->get_cmid());
-            // Now make the actual markup to show one question plus commenting/grading stuff
+            // Now make the actual markup to show one question plus commenting/grading stuff.
             $output .= $quizattempt->render_question_for_commenting($questionattempt->slot);
 
         }
@@ -317,7 +319,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         // the pop up, which could lead to these grades being ignored, or the other person's
         // being overwritten. Not much we can do about that.
         $questionattempts = $this->get_question_attempts($params);
-        // We will have duplicates as there could be multiple questions per attempt
+        // We will have duplicates as there could be multiple questions per attempt.
         $processedattempts = array();
 
         // This will get all of the attempts to pull the relevant data from all the POST stuff
@@ -371,7 +373,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 'on'    => 'question_attempts.questionid = question.id'
         ));
 
-        // Standard userid for joins
+        // Standard userid for joins.
         $query->add_select(array('table' => 'quiz_attempts',
                                  'column' => 'userid'));
         $query->add_select(array('table' => 'sub',
@@ -427,7 +429,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         switch ($operation) {
 
             case 'where':
-                // Applies if users are not the final nodes,
+                // Applies if users are not the final nodes.
                 $query->add_where(array(
                         'type' => 'AND',
                         'condition' => 'quiz_attempts.userid = :useridfiltersubmissionid')
@@ -541,7 +543,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         $sql .= " ORDER  BY question_attempts.slot,
                           quiz_attempts.id ASC  ";
 
-        // We want the oldest at the top so that the tutor can see how the answer changes over time
+        // We want the oldest at the top so that the tutor can see how the answer changes over time.
         $questionattempts = $DB->get_records_sql($sql, $sqlparams);
         return $questionattempts;
     }

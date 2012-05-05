@@ -31,7 +31,7 @@ if (!defined('MOODLE_INTERNAL')) {
 
 global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
-require_once($CFG->dirroot.'/mod/workshop/locallib.php'); // for constants
+require_once($CFG->dirroot.'/mod/workshop/locallib.php'); // For constants.
 
 /**
  * Provides marking functionality for the workshop module
@@ -49,7 +49,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
      */
     public function __construct() {
 
-        // call parent constructor with the same arguments
+        // Call parent constructor with the same arguments.
         parent::__construct();
 
         $this->modulename           = $this->moduletable = 'workshop';
@@ -83,7 +83,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
     /**
      * Returns a query object with the basics all set up to get assignment stuff
      *
-     * @global type $DB
+     * @global moodle_database $DB
      * @return block_ajax_marking_query_base
      */
     public function query_factory() {
@@ -109,7 +109,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
                 'on' => 'sub.id = a.submissionid'
         ));
 
-        // Standard userid for joins
+        // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
                                  'column' => 'authorid',
                                  'alias' => 'userid'));
@@ -146,11 +146,11 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
      *
      * @param array $params From $_GET
      * @param $coursemodule
-     * @global type $PAGE
-     * @global type $CFG
-     * @global type $DB
-     * @global type $OUTPUT
-     * @global type $USER
+     * @global $PAGE
+     * @global $CFG
+     * @global moodle_database $DB
+     * @global $OUTPUT
+     * @global $USER
      *
      */
     public function grading_popup($params, $coursemodule) {
@@ -176,7 +176,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         switch ($operation) {
 
             case 'where':
-                // Applies if users are not the final nodes
+                // Applies if users are not the final nodes.
                 $query->add_where(array(
                         'type' => 'AND',
                         'condition' => 'sub.authorid = :workshopsubmissionid'));
@@ -209,7 +209,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
                         'table'    => 'sub',
                         'column'   => 'authorid',
                         'alias'    => 'userid'),
-                    array( // Count in case we have user as something other than the last node
+                    array( // Count in case we have user as something other than the last node.
                         'function' => 'COUNT',
                         'table'    => 'sub',
                         'column'   => 'id',

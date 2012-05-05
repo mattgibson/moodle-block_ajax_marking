@@ -40,11 +40,11 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php')
 
 $moduleclasses = block_ajax_marking_get_module_classes();
 
-// get each module to do the sorting out - perhaps do this once when the request goes out
+// Get each module to do the sorting out - perhaps do this once when the request goes out.
 // first.
 $htmllist = '';
 
-// This will always be present due to the include
+// This will always be present due to the include.
 $courses = block_ajax_marking_get_my_teacher_courses();
 
 // Foreach course, ask each module for all of the nodes to be returned as an array, with
@@ -54,7 +54,7 @@ foreach ($courses as $course) {
     $course_output = '';
     $course_count = 0;
 
-    // loop through each module, getting a count for this course id from each one.
+    // Loop through each module, getting a count for this course id from each one.
     foreach ($moduleclasses as $moduleclass) {
 
         $nodes = $moduleclass->module_nodes($course->id);

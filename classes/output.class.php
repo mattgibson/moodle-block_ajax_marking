@@ -29,7 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 
 class block_ajax_marking_output {
 
-    // Hold the output data as a nested set of arrays
+    // Hold the output data as a nested set of arrays.
     private $output;
 
     private $outputtree;
@@ -102,7 +102,7 @@ class block_ajax_marking_output {
     public function json_render() {
 
         if (count($this->outputtree) > 0) {
-            //start the data
+            // Start the data.
             $output = '[';
             $first = true;
 
@@ -112,19 +112,19 @@ class block_ajax_marking_output {
                     $output .= ',';
                     $first = false;
                 }
-                // recursive approach renders the whole tree with this function
+                // Recursive approach renders the whole tree with this function.
                 if ($key == 'subnodes') {
 
                     $this->ajax_render($node);
 
                 } else {
 
-                    // render this node's data
+                    // Render this node's data.
                     $output .= '{"'.$key.'":"'.$$node.'"}';
                 }
             }
 
-            // end the data
+            // End the data.
             $output .= ']';
             return $output;
 
@@ -142,6 +142,8 @@ class block_ajax_marking_output {
 
     /**
      * returns the final output string
+     *
+     * @return string
      */
     public function get_output() {
 

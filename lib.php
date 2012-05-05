@@ -57,7 +57,7 @@ function block_ajax_marking_teacherrole_sql() {
 
     ";
 
-    // TODO should be a site wide or block level setting
+    // TODO should be a site wide or block level setting.
     $teacherroles = $DB->get_records_sql($sql, $capparams);
     $teacherroleids = array_keys($teacherroles);
 
@@ -94,7 +94,7 @@ function block_ajax_marking_get_number_of_category_levels($reset=false) {
     $categorylevels = $DB->get_record_sql($sql, $params);
 
     $categorylevels = $categorylevels->depth;
-    $categorylevels--; // ignore site level category to get actual number of categories
+    $categorylevels--; // Ignore site level category to get actual number of categories.
 
     return $categorylevels;
 }
@@ -110,13 +110,13 @@ function block_ajax_marking_get_number_of_category_levels($reset=false) {
  */
 function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=false) {
 
-    // NOTE could also use subquery without union
-    /**
+    // NOTE could also use subquery without union.
+    /*
      * @var stdClass $USER
      */
     global $DB, $USER;
 
-    // cache to save DB queries.
+    // Cache to save DB queries.
     static $courses = '';
     static $query = '';
     static $params = '';
@@ -140,9 +140,9 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
     // Only get extra columns back if we are returning the actual results. Subqueries won't need it.
     $fieldssql .= $returnsql ? '' : ', fullname, shortname';
 
-    // Main bit
+    // Main bit.
 
-    // all directly assigned roles
+    // All directly assigned roles.
     $select = "SELECT {$fieldssql}
                  FROM {course} course
            INNER JOIN {context} cx
@@ -154,9 +154,8 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
                   AND ra.userid = ?
                   AND ra.roleid {$rolesql} ";
 
-    // roles assigned in category 1 or 2 etc
-    //
-    // what if roles are assigned in two categories that are parent/child?
+    // Roles assigned in category 1 or 2 etc.
+    // What if roles are assigned in two categories that are parent/child?
     $select .= " UNION
 
                SELECT {$fieldssql}
@@ -175,10 +174,10 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
                                    AND ra.roleid {$rolesql}
                                    AND (cx.instanceid = cat1.id ";
 
-    // loop adding extra join tables. $categorylevels = 2 means we only need one level of categories
-    // (which we already have with the first left join above) so we start from 2 and only add
-    // anything if there are 3 levels or more
-    // TODO does this cope with no hierarchy at all? This would mean $categoryleveles = 1
+    // Loop adding extra join tables. $categorylevels = 2 means we only need one level of
+    // categories (which we already have with the first left join above), so we start from 2
+    // and only add anything if there are 3 levels or more.
+    // TODO does this cope with no hierarchy at all? This would mean $categoryleveles = 1.
     $categorylevels = block_ajax_marking_get_number_of_category_levels();
 
     for ($i = 2; $i <= $categorylevels; $i++) {
@@ -218,14 +217,14 @@ function &block_ajax_marking_get_module_classes($reset=false) {
 
     global $DB, $CFG;
 
-    // cache them so we don't waste them
+    // Cache them so we don't waste them.
     static $moduleclasses = array();
 
     if ($moduleclasses && !$reset) {
         return $moduleclasses;
     }
 
-    // see which modules are currently enabled
+    // See which modules are currently enabled.
     $sql = 'SELECT name
               FROM {modules}
              WHERE visible = 1';
@@ -234,7 +233,7 @@ function &block_ajax_marking_get_module_classes($reset=false) {
 
     foreach ($enabledmods as $enabledmod) {
 
-        if ($enabledmod === 'journal') { // just until it's fixed
+        if ($enabledmod === 'journal') { // Just until it's fixed.
             continue;
         }
 
@@ -268,7 +267,7 @@ function block_ajax_marking_format_node(&$node, $nextnodefilter) {
     $node->popupstuff  = new stdClass;
     $node->configdata  = new stdClass;
 
-    // The things to go into display are fixed. Stuff for return data varies
+    // The things to go into display are fixed. Stuff for return data varies.
     $displayitems = array(
             'itemcount',
             'description',
@@ -292,7 +291,7 @@ function block_ajax_marking_format_node(&$node, $nextnodefilter) {
             'groups'
     );
 
-    // loop through the rest of the object's properties moving them to the returndata bit
+    // Loop through the rest of the object's properties moving them to the returndata bit.
     foreach ($node as $varname => $value) {
 
         if ($varname !== 'displaydata' &&
@@ -364,14 +363,14 @@ function block_ajax_marking_debuggable_query($query,
     }
 
     // We may have a problem with params being missing. Check here (assuming the params ar in
-    // SQL_PARAMS_NAMED format And tell us the names of the offending params via an exception
+    // SQL_PARAMS_NAMED format And tell us the names of the offending params via an exception.
     $pattern = '/:([\w]+)/';
     $expectedparamcount = preg_match_all($pattern, $query, $paramnames);
     if ($expectedparamcount) {
         $arrayparamnames = array_keys($params);
         $queryparamnames = $paramnames[1];
         if ($expectedparamcount > count($params)) {
-            // params are indexed by the name we gave, whereas the $paramnames are indexed by
+            // Params are indexed by the name we gave, whereas the $paramnames are indexed by
             // numeric position in $query. First array has colons at start of keys.
             $missingparams = array_diff($queryparamnames, $arrayparamnames);
             throw new coding_exception('Missing parameters: '.implode(', ', $missingparams));
@@ -381,11 +380,11 @@ function block_ajax_marking_debuggable_query($query,
         }
     }
 
-    // Substitute all the {tablename} bits
+    // Substitute all the {tablename} bits.
     $query = preg_replace('/\{/', $CFG->prefix, $query);
     $query = preg_replace('/}/', '', $query);
 
-    // Now put all the params in place
+    // Now put all the params in place.
     foreach ($params as $name => $value) {
         $pattern = '/:'.$name.'/';
         $replacevalue = (is_numeric($value) ? $value : "'".$value."'");
@@ -405,7 +404,7 @@ function block_ajax_marking_debuggable_query($query,
 function block_ajax_marking_strip_html_tags($text) {
     $text = preg_replace(
         array(
-             // Remove invisible content
+             // Remove invisible content.
              '@<head[^>]*?>.*?</head>@siu',
              '@<style[^>]*?>.*?</style>@siu',
              '@<script[^>]*?.*?</script>@siu',
@@ -415,7 +414,7 @@ function block_ajax_marking_strip_html_tags($text) {
              '@<noframes[^>]*?.*?</noframes>@siu',
              '@<noscript[^>]*?.*?</noscript>@siu',
              '@<noembed[^>]*?.*?</noembed>@siu',
-             // Add line breaks before and after blocks
+             // Add line breaks before and after blocks.
              '@</?((address)|(blockquote)|(center)|(del))>@iu',
              '@</?((div)|(h[1-9])|(ins)|(isindex)|(p)|(pre))>@iu',
              '@</?((dir)|(dl)|(dt)|(dd)|(li)|(menu)|(ol)|(ul))>@iu',
@@ -441,10 +440,10 @@ function block_ajax_marking_strip_html_tags($text) {
              " ",
              " ",
              " ",
-             " ",), $text);
+             " "), $text);
 
-    $text =  strip_tags($text); // lose any remaining tags
-    return preg_replace('/\s+/', ' ', trim($text)); // lose duplicate whitespaces
+    $text =  strip_tags($text); // Lose any remaining tags.
+    return preg_replace('/\s+/', ' ', trim($text)); // Lose duplicate whitespaces.
 }
 
 /**
