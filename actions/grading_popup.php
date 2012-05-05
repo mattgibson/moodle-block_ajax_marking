@@ -56,7 +56,7 @@ if (!$coursemodule) {
 require_login($coursemodule->course, false, $coursemodule);
 $context = get_context_instance(CONTEXT_MODULE, $cmid);
 
-/** @define "$blockdir" "../" */
+/* @define $blockdir "../" */
 $blockdir = $CFG->dirroot.'/blocks/ajax_marking/';
 require_once($blockdir.'lib.php');
 require_once($blockdir.'classes/module_base.class.php');
@@ -67,20 +67,20 @@ if (!class_exists($classname)) {
     print_error('AJAX marking block does not support the '.$modname.' module');
     die();
 }
-/** @var $moduleobject block_ajax_marking_module_base   */
+/* @var $moduleobject block_ajax_marking_module_base   */
 $moduleobject = new $classname;
 if (!has_capability($moduleobject->capability, $context)) {
     print_error('You do not have permission to grade submissions for this course module');
     die();
 }
 
-// stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be
-// processed
+// Stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be
+// processed.
 $data = data_submitted();
 
 if ($data && confirm_sesskey()) {
 
-    // make sure this includes require_login() in order to set page context properly
+    // Make sure this includes require_login() in order to set page context properly.
     $error = $moduleobject->process_data($data, $params);
 
     // If success, notify and print a close button.
@@ -109,7 +109,7 @@ $PAGE->set_url($url);
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('popup');
 
-// Make sure that whatever happens, we lose the tree highlight when the pop up shuts
+// Make sure that whatever happens, we lose the tree highlight when the pop up shuts.
 $code = "
     window.onbeforeunload = function(e) {
         // YAHOO.util.Event.addListener(window, 'beforeunload', function(args) {
@@ -137,7 +137,7 @@ $code = "
 ";
 $PAGE->requires->js_init_code($code);
 
-// may involve a redirect if we don't want a form
+// May involve a redirect if we don't want a form.
 $content = $moduleobject->grading_popup($params, $coursemodule);
 
 echo $OUTPUT->header();
