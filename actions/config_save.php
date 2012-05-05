@@ -29,20 +29,19 @@ define('AJAX_SCRIPT', true);
 
 require_once(dirname(__FILE__).'/../../../config.php');
 
-global $DB;
-
+global $DB, $USER, $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 
 block_ajax_marking_login_error();
 require_login();
 
-// Get POST data
+// Get POST data.
 $tablename       = required_param('tablename',        PARAM_ALPHAEXT);
 $instanceid      = required_param('instanceid',       PARAM_INT);
 $settingtype     = required_param('settingtype',      PARAM_ALPHAEXT);
-$settingvalue    = optional_param('settingvalue',     null, PARAM_INT); // null = inherit
+$settingvalue    = optional_param('settingvalue',     null, PARAM_INT); // Here, null = inherit.
 $groupid         = optional_param('groupid', 0,       PARAM_INT);
-// These are passed through so that the right bit of the tree/menu gets fixed on the way back
+// These are passed through so that the right bit of the tree/menu gets fixed on the way back.
 $menuitemindex   = optional_param('menuitemindex', false, PARAM_INT);
 $nodeindex       = optional_param('nodeindex', false,  PARAM_INT);
 $menutype        = optional_param('menutype', false,  PARAM_ALPHA);
@@ -52,7 +51,7 @@ if ($nodeindex === false && $menuitemindex === false) {
     die ('Either menuitem index or node index must be provided');
 }
 
-// Check for validity
+// Check for validity.
 $allowedtables = array('course', 'course_modules');
 if (!in_array($tablename, $allowedtables)) {
     die('Invalid Table');
@@ -75,7 +74,7 @@ if ($groupid) {
     }
 }
 
-/**
+/*
  * @var stdClass $USER // Prevent IDE complaining about undefined fields
  */
 $userid = $USER->id;
@@ -106,7 +105,7 @@ switch ($settingtype) {
         $success = $DB->update_record('block_ajax_marking', $existingsetting);
 
         // For a course level node, we also want to set all child nodes to default, otherwise
-        // it could get complex/confusing for the users
+        // it could get complex/confusing for the users.
         if ($tablename === 'course') {
             $sql = "UPDATE {block_ajax_marking} course_module_config
                 INNER JOIN {course_modules} course_modules
@@ -135,7 +134,7 @@ switch ($settingtype) {
         foreach ($existinggroupsettings as $groupsetting) {
             if ($groupsetting->groupid == $groupid) {
                 $havegroupsettting = true;
-                break; // Leaving $groupsetting as the one we want
+                break; // Leaving $groupsetting as the one we want.
             }
         }
         if ($havegroupsettting) {
@@ -147,7 +146,7 @@ switch ($settingtype) {
                 $success = $DB->update_record('block_ajax_marking_groups', $groupsetting);
             }
         } else {
-            if (is_null($settingvalue)) { // nothing to change
+            if (is_null($settingvalue)) { // Nothing to change.
                 $success = true;
             } else {
                 $groupsetting = new stdClass();
@@ -159,7 +158,7 @@ switch ($settingtype) {
         }
 
         if ($tablename === 'course') {
-            // Delete all group settings for associated coursemodules, making them NULL
+            // Delete all group settings for associated coursemodules, making them NULL.
             $sql = "     DELETE config_groups
                            FROM {block_ajax_marking_groups} config_groups
                      INNER JOIN {block_ajax_marking} course_module_config

@@ -140,9 +140,9 @@ class block_ajax_marking_query_base {
      * @return string
      */
     protected function build_select_item($select, $forgroupby = false) {
-        $selectstring = '';
-        // 'column' will not be set if this is COALESCE. We have an associative array of
-        // table=>column pairs
+
+        // The 'column' will not be set if this is COALESCE. We have an associative array of
+        // table=>column pairs.
         if (isset($select['function']) && strtoupper($select['function']) === 'COALESCE') {
             $selectstring = self::get_coalesce_from_table($select['table']);
         } else {
@@ -179,6 +179,7 @@ class block_ajax_marking_query_base {
     /**
      * Returns the SQL fragment for the join tables
      *
+     * @throws coding_exception
      * @return string SQL
      */
     protected function get_from() {
@@ -187,12 +188,12 @@ class block_ajax_marking_query_base {
 
         foreach ($this->from as $from) {
 
-            // allow shorthand
+            // Allow shorthand.
             if (isset($from['join'])) {
                 $from['join'] = ($from['join'] == 'left') ? 'LEFT JOIN' : $from['join'];
             }
 
-            if ($from['table'] instanceof block_ajax_marking_query_base) { //allow for recursion
+            if ($from['table'] instanceof block_ajax_marking_query_base) { // Allow for recursion.
                 $fromstring = '('.$from['table']->to_string().')';
 
             } else if (isset($from['subquery'])) {
@@ -204,7 +205,7 @@ class block_ajax_marking_query_base {
                     }
                     $this->validate_union_array($from['table']);
                     $unionarray = array();
-                    /**
+                    /*
                      * @var block_ajax_marking_query_base $table
                      */
                     foreach ($from['table'] as $table) {
@@ -220,11 +221,11 @@ class block_ajax_marking_query_base {
             } else {
                 $fromstring = '{'.$from['table'].'}';
             }
-            if (!empty($fromarray)) { // No JOIN keyword for the first table
+            if (!empty($fromarray)) { // No JOIN keyword for the first table.
                 if (isset($from['join'])) {
                     $fromstring = $from['join'].' '.$fromstring;
                 } else {
-                    // Default to INNER JOIN
+                    // Default to INNER JOIN.
                     $fromstring = 'INNER JOIN '.$fromstring;
                 }
             }
@@ -255,7 +256,7 @@ class block_ajax_marking_query_base {
      */
     protected function get_where() {
 
-        // The first clause should not have AND at the start
+        // The first clause should not have AND at the start.
         $first = true;
 
         $wherearray = array();
@@ -284,10 +285,10 @@ class block_ajax_marking_query_base {
         $groupby = array();
 
         if ($this->has_select_aggregate()) {
-            // Can't miss out any of the things or Oracle will be unhappy
+            // Can't miss out any of the things or Oracle will be unhappy.
 
             foreach ($this->select as $column) {
-                // if the column is not a MAX, COUNT, etc, add it to the groupby
+                // If the column is not a MAX, COUNT, etc, add it to the groupby.
                 $functioniscoalesce = (isset($column['function']) &&
                                        strtoupper($column['function']) == 'COALESCE');
                 $notafunctioncolumn = !isset($column['function']) && $column['column'] !== '*';
@@ -313,6 +314,7 @@ class block_ajax_marking_query_base {
      * sequence of table.column options and defaults.
      *
      * @param array $table
+     * @throws coding_exception
      * @return string
      */
     protected function get_coalesce_from_table($table) {
@@ -324,11 +326,11 @@ class block_ajax_marking_query_base {
 
         $tablesarray = array();
         foreach ($table as $tab => $col) {
-            // COALESCE may have non-SQL defaults, which are just added with numeric keys
+            // COALESCE may have non-SQL defaults, which are just added with numeric keys.
             if (is_string($tab)) {
                 $tablesarray[] = $tab.'.'.$col;
             } else {
-                // The default value may be a number, or a string, in which case, it needs quotes
+                // The default value may be a number, or a string, in which case, it needs quotes.
                 $tablesarray[] = is_string($col) ? "'".$col."'" : $col;
             }
         }
@@ -373,6 +375,8 @@ class block_ajax_marking_query_base {
      * @param bool $prefix Do we want this at the start, rather than the end?
      * @param bool $replace If true, the start or end element will be replaced with the incoming
      * one. Default: false
+     * @throws coding_exception
+     * @throws invalid_parameter_exception
      * @return void
      */
     public function add_select(array $column, $prefix = false, $replace = false) {
@@ -381,7 +385,7 @@ class block_ajax_marking_query_base {
         $key = isset($column['alias']) ? $column['alias'] : $column['column'];
 
         if (isset($select['function']) && strtoupper($select['function']) === 'COALESCE') {
-            // COALESCE takes an array of tables and columns to add together
+            // COALESCE takes an array of tables and columns to add together.
             if (!is_array($column['table'])) {
                 $errorstring = 'add_select() called with COALESCE function and non-array list of '.
                                'tables';
@@ -390,11 +394,11 @@ class block_ajax_marking_query_base {
         }
 
         if (is_array($column) && (array_diff(array_keys($column), $requiredkeys) === array())) {
-            if ($prefix) { // put it at the start
-                if ($replace) { // knock off the existing one
+            if ($prefix) { // Put it at the start.
+                if ($replace) { // Knock off the existing one.
                     array_shift($this->select);
                 }
-                // array_unshift does not allow us to add using a specific key
+                // Array_unshift does not allow us to add using a specific key.
                 $this->select = array($key => $column) + $this->select;
             } else {
                 if ($replace) {
@@ -412,6 +416,8 @@ class block_ajax_marking_query_base {
      * This will add a join table. No alias means it'll use the table name.
      *
      * @param array $table containing 'join', 'table', 'alias', 'on', 'subquery' (last one optional)
+     * @throws coding_exception
+     * @throws invalid_parameter_exception
      * @return void
      */
     public function add_from(array $table) {
@@ -483,14 +489,15 @@ class block_ajax_marking_query_base {
      * @return void
      */
     public function add_param($name, $value) {
-        // must differentiate between the modules, which will be duplicating params. Prefixing with
-        // the module name means that when we do array_merge, we won't have a problem
+        // Must differentiate between the modules, which will be duplicating params. Prefixing with
+        // the module name means that when we do array_merge, we won't have a problem.
         $this->params[$name] = $value;
     }
 
     /**
      * Getter for the DB module name
      *
+     * @throws coding_exception
      * @return string
      */
     public function get_modulename() {
@@ -503,6 +510,7 @@ class block_ajax_marking_query_base {
     /**
      * Getter for the DB module name
      *
+     * @throws coding_exception
      * @return string
      */
     public function get_module_id() {
@@ -517,6 +525,7 @@ class block_ajax_marking_query_base {
      *
      * @param array $params
      * @param bool|array $arraytoaddto
+     * @throws coding_exception
      * @return bool|array
      */
     public function add_params(array $params, $arraytoaddto = false) {
@@ -543,7 +552,7 @@ class block_ajax_marking_query_base {
     protected function has_select_aggregate() {
 
         // We don't want to have a GROUP BY if it's a COALESCE function, otherwise
-        // Oracle complains
+        // Oracle complains.
         $nogroupbyfunctions = array('COALESCE');
 
         foreach ($this->select as $select) {
@@ -562,7 +571,7 @@ class block_ajax_marking_query_base {
      */
     public function to_string() {
 
-        // Stick it all together
+        // Stick it all together.
         $query = $this->get_select().
                  $this->get_from().
                  $this->get_where().
@@ -581,7 +590,7 @@ class block_ajax_marking_query_base {
     public function get_params() {
         $params = array();
         foreach ($this->from as $jointable) {
-            /**
+            /*
              * @var block_ajax_marking_query_base $table
              */
             $table = $jointable['table'];
@@ -589,7 +598,7 @@ class block_ajax_marking_query_base {
                 $params = $this->add_params($table->get_params(), $params);
             } else if (is_array($table)) {
                 $this->validate_union_array($table);
-                /**
+                /*
                  * @var block_ajax_marking_query_base $uniontable
                  */
                 foreach ($table as $uniontable) {
@@ -629,6 +638,7 @@ class block_ajax_marking_query_base {
     /**
      * Getter function for the associated module's capability so we can check for permissions
      *
+     * @throws coding_exception
      * @return string
      */
     public function get_capability() {
