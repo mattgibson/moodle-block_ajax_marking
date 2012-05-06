@@ -39,7 +39,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php
 block_ajax_marking_login_error();
 require_login(0, false);
 
-// TODO might be in a course
+// TODO might be in a course.
 $PAGE->set_context(context_system::instance());
 
 // Each ajax request will have different stuff that we want to pass to the callback function. Using

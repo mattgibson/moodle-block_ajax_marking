@@ -31,7 +31,7 @@ require_once(dirname(__FILE__).'/../../../config.php');
 global $DB, $OUTPUT, $CFG, $PAGE;
 
 // Each popup request will have different stuff that we want to pass to
-// $moduleobject->grading_popup()
+// $moduleobject->grading_popup().
 $params = array();
 // Use GET to discriminate between submitted form stuff and url stuff. optional_param() doesn't.
 foreach ($_GET as $name => $value) {
@@ -42,13 +42,10 @@ $cmid = required_param('coursemoduleid', PARAM_INT);
 $nodeid = required_param('node', PARAM_INT);
 
 $coursemodule = $DB->get_record('course_modules', array('id' => $cmid));
-/** @var string $modname  */
+/* @var string $modname  */
 $modname = $DB->get_field('modules', 'name', array('id' => $coursemodule->module));
 
-// Page may need custom javascript.
-//$PAGE->require();
-
-//permissions checks
+// Permissions checks.
 if (!$coursemodule) {
     print_error('Bad coursemoduleid');
     die();
@@ -80,7 +77,7 @@ $data = data_submitted();
 
 if ($data && confirm_sesskey()) {
 
-    // make sure this includes require_login() in order to set page context properly
+    // Make sure this includes require_login() in order to set page context properly.
     $error = $moduleobject->process_data($data, $params);
 
     // If success, notify and print a close button.

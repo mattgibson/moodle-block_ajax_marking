@@ -26,7 +26,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// include the upgrade file so we have access to amb_update_modules() in case of no settings
+// Include the upgrade file so we have access to amb_update_modules() in case of no settings.
 global $CFG;
 require_once("{$CFG->dirroot}/enrol/locallib.php");
 
