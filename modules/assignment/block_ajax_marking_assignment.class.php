@@ -88,14 +88,15 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     /**
      * Makes the grading interface for the pop up
      *
-     * @global type $PAGE
-     * @global stdClass $CFG
-     * @global moodle_database $DB
-     * @global type $OUTPUT
-     * @global stdClass $USER
      * @param array $params From $_GET
      * @param object $coursemodule The coursemodule object that the user has been authenticated
      * against
+     * @param bool $data
+     * @global $PAGE
+     * @global stdClass $CFG
+     * @global moodle_database $DB
+     * @global $OUTPUT
+     * @global stdClass $USER
      * @return string
      */
     public function grading_popup($params, $coursemodule, $data = false) {
@@ -281,7 +282,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
             return 'cancelled';
         }
 
-        // get DB records
+        // Get DB records.
         $coursemodule = $DB->get_record('course_modules',
                                         array('id' => $params['coursemoduleid']),
                                         '*',
@@ -321,12 +322,12 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
             $submission->data2 = '';
 
-            // Load up the required assignment code
+            // Load up the required assignment code.
             require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
                 '/assignment.class.php');
             $assignmentclass = 'assignment_'.$assignment->assignmenttype;
 
-            /**
+            /*
              * @var assignment_base $assignmentinstance
              */
             $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,

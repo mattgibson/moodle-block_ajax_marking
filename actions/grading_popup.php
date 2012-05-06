@@ -81,7 +81,7 @@ $PAGE->set_pagelayout('popup');
 echo $OUTPUT->header();
 
 // Stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be
-// processed. Also catches all other submitted form data
+// processed. Also catches all other submitted form data.
 $data = data_submitted();
 
 if ($data && confirm_sesskey()) {
@@ -112,7 +112,7 @@ if ($data && confirm_sesskey()) {
 
 }
 
-// Make sure that whatever happens, we lose the tree highlight when the pop up shuts
+// Make sure that whatever happens, we lose the tree highlight when the pop up shuts.
 $code = "
     window.onbeforeunload = function(e) {
         // YAHOO.util.Event.addListener(window, 'beforeunload', function(args) {
@@ -140,7 +140,7 @@ $code = "
 ";
 $PAGE->requires->js_init_code($code);
 
-// Don't display the form again if it was submitted
+// Don't display the form again if it was submitted.
 if (!$data) {
     echo $moduleobject->grading_popup($params, $coursemodule);
 }
