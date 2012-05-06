@@ -23,7 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-// Emulates the trim function if it's not there
+// Emulates the trim function if it's not there.
 if (typeof String.prototype.trim !== 'function') {
     String.prototype.trim = function () {
         return this.replace(/^\s+|\s+$/g, '');
@@ -37,13 +37,13 @@ if (typeof(M.block_ajax_marking) === 'undefined') {
 }
 
 /**
- * This holds the parent node so it can be referenced by other functions
+ * This holds the parent node so it can be referenced by other functions.
  */
 M.block_ajax_marking.parentnodeholder = '';
 
 /**
  * This holds the callback function of the parent node so it can be called once all the child
- * nodes have been built
+ * nodes have been built.
  */
 M.block_ajax_marking.oncompletefunctionholder = '';
 
@@ -53,39 +53,39 @@ M.block_ajax_marking.oncompletefunctionholder = '';
 M.block_ajax_marking.popupholder = '';
 
 /**
- * URL for getting the nodes details
+ * URL for getting the nodes details.
  * @type {String}
  */
 M.block_ajax_marking.ajaxnodesurl = M.cfg.wwwroot + '/blocks/ajax_marking/actions/ajax_nodes.php';
 
 /**
- * URL for getting the count for a specific node
+ * URL for getting the count for a specific node.
  * @type {String}
  */
 M.block_ajax_marking.ajaxcounturl = M.cfg.wwwroot + '/blocks/ajax_marking/actions/ajax_node_count.php';
 
 /**
- * URL for getting the nodes details
+ * URL for getting the nodes details.
  * @type {String}
  */
 M.block_ajax_marking.childnodecountsurl = M.cfg.wwwroot+'/blocks/ajax_marking/actions/ajax_child_node_counts.php';
 
 /**
  * Change to true to see what settings are null (inherited) by having them marked in grey on the
- * context menu
+ * context menu.
  */
 M.block_ajax_marking.showinheritance = false;
 
 M.block_ajax_marking.tree_node = function (oData, oParent, expanded) {
 
-    // Prevents IDE complaining abut undefined vars
+    // Prevents IDE complaining abut undefined vars.
     this.data = {};
     this.data.returndata = {};
     this.data.displaydata = {};
     this.data.configdata = {};
 
     /**
-     * This subclasses the textnode to make a node that will have an icon, and methods to get
+     * This subclasses the textnode to make a node that will have an icon, and methods to get.
      */
     M.block_ajax_marking.tree_node.superclass.constructor.call(this, oData,
                                                                oParent, expanded);
@@ -93,9 +93,9 @@ M.block_ajax_marking.tree_node = function (oData, oParent, expanded) {
 YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
     /**
-     * Getter for the count of unmarked items for this node
+     * Getter for the count of unmarked items for this node.
      *
-     * @param type recent, medium, overdue, or null to get the total
+     * @param type recent, medium, overdue, or null to get the total.
      */
     get_count : function (type) {
 
@@ -109,7 +109,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
-     * Gets the current setting for the clicked node
+     * Gets the current setting for the clicked node.
      *
      * @param {string} settingtype
      * @param {int|Boolean} groupid
@@ -154,7 +154,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         }
 
         // Moodle sends the settings as strings, but we want integers so we can do proper
-        // comparisons
+        // comparisons.
         if (setting !== null) {
             setting = parseInt(setting, 10);
         }
@@ -180,35 +180,35 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         }
 
         if (groupsdisplay === null) {
-            groupsdisplay = 0; // site default
+            groupsdisplay = 0; // Site default.
         }
 
         return groupsdisplay;
     },
 
     /**
-     * Returns the name of whatever is in return data which isn't nextnodefilter
+     * Returns the name of whatever is in return data which isn't nextnodefilter.
      */
     get_current_filter_name : function () {
         return this.data.returndata.currentfilter;
     },
 
     /**
-     * Setter for the name of the next filter to request for the server when this node is clicked
+     * Setter for the name of the next filter to request for the server when this node is clicked.
      */
     set_nextnodefilter : function (newvalue) {
         this.data.returndata.nextnodefilter = newvalue;
     },
 
     /**
-     * Returns the value of whatever is in return data which isn't nextnodefilter
+     * Returns the value of whatever is in return data which isn't nextnodefilter.
      */
     get_current_filter_value : function () {
         return this.data.returndata[this.data.returndata.currentfilter];
     },
 
     /**
-     * Finds out what the default is for this group node, if it has no display setting
+     * Finds out what the default is for this group node, if it has no display setting.
      *
      * @param {string} settingtype
      * @param {int|Boolean} groupid
@@ -219,7 +219,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         var defaultsetting = null,
             errormessage;
 
-        if (!this.parent.isRoot()) { // Must be a coursemodule or lower
+        if (!this.parent.isRoot()) { // Must be a coursemodule or lower.
 
             switch (settingtype) {
 
@@ -244,7 +244,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             return parseInt(defaultsetting, 10);
         }
 
-        // This is the root default until there's a better way of setting it
+        // This is the root default until there's a better way of setting it.
         switch (settingtype) {
 
             case 'group':
@@ -252,10 +252,10 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                 return 1;
 
             case 'groupsdisplay':
-                return 0; // Cleaner if we hide the group nodes by default
+                return 0; // Cleaner if we hide the group nodes by default.
         }
 
-        return 1; // should never get to here
+        return 1; // Should never get to here.
     },
 
     /**
@@ -273,7 +273,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
     /**
      * Returns the name of this node as it should be displayed on screen (without the count,
-     * icon, etc)
+     * icon, etc).
      */
     get_displayname : function () {
         return this.data.displaydata.name;
@@ -346,22 +346,22 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
 
     /**
-     * Saves a new setting into the nodes internal store, so we can keep track of things
+     * Saves a new setting into the nodes internal store, so we can keep track of things.
      */
     set_config_setting : function (settingtype, newsetting) {
 
-        // Allows for lazily not passing a value in
+        // Allows for lazily not passing a value in.
         if (typeof(newsetting) === 'undefined') {
             newsetting = null;
         }
 
         this.data.configdata[settingtype] = newsetting;
-        // groupsdisplay will alter the type of nodes we should see next.
+        // Groupsdisplay will alter the type of nodes we should see next.
         if (settingtype == 'groupsdisplay') {
             this.set_nextnodefilter(this.tree.nextnodetype(this));
         }
 
-        // All children now need to be set to 'inherit'
+        // All children now need to be set to 'inherit'.
         var childnodes = this.children;
         for (var i = 0; i < childnodes.length; i++) {
             childnodes[i].set_config_setting(settingtype, null, true);
@@ -371,7 +371,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
     /**
      * Helper function to update the display setting stored in a node of the tree, so that the tree
-     * stores the settings as the database currently has them
+     * stores the settings as the database currently has them.
      *
      * @param {YAHOO.widget.Node} groupid
      * @param {int|Null} newsetting 1 or 0 or null
@@ -381,14 +381,14 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         var groups,
             group;
 
-        // Allows for lazily not passing a value in
+        // Allows for lazily not passing a value in.
         if (typeof(newsetting) === 'undefined') {
             newsetting = null;
         }
 
         groups = this.get_groups();
         group = M.block_ajax_marking.get_group_by_id(groups, groupid);
-        if (group) { // Some child nodes are groups or users
+        if (group) { // Some child nodes are groups or users.
             group.display = newsetting;
 
             var childnodes = this.children;
@@ -400,7 +400,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
-     * Getter for the name of the filter that will supply the child nodes when the request is sent
+     * Getter for the name of the filter that will supply the child nodes when the request is sent.
      */
     get_nextnodefilter : function () {
 
@@ -424,7 +424,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
-     * Setter for the count of unmarked items for this node
+     * Setter for the count of unmarked items for this node.
      */
     set_count : function (newvalue, type) {
 
@@ -452,13 +452,13 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
         }
 
-        // Make the adjustment to the node's count
+        // Make the adjustment to the node's count.
         if (type) {
             span = document.getElementById(type+this.index);
             if (span) {
                 span.innerHTML = newvalue;
 
-                // also to the tooltip
+                // Also to the tooltip.
                 componentcounts = this.get_component_counts();
                 for (var typeofcount in componentcounts) {
                     suffix = componentcounts[typeofcount] == 1 ? 'item' : 'countstring';
@@ -474,7 +474,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
     /**
      * Takes the existing time and makes a css class based on it so we can see how late work is.
-     * style is
+     * style is.
      */
     set_time_style : function () {
 
@@ -483,7 +483,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             fourdays = 345600,
             tendays = 864000,
             seconds,
-            // current unix time
+            // Current unix time.
             currenttime = Math.round((new Date()).getTime() / onethousandmilliseconds);
 
         if (this.get_time() === false) {
@@ -505,7 +505,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
-     * Overrides the parent class method so we can ad in the count and icon
+     * Overrides the parent class method so we can ad in the count and icon.
      */
     getContentHtml : function() {
 
@@ -519,19 +519,25 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             componentcounts = this.get_component_counts();
 
             if (componentcounts.recent) {
-                countarray.push('<span id="recent'+this.index+'" class="recent">'+componentcounts.recent+'</span>');
+                countarray.push('<span id="recent'+this.index+'" class="recent">'+
+                                componentcounts.recent+'</span>');
                 suffix = componentcounts.recent == 1 ? 'item' : 'items';
-                titlearray.push(componentcounts.recent+' '+M.str.block_ajax_marking['recent'+suffix]);
+                titlearray.push(componentcounts.recent+' '+
+                                M.str.block_ajax_marking['recent'+suffix]);
             }
             if (componentcounts.medium) {
-                countarray.push('<span id="medium'+this.index+'" class="medium">'+componentcounts.medium+'</span>');
+                countarray.push('<span id="medium'+this.index+'" class="medium">'+
+                                componentcounts.medium+'</span>');
                 suffix = componentcounts.medium == 1 ? 'item' : 'items';
-                titlearray.push(componentcounts.medium+' '+M.str.block_ajax_marking['medium'+suffix]);
+                titlearray.push(componentcounts.medium+' '+
+                                M.str.block_ajax_marking['medium'+suffix]);
             }
             if (componentcounts.overdue) {
-                countarray.push('<span id="overdue'+this.index+'" class="overdue">'+componentcounts.overdue+'</span>');
+                countarray.push('<span id="overdue'+this.index+'" class="overdue">'+
+                                componentcounts.overdue+'</span>');
                 suffix = componentcounts.overdue == 1 ? 'item' : 'items';
-                titlearray.push(componentcounts.overdue+' '+M.str.block_ajax_marking['overdue'+suffix]);
+                titlearray.push(componentcounts.overdue+' '+
+                                M.str.block_ajax_marking['overdue'+suffix]);
             }
 
             html = '';
@@ -557,7 +563,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             html +=     '<div class="block_ajax_marking_spacer">';
             html +=     '</div>';
 
-            html += '</div>'; // end of wrapper
+            html += '</div>'; // End of wrapper.
 
             return html;
         } else {
@@ -567,7 +573,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
     /**
      * Each node with a count will have three component counts: recent, medium and overdue.
-     * This returns them as an object
+     * This returns them as an object.
      */
     get_component_counts : function() {
         return {
@@ -592,7 +598,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             itemcount = 0,
             numberofchildren = this.children.length;
 
-        // loop over children, counting to get new totals
+        // Loop over children, counting to get new totals.
         if (numberofchildren) {
             for (var i = 0; i < numberofchildren; i++) {
 
@@ -603,7 +609,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
                 overduecount += componentcounts.overdue;
             }
 
-            // Add those totals to the config for this node
+            // Add those totals to the config for this node.
             var haschanged = false;
             if (recentcount !== this.get_count('recent')) {
                 haschanged = true;
@@ -625,7 +631,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             this.tree.removeNode(this, true);
         }
 
-        // Tell the parent to do the same if it's not root and there has been a change
+        // Tell the parent to do the same if it's not root and there has been a change.
         if (haschanged && !parentnode.isRoot()) {
             parentnode.recalculate_counts();
         } else if (haschanged && parentnode.isRoot()) {
@@ -635,29 +641,27 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
-     * Makes the node's icon reflect it's type, which cannot be set through regular CSS
+     * Makes the node's icon reflect it's type, which cannot be set through regular CSS.
      */
     get_icon_style : function() {
-        //
+
         var iconstyle;
 
         // TODO what about extra ones like question?
-        // TODO make sure this is called from refresh()
+        // TODO make sure this is called from refresh().
         var currentfilter = this.get_current_filter_name();
-        currentfilter = currentfilter.substr(0, currentfilter.length-2); // remove 'id' from end
+        currentfilter = currentfilter.substr(0, currentfilter.length-2); // Remove 'id' from end.
         if (currentfilter === 'coursemodule') {
             iconstyle = this.get_modulename();
         } else {
             iconstyle = currentfilter;
         }
 
-       // var icon = M.block_ajax_marking.get_dynamic_icon(iconstyle, 'newalt text');
-
         return iconstyle;
     },
 
     /**
-     * Returns the long name of this node
+     * Returns the long name of this node.
      */
     get_tooltip : function() {
 
@@ -707,13 +711,11 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
         return setting;
     }
 
-
-
 });
 
 /**
  * This subclasses the treenode to make a node that will have extra icons to show what the current
- * settings are for an item in the config tree
+ * settings are for an item in the config tree.
  */
 M.block_ajax_marking.configtree_node = function (oData, oParent, expanded) {
     M.block_ajax_marking.configtree_node.superclass.constructor.call(this, oData,
@@ -748,7 +750,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         sb[sb.length] = '"><tr class="ygtvrow block_ajax_marking_label_row">';
 
-        // Spacers cells to make indents
+        // Spacers cells to make indents.
         for (i = 0; i < this.depth; ++i) {
             sb[sb.length] = '<td class="ygtvcell '+this.getDepthStyle(i)+
                 '"><div class="ygtvspacer"></div></td>';
@@ -761,7 +763,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             sb[sb.length] = '"><a href="#" class="ygtvspacer">&#160;</a></td>';
         }
 
-        // Make main label on its own row
+        // Make main label on its own row.
         sb[sb.length] = '<td id="'+this.contentElId;
         sb[sb.length] = '" class="ygtvcell ';
         sb[sb.length] = this.contentStyle+' ygtvcontent" ';
@@ -778,10 +780,10 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
     },
 
     /**
-     * overrides YAHOO.widget.Node
-     * If property html is a string, it sets the innerHTML for the node
+     * Overrides YAHOO.widget.Node.
+     * If property html is a string, it sets the innerHTML for the node.
      * If it is an HTMLElement, it defers appending it to the tree until the HTML basic
-     * structure is built
+     * structure is built.
      */
     getContentHtml : function () {
 
@@ -790,7 +792,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             groupsdisplaysetting,
             groupscount = this.get_groups_count();
 
-        sb[sb.length] = '<table class="ygtvtable configtreenode">'; //new
+        sb[sb.length] = '<table class="ygtvtable configtreenode">'; // New.
         sb[sb.length] = '<tr >';
         sb[sb.length] = '<td class="ygtvcell" colspan="8">';
         var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
@@ -801,7 +803,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
                 delete icon.id;
             }
             catch (e) {
-                // keep IE9 happy
+                // Keep IE9 happy.
                 icon["id"] = undefined;
             }
             sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
@@ -814,21 +816,21 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         sb[sb.length] = '</td>';
         sb[sb.length] = '</tr>';
 
-        // Info row
+        // Info row.
         sb[sb.length] = '<tr class="block_ajax_marking_info_row">';
 
-        // Make display icon
+        // Make display icon.
         sb[sb.length] = '<td id="'+"block_ajax_marking_display_icon"+this.index;
         sb[sb.length] = '" class="ygtvcell ';
 
         displaysetting = this.get_setting_to_display('display');
-        var displaytype = displaysetting ? 'hide' : 'show'; // icons are named after their actions
+        var displaytype = displaysetting ? 'hide' : 'show'; // Icons are named after their actions.
         var displayicon =  M.block_ajax_marking.get_dynamic_icon(displaytype);
         try {
             delete displayicon.id;
         }
         catch (e) {
-            // keep IE9 happy
+            // Keep IE9 happy.
             displayicon["id"] = undefined;
         }
         displayicon = M.block_ajax_marking.get_dynamic_icon_string(displayicon);
@@ -844,13 +846,14 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         if (groupscount) {
             groupsdisplaysetting = this.get_setting_to_display('groupsdisplay');
 
-            var groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups'; // icons are named after their actions
+            // Icons are named after their actions.
+            var groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups';
             groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
             try {
                 delete groupsicon.id;
             }
             catch (e) {
-                // keep IE9 happy
+                // Keep IE9 happy.
                 groupsicon["id"] = undefined;
             }
             groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
@@ -859,21 +862,20 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
         sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groupsdisplay_icon ';
         sb[sb.length] = '"><div class="ygtvspacer">'+groupsicon+'</div></td>';
 
-        // Make groups icon
+        // Make groups icon.
         sb[sb.length] = '<td id="'+'block_ajax_marking_groups_icon'+this.index;
         sb[sb.length] = '" class="ygtvcell ';
         sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groups_icon ';
         sb[sb.length] = '"><div class="ygtvspacer">';
 
-
-        // Leave it empty if there's no groups
+        // Leave it empty if there's no groups.
         if (groupscount !== false) {
             sb[sb.length] = groupscount+' ';
         }
 
         sb[sb.length] = '</div></td>';
 
-        // Spacer cell - fixed width means we need a few
+        // Spacer cell - fixed width means we need a few.
         sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
         sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
         sb[sb.length] = '<td class="ygtvcell"><div class="ygtvspacer"></div></td>';
@@ -887,7 +889,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
     },
 
     /**
-     * Regenerates the html for this node and its children.  To be used when the
+     * Regenerates the html for this node and its children. To be used when the
      * node is expanded and new children have been added.
      *
      * @method refresh
@@ -905,7 +907,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
      */
     loadComplete : function (justrefreshchildren) {
         this.getChildrenEl().innerHTML = this.completeRender();
-        this.tree.add_groups_buttons(this, justrefreshchildren); //groups stuck onto all children.
+        this.tree.add_groups_buttons(this, justrefreshchildren); // Groups stuck onto all children.
         if (this.propagateHighlightDown) {
             if (this.highlightState === 1 && !this.tree.singleNodeHighlight) {
                 for (var i = 0; i < this.children.length; i++) {
@@ -915,8 +917,8 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
                 for (i = 0; i < this.children.length; i++) {
                     this.children[i].unhighlight(true);
                 }
-            } // if (highlighState == 2) leave child nodes with whichever highlight state
-            // they are set
+            } // If (highlighState == 2) leave child nodes with whichever highlight state
+              // they are set.
         }
 
         this.dynamicLoadComplete = true;
@@ -936,7 +938,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
     /**
      * Will attach a YUI menu button to all nodes with all of the groups so that they can be set
-     * to show or hide. Better than a non-obvious context menu. Not part of the config_node object
+     * to show or hide. Better than a non-obvious context menu. Not part of the config_node object.
      */
     add_groups_button : function () {
 
@@ -947,14 +949,14 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
         node = this;
 
-        // We don't want to render a button if there's no groups
+        // We don't want to render a button if there's no groups.
         groupsdiv = node.get_group_dropdown_div();
         nodecontents = groupsdiv.firstChild.innerHTML;
         if (nodecontents.trim() === '') {
             return;
         }
 
-        // Not possible to re-render so we wipe it
+        // Not possible to re-render so we wipe it.
         if (typeof node.groupsmenubutton !== 'undefined') {
             node.groupsmenubutton.destroy(); // todo test me
         }
@@ -981,23 +983,23 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             title : M.str.block_ajax_marking.choosegroups,
             name : 'groupsbutton-'+node.index,
             menu : node.renderedmenu,
-            lazyload: false, // can't add events otherwise
+            lazyload: false, // Can't add events otherwise.
             container : groupsdiv };
 
         node.groupsmenubutton = new YAHOO.widget.Button(buttonconfig);
-        // Hide the button if the user clicks elsewhere on the page
+        // Hide the button if the user clicks elsewhere on the page.
         node.renderedmenu.cfg.queueProperty('clicktohide', true);
 
-        // click event hides the menu by default for buttons.
+        // Click event hides the menu by default for buttons.
         node.renderedmenu.unsubscribe('click', node.groupsmenubutton._onMenuClick);
     },
 
     /**
-     * Returns groupsvisible / totalgroups for the button text
+     * Returns groupsvisible / totalgroups for the button text.
      */
     get_groups_count : function() {
 
-        // We want to show how many groups are currently displayed, as well as how many there are
+        // We want to show how many groups are currently displayed, as well as how many there are.
         var groupscurrentlydisplayed = 0,
             groups = this.get_groups(),
             numberofgroups = groups.length,
@@ -1024,7 +1026,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
     },
 
     /**
-     * Saves a new setting into the nodes internal store, so we can keep track of things
+     * Saves a new setting into the nodes internal store, so we can keep track of things.
      */
     set_config_setting : function (settingtype, newsetting) {
 
@@ -1035,34 +1037,36 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             icon,
             spacerdiv;
 
-        // Superclass will store the value and trigger the process in child nodes
-        M.block_ajax_marking.configtree_node.superclass.set_config_setting.call(this, settingtype, newsetting);
+        // Superclass will store the value and trigger the process in child nodes.
+        M.block_ajax_marking.configtree_node.superclass.set_config_setting.call(this,
+                                                                                settingtype,
+                                                                                newsetting);
 
         // Might be inherited...
         settingtoshow = this.get_setting_to_display(settingtype);
 
-        // Set the node's appearance. Might need to refer to parent if it's inherit
+        // Set the node's appearance. Might need to refer to parent if it's inherit.
         containerid = 'block_ajax_marking_'+settingtype+'_icon'+this.index;
 
         iconcontainer = document.getElementById(containerid);
         spacerdiv = iconcontainer.firstChild;
         if (settingtoshow == 1) {
             if (settingtype == 'display') {
-                // Names of icons are for the actions on clicking them. Not what they look like
+                // Names of icons are for the actions on clicking them. Not what they look like.
                 iconname = 'hide';
             } else if (settingtype == 'groupsdisplay') {
                 iconname = 'hidegroups';
             }
         } else {
             if (settingtype == 'display') {
-                // Names of icons are for the actions on clicking them. Not what they look like
+                // Names of icons are for the actions on clicking them. Not what they look like.
                 iconname = 'show';
             } else if (settingtype == 'groupsdisplay') {
                 iconname = 'showgroups';
             }
         }
 
-        // Get he icon, remove the old one and put it in place. Includes the title attribute,
+        // Get the icon, remove the old one and put it in place. Includes the title attribute,
         // which matters for accessibility.
         icon = M.block_ajax_marking.get_dynamic_icon(iconname);
         M.block_ajax_marking.remove_all_child_nodes(spacerdiv);
@@ -1070,7 +1074,7 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
     },
 
     /**
-     * Store the new setting and also update the node's appearance to reflect it
+     * Store the new setting and also update the node's appearance to reflect it.
      *
      * @param groupid
      * @param newsetting
@@ -1083,30 +1087,29 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
             newsetting = null;
         }
 
-        // Superclass will store the value and trigger the process in child nodes
+        // Superclass will store the value and trigger the process in child nodes.
         M.block_ajax_marking.configtree_node.superclass.set_group_setting.call(this, groupid,
                                                                                newsetting);
 
-        // Update the display on the button label
+        // Update the display on the button label.
         groupsdetails = this.get_groups_count();
         this.groupsmenubutton.set("label", groupsdetails);
 
-        // get menu items
+        // Get menu items.
         var menuitems = this.renderedmenu.getItems();
 
         for (var i = 0; i < menuitems.length; i++) {
             if (menuitems[i].value.groupid == groupid) {
-                // might be inherited now, so check parent values
+                // Might be inherited now, so check parent values.
                 var groupdefault = this.get_setting_to_display('group', groupid);
                 var checked = groupdefault ? true : false;
                 menuitems[i].cfg.setProperty("checked", checked);
 
-                // TODO set inherited CSS
+                // TODO set inherited CSS.
                 var inherited = (newsetting === null) ? 'notinherited' : 'inherited';
                 menuitems[i].cfg.setProperty("classname", inherited);
 
-                break; // only one node with a particular groupid
-
+                break; // Only one node with a particular groupid.
             }
         }
     }
@@ -1115,16 +1118,15 @@ YAHOO.lang.extend(M.block_ajax_marking.configtree_node, M.block_ajax_marking.tre
 
 /**
  * This subclasses the treenode to make a node that will have extra icons to show what the current
- * settings are for an item in the config tree
+ * settings are for an item in the config tree.
  */
 M.block_ajax_marking.coursestree_node = function (oData, oParent, expanded) {
     M.block_ajax_marking.coursestree_node.superclass.constructor.call(this, oData,
                                                                      oParent, expanded);
 
-
 };
 /**
- * Mainly so we can use different startegies for updates after config data is saved. Most logic
+ * Mainly so we can use different strategies for updates after config data is saved. Most logic
  * is in the parent class.
  */
 YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tree_node, {
@@ -1138,34 +1140,34 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
 
         var currentfiltername = this.get_current_filter_name();
 
-
-        // Remove this node, but don't bother with the childnodes as it will just add CPU cycles
-        // seeing as the removal of the parent will deal with them
+        // Remove this node, but don't bother with the child nodes as it will just add CPU cycles
+        // seeing as the removal of the parent will deal with them.
         if (!childnode &&
             settingtype == 'display' &&
             newsetting === 0) {
 
-            // this should only be for the contextmenu - dropdown can't do hide.
+            // This should only be for the contextmenu - dropdown can't do hide.
             if (this.tree && this.tree.tab && this.tree.tab.contextmenu) {
                 this.tree.tab.contextmenu.hide();
             }
 
             // Node set to hide. Remove it from the tree.
-            // TODO may also be an issue if sitedefault is set to hide - null here ought to mean 'hide'
+            // TODO may also be an issue if site default is set to hide - null here ought to
+            // mean 'hide'.
             this.tree.remove_node(this.index);
 
         } else if (this.expanded &&
                    settingtype == 'groupsdisplay' &&
                    currentfiltername == 'coursemoduleid') {
 
-            // Need to reload with groups icons or non-groups icons as appropriate
+            // Need to reload with groups icons or non-groups icons as appropriate.
             this.tree.request_node_data(this);
 
         }
     },
 
     /**
-     * Store the new setting and also update the node's appearance to reflect it
+     * Store the new setting and also update the node's appearance to reflect it.
      *
      * @param groupid
      * @param newsetting
@@ -1177,32 +1179,31 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
             newsetting = null;
         }
 
-        // Superclass will store the value and trigger the process in child nodes
+        // Superclass will store the value and trigger the process in child nodes.
         M.block_ajax_marking.coursestree_node.superclass.set_group_setting.call(this,
                                                                                 groupid,
                                                                                 newsetting);
-        // get child node for this group if there is one
+        // Get child node for this group if there is one.
         var groupchildnode = this.get_child_node_by_filter_id('groupid', groupid);
         var actualsetting = this.get_setting_to_display('group', groupid);
         var currentfiltername = this.get_current_filter_name();
 
         if (this.expanded && groupchildnode && actualsetting === 0) {
 
-            // Might be that the group is being hidden via the context menu on a group child node
+            // Might be that the group is being hidden via the context menu on a group child node.
             var currenttab = M.block_ajax_marking.get_current_tab();
             if (currenttab.contextmenu.clickednode === groupchildnode) {
                 currenttab.contextmenu.hide();
             }
-            // Remove this group node from the tree if the inherited setting says 'hide'
+            // Remove this group node from the tree if the inherited setting says 'hide'.
             this.tree.remove_node(groupchildnode.index);
-
 
         } else if (this.expanded &&
                    !groupchildnode &&
                    actualsetting == 1 &&
                    currentfiltername == 'coursemoduleid') {
 
-            // There are nodes there currently, so we need to refresh them to add the new one
+            // There are nodes there currently, so we need to refresh them to add the new one.
             this.tree.request_node_data(this);
 
         } else if (!this.expanded &&
@@ -1211,14 +1212,14 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
                      currentfiltername == 'courseid')) {
 
             // We need to update the count via an AJAX call as we don't know how much of the
-            // current count is due to which group
+            // current count is due to which group.
             this.request_new_count();
 
         } else if (this.expanded &&
                    !ischildnode &&
                    currentfiltername == 'courseid') {
 
-            // Need to get all child counts in one go to make it faster for client and server
+            // Need to get all child counts in one go to make it faster for client and server.
             this.request_new_child_counts();
 
         }
@@ -1226,19 +1227,19 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
 
     /**
      * Sends an AJAX request that will ask for a new count to be sent back when groups settings
-     * have changed, but the node is not expanded
+     * have changed, but the node is not expanded.
      */
     request_new_count : function() {
 
-        // Get the current ancestors' filters
+        // Get the current ancestors' filters.
         var nodefilters = this.get_filters(false);
 
-        // Add this particular node's filters
+        // Add this particular node's filters.
         var currentfilter = this.get_current_filter_name();
         var filtervalue = this.get_current_filter_value();
         nodefilters.push('currentfilter='+currentfilter);
         nodefilters.push('filtervalue='+filtervalue);
-        // This lets the AJAX success code find the right node to add stuff to
+        // This lets the AJAX success code find the right node to add stuff to.
         nodefilters.push('nodeindex='+this.index);
         nodefilters = nodefilters.join('&');
 
@@ -1255,7 +1256,7 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
 
         var nodefilters = this.get_filters(true);
         nodefilters.push('nextnodefilter='+this.get_nextnodefilter());
-        // This lets the AJAX success code find the right node to add stuff to
+        // This lets the AJAX success code find the right node to add stuff to.
         nodefilters.push('nodeindex='+this.index);
         nodefilters = nodefilters.join('&');
 
@@ -1265,21 +1266,19 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
                                         nodefilters);
     }
 
-
-
 });
 
 /**
- * Should add all the groups from a config node to it's menu button
+ * Should add all the groups from a config node to it's menu button.
  *
  */
 M.block_ajax_marking.groups_menu_button_render = function() {
 
-    // Get node
+    // Get node.
 
-    // Get groups from node
+    // Get groups from node.
 
-    // Add groups to this menu button
+    // Add groups to this menu button.
     this.addItems([
 
           { text : "Four", value : 4 },
@@ -1297,28 +1296,26 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
     /**
      * Gets the groups from the course node and displays them in the contextmenu.
      *
-     * Coming from an onclick in the context menu, so 'this' is the contextmenu instance
+     * Coming from an onclick in the context menu, so 'this' is the contextmenu instance.
      */
     load_settings : function () {
 
         // Make the settings items and make sure they reflect the current settings as stored in the
-        // tree node
+        // tree node.
         var groups,
             target,
             clickednode,
-            currentfilter,
-            choosegroupsmenu,
-            choosegroupsmenuitem;
+            currentfilter;
 
         this.clearContent();
 
         target = this.contextEventTarget;
         clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
-        this.clickednode = clickednode; // makes it easier later
+        this.clickednode = clickednode; // Makes it easier later.
         groups = clickednode.get_groups();
 
-        // We don't want to allow the contextmenu for items that we can't hide yet. Right now it
-        // only applies to courses and coursemodules
+        // We don't want to allow the context menu for items that we can't hide yet. Right now it
+        // only applies to courses and course modules.
         currentfilter = clickednode.get_current_filter_name();
         if (currentfilter !== 'courseid' &&
             currentfilter !== 'coursemoduleid' &&
@@ -1331,21 +1328,21 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
         this.make_setting_menuitem('display', clickednode);
 
         // If there are no groups, no need to show the groups settings. Also if there are no
-        // child nodes e.g. for workshop, or if this is a group node itself
+        // child nodes e.g. for workshop, or if this is a group node itself.
         if (currentfilter !== 'groupid' &&
             clickednode.isDynamic() && groups.length) {
 
             this.make_setting_menuitem('groupsdisplay', clickednode);
 
             if (groups.length) {
-                // Wipe all groups out of the groups sub-menu
+                // Wipe all groups out of the groups sub-menu.
                 M.block_ajax_marking.contextmenu_add_groups_to_menu(this, clickednode);
-                // Enable the menu item, since we have groups in it
+                // Enable the menu item, since we have groups in it.
             }
         }
 
         this.render();
-        clickednode.highlight(); // so the user knows what node this menu is for
+        clickednode.highlight(); // So the user knows what node this menu is for.
     },
 
     /**
@@ -1422,7 +1419,7 @@ YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMe
     },
 
     ajaxcallback : function() {
-        // No need for action. Nothing more to update. Dropdown is different.
+        // No need for action. Nothing more to update. Drop-down is different.
     }
 });
 
@@ -1438,20 +1435,20 @@ M.block_ajax_marking.tree_base = function (treediv) {
     this.singleNodeHighlight = true;
 };
 
-// make the base class into a subclass of the YUI treeview widget.
+// Make the base class into a subclass of the YUI treeview widget.
 YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
-    // keeps track of whether this tree needs to be refreshed when the tab changes (if config
-    // settings have been altered)
+    // Keeps track of whether this tree needs to be refreshed when the tab changes (if config
+    // settings have been altered).
     needsrefresh : false,
 
     /**
-     * Subclasses may wish to have different nodes
+     * Subclasses may wish to have different nodes.
      */
     nodetype : M.block_ajax_marking.tree_node,
 
     /**
-     * New unified build nodes function
+     * New unified build nodes function.
      *
      * @param nodesarray array
      */
@@ -1469,47 +1466,46 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
             parentnode = this.getRoot();
         }
 
-        // Remove nodes here so we avoid lag due to AJAX between removal and addition
+        // Remove nodes here so we avoid lag due to AJAX between removal and addition.
         this.removeChildren(parentnode);
 
-        // cycle through the array and make the nodes
+        // Cycle through the array and make the nodes.
         for (var i = 0; i < numberofnodes; i++) {
 
             nodedata = nodesarray[i];
 
-            // Make the display data accessible to the node creation code
+            // Make the display data accessible to the node creation code.
             nodedata.html = nodedata.displaydata.name;
 
             newnode = new this.nodetype(nodedata, parentnode, false);
-            newnode.set_count(newnode.get_count()); // needed to convert to int
+            newnode.set_count(newnode.get_count()); // Needed to convert to int.
 
             // Some nodes won't be specific to a module, but this needs to be specified to avoid
-            // silent errors
-            // TODO make this happen as part of the constructor process
+            // silent errors.
+            // TODO make this happen as part of the constructor process.
             newnode.set_nextnodefilter(this.nextnodetype(newnode));
 
             islastnode = (newnode.get_nextnodefilter() === false);
 
             // Set the node to load data dynamically, unless it has not sent a callback i.e. it's a
-            // final node
+            // final node.
             if (!islastnode) {
                 newnode.setDynamicLoad(this.request_node_data);
             }
 
             // If the node has a time (of oldest submission) show urgency by adding a
-            // background colour
+            // background colour.
             newnode.set_time_style();
         }
 
-        // finally, run the function that updates the original node and adds the children. Won't be
-        // there if we have just built the tree
+        // Finally, run the function that updates the original node and adds the children. Won't be
+        // there if we have just built the tree.
         parentnode.loadComplete();
-        // update the counts on all the nodes in case extra work has just appeared
+        // Update the counts on all the nodes in case extra work has just appeared.
         if (parentnode.recalculate_counts) {
             parentnode.recalculate_counts(); // will update total if necessary
-        } else { // root node
-            // the main tree will need the counts updated, but not the config tree
-            //this.update_parent_node(M.block_ajax_marking.parentnodeholder);
+        } else { // Root node.
+            // The main tree will need the counts updated, but not the config tree.
             this.update_total_count();
         }
     },
@@ -1522,7 +1518,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     initialise : function () {
 
         // Get rid of the existing tree nodes first (if there are any), but don't re-render to avoid
-        // flicker
+        // flicker.
         var rootnode = this.getRoot();
         this.removeChildren(rootnode);
 
@@ -1533,10 +1529,10 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
         // from the last node that was expanded.
         M.block_ajax_marking.oncompletefunctionholder = null;
 
-        // show that the ajax request has been initialised
+        // Show that the ajax request has been initialised.
         YAHOO.util.Dom.addClass(document.getElementById('mainicon'), 'loaderimage');
 
-        // send the ajax request
+        // Send the ajax request.
         YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl,
                                         M.block_ajax_marking.callback, this.initial_nodes_data);
         this.add_loading_icon();
@@ -2704,7 +2700,6 @@ M.block_ajax_marking.initialise = function () {
         var coursestab = new Y.Tab(coursetabconfig);
         M.block_ajax_marking.tabview.add(coursestab);
 
-
         coursestab.displaywidget = new M.block_ajax_marking.courses_tree();
         // reference so we can tell the tree to auto-refresh
         M.block_ajax_marking.coursestab_tree = coursestab.displaywidget;
@@ -2743,14 +2738,17 @@ M.block_ajax_marking.initialise = function () {
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohorts_tree();
         M.block_ajax_marking.cohortstab_tree = cohortstab.displaywidget;
-        cohortstab.displaywidget.tab = cohortstab; // reference to allow links back to tab from tree
+        // Reference to allow links back to tab from tree.
+        cohortstab.displaywidget.tab = cohortstab;
         cohortstab.displaywidget.render();
         cohortstab.displaywidget.subscribe('clickEvent', M.block_ajax_marking.treenodeonclick);
 
-        cohortstab.displaywidget.countdiv = document.getElementById('cohortscount'); // reference to allow links back to tab from tree
+        // reference to allow links back to tab from tree
+        cohortstab.displaywidget.countdiv = document.getElementById('cohortscount');
 
         cohortstab.refreshbutton = new YAHOO.widget.Button({
-           label : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon" ' +
+           label : '<img src="'+M.cfg.wwwroot+
+                    '/blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon" ' +
                         'alt="'+M.str.block_ajax_marking.refresh+'" />',
            id : 'cohortsrefresh_button',
            title : M.str.block_ajax_marking.refresh,

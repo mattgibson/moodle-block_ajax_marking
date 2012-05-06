@@ -27,7 +27,7 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// include constants
+// Include constants.
 global $CFG;
 require_once("{$CFG->dirroot}/blocks/ajax_marking/lib.php");
 
