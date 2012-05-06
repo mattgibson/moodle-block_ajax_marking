@@ -54,7 +54,7 @@ if (!$coursemodule) {
     die();
 }
 require_login($coursemodule->course, false, $coursemodule);
-$context = get_context_instance(CONTEXT_MODULE, $cmid);
+$context = context_module::instance($cmid);
 
 /* @define $blockdir "../" */
 $blockdir = $CFG->dirroot.'/blocks/ajax_marking/';
@@ -80,7 +80,7 @@ $data = data_submitted();
 
 if ($data && confirm_sesskey()) {
 
-    // Make sure this includes require_login() in order to set page context properly.
+    // make sure this includes require_login() in order to set page context properly
     $error = $moduleobject->process_data($data, $params);
 
     // If success, notify and print a close button.

@@ -179,7 +179,7 @@ abstract class block_ajax_marking_module_base {
 
         global $USER;
 
-        $context = get_context_instance(CONTEXT_MODULE, $assessment->cmid);
+        $context = context_module::instance($assessment->cmid);
 
         if (has_capability($this->capability, $context, $USER->id, false)) {
             return true;

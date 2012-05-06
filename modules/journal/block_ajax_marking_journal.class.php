@@ -80,13 +80,13 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
 
         $coursemodule = $DB->get_record('course_modules', array('module' => '1',
                                                                'instance' => $journalid));
-        $modulecontext = get_context_instance(CONTEXT_MODULE, $coursemodule->id);
+        $modulecontext = context_module::instance($coursemodule->id);
 
         if (!has_capability($this->capability, $modulecontext, $USER->id)) {
             return;
         }
 
-        $context = get_context_instance(CONTEXT_COURSE, $courseid);
+        $context = context_course::instance($courseid);
 
         list($studentsql, $params) = $this->get_sql_role_users($context);
 
@@ -105,7 +105,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
                    AND course_modules.visible = 1
                    AND j.assessed <> 0
                    AND je.modified > je.timemarked
-                   AND je.userid '.'$usql.''
+                   AND je.userid '.'$studentsql.''
                    AND j.id = :".$this->prefix_param_name('journalid');
         $params['moduleid'] = $this->get_module_id();
         $params['journalid'] = $journal->id;
