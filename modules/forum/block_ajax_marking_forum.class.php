@@ -250,7 +250,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         // Possibly, the view permission is being used to prevent certain forums from being
         // accessed. Might be best not to rely on just the rate one.
-        $modcontext = get_context_instance(CONTEXT_MODULE, $cm->id);
+        $modcontext = context_module::instance($cm->id);
         require_capability('mod/forum:viewdiscussion', $modcontext, null, true,
                            'noviewdiscussionspermission', 'forum');
 
