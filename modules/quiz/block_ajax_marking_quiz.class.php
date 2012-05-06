@@ -200,7 +200,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 
         require_once($CFG->dirroot.'/mod/quiz/locallib.php');
 
-         //TODO feed in all dynamic variables here.
+         // TODO feed in all dynamic variables here.
         $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
         $PAGE->set_url($url);
 

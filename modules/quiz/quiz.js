@@ -70,11 +70,6 @@ M.block_ajax_marking.quiz = (function() {
 
             }
 
-
-            // TODO this will read from user settings later on
-            // TODO what was this for??
-            var userchoosesquestions = true;
-
         }
 
     };
