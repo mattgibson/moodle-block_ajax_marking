@@ -25,14 +25,11 @@
  */
 
 if (!defined('MOODLE_INTERNAL')) {
-    die('Direct access to this script is forbidden.'); //  It must be included from a Moodle page
+    die('Direct access to this script is forbidden.'); //  It must be included from a Moodle page.
 }
 
 global $CFG;
 
-/**
- * @define $CFG->dirroot '../../..'
- */
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
@@ -60,7 +57,7 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
                                       'fullwithoutauthor',
                                       'dictionary');
 
-    public $scales; // others include 'single', 'eachuser', 'qanda'
+    public $scales; // Others include 'single', 'eachuser', 'qanda'.
 
     /**
      * This will create a shared test environment with a course, some users, some enrolments, etc
@@ -71,13 +68,13 @@ class block_ajax_marking_query_test extends UnitTestCaseUsingDatabase {
 
         global $DB;
 
-        // Get the module classes so we can use them to set things up
+        // Get the module classes so we can use them to set things up.
         $this->moduleclasses = block_ajax_marking_get_module_classes();
 
         $this->switch_to_test_db();
 
         // Make all the tables we will need
-        // courses, users, enrolments, contexts,
+        // courses, users, enrolments, contexts.
         $tablestomake = array('course_categories' => 'lib',
                               'course' => 'lib',
                               'log' => 'lib',
