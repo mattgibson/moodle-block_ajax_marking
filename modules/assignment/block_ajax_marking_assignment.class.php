@@ -246,15 +246,14 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     }
 
     /**
-     * Process and save the data from the feedback form
+     * Process and save the data from the feedback form. Mostly lifted from
+     * $assignmentinstance->process_feedback().
      *
      * @param object $data from the feedback form
      * @param $params
      * @return string|void
      */
     public function process_data($data, $params) {
-
-        // From $assignmentinstance->process_feedback()...
 
         global $CFG, $USER, $DB, $PAGE;
 
@@ -294,113 +293,133 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         if (!$submission) {
             return 'Wrong submission id';
         }
-
         if (!$coursemodule) {
             return 'Wrong coursemodule id';
         }
-
         if (!$assignment) {
             return 'Wrong assignment id';
         }
-
         if (!$grading_info) {
             return 'Could not retrieve grading info.';
         }
-
         // Check to see if grade has been locked or overridden.
-        if (!($grading_info->items[0]->grades[$data->userid]->locked ||
+        if (($grading_info->items[0]->grades[$data->userid]->locked ||
             $grading_info->items[0]->grades[$data->userid]->overridden) ) {
+            return 'Grade is locked or overridden';
+        }
 
-            // Save outcomes if necessary.
-            if (!empty($CFG->enableoutcomes)) {
+        // Save outcomes if necessary.
+        if (!empty($CFG->enableoutcomes)) {
+            $this->save_outcomes($assignment, $userid, $grading_info, $data);
+        }
 
-                $outcomedata = array();
+        // Prepare the submission object.
+        $submission->grade      = $data->xgrade;
+        $submission->submissioncomment    = $data->submissioncomment_editor['text'];
+        $submission->teacher    = $USER->id;
+        $submission->timemarked = time();
+        unset($submission->data1);  // Don't need to update this.
+        unset($submission->data2);  // Don't need to update this.
 
-                // TODO needs sorting out!
-                if (!empty($grading_info->outcomes)) {
+        $mailinfo = get_user_preferences('assignment_mailinfo', 0);
+        if (!$mailinfo) {
+            $submission->mailed = 1; // Treat as already mailed.
+        } else {
+            $submission->mailed = 0; // Make sure mail goes out (again, even).
+        }
 
-                    foreach ($grading_info->outcomes as $n => $old) {
-                        $name = 'outcome_'.$n;
-                        $newvalue = $old->grades[$userid]->grade != $data->{$name}[$userid];
-                        if (isset($data->{$name}[$userid]) and $newvalue) {
-                            $outcomedata[$n] = $data->{$name}[$userid];
-                        }
-                    }
+        // Save submission.
+        $saveresult = $DB->update_record('assignment_submissions', $submission);
+        if (!$saveresult) {
+            return 'Problem saving feedback';
+        }
 
-                    if (count($outcomedata) > 0) {
-                        grade_update_outcomes('mod/assignment', $assignment->course, 'mod',
-                                              'assignment', $assignment->id, $userid,
-                                              $outcomedata);
-                    }
-                }
-            }
+        // Trigger grade event to update gradebook.
+        $assignment->cmidnumber = $coursemodule->id;
+        assignment_update_grades($assignment, $submission->userid);
 
-            // Prepare the submission object.
-            $submission->grade      = $data->xgrade;
-            $submission->submissioncomment    = $data->submissioncomment_editor['text'];
-            $submission->teacher    = $USER->id;
-            $submission->timemarked = time();
+        add_to_log($coursemodule->course, 'assignment', 'update grades',
+                   'submissions.php?id='.$coursemodule->id.'&user='.$data->userid,
+                   $data->userid, $coursemodule->id);
 
-            $mailinfo = get_user_preferences('assignment_mailinfo', 0);
-
-            if (!$mailinfo) {
-                $submission->mailed = 1; // Treat as already mailed.
-            } else {
-                $submission->mailed = 0; // Make sure mail goes out (again, even).
-            }
-
-            unset($submission->data1);  // Don't need to update this.
-            unset($submission->data2);  // Don't need to update this.
-
-            // Save submission.
-            $saveresult = $DB->update_record('assignment_submissions', $submission);
-
-            if (!$saveresult) {
-                return 'Problem saving feedback';
-            }
-
-            // Trigger grade event to update gradebook.
-            $assignment->cmidnumber = $coursemodule->id;
-            assignment_update_grades($assignment, $submission->userid);
-
-            add_to_log($coursemodule->course, 'assignment', 'update grades',
-                       'submissions.php?id='.$coursemodule->id.'&user='.$data->userid,
-                       $data->userid, $coursemodule->id);
-
-            // Save files if necessary.
-            if (!is_null($data)) {
-                $isupload = $assignment->assignmenttype == 'upload';
-                $isuploadsingle = $assignment->assignmenttype == 'uploadsingle';
-                if ($isupload || $isuploadsingle) {
-                    $fileui_options = array();
-                    if ($isupload) {
-                        $fileui_options = array(
-                            'subdirs'=>1,
-                            'maxbytes'=>$assignment->maxbytes,
-                            'maxfiles'=>$assignment->var1,
-                            'accepted_types'=>'*',
-                            'return_types'=>FILE_INTERNAL);
-                    } else if ($isuploadsingle) {
-                        $fileui_options = array(
-                            'subdirs'=>0,
-                            'maxbytes'=>$CFG->userquota,
-                            'maxfiles'=>1,
-                            'accepted_types'=>'*',
-                            'return_types'=>FILE_INTERNAL);
-                    }
-
-                    file_postupdate_standard_filemanager($data,
-                                                         'files',
-                                                         $fileui_options,
-                                                         $PAGE->context,
-                                                         'mod_assignment',
-                                                         'response',
-                                                         $submission->id);
-                }
-            }
+        // Save files if necessary.
+        if (!is_null($data)) {
+            $this->save_files($assignment, $submission, $data, $PAGE, $CFG);
         }
 
         return true;
+    }
+
+    /**
+     * Saves any files that the teacher may have attached or embedded.
+     *
+     * @param $assignment
+     * @param $submission
+     * @param $data
+     * @param $PAGE
+     * @param $CFG
+     */
+    private function save_files($assignment, $submission, $data, $PAGE, $CFG) {
+        global $PAGE, $CFG;
+
+        $isupload = $assignment->assignmenttype == 'upload';
+        $isuploadsingle = $assignment->assignmenttype == 'uploadsingle';
+        if ($isupload || $isuploadsingle) {
+            $fileui_options = array();
+            if ($isupload) {
+                $fileui_options = array(
+                    'subdirs' => 1,
+                    'maxbytes' => $assignment->maxbytes,
+                    'maxfiles' => $assignment->var1,
+                    'accepted_types' => '*',
+                    'return_types' => FILE_INTERNAL);
+            } else if ($isuploadsingle) {
+                $fileui_options = array(
+                    'subdirs' => 0,
+                    'maxbytes' => $CFG->userquota,
+                    'maxfiles' => 1,
+                    'accepted_types' => '*',
+                    'return_types' => FILE_INTERNAL);
+            }
+
+            file_postupdate_standard_filemanager($data,
+                                                 'files',
+                                                 $fileui_options,
+                                                 $PAGE->context,
+                                                 'mod_assignment',
+                                                 'response',
+                                                 $submission->id);
+        }
+    }
+
+    /**
+     * Saves outcome data from the form
+     *
+     * @param $assignment
+     * @param $userid
+     * @param $grading_info
+     * @param $data
+     */
+    private function save_outcomes($assignment, $userid, $grading_info, $data) {
+        $outcomedata = array();
+
+        // TODO needs sorting out!
+        if (!empty($grading_info->outcomes)) {
+
+            foreach ($grading_info->outcomes as $n => $old) {
+                $name = 'outcome_'.$n;
+                $newvalue = $old->grades[$userid]->grade != $data->{$name}[$userid];
+                if (isset($data->{$name}[$userid]) and $newvalue) {
+                    $outcomedata[$n] = $data->{$name}[$userid];
+                }
+            }
+
+            if (count($outcomedata) > 0) {
+                grade_update_outcomes('mod/assignment', $assignment->course, 'mod',
+                                      'assignment', $assignment->id, $userid,
+                                      $outcomedata);
+            }
+        }
     }
 
     /**
