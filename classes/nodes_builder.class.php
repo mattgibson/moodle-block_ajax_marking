@@ -239,6 +239,8 @@ class block_ajax_marking_nodes_builder {
      *                    run a wrapper query that will select from the UNIONed subquery
      * @param int $courseid Optional. Will apply SELECT and GROUP BY for nodes if missing
      * @return void|string
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable) Skip the debuggable query
+     * @SuppressWarnings(PHPMD.UnusedPrivate Method) Dynamic method names don't register
      */
     private static function apply_courseid_filter($query, $operation, $courseid = 0) {
         global $USER;
@@ -361,6 +363,7 @@ class block_ajax_marking_nodes_builder {
      * @param $operation
      * @param bool|int $groupid
      * @return void
+     * @SuppressWarnings(PHPMD.UnusedPrivate Method) Dynamic method names don't register
      */
     private static function apply_groupid_filter($query, $operation, $groupid = 0) {
 
@@ -442,6 +445,7 @@ class block_ajax_marking_nodes_builder {
      * @param bool|int $cohortid
      * @global moodle_database $DB
      * @return void
+     * @SuppressWarnings(PHPMD.UnusedPrivate Method) Dynamic method names don't register
      */
     private static function apply_cohortid_filter(block_ajax_marking_query_base $query,
                                                   $operation, $cohortid = false) {
@@ -516,6 +520,7 @@ class block_ajax_marking_nodes_builder {
      * @param int $coursemoduleid optional. Will apply SELECT and GROUP BY for nodes if missing
      * @param bool $operation
      * @return void
+     * @SuppressWarnings(PHPMD.UnusedPrivate Method) Dynamic method names don't register
      */
     private static function apply_coursemoduleid_filter($query, $operation, $coursemoduleid = 0 ) {
         global $USER;
@@ -1085,53 +1090,12 @@ SQL;
     }
 
     /**
-     * Provides a subquery with all users who are in groups that ought to be displayed, per config
-     * setting e.g. which users are in displayed groups for items where groups display is
-     * enabled or inherited as enabled. We use a SELECT 1 to see if the user of the submission is
-     * there for the relevant config thing.
-     *
-     * @return array SQL fragment and params
-     */
-    private function sql_groups_subquery() {
-        global $USER;
-
-        static $count = 1; // If we reuse this, we cannot have the same names for the params.
-
-        // If a user is in two groups, this will lead to duplicates. We use DISTINCT in the
-        // SELECT to prevent this. Possibly one group will say 'display' and the other will say
-        // 'hide'. We assume display if it's there, using MAX to get any 1 that there is. Same
-        // concept applies to the groupid. we can't count them twice, but hopefully the unnecessary
-        // duplicates for any activity
-        // will be set to hidden. Default to highest id number for now.
-        $groupsql = <<<SQL
-             SELECT DISTINCT gm.userid, groups_settings.configid,
-                             MAX(groups_settings.display) AS display,
-                             MAX(groups_settings.groupid) AS groupid
-                        FROM {groups_members} gm
-                  INNER JOIN {groups} g
-                          ON gm.groupid = g.id
-                  INNER JOIN {block_ajax_marking_groups} groups_settings
-                          ON g.id = groups_settings.groupid
-                  INNER JOIN {block_ajax_marking} settings
-                          ON groups_settings.configid = settings.id
-                       WHERE settings.groupsdisplay = 1
-                         AND settings.userid = :groupsettingsuserid{$count}
-                    GROUP BY gm.userid, groups_settings.configid
-SQL;
-        // Adding userid to reduce the results set so that the SQL can be more efficient.
-        $params = array('groupsettingsuserid'.$count => $USER->id);
-        $count++;
-
-        return array($groupsql, $params);
-
-    }
-
-    /**
      * For the config nodes, we want all of the coursemodules. No need to worry about counting etc.
      * There is also no need for a dynamic rearrangement of the nodes, so we have two simple queries
      *
      * @param array $filters
      * @return array
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     public static function get_config_nodes($filters) {
 
@@ -1353,30 +1317,10 @@ SQL;
     }
 
     /**
-     * Returns an SQL fragment that checks whether a group membership exists in the form EXISTS
-     * (<sql here>).
-     * Needs to be told what userid
-     *
-     * @return string
-     */
-    private function sql_group_membership_exists() {
-
-        $checkmemberships = <<<SQL
-    EXISTS (SELECT NULL
-              FROM {groups_members} groups_members
-        INNER JOIN {groups} groups
-                ON groups_members.groupid = groups.id
-             WHERE groups_members.userid = :userid
-               AND groups.id = :groupid)
-SQL;
-        return $checkmemberships;
-    }
-
-    /**
      * Once we have filtered out the ones we don't want based on display settings, those that are
      * left may have memberships in more than one group. We want to choose one of these so that
      * the piece of work is not counted twice. This query returns the maximum (in terms of DB row
-     * id) groupid for each student/coursemodule pair where coursemodules are in the courses that
+     * id) groupid for each student/coursemodule pair where course modules are in the courses that
      * the user teaches. This has the potential to be expensive, so hopefully the inner join will
      * be used by the optimiser to limit the rows that are actually calculated to the ones
      * that the external query needs.
@@ -1597,7 +1541,7 @@ SQL;
         $moduleid = $DB->get_field('course_modules', 'module',
                                    array('id' => $coursemoduleid));
 
-        foreach ($moduleclasses as $modname => $moduleclass) {
+        foreach ($moduleclasses as $moduleclass) {
             /* @var $moduleclass block_ajax_marking_module_base */
 
             if ($moduleclass->get_module_id() == $moduleid) {
@@ -1615,6 +1559,7 @@ SQL;
      *
      * @param array $filters
      * @return array
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable)
      */
     public static function get_count_for_single_node($filters) {
 
@@ -1639,7 +1584,6 @@ SQL;
         self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
 
         // Now, add the current node as a WHERE clause, so we only get that one.
-
         $displayquery->add_where(array('type' => 'AND',
                                        'condition' => 'countwrapperquery.id = :filtervalue '));
         $displayquery->add_param('filtervalue', $filters['filtervalue']);

@@ -184,10 +184,11 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      * Use questionid, rather than slot so we can group the same question in future, even across
      * random questions.
      *
-     * @global stdClass $CFG
-     * @global moodle_database $DB
      * @param array $params all of the stuff sent with the node click e.g. questionid
      * @param object $coursemodule
+     * @throws moodle_exception
+     * @global stdClass $CFG
+     * @global moodle_database $DB
      * @return string the HTML page
      */
     public function grading_popup($params, $coursemodule) {
@@ -219,7 +220,9 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         $questionattempts = $this->get_question_attempts($params);
 
         if (!$questionattempts) {
-            die('Could not retrieve question attempts. Maybe someone else marked them just now');
+            $message =
+                'Could not retrieve question attempts. Maybe someone else marked them just now';
+            throw new moodle_exception($message);
         }
 
         // Cache the attempt objects for reuse..

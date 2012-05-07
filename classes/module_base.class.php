@@ -308,6 +308,7 @@ abstract class block_ajax_marking_module_base {
      * @param $params
      * @param $coursemodule
      * @return string HTML
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function grading_popup($params, $coursemodule) {
     }

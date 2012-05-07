@@ -148,7 +148,7 @@ class block_ajax_marking extends block_base {
             // as there is no mechanism for generating it dynamically, i.e. having an arbitrary
             // number of CSS rules generated, one for each module plugin. These icons are
             // transplanted using JS to the nodes as needed.
-            foreach ($modclasses as $modname => $modclass) {
+            foreach (array_keys($modclasses) as $modname) {
                 $divs .= '<img id="block_ajax_marking_'.$modname.'_icon"
                                  class="dynamicicon"
                                  src="'.$OUTPUT->pix_url('icon', $modname).'"
@@ -209,7 +209,7 @@ class block_ajax_marking extends block_base {
             // requested as part of a separate http request after the PHP has all been finished
             // with, so we do this cheaply to keep overheads low by not using setup.php and
             // having the js in static functions.
-            foreach ($modclasses as $modname => $moduleclass) {
+            foreach (array_keys($modclasses) as $modname) {
                 $filename = '/blocks/ajax_marking/modules/'.$modname.'/'.$modname.'.js';
                 if (file_exists($CFG->dirroot.$filename)) {
                     $PAGE->requires->js($filename);
