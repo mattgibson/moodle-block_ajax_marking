@@ -240,7 +240,7 @@ class block_ajax_marking_nodes_builder {
      * @param int $courseid Optional. Will apply SELECT and GROUP BY for nodes if missing
      * @return void|string
      * @SuppressWarnings(PHPMD.UnusedLocalVariable) Skip the debuggable query
-     * @SuppressWarnings(PHPMD.UnusedPrivate Method) Dynamic method names don't register
+     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
     private static function apply_courseid_filter($query, $operation, $courseid = 0) {
         global $USER;
@@ -363,7 +363,7 @@ class block_ajax_marking_nodes_builder {
      * @param $operation
      * @param bool|int $groupid
      * @return void
-     * @SuppressWarnings(PHPMD.UnusedPrivate Method) Dynamic method names don't register
+     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
     private static function apply_groupid_filter($query, $operation, $groupid = 0) {
 
@@ -445,7 +445,7 @@ class block_ajax_marking_nodes_builder {
      * @param bool|int $cohortid
      * @global moodle_database $DB
      * @return void
-     * @SuppressWarnings(PHPMD.UnusedPrivate Method) Dynamic method names don't register
+     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
     private static function apply_cohortid_filter(block_ajax_marking_query_base $query,
                                                   $operation, $cohortid = false) {
@@ -520,7 +520,7 @@ class block_ajax_marking_nodes_builder {
      * @param int $coursemoduleid optional. Will apply SELECT and GROUP BY for nodes if missing
      * @param bool $operation
      * @return void
-     * @SuppressWarnings(PHPMD.UnusedPrivate Method) Dynamic method names don't register
+     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
     private static function apply_coursemoduleid_filter($query, $operation, $coursemoduleid = 0 ) {
         global $USER;
@@ -652,6 +652,7 @@ class block_ajax_marking_nodes_builder {
      * the groups in their current settings states so config stuff can be adjusted.
      *
      * @return array SQL and params
+     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
     private function sql_group_visibility_subquery($type = 'coalesce') {
 
