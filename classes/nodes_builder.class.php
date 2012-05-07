@@ -652,7 +652,7 @@ class block_ajax_marking_nodes_builder {
      * the groups in their current settings states so config stuff can be adjusted.
      *
      * @return array SQL and params
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
+     * @SuppressWarnings(PHPMD.UnusedLocalVariable) Debuggable query
      */
     private function sql_group_visibility_subquery($type = 'coalesce') {
 
@@ -693,56 +693,12 @@ class block_ajax_marking_nodes_builder {
          *
          */
 
-        $groupdisplaysubquery = '';
-        // Using heredoc to make the debug query clearer when pasted into a terminal.
-        $coursemodulesselect = <<<SQL
-        SELECT group_course_modules.id AS cmid,
-               group_groups.id AS groupid,
+        $select = '';
+        $join = '';
+        $where = '';
 
-SQL;
-        $coursesselect = <<<SQL
-        SELECT group_groups.courseid,
-               group_groups.id AS groupid,
-
-SQL;
-
-        switch ($type) {
-            case 'coalesce':
-                $groupdisplaysubquery .= $coursemodulesselect;
-                $groupdisplaysubquery .= <<<SQL
-                COALESCE(group_cmconfig_groups.display,
-                         group_courseconfig_groups.display,
-                         {$sitedefault})
-SQL;
-                break;
-
-            case 'course':
-                $groupdisplaysubquery .= $coursesselect;
-                $groupdisplaysubquery .= <<<SQL
-                group_courseconfig_groups.display
-SQL;
-                break;
-
-            case 'coursemodule':
-                $groupdisplaysubquery .= $coursemodulesselect;
-                $groupdisplaysubquery .= <<<SQL
-                group_cmconfig_groups.display
-SQL;
-                break;
-        }
-
-        $groupdisplaysubquery .= ' AS display';
-
-        $groupdisplaysubquery .= <<<SQL
-
-          FROM {course_modules} group_course_modules
-    INNER JOIN {course} group_course
-            ON group_course.id = group_course_modules.course
-    INNER JOIN {groups} group_groups
-            ON group_groups.courseid = group_course_modules.course
-SQL;
-
-        // TODO does moving the groupid stuff into a WHERE xx OR IS NULL make it faster?
+        // These fragments are recombined as needed. Arguably less duplication is better than the 3
+        // separate functions this would otherwise need.
         $coursemodulejoin = <<<SQL
      LEFT JOIN {block_ajax_marking} group_cmconfig
             ON group_course_modules.id = group_cmconfig.instanceid
@@ -760,26 +716,6 @@ SQL;
                AND group_courseconfig_groups.groupid = group_groups.id
 SQL;
 
-        switch ($type) {
-
-            case 'coalesce':
-                $groupdisplaysubquery .= $coursemodulejoin;
-                $groupdisplaysubquery .= $coursejoin;
-                break;
-
-            case 'course':
-                $groupdisplaysubquery .= $coursejoin;
-                break;
-
-            case 'coursemodule':
-                $groupdisplaysubquery .= $coursemodulejoin;
-                break;
-        }
-
-        $groupdisplaysubquery .= <<<SQL
-         WHERE group_course_modules.course {$coursessql}
-SQL;
-
         $coursewhere = <<<SQL
            AND (group_courseconfig.userid = :groupuserid1_{$counter}
                 OR group_courseconfig.userid IS NULL)
@@ -790,46 +726,75 @@ SQL;
                 OR group_cmconfig.userid IS NULL)
 SQL;
 
+        // We have similar code in use for three cases, so we construct the SQL dynamically.
         switch ($type) {
-
             case 'coalesce':
-                $groupdisplaysubquery .= $coursewhere;
-                $groupdisplaysubquery .= $coursemodulewhere;
+                $select = <<<SQL
+               group_course_modules.id AS cmid,
+               COALESCE(group_cmconfig_groups.display,
+                        group_courseconfig_groups.display,
+                        {$sitedefault}) AS display
+SQL;
+                $join = $coursemodulejoin . $coursejoin;
+                $where = $coursewhere . $coursemodulewhere;
                 $coursesparams['groupuserid1_'.$counter] = $USER->id;
                 $coursesparams['groupuserid2_'.$counter] = $USER->id;
                 break;
 
             case 'course':
-                $groupdisplaysubquery .= $coursewhere;
+                $select = <<<SQL
+               group_groups.courseid,
+               group_courseconfig_groups.display AS display
+SQL;
+                $join = $coursejoin;
+                $where = $coursewhere;
                 $coursesparams['groupuserid1_'.$counter] = $USER->id;
                 break;
 
             case 'coursemodule':
-                $groupdisplaysubquery .= $coursemodulewhere;
+                $select = <<<SQL
+               group_course_modules.id AS cmid,
+               group_cmconfig_groups.display AS display
+SQL;
+                $join = $coursemodulejoin;
+                $where = $coursemodulewhere;
                 $coursesparams['groupuserid2_'.$counter] = $USER->id;
                 break;
         }
 
-        // This is making sure that we hide groups that a teacher is not a member of when the group
-        // mode is set to 'separate groups'.
         $separategroups = SEPARATEGROUPS;
-        $coursesparams['teacheruserid'.$counter] = $USER->id;
-        $groupsmodeisnotseparate = "( ( group_course.groupmodeforce = 1 AND
-                                        group_course.groupmode != {$separategroups} )
-                                      OR
-                                      ( group_course.groupmodeforce = 0 AND
-                                        group_course_modules.groupmode != {$separategroups} )
-                                    ) ";
-        $groupdisplaysubquery .= "
-            AND ( {$groupsmodeisnotseparate} OR
+        // The later part is making sure that we hide groups that a teacher is not a member of
+        // when the group mode is set to 'separate groups'.
+        // TODO does moving the groupid stuff into a WHERE xx OR IS NULL make it faster?
+        $groupdisplaysubquery = <<<SQL
+        SELECT group_groups.id AS groupid,
+               {$select}
+          FROM {course_modules} group_course_modules
+    INNER JOIN {course} group_course
+            ON group_course.id = group_course_modules.course
+    INNER JOIN {groups} group_groups
+            ON group_groups.courseid = group_course_modules.course
+               {$join}
+         WHERE group_course_modules.course {$coursessql}
+               {$where}
+           AND (
+                    (  (group_course.groupmodeforce = 1 AND
+                        group_course.groupmode != {$separategroups})
+                      OR
+                       (group_course.groupmodeforce = 0 AND
+                        group_course_modules.groupmode != {$separategroups})
+                    )
+
+                  OR
                     ( EXISTS ( SELECT 1
                                  FROM {groups_members} teachermemberships
                                 WHERE teachermemberships.groupid = group_groups.id
                                   AND teachermemberships.userid = :teacheruserid{$counter}
                              )
                     )
-                )
-        ";
+               )
+SQL;
+        $coursesparams['teacheruserid'.$counter] = $USER->id;
 
         if ($CFG->debug == DEBUG_DEVELOPER) {
             // Only a tiny overhead, but still worth avoiding if not needed.
