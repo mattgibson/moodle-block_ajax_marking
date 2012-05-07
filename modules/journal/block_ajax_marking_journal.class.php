@@ -113,7 +113,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
 
         // TODO: does this work with 'journal' rather than 'journal_final'?
 
-        return;
+        return $submissions;
     }
 
     /**

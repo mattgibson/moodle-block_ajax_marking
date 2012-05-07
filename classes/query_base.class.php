@@ -661,27 +661,6 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Provides an EXISTS(xxx) subquery that tells us whether there is a group with user x in it
-     *
-     * @param string $configalias this is the alias of the config table in the SQL
-     * @return string SQL fragment
-     */
-    private function get_sql_groups_subquery($configalias) {
-
-        $groupsql = " EXISTS (SELECT 1
-                                FROM {groups_members} gm
-                          INNER JOIN {groups} g
-                                  ON gm.groupid = g.id
-                          INNER JOIN {block_ajax_marking_groups} gs
-                                  ON g.id = gs.groupid
-                               WHERE gm.userid = moduleunion.userid
-                                 AND gs.configid = {$configalias}.id) ";
-
-        return $groupsql;
-
-    }
-
-    /**
      * Sometimes we need to know if we can safely add a clause
      *
      * @param string$tablename

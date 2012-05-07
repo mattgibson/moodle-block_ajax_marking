@@ -447,6 +447,7 @@ function block_ajax_marking_strip_html_tags($text) {
 
 /**
  * We need a proper error message in case of a timed out session, not a dodgy redirect
+ * @SuppressWarnings(PHPMD.ExitExpression)
  */
 function block_ajax_marking_login_error() {
 
