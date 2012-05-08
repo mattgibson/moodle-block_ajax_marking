@@ -89,17 +89,18 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     /**
      * Makes the grading interface for the pop up
      *
+     * @param array $params From $_GET
+     * @param object $coursemodule The coursemodule object that the user has been authenticated
+     * against
+     * @param bool $data
      * @global $PAGE
      * @global stdClass $CFG
      * @global moodle_database $DB
      * @global $OUTPUT
      * @global stdClass $USER
-     * @param array $params From $_GET
-     * @param object $coursemodule The coursemodule object that the user has been authenticated
-     * against
      * @return string
      */
-    public function grading_popup($params, $coursemodule) {
+    public function grading_popup($params, $coursemodule, $data = false) {
 
         global $PAGE, $CFG, $DB, $OUTPUT, $USER;
 
@@ -271,7 +272,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      *
      * @param object $data from the feedback form
      * @param $params
-     * @return string|void
+     * @return string
      */
     public function process_data($data, $params) {
 
@@ -297,10 +298,12 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         }
 
         // Get DB records.
-        $coursemodule = $DB->get_record('course_modules', array('id' => $params['coursemoduleid']),
-                                        '*', MUST_EXIST);
-        $assignment   = $DB->get_record('assignment', array('id' => $coursemodule->instance),
-                                        '*', MUST_EXIST);
+        $coursemodule = $DB->get_record('course_modules',
+                                        array('id' => $params['coursemoduleid']),
+                                        '*',
+                                        MUST_EXIST);
+        $course = $DB->get_record('course', array('id' => $coursemodule->course));
+        $assignment   = $DB->get_record('assignment', array('id' => $coursemodule->instance));
         $grading_info = grade_get_grades($coursemodule->course, 'mod', 'assignment',
                                          $assignment->id, $data->userid);
 
@@ -322,6 +325,35 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         if (!$submission) {
             return 'Problem saving feedback';
         }
+
+        // If 'revert to draft' has been clicked, we want a confirm button only.
+        if (!empty($data->unfinalize)) {
+
+            $updated = new stdClass();
+            $updated->id = $submission->id;
+            $updated->data2 = '';
+            $DB->update_record('assignment_submissions', $updated);
+
+            $submission->data2 = '';
+
+            // Load up the required assignment code.
+            require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
+                '/assignment.class.php');
+            $assignmentclass = 'assignment_'.$assignment->assignmenttype;
+
+            /*
+             * @var assignment_base $assignmentinstance
+             */
+            $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
+                                                       $coursemodule, $course);
+            $assignmentinstance->update_grade($submission);
+
+            return '';
+        }
+
+        // Check to see if grade has been locked or overridden.
+        if (!($grading_info->items[0]->grades[$data->userid]->locked ||
+            $grading_info->items[0]->grades[$data->userid]->overridden) ) {
 
         // Trigger grade event to update gradebook.
         $assignment->cmidnumber = $coursemodule->id;
@@ -418,6 +450,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                                  'response',
                                                  $submission->id);
         }
+        return '';
     }
 
     /**
