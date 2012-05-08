@@ -248,79 +248,28 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         // Move this down fix for MDL-6926.
         require_once($CFG->dirroot.'/mod/forum/lib.php');
 
-        // Possibly, the view permission is being used to prevent certain forums from being
-        // accessed. Might be best not to rely on just the rate one.
-        $modcontext = context_module::instance($cm->id);
-        require_capability('mod/forum:viewdiscussion', $modcontext, null, true,
-                           'noviewdiscussionspermission', 'forum');
-
-        // Restrict news to allowed times.
+        // Restrict news forums - should not be graded.
         if ($forum->type == 'news') {
-            if (!($USER->id == $discussion->userid || (($discussion->timestart == 0
-                || $discussion->timestart <= time())
-                && ($discussion->timeend == 0 || $discussion->timeend > time())))) {
-
-                print_error('invaliddiscussionid', 'forum',
-                            "$CFG->wwwroot/mod/forum/view.php?f=$forum->id");
-            }
+            print_error('invaliddiscussionid', 'forum',
+                        "$CFG->wwwroot/mod/forum/view.php?f=$forum->id");
         }
 
         unset($SESSION->fromdiscussion);
-
+        // In case the user has used the dropdown to change from threaded to flat or something.
         if (isset($params['mode'])) {
             set_user_preference('forum_displaymode', $params['mode']);
         }
-
         $displaymode = get_user_preferences('forum_displaymode', $CFG->forum_displaymode);
 
         $parent = $discussion->firstpost;
-
-        if (! $post = forum_get_post_full($parent)) {
+        $post = forum_get_post_full($parent);
+        if (!$post) {
             print_error("notexists", 'forum', "$CFG->wwwroot/mod/forum/view.php?f=$forum->id");
         }
-
         if (!forum_user_can_view_post($post, $course, $cm, $forum, $discussion)) {
             print_error('nopermissiontoview', 'forum',
                         "$CFG->wwwroot/mod/forum/view.php?id=$forum->id");
         }
-
-        // TODO what does this do? Does read tracking get updated?
-        /*
-        if ($mark == 'read' or $mark == 'unread') {
-            if ($CFG->forum_usermarksread && forum_tp_can_track_forums($forum) &&
-                forum_tp_is_tracked($forum)) {
-                if ($mark == 'read') {
-                    forum_tp_add_read_record($USER->id, $postid);
-                } else {
-                    // unread
-                    forum_tp_delete_read_records($USER->id, $postid);
-                }
-            }
-        } */
-
-        // Check to see if groups are being used in this forum
-        // If so, make sure the current person is allowed to see this discussion
-        // Also, if we know they should be able to reply, then explicitly set $canreply for
-        // performance reasons.
-
-        // DO NOT DELETE (yet)/////////////////////////////////////////////////////////
-        // Do we want to allow replies? might break the ajax bit?
-        /*
-        $canreply = forum_user_can_post($forum, $discussion, $USER, $cm, $course, $modcontext);
-
-        if (!$canreply and $forum->type !== 'news') {
-
-            if (isguestuser() or !isloggedin()) {
-                $canreply = true;
-            }
-
-            if (!is_enrolled($modcontext) and !is_viewing($modcontext)) {
-                // allow guests and not-logged-in to see the link - they are prompted to log in
-                // after clicking the link normal users with temporary guest access see this link
-                // too, they are asked to enrol instead
-                $canreply = enrol_selfenrol_available($course->id);
-            }
-        }*/
 
         // For now, restrict to rating only.
         $canreply = false;

@@ -104,6 +104,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         global $PAGE, $CFG, $DB, $OUTPUT, $USER;
 
         require_once($CFG->dirroot.'/grade/grading/lib.php');
+        require_once($CFG->libdir.'/gradelib.php');
+        require_once("$CFG->dirroot/repository/lib.php");
 
         $PAGE->requires->js('/mod/assignment/assignment.js');
 
@@ -114,37 +116,19 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $assignment = $DB->get_record('assignment', array('id' => $coursemodule->instance));
         $submission = $DB->get_record('assignment_submissions',
                                       array('assignment' => $coursemodule->instance,
-                                            'userid' => $params['userid']));
-
-        if (!$submission) {
-            print_error('No submission for this user');
-            return false;
-        }
-
+                                            'userid' => $params['userid']), '*', MUST_EXIST);
         $course         = $DB->get_record('course', array('id' => $assignment->course));
         $coursemodule   = $DB->get_record('course_modules', array('id' => $coursemodule->id));
         $context        = context_module::instance($coursemodule->id);
-
-        // TODO more sanity and security checks.
-        $user = $DB->get_record('user', array('id' => $submission->userid));
-
-        if (!$user) {
-            print_error('No user');
-            return false;
-        }
+        $user           = $DB->get_record('user', array('id' => $submission->userid),
+                                          '*', MUST_EXIST);
 
         // Load up the required assignment code.
         require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
                      '/assignment.class.php');
         $assignmentclass = 'assignment_'.$assignment->assignmenttype;
-        /*
-         * @var assignment_base $assignmentinstance
-         */
         $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
                                                    $coursemodule, $course);
-
-        require_once($CFG->libdir.'/gradelib.php');
-        require_once("$CFG->dirroot/repository/lib.php");
 
         $grading_info = grade_get_grades($course->id, 'mod', 'assignment',
                                          $assignment->id, array($user->id));
