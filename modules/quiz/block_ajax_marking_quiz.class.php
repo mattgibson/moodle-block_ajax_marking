@@ -69,7 +69,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         parent::__construct();
 
         // Must be the same as the DB modulename.
-        $this->modulename = $this->moduletable = 'quiz';
+        $this->modulename           = 'quiz';
         $this->capability           = 'mod/quiz:grade';
         $this->icon                 = 'mod/quiz/icon.gif';
     }

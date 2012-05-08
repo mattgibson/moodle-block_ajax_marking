@@ -52,7 +52,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         // Call parent constructor with the same arguments.
         parent::__construct();
 
-        $this->modulename           = $this->moduletable = 'workshop';
+        $this->modulename           = 'workshop';
         $this->capability           = 'mod/workshop:editdimensions';
         $this->icon                 = 'mod/workshop/icon.gif';
 

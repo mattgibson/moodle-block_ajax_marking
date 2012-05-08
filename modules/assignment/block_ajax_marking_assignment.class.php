@@ -67,7 +67,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // Call parent constructor with the same arguments (keep for 2.1 - PHP 5.3 needed.
         parent::__construct();
 
-        $this->modulename           = $this->moduletable = 'assignment';  // DB modulename.
+        $this->modulename           = 'assignment';  // DB modulename.
         $this->capability           = 'mod/assignment:grade';
         $this->icon                 = 'mod/assignment/icon.gif';
     }

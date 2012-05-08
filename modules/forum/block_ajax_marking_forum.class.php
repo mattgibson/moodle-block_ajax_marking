@@ -50,7 +50,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         parent::__construct();
 
         // Must be the same as the DB modulename.
-        $this->modulename  = $this->moduletable = 'forum';
+        $this->modulename  = 'forum';
         $this->capability  = 'mod/forum:viewhiddentimedposts';
         $this->icon        = 'mod/forum/icon.gif';
     }
