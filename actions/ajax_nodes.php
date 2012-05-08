@@ -52,19 +52,15 @@ foreach ($_POST as $name => $value) {
     $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
 }
 
-if (!isset($params['nextnodefilter'])) {
-    print_error('No filter specified for next set of nodes');
-    die();
-}
-
 if (isset($params['config'])) {
     $nodes = block_ajax_marking_nodes_builder::get_config_nodes($params);
 } else {
     $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($params);
 }
 
+$nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($params);
 foreach ($nodes as &$node) {
-    block_ajax_marking_format_node($node, $params['nextnodefilter']);
+    block_ajax_marking_format_node($node, $nextnodefilter);
 }
 
 // Reindex array so we pick it up in js as an array and can find the length. Associative arrays

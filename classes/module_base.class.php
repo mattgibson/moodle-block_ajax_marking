@@ -209,7 +209,9 @@ abstract class block_ajax_marking_module_base {
             // Just so we know (for styling and accessing js in the client).
             $node->modulename = $this->modulename;
 
-            switch ($filters['nextnodefilter']) {
+            $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
+
+            switch ($nextnodefilter) {
 
                 case 'userid':
                     // Sort out the firstname/lastname thing.
