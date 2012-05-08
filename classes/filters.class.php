@@ -457,10 +457,11 @@ SQL;
      *
      * Table we get back:
      * ----------------------------------------
-     * | course_module_id | groupid | display |
-     * |--------------------------------------|
-     * |        543       |    67   |    0    |
-     * |        342       |    6    |    1    |
+     * | course_module_id/ | groupid | display |
+     * |    course_id      |         |
+     * |---------------------------------------|
+     * |        543        |    67   |    0    |
+     * |        342        |    6    |    1    |
      *
      * @param string $type We may want to know the combined visibility (coalesce) or just the
      * visibility at either (course) or (coursemodule) level. The latter two are for getting
@@ -474,10 +475,8 @@ SQL;
 
         global $DB, $CFG, $USER;
 
-        /**
-         * In case the subquery is used twice, this variable allows us to feed the same teacher
-         * courses in more than once because Moodle requires variables with different suffixes.
-         */
+        // In case the subquery is used twice, this variable allows us to feed the same teacher
+        // courses in more than once because Moodle requires variables with different suffixes.
         static $counter = 0;
         $counter++;
 
@@ -486,9 +485,7 @@ SQL;
                                                                  SQL_PARAMS_NAMED,
                                                                  "groups{$counter}courses");
         $sitedefault = 1; // Configurable in future.
-        $select = '';
-        $join = '';
-        $where = '';
+        $select = $join = $where = '';
 
         // These fragments are recombined as needed. Arguably less duplication is better than the 3
         // separate functions this would otherwise need.
@@ -508,12 +505,10 @@ SQL;
             ON group_courseconfig_groups.configid = group_courseconfig.id
                AND group_courseconfig_groups.groupid = group_groups.id
 SQL;
-
         $coursewhere = <<<SQL
            AND (group_courseconfig.userid = :groupuserid1_{$counter}
                 OR group_courseconfig.userid IS NULL)
 SQL;
-
         $coursemodulewhere = <<<SQL
            AND (group_cmconfig.userid = :groupuserid2_{$counter}
                 OR group_cmconfig.userid IS NULL)
@@ -570,33 +565,22 @@ SQL;
                {$join}
          WHERE group_course_modules.course {$coursessql}
                {$where}
-           AND (
-                    (  (group_course.groupmodeforce = 1 AND
+           AND (    (  (group_course.groupmodeforce = 1 AND
                         group_course.groupmode != {$separategroups})
                       OR
                        (group_course.groupmodeforce = 0 AND
                         group_course_modules.groupmode != {$separategroups})
                     )
-
                   OR
                     ( EXISTS ( SELECT 1
                                  FROM {groups_members} teachermemberships
                                 WHERE teachermemberships.groupid = group_groups.id
                                   AND teachermemberships.userid = :teacheruserid{$counter}
-                             )
-                    )
-               )
+               )     )         )
 SQL;
         $coursesparams['teacheruserid'.$counter] = $USER->id;
 
-        if ($CFG->debug == DEBUG_DEVELOPER) {
-            // Only a tiny overhead, but still worth avoiding if not needed.
-            $debugquery = block_ajax_marking_debuggable_query($groupdisplaysubquery,
-                                                              $coursesparams);
-        }
-
-        return array($groupdisplaysubquery,
-                     $coursesparams);
+        return array($groupdisplaysubquery, $coursesparams);
     }
 }
 
@@ -616,6 +600,8 @@ class block_ajax_marking_cohortid extends block_ajax_marking_filter_base {
      */
     public static function where_filter($query, $cohortid) {
 
+        self::join_to_users($query);
+
         $countwrapper = self::get_countwrapper_subquery($query);
 
         $clause = array(
@@ -630,6 +616,8 @@ class block_ajax_marking_cohortid extends block_ajax_marking_filter_base {
      * @param block_ajax_marking_query_base $query
      */
     public static function countselect_filter($query) {
+
+        self::join_to_users($query);
 
         $countwrapper = self::get_countwrapper_subquery($query);
 
