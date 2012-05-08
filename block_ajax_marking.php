@@ -65,7 +65,7 @@ class block_ajax_marking extends block_base {
             return $this->content;
         }
 
-        global $CFG, $PAGE, $OUTPUT;
+        global $CFG, $PAGE;
 
         require_once($CFG->dirroot . '/blocks/ajax_marking/lib.php');
 
