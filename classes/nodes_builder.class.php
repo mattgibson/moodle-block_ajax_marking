@@ -166,8 +166,11 @@ class block_ajax_marking_nodes_builder {
 
         $nodes = $displayquery->execute();
 
-        $nodes = self::attach_groups_to_nodes($nodes, $filters);
-
+        if ($filters['nextnodefilter'] == 'courseid') {
+            $nodes = self::attach_groups_to_course_nodes($nodes);
+        } else if ($filters['nextnodefilter'] == 'coursemoduleid') {
+            $nodes = self::attach_groups_to_coursemodule_nodes($nodes);
+        }
         if ($havecoursemodulefilter) {
             // This e.g. allows the forum module to tweak the name depending on forum type.
             $moduleclass->postprocess_nodes_hook($nodes, $filters);
@@ -523,7 +526,11 @@ SQL;
 
         $nodes = $configbasequery->execute();
 
-        $nodes = self::attach_groups_to_nodes($nodes, $filters);
+        if ($filters['nextnodefilter'] == 'courseid') {
+            $nodes = self::attach_groups_to_course_nodes($nodes);
+        } else if ($filters['nextnodefilter'] == 'coursemoduleid') {
+            $nodes = self::attach_groups_to_coursemodule_nodes($nodes);
+        }
 
         return $nodes;
 
@@ -536,12 +543,11 @@ SQL;
      * via right-click menus
      *
      * @param array $nodes
-     * @param array $filters
      * @return array
      */
-    private function attach_groups_to_nodes($nodes, $filters) {
+    private function attach_groups_to_course_nodes($nodes) {
 
-        global $DB, $CFG, $USER;
+        global $DB, $USER;
 
         if (!$nodes) {
             return array();
@@ -552,17 +558,13 @@ SQL;
 
         // Get the ids of the nodes.
         $courseids = array();
-        $coursemoduleids = array();
         foreach ($nodes as $node) {
             if (isset($node->courseid)) {
                 $courseids[] = $node->courseid;
             }
-            if (isset($node->coursemoduleid)) {
-                $coursemoduleids[] = $node->coursemoduleid;
-            }
         }
 
-        if ($filters['nextnodefilter'] == 'courseid') {
+        if ($courseids) {
             // Retrieve all groups that we may need. This includes those with no settings yet as
             // otherwise, we won't be able to offer to create settings for them.
             list($coursesql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED);
@@ -603,9 +605,6 @@ SQL;
 SQL;
             $params['teacheruserid'] = $USER->id;
 
-            if ($CFG->debug == DEBUG_DEVELOPER) {
-                $debugquery = block_ajax_marking_debuggable_query($sql, $params);
-            }
             $groups = $DB->get_records_sql($sql, $params);
 
             foreach ($groups as $group) {
@@ -614,14 +613,35 @@ SQL;
                 }
                 $nodes[$group->courseid]->groups[] = $group;
             }
+        }
 
-        } else if ($filters['nextnodefilter'] == 'coursemoduleid'
-            && $coursemoduleids) {
+        return $nodes;
+    }
+
+    /**
+     * Adds an array of groups to each node for coursemodules.
+     *
+     * @param array $nodes
+     * @return mixed
+     */
+    private function attach_groups_to_coursemodule_nodes($nodes) {
+
+        global $CFG, $DB;
+
+        $coursemoduleids = array();
+        foreach ($nodes as $node) {
+            if (isset($node->coursemoduleid)) {
+                $coursemoduleids[] = $node->coursemoduleid;
+            }
+        }
+
+        if ($coursemoduleids) {
 
             // This will include groups that have no settings as we may want to make settings
             // for them.
             list($cmsql, $params) = $DB->get_in_or_equal($coursemoduleids, SQL_PARAMS_NAMED);
-            list($gsql, $gparams) = block_ajax_marking_groupid::group_visibility_subquery('coursemodule');
+            list($gsql, $gparams) =
+                block_ajax_marking_groupid::group_visibility_subquery('coursemodule');
             // Can't have repeating groupids in column 1 or it throws an error.
             $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
             $sql = <<<SQL

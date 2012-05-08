@@ -39,14 +39,6 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
 class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
     /**
-     * When in submissions mode, this will store the forum's type to save on db queries.
-     * Won't get used at any other stage
-     *
-     * @var bool
-     */
-    private $iseachuser = null;
-
-    /**
      * Constructor
      *
      * @return \block_ajax_marking_forum
