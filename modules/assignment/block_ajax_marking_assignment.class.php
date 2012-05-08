@@ -89,10 +89,10 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     /**
      * Makes the grading interface for the pop up
      *
-     * @global type $PAGE
+     * @global $PAGE
      * @global stdClass $CFG
      * @global moodle_database $DB
-     * @global type $OUTPUT
+     * @global $OUTPUT
      * @global stdClass $USER
      * @param array $params From $_GET
      * @param object $coursemodule The coursemodule object that the user has been authenticated
@@ -516,76 +516,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         return $query;
     }
-
-
-//    /**
-//     * Applies filtering when assignment submission nodes need displaying by userid. Currently,
-//     * this means that only the displayselect and countselect bit are used.
-//     *
-//     * @param block_ajax_marking_query_base $query
-//     * @param $operation
-//     * @param bool $userid
-//     * @return void
-//     */
-//    public function apply_userid_filter(block_ajax_marking_query_base $query, $operation,
-//                                        $userid = false) {
-//
-//        $selects = array();
-//        $countwrapper = $query->get_subquery('countwrapperquery');
-//
-//        switch ($operation) {
-//
-//            case 'where':
-//                // Not sure we'll ever need this, but just in case...
-//                $countwrapper->add_where(array(
-//                        'type' => 'AND',
-//                        'condition' => 'sub.userid = :assignmentuseridfilteruserid'));
-//                $query->add_param('assignmentuseridfilteruserid', $userid);
-//                break;
-//
-//            case 'countselect':
-//
-//                // Make the count be grouped by userid.
-//                $countwrapper->add_select(array(
-//                        'table'    => 'moduleunion',
-//                        'column'   => 'userid',
-//                        'alias'    => 'id'), true
-//                );
-//                $query->add_select(array(
-//                        'table'  => 'countwrapperquery',
-//                        'column' => 'timestamp',
-//                        'alias'  => 'tooltip')
-//                );
-//                // Need this to make the popup show properly because some assignment code shows or
-//                // not depending on this flag to tell if it's in a pop-up e.g. the revert to draft
-//                // button for advanced upload.
-//                $query->add_select(array('column' => "'single'",
-//                                         'alias' => 'mode')
-//                );
-//
-//                $selects = array(
-//                    array(
-//                        'table' => 'usertable',
-//                        'column' => 'firstname'),
-//                    array(
-//                        'table' => 'usertable',
-//                        'column' => 'lastname')
-//
-//                );
-//
-//                $query->add_from(array(
-//                        'table' => 'user',
-//                        'alias' => 'usertable',
-//                        'on' => 'usertable.id = countwrapperquery.id'));
-//
-//                break;
-//        }
-//
-//        foreach ($selects as $select) {
-//            $query->add_select($select);
-//        }
-//    }
-
 
 
 }
