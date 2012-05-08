@@ -260,7 +260,7 @@ class block_ajax_marking_coursemoduleid extends block_ajax_marking_filter_base {
         $namecoalesce = array();
         $orderbycoalesce = array();
         foreach ($moduleclasses as $moduleclass) {
-            $moduletablename = $moduleclass->get_module_table();
+            $moduletablename = $moduleclass->get_module_name();
             $query->add_from(array(
                                   'join' => 'LEFT JOIN',
                                   'table' => $moduletablename,
