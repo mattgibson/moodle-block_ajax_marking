@@ -42,7 +42,7 @@ class block_ajax_marking_quiz_form extends moodleform {
 
     public function definition() {
 
-        global $DB, $OUTPUT;
+        global $OUTPUT;
 
         $mform =& $this->_form;
 
@@ -80,6 +80,7 @@ class block_ajax_marking_quiz_form extends moodleform {
             $grademenu = make_grades_menu($question->grade);
             $grademenu['-1'] = get_string('nograde');
             // TODO broken!
+            $attributes = array();
             $mform->addElement('select', 'grade['.$questionid.']',
                                get_string('grade').':', $grademenu, $attributes);
 

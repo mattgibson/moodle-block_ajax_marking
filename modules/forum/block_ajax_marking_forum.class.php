@@ -31,19 +31,12 @@ if (!defined('MOODLE_INTERNAL')) {
 
 global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
 
 /**
  * Provides functionality for grading of forum discussions
  */
 class block_ajax_marking_forum extends block_ajax_marking_module_base {
-
-    /**
-     * When in submissions mode, this will store the forum's type to save on db queries.
-     * Won't get used at any other stage
-     *
-     * @var bool
-     */
-    private $iseachuser = null;
 
     /**
      * Constructor
@@ -57,7 +50,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         parent::__construct();
 
         // Must be the same as the DB modulename.
-        $this->modulename  = $this->moduletable = 'forum';
+        $this->modulename  = 'forum';
         $this->capability  = 'mod/forum:viewhiddentimedposts';
         $this->icon        = 'mod/forum/icon.gif';
     }
@@ -131,13 +124,11 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * @global moodle_database $DB
      * @return bool|null
      */
-    private function forum_is_eachuser($coursemoduleid) {
+    public static function forum_is_eachuser($coursemoduleid) {
 
         global $DB;
 
-        if (!is_null($this->iseachuser)) {
-            return $this->iseachuser;
-        }
+        // TODO do we need to cache this?
 
         $sql = "SELECT f.type
                   FROM {forum} f
@@ -146,9 +137,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                  WHERE c.id = :coursemoduleid ";
         $forumtype = $DB->get_field_sql($sql, array('coursemoduleid' => $coursemoduleid));
 
-        $this->iseachuser = ($forumtype == 'eachuser') ? true : false;
-
-        return $this->iseachuser;
+        return ($forumtype == 'eachuser') ? true : false;
     }
 
     /**
@@ -160,7 +149,18 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      */
     protected function submission_title(&$submission, $forumid) {
 
-        if ($this->forum_is_eachuser($forumid)) {
+        global $DB;
+
+        // We will only get to this bit repeatedly for a single forum, so we can cache this and
+        // save some queries.
+        static $iseachuser;
+
+        if (!isset($iseachuser)) {
+            $type = $DB->get_field('forum', 'type', array('id' => $forumid));
+            $iseachuser = ($type == 'eachuser') ? true : false;
+        }
+
+        if ($iseachuser) {
             return fullname($submission);
         }
 
@@ -248,79 +248,28 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         // Move this down fix for MDL-6926.
         require_once($CFG->dirroot.'/mod/forum/lib.php');
 
-        // Possibly, the view permission is being used to prevent certain forums from being
-        // accessed. Might be best not to rely on just the rate one.
-        $modcontext = context_module::instance($cm->id);
-        require_capability('mod/forum:viewdiscussion', $modcontext, null, true,
-                           'noviewdiscussionspermission', 'forum');
-
-        // Restrict news to allowed times.
+        // Restrict news forums - should not be graded.
         if ($forum->type == 'news') {
-            if (!($USER->id == $discussion->userid || (($discussion->timestart == 0
-                || $discussion->timestart <= time())
-                && ($discussion->timeend == 0 || $discussion->timeend > time())))) {
-
-                print_error('invaliddiscussionid', 'forum',
-                            "$CFG->wwwroot/mod/forum/view.php?f=$forum->id");
-            }
+            print_error('invaliddiscussionid', 'forum',
+                        "$CFG->wwwroot/mod/forum/view.php?f=$forum->id");
         }
 
         unset($SESSION->fromdiscussion);
-
+        // In case the user has used the dropdown to change from threaded to flat or something.
         if (isset($params['mode'])) {
             set_user_preference('forum_displaymode', $params['mode']);
         }
-
         $displaymode = get_user_preferences('forum_displaymode', $CFG->forum_displaymode);
 
         $parent = $discussion->firstpost;
-
-        if (! $post = forum_get_post_full($parent)) {
+        $post = forum_get_post_full($parent);
+        if (!$post) {
             print_error("notexists", 'forum', "$CFG->wwwroot/mod/forum/view.php?f=$forum->id");
         }
-
         if (!forum_user_can_view_post($post, $course, $cm, $forum, $discussion)) {
             print_error('nopermissiontoview', 'forum',
                         "$CFG->wwwroot/mod/forum/view.php?id=$forum->id");
         }
-
-        // TODO what does this do? Does read tracking get updated?
-        /*
-        if ($mark == 'read' or $mark == 'unread') {
-            if ($CFG->forum_usermarksread && forum_tp_can_track_forums($forum) &&
-                forum_tp_is_tracked($forum)) {
-                if ($mark == 'read') {
-                    forum_tp_add_read_record($USER->id, $postid);
-                } else {
-                    // unread
-                    forum_tp_delete_read_records($USER->id, $postid);
-                }
-            }
-        } */
-
-        // Check to see if groups are being used in this forum
-        // If so, make sure the current person is allowed to see this discussion
-        // Also, if we know they should be able to reply, then explicitly set $canreply for
-        // performance reasons.
-
-        // DO NOT DELETE (yet)/////////////////////////////////////////////////////////
-        // Do we want to allow replies? might break the ajax bit?
-        /*
-        $canreply = forum_user_can_post($forum, $discussion, $USER, $cm, $course, $modcontext);
-
-        if (!$canreply and $forum->type !== 'news') {
-
-            if (isguestuser() or !isloggedin()) {
-                $canreply = true;
-            }
-
-            if (!is_enrolled($modcontext) and !is_viewing($modcontext)) {
-                // allow guests and not-logged-in to see the link - they are prompted to log in
-                // after clicking the link normal users with temporary guest access see this link
-                // too, they are asked to enrol instead
-                $canreply = enrol_selfenrol_available($course->id);
-            }
-        }*/
 
         // For now, restrict to rating only.
         $canreply = false;
@@ -467,12 +416,13 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
             // Just so we know (for styling and accessing js in the client).
             $node->modulename = $this->modulename;
+            $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
 
-            switch ($filters['nextnodefilter']) {
+            switch ($nextnodefilter) {
 
                 case 'discussionid':
 
-                    if ($this->forum_is_eachuser($filters['coursemoduleid'])) {
+                    if (self::forum_is_eachuser($filters['coursemoduleid'])) {
                         $node->name = fullname($node);
                     } else {
                         $node->name = $node->label;
@@ -486,95 +436,96 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         return $nodes;
     }
 
+}
+
+/**
+ * Deals with SQL for the discussion nodes
+ */
+class block_ajax_marking_forum_discussionid extends block_ajax_marking_filter_base {
+
     /**
-     * This will alter a query to send back the stuff needed for quiz questions
-     *
+     * @static
      * @param block_ajax_marking_query_base $query
-     * @param $operation
      * @param int $discussionid
-     * @return void
      */
-    public function apply_discussionid_filter(block_ajax_marking_query_base $query, $operation,
-                                              $discussionid = 0) {
+    public static function where_filter($query, $discussionid) {
 
-        $countwrapper = $query->get_subquery('countwrapperquery');
+        $countwrapper = self::get_countwrapper_subquery($query);
 
-        switch ($operation) {
-
-            case 'where':
-                $countwrapper->add_where(array(
-                        'type' => 'AND',
-                        'condition' => 'discussion.id = :discussionidfilterdiscussionid'));
-                $query->add_param('discussionidfilterdiscussionid', $discussionid);
-                break;
-
-            case 'countselect':
-
-                // This will be derived form the coursemoduleid, but how to get it cleanly?
-                // The query will know, but not easy to get it out. Might have been prefixed.
-                // TODO pass this properly somehow.
-                $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
-                // Normal forum needs discussion title as label, participant usernames as
-                // description eachuser needs username as title and discussion subject as
-                // description.
-                if ($this->forum_is_eachuser($coursemoduleid)) {
-                    $query->add_select(array(
-                            'table' => 'firstpost',
-                            'column' => 'subject',
-                            'alias' => 'description'
-                    ));
-                } else {
-                    $query->add_select(array(
-                            'table' => 'firstpost',
-                            'column' => 'subject',
-                            'alias' => 'label'
-                    ));
-                    // TODO need a SELECT bit to get all userids of people in the discussion
-                    // instead.
-                    $query->add_select(array(
-                            'table' => 'firstpost',
-                            'column' => 'message',
-                            'alias' => 'tooltip'
-                    ));
-                }
-
-                $query->add_from(array(
-                        'join' => 'INNER JOIN',
-                        'table' => 'forum_discussions',
-                        'alias' => 'outerdiscussions',
-                        'on' => 'countwrapperquery.id = outerdiscussions.id'
-                ));
-
-                $query->add_from(array(
-                        'join' => 'INNER JOIN',
-                        'table' => 'forum_posts',
-                        'alias' => 'firstpost',
-                        'on' => 'firstpost.id = outerdiscussions.firstpost'
-                ));
-
-                // We join like this because we can't put extra stuff into the UNION ALL bit
-                // unless all modules have it and this is unique to forums.
-                $countwrapper->add_from(array(
-                        'table'    => 'forum_posts',
-                        'on'       => 'moduleunion.subid = post.id',
-                        'alias'    => 'post')
-                );
-                $countwrapper->add_from(array(
-                        'table'    => 'forum_discussions',
-                        'on'       => 'discussion.id = post.discussion',
-                        'alias'    => 'discussion')
-                );
-                $countwrapper->add_select(array(
-                        'table'    => 'discussion',
-                        'column'   => 'id'), true
-                );
-
-                $query->add_orderby("timestamp ASC");
-
-                break;
-        }
-
+        $clause = array(
+            'type' => 'AND',
+            'condition' => 'discussion.id = :discussionidfilterdiscussionid');
+        $countwrapper->add_where($clause);
+        $query->add_param('discussionidfilterdiscussionid', $discussionid);
     }
 
+    /**
+     * @static
+     * @param block_ajax_marking_query_base $query
+     */
+    public static function nextnodetype_filter($query) {
+
+        $countwrapper = self::get_countwrapper_subquery($query);
+        // This will be derived form the coursemodule id, but how to get it cleanly?
+        // The query will know, but not easy to get it out. Might have been prefixed.
+        // TODO pass this properly somehow.
+        $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
+        // Normal forum needs discussion title as label, participant usernames as
+        // description eachuser needs username as title and discussion subject as
+        // description.
+        if (block_ajax_marking_forum::forum_is_eachuser($coursemoduleid)) {
+            $query->add_select(array(
+                                    'table' => 'firstpost',
+                                    'column' => 'subject',
+                                    'alias' => 'description'
+                               ));
+        } else {
+            $query->add_select(array(
+                                    'table' => 'firstpost',
+                                    'column' => 'subject',
+                                    'alias' => 'label'
+                               ));
+            // TODO need a SELECT bit to get all userids of people in the discussion
+            // instead.
+            $query->add_select(array(
+                                    'table' => 'firstpost',
+                                    'column' => 'message',
+                                    'alias' => 'tooltip'
+                               ));
+        }
+
+        $query->add_from(array(
+                              'join' => 'INNER JOIN',
+                              'table' => 'forum_discussions',
+                              'alias' => 'outerdiscussions',
+                              'on' => 'countwrapperquery.id = outerdiscussions.id'
+                         ));
+
+        $query->add_from(array(
+                              'join' => 'INNER JOIN',
+                              'table' => 'forum_posts',
+                              'alias' => 'firstpost',
+                              'on' => 'firstpost.id = outerdiscussions.firstpost'
+                         ));
+
+        // We join like this because we can't put extra stuff into the UNION ALL bit
+        // unless all modules have it and this is unique to forums.
+        $countwrapper->add_from(array(
+                                     'table' => 'forum_posts',
+                                     'on' => 'moduleunion.subid = post.id',
+                                     'alias' => 'post')
+        );
+        $countwrapper->add_from(array(
+                                     'table' => 'forum_discussions',
+                                     'on' => 'discussion.id = post.discussion',
+                                     'alias' => 'discussion')
+        );
+        $countwrapper->add_select(array(
+                                       'table' => 'discussion',
+                                       'column' => 'id'), true
+        );
+
+        $query->add_orderby("timestamp ASC");
+    }
 
 }

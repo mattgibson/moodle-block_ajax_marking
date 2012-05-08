@@ -289,31 +289,32 @@ function block_ajax_marking_format_node(&$node, $nextnodefilter) {
             'groups'
     );
 
+    $ignorednames = array('displaydata', 'returndata', 'popupstuff', 'configdata');
+
     // Loop through the rest of the object's properties moving them to the returndata bit.
     foreach ($node as $varname => $value) {
 
-        if ($varname !== 'displaydata' &&
-            $varname !== 'returndata' &&
-            $varname !== 'popupstuff' &&
-            $varname !== 'configdata') {
-
-            if ($varname == 'tooltip') {
-                $value = block_ajax_marking_strip_html_tags($value);
-            }
-
-            if (in_array($varname, $displayitems)) {
-                $node->displaydata->$varname = $value;
-            } else if (in_array($varname, $configitems)) {
-                $node->configdata->$varname = $value;
-            } else if ($varname == $nextnodefilter) {
-                $node->returndata->$varname = $value;
-                $node->returndata->currentfilter = $varname;
-            } else {
-                $node->popupstuff->$varname = $value;
-            }
-
-            unset($node->$varname);
+        if (in_array($varname, $ignorednames)) {
+            continue;
         }
+
+        if ($varname == 'tooltip') {
+            $value = block_ajax_marking_strip_html_tags($value);
+        }
+
+        if (in_array($varname, $displayitems)) {
+            $node->displaydata->$varname = $value;
+        } else if (in_array($varname, $configitems)) {
+            $node->configdata->$varname = $value;
+        } else if ($varname == $nextnodefilter) {
+            $node->returndata->$varname = $value;
+            $node->returndata->currentfilter = $varname;
+        } else {
+            $node->popupstuff->$varname = $value;
+        }
+
+        unset($node->$varname);
+
     }
 }
 
@@ -446,6 +447,7 @@ function block_ajax_marking_strip_html_tags($text) {
 
 /**
  * We need a proper error message in case of a timed out session, not a dodgy redirect
+ * @SuppressWarnings(PHPMD.ExitExpression)
  */
 function block_ajax_marking_login_error() {
 
@@ -458,4 +460,20 @@ function block_ajax_marking_login_error() {
         echo json_encode($response);
         die();
     }
+}
+
+/**
+ * One of the parameters will look like filtername => nextnodefilter instead of filtername => 898.
+ * This returns it.
+ *
+ * @param array $params
+ * @return bool|string False if not found, otherwise the filter name.
+ */
+function block_ajax_marking_get_nextnodefilter_from_params(array $params) {
+    foreach ($params as $name => $value) {
+        if ($value == 'nextnodefilter') {
+            return $name;
+        }
+    }
+    return false;
 }

@@ -52,7 +52,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
         // TODO why did the IDE put that $reference bit into the docblock?
 
         // Must be the same as the DB modulename.
-        $this->modulename        = $this->moduletable = 'journal';
+        $this->modulename        = 'journal';
         // Doesn't seem to be a journal capability.
         $this->capability  = 'mod/assignment:grade';
         // How many nodes in total when fully expanded (no groups)?
@@ -113,7 +113,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
 
         // TODO: does this work with 'journal' rather than 'journal_final'?
 
-        return;
+        return $submissions;
     }
 
     /**

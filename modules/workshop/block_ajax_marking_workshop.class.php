@@ -52,7 +52,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         // Call parent constructor with the same arguments.
         parent::__construct();
 
-        $this->modulename           = $this->moduletable = 'workshop';
+        $this->modulename           = 'workshop';
         $this->capability           = 'mod/workshop:editdimensions';
         $this->icon                 = 'mod/workshop/icon.gif';
 
@@ -158,73 +158,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         $workshopurl = new moodle_url('/mod/workshop/view.php?id='.$coursemodule->id);
         redirect($workshopurl);
 
-    }
-
-    /**
-     * Applies the module-specific stuff for the user nodes
-     *
-     * @param block_ajax_marking_query_base $query
-     * @param $operation
-     * @param int $userid
-     * @return void
-     */
-    public function apply_userid_filter(block_ajax_marking_query_base $query, $operation,
-                                        $userid = 0) {
-
-        $selects = array();
-
-        switch ($operation) {
-
-            case 'where':
-                // Applies if users are not the final nodes.
-                $query->add_where(array(
-                        'type' => 'AND',
-                        'condition' => 'sub.authorid = :workshopsubmissionid'));
-                $query->add_param('workshopsubmissionid', $userid);
-                break;
-
-            case 'displayselect':
-                $selects = array(
-
-                    array(
-                        'table'    => 'usertable',
-                        'column'   => 'firstname'),
-                    array(
-                        'table'    => 'usertable',
-                        'column'   => 'lastname')
-                );
-
-                $query->add_from(array(
-                        'join'  => 'INNER JOIN',
-                        'table' => 'user',
-                        'alias' => 'usertable',
-                        'on'    => 'usertable.id = countwrapperquery.id'
-                ));
-                break;
-
-            case 'countselect':
-
-                $selects = array(
-                    array(
-                        'table'    => 'sub',
-                        'column'   => 'authorid',
-                        'alias'    => 'userid'),
-                    array( // Count in case we have user as something other than the last node.
-                        'function' => 'COUNT',
-                        'table'    => 'sub',
-                        'column'   => 'id',
-                        'alias'    => 'count'),
-                    // This is only needed to add the right callback function.
-                    array(
-                        'column' => "'".$query->get_modulename()."'",
-                        'alias' => 'modulename'
-                        ));
-                break;
-        }
-
-        foreach ($selects as $select) {
-            $query->add_select($select);
-        }
     }
 
 }
