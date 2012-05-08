@@ -1791,16 +1791,19 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
             modulename = node.get_modulename(),
             currentfilter = node.get_current_filter_name();
 
+        // Allow override by modules.
+        moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
+                                                                              currentfilter);
+
         // Groups first if there are any. Always coursemodule -> group, to keep it consistent.
+        // Workshop has no meaningful way to display by group (so far), so we hide the groups if
+        // The module says that the coursemodule nodes are final ones.
         groupsdisplay = node.get_calculated_groupsdisplay_setting();
-        if (currentfilter == 'coursemoduleid' && groupsdisplay == 1) {
+        if (currentfilter == 'coursemoduleid' && groupsdisplay == 1 && moduleoverride !== false) {
             // This takes precedence over the module override
             return 'groupid'
         }
 
-        // Allow override by modules.
-        moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
-                                                                              currentfilter);
         if (moduleoverride !== null) {
             return moduleoverride;
         }
