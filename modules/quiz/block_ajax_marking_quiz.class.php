@@ -33,6 +33,7 @@ global $CFG;
 /* @define "$blockdir" "../.." */
 $blockdir = $CFG->dirroot.'/blocks/ajax_marking';
 require_once($blockdir.'/classes/query_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
 
 // We only need this file for the constants. Doing this so that we don't have problems including
 // the file from module.js.
@@ -71,85 +72,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         $this->modulename = $this->moduletable = 'quiz';
         $this->capability           = 'mod/quiz:grade';
         $this->icon                 = 'mod/quiz/icon.gif';
-    }
-
-    /**
-     * This will alter a query to send back the stuff needed for quiz questions
-     *
-     * @param \block_ajax_marking_query_base $query
-     * @param $operation
-     * @param int $questionid the id to filter by
-     * @return void
-     */
-    public function apply_questionid_filter(block_ajax_marking_query_base $query, $operation,
-                                            $questionid = 0) {
-
-        $selects = array();
-        /*
-         * @var block_ajax_marking_query_base $countwrapper
-         */
-        $countwrapper = $query->get_subquery('countwrapperquery');
-        /*
-         * @var block_ajax_marking_query_base $moduleunion
-         */
-        $moduleunion = $countwrapper->get_subquery('moduleunion');
-
-        switch ($operation) {
-
-            case 'where':
-                // Apply WHERE clause.
-                $moduleunion['quiz']->add_select(array(
-                                             'table' => 'question',
-                                             'column' => 'id',
-                                             'alias' => 'questionid'
-                                         ));
-                $countwrapper->add_where(array(
-                        'type' => 'AND',
-                        'condition' => 'moduleunion.questionid = :questionidfilterquestionid'));
-                $countwrapper->add_param('questionidfilterquestionid', $questionid);
-                break;
-
-            case 'countselect':
-
-                // We can add this as we can be sure that we are only looking at quiz nodes, so
-                // there will be no other modules being added with UNION, so they won't all need
-                // the same columns for the UNION to work.
-                $moduleunion['quiz']->add_select(array(
-                                             'table' => 'question',
-                                             'column' => 'id',
-                                             'alias' => 'questionid'
-                                         ));
-                $countwrapper->add_select(array(
-                        'table' => 'moduleunion',
-                        'column' => 'questionid',
-                        'alias' => 'id'));
-
-                // Outer bit to get display name.
-                $query->add_from(array(
-                        'join' => 'INNER JOIN',
-                        'table' => 'question',
-                        'on' => 'question.id = countwrapperquery.id'));
-                $query->add_select(array(
-                        'table' => 'question',
-                        'column' => 'name'));
-                $query->add_select(array(
-                        'table' => 'question',
-                        'column' => 'questiontext',
-                        'alias' => 'tooltip'));
-
-                // This is only needed to add the right callback function.
-                $query->add_select(array(
-                        'column' => "'".$this->get_module_name()."'",
-                        'alias' => 'modulename'));
-
-                $query->add_orderby("question.name ASC");
-
-                break;
-        }
-
-        foreach ($selects as $select) {
-            $query->add_select($select);
-        }
     }
 
     /**
@@ -397,72 +319,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
     }
 
     /**
-     * Applies the module-specific stuff for the user nodes
-     *
-     * @param block_ajax_marking_query_base $query
-     * @param $operation
-     * @param int $userid
-     * @return void
-     */
-    public function apply_userid_filter(block_ajax_marking_query_base $query, $operation,
-                                        $userid = 0) {
-
-        $selects = array();
-        $countwrapper = $query->get_subquery('countwrapperquery');
-
-        switch ($operation) {
-
-            case 'where':
-                // Applies if users are not the final nodes.
-                $query->add_where(array(
-                        'type' => 'AND',
-                        'condition' => 'quiz_attempts.userid = :useridfiltersubmissionid')
-                );
-                $query->add_param('useridfiltersubmissionid', $userid);
-                break;
-
-            case 'countselect':
-
-                $query->add_select(array(
-                        'table'  => 'countwrapperquery',
-                        'column' => 'timestamp',
-                        'alias'  => 'tooltip')
-                );
-
-                $query->add_select(array(
-                    'table'    => 'usertable',
-                    'column'   => 'firstname'));
-                $query->add_select(array(
-                    'table'    => 'usertable',
-                    'column'   => 'lastname'));
-
-                $query->add_from(array(
-                        'join'  => 'INNER JOIN',
-                        'table' => 'user',
-                        'alias' => 'usertable',
-                        'on'    => 'usertable.id = countwrapperquery.id'
-                ));
-
-                $countwrapper->add_select(array(
-                        'table'    => 'moduleunion',
-                        'column'   => 'userid',
-                        'alias' => 'id'));
-                    // This is only needed to add the right callback function.
-                $query->add_select(array(
-                        'column' => "'".$this->get_module_name()."'",
-                        'alias' => 'modulename'
-                        ));
-
-                break;
-        }
-
-        foreach ($selects as $select) {
-            $query->add_select($select);
-        }
-
-    }
-
-    /**
      * Based on the supplied param from the node that was clicked, go and get all question attempts
      * that we need to grade. Both grading_pop_up() and process_data() need this in order to either
      * present or process the attempts.
@@ -530,6 +386,141 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         // We want the oldest at the top so that the tutor can see how the answer changes over time.
         $questionattempts = $DB->get_records_sql($sql, $sqlparams);
         return $questionattempts;
+    }
+
+}
+
+/**
+ * Questionid filters for the quiz module.
+ */
+class block_ajax_marking_quiz_questionid extends block_ajax_marking_filter_base {
+
+    /**
+     * @static
+     * @param block_ajax_marking_query_base $query
+     * @param int $questionid
+     */
+    public static function where_filter($query, $questionid) {
+
+        $moduleunion = self::get_moduleunion_subquery($query);
+        $countwrapper = self::get_countwrapper_subquery($query);
+        // Apply WHERE clause.
+        // TODO can we just add the questionid in there all the time and not have to make
+        // moduleunion dynamic?
+        $conditions = array(
+            'table' => 'question',
+            'column' => 'id',
+            'alias' => 'questionid'
+        );
+        $moduleunion['quiz']->add_select($conditions);
+        $clause = array(
+            'type' => 'AND',
+            'condition' => 'moduleunion.questionid = :questionidfilterquestionid');
+        $countwrapper->add_where($clause);
+        $countwrapper->add_param('questionidfilterquestionid', $questionid);
+    }
+
+    /**
+     * @static
+     * We can add this as we can be sure that we are only looking at quiz nodes, so there
+     * will be no other modules being added with UNION, so they won't all need the same
+     * columns for the UNION to work.
+     *
+     * @param block_ajax_marking_query_base $query
+     */
+    public static function countselect_filter($query) {
+
+        $moduleunion = self::get_moduleunion_subquery($query);
+        $countwrapper = self::get_countwrapper_subquery($query);
+
+        $moduleunion['quiz']->add_select(array(
+                                              'table' => 'question',
+                                              'column' => 'id',
+                                              'alias' => 'questionid'
+                                         ));
+        $countwrapper->add_select(array(
+                                       'table' => 'moduleunion',
+                                       'column' => 'questionid',
+                                       'alias' => 'id'));
+
+        // Outer bit to get display name.
+        $query->add_from(array(
+                              'join' => 'INNER JOIN',
+                              'table' => 'question',
+                              'on' => 'question.id = countwrapperquery.id'));
+        $query->add_select(array(
+                                'table' => 'question',
+                                'column' => 'name'));
+        $query->add_select(array(
+                                'table' => 'question',
+                                'column' => 'questiontext',
+                                'alias' => 'tooltip'));
+
+        // This is only needed to add the right callback function.
+        $query->add_select(array(
+                                'column' => "'quiz'",
+                                'alias' => 'modulename'));
+
+        $query->add_orderby("question.name ASC");
+    }
+}
+
+/**
+ * Userid filters for the quiz module
+ */
+class block_ajax_marking_quiz_userid extends block_ajax_marking_filter_base {
+
+    /**
+     * @static
+     * @param block_ajax_marking_query_base $query
+     * @param int $userid
+     */
+    public static function where_filter($query, $userid) {
+        // Applies if users are not the final nodes.
+        $clause = array(
+            'type' => 'AND',
+            'condition' => 'quiz_attempts.userid = :useridfiltersubmissionid');
+        $query->add_where($clause
+        );
+        $query->add_param('useridfiltersubmissionid', $userid);
+    }
+
+    /**
+     * @static
+     * @param block_ajax_marking_query_base $query
+     */
+    public static function countselect_filter($query) {
+        $countwrapper = self::get_countwrapper_subquery($query);
+
+        $query->add_select(array(
+                                'table' => 'countwrapperquery',
+                                'column' => 'timestamp',
+                                'alias' => 'tooltip')
+        );
+
+        $query->add_select(array(
+                                'table' => 'usertable',
+                                'column' => 'firstname'));
+        $query->add_select(array(
+                                'table' => 'usertable',
+                                'column' => 'lastname'));
+
+        $query->add_from(array(
+                              'join' => 'INNER JOIN',
+                              'table' => 'user',
+                              'alias' => 'usertable',
+                              'on' => 'usertable.id = countwrapperquery.id'
+                         ));
+
+        $countwrapper->add_select(array(
+                                       'table' => 'moduleunion',
+                                       'column' => 'userid',
+                                       'alias' => 'id'));
+        // This is only needed to add the right callback function.
+        $query->add_select(array(
+                                'column' => "'quiz'",
+                                'alias' => 'modulename'
+                           ));
     }
 
 
