@@ -251,15 +251,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         }
 
         foreach ($questionattempts as $questionattempt) {
-
-            // Everything should already be in the right order:
-            /*
-             Question 1
-             - Attempt 1
-             - Attempt 2
-             Question 2
-             - Attempt 1
-            */
+            // Everything should already be in the right order as a nested array.
             // N.B. Using the proper quiz functions in an attempt to make this more robust
             // against future changes.
             if (!isset($quizattempts[$questionattempt->quizattemptid])) {
