@@ -198,12 +198,10 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         $output = '';
 
         // TODO what params do we get here?
-
         require_once($CFG->dirroot.'/mod/quiz/locallib.php');
 
          // TODO feed in all dynamic variables here.
-        $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
-        $PAGE->set_url($url);
+        $PAGE->set_url(new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params));
 
         $formattributes = array(
                     'method' => 'post',
@@ -218,24 +216,20 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         // Get all attempts with unmarked questions. We may or may not have a questionid, but
         // this comes later so we can use the quiz's internal functions.
         $questionattempts = $this->get_question_attempts($params);
-
         if (!$questionattempts) {
             $message =
                 'Could not retrieve question attempts. Maybe someone else marked them just now';
             throw new moodle_exception($message);
         }
 
-        // Cache the attempt objects for reuse..
-        $quizattempts = array();
+        // Print infobox.
+        $rows = array();
+        // Print user picture and name.
+        $quizattempts = array(); // Cache the attempt objects for reuse..
         // We want to get the first one ready, so we can use it to print the info box.
         $firstattempt = reset($questionattempts);
         $quizattempt = quiz_attempt::create($firstattempt->quizattemptid);
         $quizattempts[$firstattempt->quizattemptid] = $quizattempt;
-
-        // Print infobox.
-        $rows = array();
-
-        // Print user picture and name.
         $student = $DB->get_record('user', array('id' => $quizattempt->get_userid()));
         $courseid = $quizattempt->get_courseid();
         $picture = $OUTPUT->user_picture($student, array('courseid' => $courseid));
@@ -265,9 +259,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
              - Attempt 2
              Question 2
              - Attempt 1
-             - Attempt 2
             */
-
             // N.B. Using the proper quiz functions in an attempt to make this more robust
             // against future changes.
             if (!isset($quizattempts[$questionattempt->quizattemptid])) {
@@ -285,22 +277,19 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                        $quizattempt->get_quizid(), $quizattempt->get_cmid());
             // Now make the actual markup to show one question plus commenting/grading stuff.
             $output .= $quizattempt->render_question_for_commenting($questionattempt->slot);
-
         }
 
         $output .= html_writer::start_tag('div');
         $output .= html_writer::empty_tag('input', array('type' => 'submit', 'value' => 'Save'));
-
         foreach ($params as $name => $value) {
             $output .= html_writer::empty_tag('input', array('type' => 'hidden',
-                                                       'name' => $name,
-                                                       'value' => $value));
+                                                             'name' => $name,
+                                                             'value' => $value));
         }
         $output .= html_writer::empty_tag('input', array('type' => 'hidden',
                                                   'name' => 'sesskey',
                                                   'value' => sesskey()));
         $output .= html_writer::end_tag('div');
-
         $output .= html_writer::end_tag('form');
 
         return $output;
