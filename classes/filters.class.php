@@ -474,7 +474,7 @@ SQL;
      */
     public static function group_visibility_subquery($type = 'coalesce') {
 
-        global $DB, $CFG, $USER;
+        global $DB, $USER;
 
         // In case the subquery is used twice, this variable allows us to feed the same teacher
         // courses in more than once because Moodle requires variables with different suffixes.
@@ -551,10 +551,9 @@ SQL;
                 break;
         }
 
-        $separategroups = SEPARATEGROUPS;
-        // The later part is making sure that we hide groups that a teacher is not a member of
-        // when the group mode is set to 'separate groups'.
-        // TODO does moving the group id stuff into a WHERE xx OR IS NULL make it faster?
+        list($grouphidesql, $grouphideparams) = self::get_group_hide_sql($counter);
+        $coursesparams = array_merge($coursesparams, $grouphideparams);
+
         $groupdisplaysubquery = <<<SQL
         SELECT group_groups.id AS groupid,
                {$select}
@@ -566,7 +565,31 @@ SQL;
                {$join}
          WHERE group_course_modules.course {$coursessql}
                {$where}
-           AND (    (  (group_course.groupmodeforce = 1 AND
+           AND {$grouphidesql}
+SQL;
+
+        return array($groupdisplaysubquery, $coursesparams);
+    }
+
+    /**
+     * Helper function that defines what the SQL to hide groups that a teacher is not a member of
+     * is. This is not the same as using the block config setings - we are talking about whatever
+     * is already configured in Moodle.
+     *
+     * @static
+     * @param int $counter
+     * @global $USER
+     * @return array
+     */
+    private static function get_group_hide_sql($counter) {
+
+        global $USER;
+
+        $separategroups = SEPARATEGROUPS;
+
+        // TODO does moving the group id stuff into a WHERE xx OR IS NULL make it faster?
+        $grouphidesql = <<<SQL
+        (    (  (group_course.groupmodeforce = 1 AND
                         group_course.groupmode != {$separategroups})
                       OR
                        (group_course.groupmodeforce = 0 AND
@@ -579,9 +602,8 @@ SQL;
                                   AND teachermemberships.userid = :teacheruserid{$counter}
                )     )         )
 SQL;
-        $coursesparams['teacheruserid'.$counter] = $USER->id;
-
-        return array($groupdisplaysubquery, $coursesparams);
+        $params = array('teacheruserid'.$counter => $USER->id);
+        return array($grouphidesql, $params);
     }
 }
 
