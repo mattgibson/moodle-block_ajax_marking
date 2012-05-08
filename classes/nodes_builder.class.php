@@ -644,7 +644,7 @@ SQL;
      */
     private function attach_groups_to_coursemodule_nodes($nodes) {
 
-        global $CFG, $DB;
+        global $DB;
 
         $coursemoduleids = array();
         foreach ($nodes as $node) {
