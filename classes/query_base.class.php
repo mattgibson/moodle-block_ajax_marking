@@ -188,9 +188,8 @@ class block_ajax_marking_query_base {
 
         foreach ($this->from as $from) {
 
-            // Allow shorthand.
-            if (isset($from['join'])) {
-                $from['join'] = ($from['join'] == 'left') ? 'LEFT JOIN' : $from['join'];
+            if (!isset($from['join'])) {
+                $from['join'] = 'INNER JOIN'; // Default.
             }
 
             if ($from['table'] instanceof block_ajax_marking_query_base) { // Allow for recursion.
@@ -199,42 +198,23 @@ class block_ajax_marking_query_base {
             } else if (isset($from['subquery'])) {
 
                 if (isset($from['union'])) {
-                    if (!is_array($from['table'])) {
-                        $error = 'Union subqueries must have an array supplied as their table item';
-                        throw new coding_exception($error);
-                    }
-                    $this->validate_union_array($from['table']);
-                    $unionarray = array();
-                    /*
-                     * @var block_ajax_marking_query_base $table
-                     */
-                    foreach ($from['table'] as $table) {
-                        $unionarray[] = $table->to_string();
-                    }
-                    $fromstring = '(';
-                    $fromstring .= implode("\n\n UNION ALL \n\n", $unionarray);
-                    $fromstring .= ")";
-
+                    $fromstring = $this->make_union_subquery($from);
                 } else {
                     $fromstring = '('.$from['table'].")\n";
                 }
             } else {
                 $fromstring = '{'.$from['table'].'}';
             }
-            if (!empty($fromarray)) { // No JOIN keyword for the first table.
-                if (isset($from['join'])) {
-                    $fromstring = $from['join'].' '.$fromstring;
-                } else {
-                    // Default to INNER JOIN.
-                    $fromstring = 'INNER JOIN '.$fromstring;
-                }
-            }
             if (isset ($from['alias'])) {
                 $fromstring .= ' '.$from['alias'];
             } else {
+                // Default to table name as alias.
                 $fromstring .= ' '.$from['table'];
             }
             if (!empty($fromarray)) {
+                // No JOIN keyword for the first table.
+                $fromstring = $from['join'].' '.$fromstring;
+
                 if (isset($from['on'])) {
                     $fromstring .= " ON ".$from['on'];
                 } else {
@@ -247,6 +227,34 @@ class block_ajax_marking_query_base {
         }
 
         return "\n\n FROM ".implode(" \n", $fromarray).' ';
+    }
+
+    /**
+     * Glues together the bits of an array of other queries in order to join them as a UNIONed
+     * query. Currently only used for sticking the module queries together.
+     *
+     * @param array $from
+     * @return string SQL
+     * @throws coding_exception
+     */
+    protected function make_union_subquery($from) {
+
+        if (!is_array($from['table'])) {
+            $error = 'Union subqueries must have an array supplied as their table item';
+            throw new coding_exception($error);
+        }
+        $this->validate_union_array($from['table']);
+        $unionarray = array();
+        /*
+        * @var block_ajax_marking_query_base $table
+        */
+        foreach ($from['table'] as $table) {
+            $unionarray[] = $table->to_string();
+        }
+        $fromstring = '(';
+        $fromstring .= implode("\n\n UNION ALL \n\n", $unionarray);
+        $fromstring .= ")";
+        return $fromstring;
     }
 
     /**
@@ -384,32 +392,33 @@ class block_ajax_marking_query_base {
         $requiredkeys = array('function', 'table', 'column', 'alias', 'distinct');
         $key = isset($column['alias']) ? $column['alias'] : $column['column'];
 
-        if (isset($select['function']) && strtoupper($select['function']) === 'COALESCE') {
+        if (isset($select['function']) &&
+            strtoupper($select['function']) === 'COALESCE' &&
+            !is_array($column['table'])) {
+
             // COALESCE takes an array of tables and columns to add together.
-            if (!is_array($column['table'])) {
-                $errorstring = 'add_select() called with COALESCE function and non-array list of '.
-                               'tables';
-                throw new invalid_parameter_exception($errorstring);
-            }
+            $errorstring = 'add_select() called with COALESCE function and non-array list of '.
+                           'tables';
+            throw new invalid_parameter_exception($errorstring);
         }
 
-        if (is_array($column) && (array_diff(array_keys($column), $requiredkeys) === array())) {
-            if ($prefix) { // Put it at the start.
-                if ($replace) { // Knock off the existing one.
-                    array_shift($this->select);
-                }
-                // Array_unshift does not allow us to add using a specific key.
-                $this->select = array($key => $column) + $this->select;
-            } else {
-                if ($replace) {
-                    array_pop($this->select);
-                }
-                $this->select[$key] = $column;
-            }
-
-        } else {
+        if (array_diff(array_keys($column), $requiredkeys) !== array()) {
             throw new coding_exception('Wrong array items specified for new SELECT column');
         }
+
+        if ($prefix) { // Put it at the start.
+            if ($replace) { // Knock off the existing one.
+                array_shift($this->select);
+            }
+            // Array_unshift does not allow us to add using a specific key.
+            $this->select = array($key => $column) + $this->select;
+        } else {
+            if ($replace) {
+                array_pop($this->select);
+            }
+            $this->select[$key] = $column;
+        }
+
     }
 
     /**
