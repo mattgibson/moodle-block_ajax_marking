@@ -922,7 +922,7 @@ SQL;
         $courses = block_ajax_marking_get_my_teacher_courses();
         // TODO Note that change to login as... in another tab may break this. Needs testing.
         list($coursesql, $params) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
-        // Get all coursemodules the current user could potentially access.
+        // Get all course modules the current user could potentially access.
         $sql = "SELECT id
                   FROM {course_modules}
                  WHERE course {$coursesql}";
