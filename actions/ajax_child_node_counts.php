@@ -50,11 +50,6 @@ $params = array();
 foreach ($_POST as $name => $value) {
     $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
 }
-
-if (!isset($params['nextnodefilter'])) {
-    print_error('No filter specified for child node counts');
-    die();
-}
 if (!isset($params['nodeindex'])) {
     print_error('No node index specified for the child node counts');
     die();
@@ -67,8 +62,7 @@ $thingswewant = array(
     'recentcount',
     'mediumcount',
     'overduecount',
-    'itemcount',
-    $params['nextnodefilter']
+    'itemcount'
 );
 
 foreach ($nodes as &$node) {
