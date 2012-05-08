@@ -106,7 +106,7 @@ class block_ajax_marking_courseid extends block_ajax_marking_filter_base {
      * @param block_ajax_marking_query_base $query
      * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
-    public static function countselect_filter($query) {
+    public static function nextnodetype_filter($query) {
 
         $countwrapper = self::get_countwrapper_subquery($query);
 
@@ -140,7 +140,7 @@ class block_ajax_marking_courseid extends block_ajax_marking_filter_base {
      * @param block_ajax_marking_query_base $query
      * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
-    public static function configdisplay_filter($query) {
+    public static function confignextnodetype_filter($query) {
 
         global $USER;
 
@@ -215,7 +215,7 @@ class block_ajax_marking_coursemoduleid extends block_ajax_marking_filter_base {
      * @static
      * @param block_ajax_marking_query_base $query
      */
-    public static function countselect_filter($query) {
+    public static function nextnodetype_filter($query) {
 
         $countwrapper = self::get_countwrapper_subquery($query);
         // Same order as the super query will need them. Prefixed so we will have it as the
@@ -251,7 +251,7 @@ class block_ajax_marking_coursemoduleid extends block_ajax_marking_filter_base {
      * @static
      * @param block_ajax_marking_query_base $query
      */
-    public static function configdisplay_filter($query) {
+    public static function confignextnodetype_filter($query) {
 
         global $USER;
 
@@ -339,7 +339,7 @@ class block_ajax_marking_groupid extends block_ajax_marking_filter_base {
      * @static
      * @param block_ajax_marking_query_base $query
      */
-    public static function countselect_filter($query) {
+    public static function nextnodetype_filter($query) {
 
         self::add_highest_groupid_to_submissions($query);
 
@@ -615,7 +615,7 @@ class block_ajax_marking_cohortid extends block_ajax_marking_filter_base {
      * @static
      * @param block_ajax_marking_query_base $query
      */
-    public static function countselect_filter($query) {
+    public static function nextnodetype_filter($query) {
 
         self::join_to_users($query);
 

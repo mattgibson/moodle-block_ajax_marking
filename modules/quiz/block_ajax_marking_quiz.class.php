@@ -428,7 +428,7 @@ class block_ajax_marking_quiz_questionid extends block_ajax_marking_filter_base 
      *
      * @param block_ajax_marking_query_base $query
      */
-    public static function countselect_filter($query) {
+    public static function nextnodetype_filter($query) {
 
         $moduleunion = self::get_moduleunion_subquery($query);
         $countwrapper = self::get_countwrapper_subquery($query);
@@ -489,7 +489,7 @@ class block_ajax_marking_quiz_userid extends block_ajax_marking_filter_base {
      * @static
      * @param block_ajax_marking_query_base $query
      */
-    public static function countselect_filter($query) {
+    public static function nextnodetype_filter($query) {
         $countwrapper = self::get_countwrapper_subquery($query);
 
         $query->add_select(array(

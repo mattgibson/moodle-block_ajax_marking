@@ -204,32 +204,18 @@ class block_ajax_marking_nodes_builder {
             // Classes that hold the filters are named 'block_ajax_marking_filtername', where
             // filtername may be courseid, groupid, etc. For module overrides, they are
             // 'block_ajax_marking_quiz_filtername'.
-            if ($name == 'nextnodefilter') {
-                $classnamesuffix = $value;
-                // The new node filter is in the form 'nextnodefilter => 'functionname', rather
-                // than 'filtername' => <rowid> We want to pass the name of the filter in with
-                // an empty value, so we set the value here.
-                $value = false;
-                // TODO not a very elegant way of telling the filters that the query is different.
-                $filterfunctionname = $config ? 'configdisplay_filter' : 'countselect_filter';
-            } else {
-                // We want a single node count.
-                $classnamesuffix = $name;
-                $filterfunctionname = $config ? 'configwhere_filter' : 'where_filter';
-            }
+            // We want a single node count.
+            $classnamesuffix = $name;
+            $filterfunctionname = ($value == 'nextnodefilter') ? 'nextnodetype_filter' : 'where_filter';
+            $filterfunctionname = $config ? 'config'.$filterfunctionname : $filterfunctionname;
+            // Special case for nextnodefilter. Usually, we will have ancestors.
+            $moduleclassname = self::module_override_available($moduleclass,
+                                                               $classnamesuffix,
+                                                               $filterfunctionname);
 
-            // Find the function. Core ones are part of this class, others will be methods of
-            // the module object.
-            // If we are filtering by a specific module, look there first.
-            if ($moduleclass instanceof block_ajax_marking_module_base) {
-                $moduleclassname = 'block_ajax_marking_'.$moduleclass->get_module_name().
-                                   '_'.$classnamesuffix;
-            }
             $coreclassname = 'block_ajax_marking_'.$classnamesuffix;
 
-            if ($moduleclass instanceof block_ajax_marking_module_base &&
-                class_exists($moduleclassname) &&
-                method_exists($moduleclassname, $filterfunctionname)) {
+            if ($moduleclassname) {
 
                 // Modules provide a separate class for each type of node (userid, groupid, etc)
                 // which provide static methods for these operations.
@@ -246,6 +232,33 @@ class block_ajax_marking_nodes_builder {
         }
     }
 
+    /**
+     * Finds out whether there is a method provided by the modules that overrides the core ones.
+     *
+     * @static
+     * @param $moduleclass
+     * @param $classnamesuffix
+     * @param $filterfunctionname
+     * @return bool|string
+     */
+    private static function module_override_available($moduleclass, $classnamesuffix,
+                                                      $filterfunctionname) {
+
+        // If we are filtering by a specific module, look there first.
+        $moduleclassname = '';
+        if ($moduleclass instanceof block_ajax_marking_module_base) {
+            $moduleclassname = 'block_ajax_marking_'.$moduleclass->get_module_name().
+                '_'.$classnamesuffix;
+        }
+
+        $moduleoverrideavailable = $moduleclass instanceof block_ajax_marking_module_base &&
+            class_exists($moduleclassname) &&
+            method_exists($moduleclassname, $filterfunctionname);
+        if ($moduleoverrideavailable) {
+            return $moduleclassname;
+        }
+        return false;
+    }
 
     /**
      * We need to check whether the activity can be displayed (the user may have hidden it
@@ -657,9 +670,6 @@ SQL;
 SQL;
             $params = array_merge($params, $gparams);
 
-            if ($CFG->debug == DEBUG_DEVELOPER) {
-                $debugquery = block_ajax_marking_debuggable_query($sql, $params);
-            }
             $groups = $DB->get_records_sql($sql, $params);
 
             foreach ($groups as $group) {

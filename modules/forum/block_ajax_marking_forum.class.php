@@ -513,7 +513,7 @@ class block_ajax_marking_forum_discussionid extends block_ajax_marking_filter_ba
      * @static
      * @param block_ajax_marking_query_base $query
      */
-    public static function countselect_filter($query) {
+    public static function nextnodetype_filter($query) {
 
         $countwrapper = self::get_countwrapper_subquery($query);
         // This will be derived form the coursemodule id, but how to get it cleanly?
