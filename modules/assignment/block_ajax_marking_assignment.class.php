@@ -103,6 +103,9 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         global $PAGE, $CFG, $DB, $OUTPUT, $USER;
 
+        require_once($CFG->dirroot.'/grade/grading/lib.php');
+        require_once($CFG->libdir.'/gradelib.php');
+        require_once("$CFG->dirroot/repository/lib.php");
 
         $PAGE->requires->js('/mod/assignment/assignment.js');
 
@@ -113,37 +116,20 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $assignment = $DB->get_record('assignment', array('id' => $coursemodule->instance));
         $submission = $DB->get_record('assignment_submissions',
                                       array('assignment' => $coursemodule->instance,
-                                            'userid' => $params['userid']));
-
-        if (!$submission) {
-            print_error('No submission for this user');
-            return false;
-        }
-
+                                            'userid' => $params['userid']), '*', MUST_EXIST);
         $course         = $DB->get_record('course', array('id' => $assignment->course));
         $coursemodule   = $DB->get_record('course_modules', array('id' => $coursemodule->id));
-        $context        = get_context_instance(CONTEXT_MODULE, $coursemodule->id); // get_context_instance(CONTEXT_MODULE, $coursemodule->id);
-
-        // TODO more sanity and security checks.
-        $user = $DB->get_record('user', array('id' => $submission->userid));
-
-        if (!$user) {
-            print_error('No user');
-            return false;
-        }
+        $context        = get_context_instance(CONTEXT_MODULE,
+                                               $coursemodule->id);
+        $user           = $DB->get_record('user', array('id' => $submission->userid),
+                                          '*', MUST_EXIST);
 
         // Load up the required assignment code.
         require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
                      '/assignment.class.php');
         $assignmentclass = 'assignment_'.$assignment->assignmenttype;
-        /*
-         * @var assignment_base $assignmentinstance
-         */
         $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
                                                    $coursemodule, $course);
-
-        require_once($CFG->libdir.'/gradelib.php');
-        require_once("$CFG->dirroot/repository/lib.php");
 
         $grading_info = grade_get_grades($course->id, 'mod', 'assignment',
                                          $assignment->id, array($user->id));
@@ -246,7 +232,37 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                 'return_types' => FILE_INTERNAL);
         }
 
-        return $mformdata;
+        $advancedgradingwarning = false;
+        $gradingmanager = get_grading_manager($context, 'mod_assignment', 'submission');
+        if ($gradingmethod = $gradingmanager->get_active_method()) {
+            $controller = $gradingmanager->get_controller($gradingmethod);
+            if ($controller->is_form_available()) {
+                $itemid = null;
+                if (!empty($submission->id)) {
+                    $itemid = $submission->id;
+                }
+                if ($gradingdisabled && $itemid) {
+                    $mformdata->advancedgradinginstance =
+                        $controller->get_current_instance($USER->id, $itemid);
+                    return array($mformdata,
+                                 $advancedgradingwarning);
+                } else if (!$gradingdisabled) {
+                    $instanceid = optional_param('advancedgradinginstanceid', 0, PARAM_INT);
+                    $mformdata->advancedgradinginstance =
+                        $controller->get_or_create_instance($instanceid, $USER->id, $itemid);
+                    return array($mformdata,
+                                 $advancedgradingwarning);
+                }
+                return array($mformdata,
+                              $advancedgradingwarning);
+            } else {
+                $advancedgradingwarning = $controller->form_unavailable_notification();
+                return array($mformdata,
+                             $advancedgradingwarning);
+            }
+        }
+        return array($mformdata,
+                     $advancedgradingwarning);
     }
 
     /**
