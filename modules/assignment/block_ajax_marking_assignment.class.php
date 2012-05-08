@@ -109,8 +109,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         $PAGE->requires->js('/mod/assignment/assignment.js');
 
-        $output = '';
-
         // Get all DB stuff.
         // Use coursemodule->instance so that we have checked permissions properly.
         $assignment = $DB->get_record('assignment', array('id' => $coursemodule->instance));
@@ -130,29 +128,29 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $assignmentclass = 'assignment_'.$assignment->assignmenttype;
         $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
                                                    $coursemodule, $course);
+        $assignmentinstance->preprocess_submission($submission);
 
+        // Get grading information to see whether we should be allowed to make changed at all.
         $grading_info = grade_get_grades($course->id, 'mod', 'assignment',
                                          $assignment->id, array($user->id));
         $locked = $grading_info->items[0]->grades[$user->id]->locked;
         $overridden = $grading_info->items[0]->grades[$user->id]->overridden;
         $gradingdisabled = $locked || $overridden;
 
-        $assignmentinstance->preprocess_submission($submission);
-
+        // Sort out the form ready to tell it to display.
         $mformdata =
             $this->get_mform_data_object($context, $course, $assignment, $submission, $user,
                                          $coursemodule, $grading_info, $gradingdisabled,
                                          $assignmentinstance, $USER, $CFG);
-
-        // Here, we start to make a specific HTML display, rather than just getting data.
-
         $submitform = new mod_assignment_grading_form(block_ajax_marking_form_url($params),
                                                       $mformdata);
         $submitform->set_data($mformdata);
 
+        // Make the actual page output
         $PAGE->set_title($course->fullname . ': ' .get_string('feedback', 'assignment').' - '.
                          fullname($user, true));
         $heading = get_string('feedback', 'assignment').': '.fullname($user, true);
+        $output = '';
         $output .= $OUTPUT->heading($heading);
 
         // Display mform here...
