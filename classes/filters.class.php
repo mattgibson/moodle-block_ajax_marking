@@ -237,15 +237,16 @@ class block_ajax_marking_coursemoduleid extends block_ajax_marking_filter_base {
                                 'column' => 'modulename'));
 
         // This will add the stuff that will show us the name of the actual module instance.
-        // TODO is this even needed any more?
-        self::configdisplay_filter($query);
+        // We use the same stuff for both config and marking trees, but the config tree doesn't need
+        // the stuff to pull through submission counts.
+        self::confignextnodetype_filter($query);
     }
 
     /**
      * Used when we are looking at the coursemodule nodes in the config tree
      * Awkwardly, the course_module table doesn't hold the name and description of the
      * module instances, so we need to join to the module tables. This will cause a mess
-     * unless we specify that only coursemodules with a specific module id should join
+     * unless we specify that only course modules with a specific module id should join
      * to a specific module table.
      *
      * @static

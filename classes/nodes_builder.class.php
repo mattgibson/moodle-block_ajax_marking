@@ -136,7 +136,8 @@ class block_ajax_marking_nodes_builder {
         $modulequeries = self::get_module_queries_array($filters);
         $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
 
-        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
+        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters) &&
+                                  $filters['coursemoduleid'] !== 'nextnodefilter';
         $moduleclass = false;
         if ($havecoursemodulefilter) {
             $moduleclass = self::get_module_object_from_cmid($filters['coursemoduleid']);
