@@ -134,6 +134,7 @@ class block_ajax_marking_nodes_builder {
         global $CFG;
 
         $modulequeries = self::get_module_queries_array($filters);
+        $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
 
         $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
         $moduleclass = false;
@@ -157,7 +158,7 @@ class block_ajax_marking_nodes_builder {
 
         // Adds the config settings if there are any, so that we
         // know what the current settings are for the context menu.
-        self::apply_sql_config_settings($displayquery, $filters['nextnodefilter']);
+        self::apply_sql_config_settings($displayquery, $nextnodefilter);
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
@@ -166,9 +167,9 @@ class block_ajax_marking_nodes_builder {
 
         $nodes = $displayquery->execute();
 
-        if ($filters['nextnodefilter'] == 'courseid') {
+        if ($nextnodefilter == 'courseid') {
             $nodes = self::attach_groups_to_course_nodes($nodes);
-        } else if ($filters['nextnodefilter'] == 'coursemoduleid') {
+        } else if ($nextnodefilter == 'coursemoduleid') {
             $nodes = self::attach_groups_to_coursemodule_nodes($nodes);
         }
         if ($havecoursemodulefilter) {
@@ -476,8 +477,10 @@ SQL;
 
         global $DB, $CFG, $USER;
 
+        $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
+
         // Hide users added by plugins which are now disabled.
-        if (isset($filters['cohortid']) || $filters['nextnodefilter'] == 'cohortid') {
+        if (isset($filters['cohortid']) || $nextnodefilter == 'cohortid') {
             // We need to specify only people enrolled via a cohort.
             $enabledsql = " = 'cohort'";
         } else if ($CFG->enrol_plugins_enabled) {
@@ -539,9 +542,10 @@ SQL;
 
         $nodes = $configbasequery->execute();
 
-        if ($filters['nextnodefilter'] == 'courseid') {
+        $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
+        if ($nextnodefilter == 'courseid') {
             $nodes = self::attach_groups_to_course_nodes($nodes);
-        } else if ($filters['nextnodefilter'] == 'coursemoduleid') {
+        } else if ($nextnodefilter == 'coursemoduleid') {
             $nodes = self::attach_groups_to_coursemodule_nodes($nodes);
         }
 
@@ -692,7 +696,7 @@ SQL;
      * @return void
      */
     private static function apply_sql_config_settings(block_ajax_marking_query_base $query,
-                                                $nextnodefilter = '') {
+                                                      $nextnodefilter = '') {
 
         if (!$nextnodefilter) {
             return;
@@ -816,7 +820,8 @@ SQL;
     private static function get_count_wrapper_query($modulequeries, $filters) {
 
         $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
-        $makingcoursemodulenodes = ($filters['nextnodefilter'] === 'coursemoduleid');
+        $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
+        $makingcoursemodulenodes = ($nextnodefilter === 'coursemoduleid');
 
         $countwrapperquery = new block_ajax_marking_query_base();
         // We find out how many submissions we have here. Not DISTINCT as we are grouping by
@@ -893,10 +898,11 @@ SQL;
         // but we don't do this in the counting bit so as to avoid weird issues with group by on
         // Oracle.
         $displayquery = new block_ajax_marking_query_base();
+        $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
         $displayquery->add_select(array(
                                        'table' => 'countwrapperquery',
                                        'column' => 'id',
-                                       'alias' => $filters['nextnodefilter']));
+                                       'alias' => $nextnodefilter));
         $displayquery->add_select(array(
                                        'table' => 'countwrapperquery',
                                        'column' => 'itemcount'));
@@ -969,15 +975,14 @@ SQL;
         global $CFG;
 
         $modulequeries = self::get_module_queries_array($filters);
+        if (empty($modulequeries)) {
+            return array();
+        }
 
         $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
         $moduleclass = false;
         if ($havecoursemodulefilter) {
             $moduleclass = self::get_module_object_from_cmid($filters['coursemoduleid']);
-        }
-
-        if (empty($modulequeries)) {
-            return array();
         }
 
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);

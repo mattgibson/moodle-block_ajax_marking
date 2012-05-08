@@ -65,8 +65,6 @@ if (!isset($params['nodeindex'])) {
     print_error('No node index specified for the count');
     die();
 }
-// Makes it easier to reuse the query code.
-$params['nextnodefilter'] = $params['currentfilter'];
 
 $nodecounts = block_ajax_marking_nodes_builder::get_count_for_single_node($params);
 

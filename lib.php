@@ -461,3 +461,19 @@ function block_ajax_marking_login_error() {
         die();
     }
 }
+
+/**
+ * One of the parameters will look like filtername => nextnodefilter instead of filtername => 898.
+ * This returns it.
+ *
+ * @param array $params
+ * @return bool|string False if not found, otherwise the filter name.
+ */
+function block_ajax_marking_get_nextnodefilter_from_params(array $params) {
+    foreach ($params as $name => $value) {
+        if ($value == 'nextnodefilter') {
+            return $name;
+        }
+    }
+    return false;
+}

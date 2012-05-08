@@ -467,8 +467,9 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
             // Just so we know (for styling and accessing js in the client).
             $node->modulename = $this->modulename;
+            $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
 
-            switch ($filters['nextnodefilter']) {
+            switch ($nextnodefilter) {
 
                 case 'discussionid':
 
