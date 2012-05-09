@@ -52,10 +52,9 @@ function block_ajax_marking_teacherrole_sql() {
         SELECT DISTINCT(role.id)
           FROM {role} role
     INNER JOIN {role_capabilities} rc
+            ON role.id = rc.roleid
          WHERE rc.contextid = 1
-           AND rc.capability $capsql
-
-    ";
+           AND ".$DB->sql_compare_text('rc.capability')." ".$capsql;
 
     // TODO should be a site wide or block level setting.
     $teacherroles = $DB->get_records_sql($sql, $capparams);
