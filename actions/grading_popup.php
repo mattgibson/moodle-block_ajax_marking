@@ -74,8 +74,17 @@ if (!has_capability($moduleobject->capability, $context)) {
     die();
 }
 
+// Get the pop up header etc ready. This allows us the separate the interface (form) from
+// whether it's a pop up or an ajax operation.
+$url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
+$PAGE->set_url($url);
+$PAGE->set_context($context);
+$PAGE->set_pagelayout('popup');
+
+echo $OUTPUT->header();
+
 // Stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be
-// processed.
+// processed. Also catches all other submitted form data.
 $data = data_submitted();
 
 if ($data && confirm_sesskey()) {
@@ -83,8 +92,8 @@ if ($data && confirm_sesskey()) {
     // Make sure this includes require_login() in order to set page context properly.
     $error = $moduleobject->process_data($data, $params);
 
-    // If success, notify and print a close button.
-    if (!is_string($error)) {
+    // If success (empty string), notify and print a close button.
+    if (empty($error)) {
 
         $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php',
                               array('module' => $modname));
@@ -92,22 +101,19 @@ if ($data && confirm_sesskey()) {
         $PAGE->set_pagelayout('popup');
 
         echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
-        $callfunction = 'window.opener.M.block_ajax_marking.remove_node_from_current_tab('.$nodeid.'); ';
-        $PAGE->requires->js_init_code($callfunction, true);
+        $callfunction = '
+            window.opener.M.block_ajax_marking.remove_node_from_current_tab('.$nodeid.');
+        ';
+        $PAGE->requires->js_init_code($callfunction, false);
 
         close_window(1);
+    } else if ($error != 'displayagain') {
+        // May have a specific second step e.g. confirm revert to draft, so we allow fall-through.
+        // Otherwise, display the error and fall through to re-display the form.
+        echo $OUTPUT->notification($error);
     }
 
-    // Otherwise, display the error and fall through to re-display the form.
-    echo $OUTPUT->notification($error);
 }
-
-// Get the pop up header etc ready. This allows us the separate the interface (form) from
-// whether it's a pop up or an ajax operation.
-$url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php', $params);
-$PAGE->set_url($url);
-$PAGE->set_context($context);
-$PAGE->set_pagelayout('popup');
 
 // Make sure that whatever happens, we lose the tree highlight when the pop up shuts.
 $code = "
@@ -137,9 +143,9 @@ $code = "
 ";
 $PAGE->requires->js_init_code($code);
 
-// May involve a redirect if we don't want a form.
-$content = $moduleobject->grading_popup($params, $coursemodule);
+// Don't display the form again if it was submitted.
+if (!$data) {
+    echo $moduleobject->grading_popup($params, $coursemodule);
+}
 
-echo $OUTPUT->header();
-echo $content;
 echo $OUTPUT->footer();
