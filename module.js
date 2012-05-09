@@ -428,11 +428,8 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
      */
     set_count : function (newvalue, type) {
 
-        var span,
-            componentcounts,
-            titlearray = [],
-            suffix,
-            countstring;
+        var div,
+            countbits;
 
         switch (type) {
             case 'recent':
@@ -452,21 +449,14 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
         }
 
-        // Make the adjustment to the node's count.
+        // Make the adjustment to the node's count (unless it's the non-displayed total).
         if (type) {
-            span = document.getElementById(type+this.index);
-            if (span) {
-                span.innerHTML = newvalue;
+            div = document.getElementById('nodecount'+this.index);
+            countbits = this.make_triple_count();
+            if (div) {
+                div.innerHTML = countbits.count;
+                div.title = countbits.title;
 
-                // Also to the tooltip.
-                componentcounts = this.get_component_counts();
-                for (var typeofcount in componentcounts) {
-                    suffix = componentcounts[typeofcount] == 1 ? 'item' : 'countstring';
-                    countstring = componentcounts[typeofcount]+' '+
-                                  M.str.block_ajax_marking[typeofcount+suffix];
-                    titlearray.push(countstring);
-                }
-                span.title = titlearray.join(', ');
             }
         }
 
@@ -505,41 +495,57 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     },
 
     /**
+     * Takes the component counts and makes them into a HTML thingy for the node title and a tooltip
+     * string. Returns them as an array to avoid looping over the counts twice.
+     *
+     * @return array the HTML count spans and the title
+     */
+    make_triple_count : function() {
+
+        var suffix,
+            titlearray = [],
+            countarray = [],
+            componentcounts;
+
+        componentcounts = this.get_component_counts();
+
+        if (componentcounts.recent) {
+            countarray.push('<span id="recent'+this.index+'" class="recent">'+
+                                componentcounts.recent+'</span>');
+            suffix = componentcounts.recent == 1 ? 'item' : 'items';
+            titlearray.push(componentcounts.recent+' '+
+                                M.str.block_ajax_marking['recent'+suffix]);
+        }
+        if (componentcounts.medium) {
+            countarray.push('<span id="medium'+this.index+'" class="medium">'+
+                                componentcounts.medium+'</span>');
+            suffix = componentcounts.medium == 1 ? 'item' : 'items';
+            titlearray.push(componentcounts.medium+' '+
+                                M.str.block_ajax_marking['medium'+suffix]);
+        }
+        if (componentcounts.overdue) {
+            countarray.push('<span id="overdue'+this.index+'" class="overdue">'+
+                                componentcounts.overdue+'</span>');
+            suffix = componentcounts.overdue == 1 ? 'item' : 'items';
+            titlearray.push(componentcounts.overdue+' '+
+                                M.str.block_ajax_marking['overdue'+suffix]);
+        }
+
+        return {count : '<strong>(</strong>'+countarray.join('|')+'<strong>)</strong>',
+                title : titlearray.join(', ')};
+    },
+
+    /**
      * Overrides the parent class method so we can ad in the count and icon.
      */
     getContentHtml : function() {
 
-        var componentcounts,
-            html,
-            suffix,
-            countarray = [],
-            titlearray = [];
+        var html,
+            countbits;
 
         if (this.get_count()) {
-            componentcounts = this.get_component_counts();
 
-            if (componentcounts.recent) {
-                countarray.push('<span id="recent'+this.index+'" class="recent">'+
-                                componentcounts.recent+'</span>');
-                suffix = componentcounts.recent == 1 ? 'item' : 'items';
-                titlearray.push(componentcounts.recent+' '+
-                                M.str.block_ajax_marking['recent'+suffix]);
-            }
-            if (componentcounts.medium) {
-                countarray.push('<span id="medium'+this.index+'" class="medium">'+
-                                componentcounts.medium+'</span>');
-                suffix = componentcounts.medium == 1 ? 'item' : 'items';
-                titlearray.push(componentcounts.medium+' '+
-                                M.str.block_ajax_marking['medium'+suffix]);
-            }
-            if (componentcounts.overdue) {
-                countarray.push('<span id="overdue'+this.index+'" class="overdue">'+
-                                componentcounts.overdue+'</span>');
-                suffix = componentcounts.overdue == 1 ? 'item' : 'items';
-                titlearray.push(componentcounts.overdue+' '+
-                                M.str.block_ajax_marking['overdue'+suffix]);
-            }
-
+            countbits = this.make_triple_count();
             html = '';
 
             var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
@@ -551,11 +557,10 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
 
             html += '<div class="nodelabelwrapper">';
 
-            html +=     '<div class="nodecount" title="'+titlearray.join(', ')+'">'+
-                            '<strong>(</strong>';
-            html +=             countarray.join('|');
-            html +=         '<strong>)</strong>'+
-                        '</div> ';
+            html +=     '<div class="nodecount" id="nodecount'+this.index+'"';
+            html +=         ' title="'+countbits.title+'">';
+            html +=             countbits.count;
+            html +=     '</div> ';
 
             html +=     '<div class="nodelabel" >'+
                             this.get_displayname();
