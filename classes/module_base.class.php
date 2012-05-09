@@ -126,27 +126,6 @@ abstract class block_ajax_marking_module_base {
     }
 
     /**
-     * This is to allow the ajax call to be sent to the correct function. When the
-     * type of one of the pluggable modules is sent back via the ajax call, the
-     * ajax_marking_response constructor will refer to this function in each of the module objects
-     * in turn from the default in the switch statement
-     *
-     * @param string $type the type name variable from the ajax call
-     * @param array $args
-     * @return bool
-     */
-    public function return_function($type, $args) {
-
-        if (array_key_exists($type, $this->functions)) {
-            $function = $this->functions[$type];
-            call_user_func_array(array($this, $function), $args);
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    /**
      * Find the id of this module in the DB. It may vary from site to site
      *
      * @param bool $reset clears the cache
@@ -185,40 +164,6 @@ abstract class block_ajax_marking_module_base {
             return true;
         } else {
             return false;
-        }
-    }
-
-    /**
-     * Checks the functions array to see if this module has a function that corresponds to it
-     *
-     * @param string $callback
-     * @return bool
-     */
-    public function contains_callback($callback) {
-        return method_exists($this, $callback);
-    }
-
-    /**
-     * This will find the module's javascript file and add it to the page. Used by the main block.
-     *
-     * @return void
-     */
-    public function include_javascript() {
-
-        global $CFG, $PAGE;
-
-        $blockdirectoryfile = "/blocks/ajax_marking/{$this->modulename}_grading.js";
-        $moddirectoryfile   = "/mod/{$this->modulename}/{$this->modulename}_grading.js";
-
-        if (file_exists($CFG->dirroot.$blockdirectoryfile)) {
-
-            $PAGE->requires->js($blockdirectoryfile);
-
-        } else {
-
-            if (file_exists($CFG->dirroot.$moddirectoryfile)) {
-                $PAGE->requires->js($moddirectoryfile);
-            }
         }
     }
 
@@ -264,7 +209,9 @@ abstract class block_ajax_marking_module_base {
             // Just so we know (for styling and accessing js in the client).
             $node->modulename = $this->modulename;
 
-            switch ($filters['nextnodefilter']) {
+            $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
+
+            switch ($nextnodefilter) {
 
                 case 'userid':
                     // Sort out the firstname/lastname thing.
@@ -285,14 +232,6 @@ abstract class block_ajax_marking_module_base {
     }
 
     /**
-     * Getter for the module
-     * @return string
-     */
-    public function get_module_table() {
-        return $this->moduletable;
-    }
-
-    /**
      * This function will take the data returned by the grading popup and process it. Not always
      * implemented as not all modules have a grading popup yet
      *
@@ -308,18 +247,10 @@ abstract class block_ajax_marking_module_base {
      * @param $params
      * @param $coursemodule
      * @return string HTML
+     * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
     public function grading_popup($params, $coursemodule) {
     }
 
-    /**
-     * If necessary, this hook allows other icons to be generated in the JavaScript for custom nodes
-     * that this module defines e.g. quiz questions
-     *
-     * @return array name => iconpath
-     */
-    public function extra_icons() {
-        return array();
-    }
 
 }

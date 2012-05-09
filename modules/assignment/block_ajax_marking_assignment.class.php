@@ -32,6 +32,7 @@ global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
 
 /**
  * Wrapper for the module_base class which adds the parts that deal with the assignment module.
@@ -66,7 +67,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // Call parent constructor with the same arguments (keep for 2.1 - PHP 5.3 needed.
         parent::__construct();
 
-        $this->modulename           = $this->moduletable = 'assignment';  // DB modulename.
+        $this->modulename           = 'assignment';  // DB modulename.
         $this->capability           = 'mod/assignment:grade';
         $this->icon                 = 'mod/assignment/icon.gif';
     }
@@ -88,10 +89,10 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     /**
      * Makes the grading interface for the pop up
      *
-     * @global type $PAGE
+     * @global $PAGE
      * @global stdClass $CFG
      * @global moodle_database $DB
-     * @global type $OUTPUT
+     * @global $OUTPUT
      * @global stdClass $USER
      * @param array $params From $_GET
      * @param object $coursemodule The coursemodule object that the user has been authenticated
@@ -102,106 +103,54 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         global $PAGE, $CFG, $DB, $OUTPUT, $USER;
 
+        require_once($CFG->dirroot.'/grade/grading/lib.php');
+        require_once($CFG->libdir.'/gradelib.php');
+        require_once("$CFG->dirroot/repository/lib.php");
 
         $PAGE->requires->js('/mod/assignment/assignment.js');
-
-        $output = '';
 
         // Get all DB stuff.
         // Use coursemodule->instance so that we have checked permissions properly.
         $assignment = $DB->get_record('assignment', array('id' => $coursemodule->instance));
         $submission = $DB->get_record('assignment_submissions',
                                       array('assignment' => $coursemodule->instance,
-                                            'userid' => $params['userid']));
-
-        if (!$submission) {
-            print_error('No submission for this user');
-            return false;
-        }
-
+                                            'userid' => $params['userid']), '*', MUST_EXIST);
         $course         = $DB->get_record('course', array('id' => $assignment->course));
         $coursemodule   = $DB->get_record('course_modules', array('id' => $coursemodule->id));
-        $context        = get_context_instance(CONTEXT_MODULE, $coursemodule->id); // get_context_instance(CONTEXT_MODULE, $coursemodule->id);
-
-        // TODO more sanity and security checks.
-        $user = $DB->get_record('user', array('id' => $submission->userid));
-
-        if (!$user) {
-            print_error('No user');
-            return false;
-        }
+        $context        = get_context_instance(CONTEXT_MODULE,
+                                               $coursemodule->id);
+        $user           = $DB->get_record('user', array('id' => $submission->userid),
+                                          '*', MUST_EXIST);
 
         // Load up the required assignment code.
         require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
                      '/assignment.class.php');
         $assignmentclass = 'assignment_'.$assignment->assignmenttype;
-        /*
-         * @var assignment_base $assignmentinstance
-         */
         $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
                                                    $coursemodule, $course);
+        $assignmentinstance->preprocess_submission($submission);
 
-        require_once($CFG->libdir.'/gradelib.php');
-        require_once("$CFG->dirroot/repository/lib.php");
-
+        // Get grading information to see whether we should be allowed to make changed at all.
         $grading_info = grade_get_grades($course->id, 'mod', 'assignment',
                                          $assignment->id, array($user->id));
         $locked = $grading_info->items[0]->grades[$user->id]->locked;
         $overridden = $grading_info->items[0]->grades[$user->id]->overridden;
         $gradingdisabled = $locked || $overridden;
 
-        $assignmentinstance->preprocess_submission($submission);
-
-        $mformdata = new stdClass();
-        $mformdata->context                 = $context;
-        $mformdata->maxbytes                = $course->maxbytes;
-        $mformdata->courseid                = $course->id;
-        $mformdata->teacher                 = $USER;
-        $mformdata->assignment              = $assignment;
-        $mformdata->submission              = $submission;
-        $mformdata->lateness                = assignment_display_lateness($submission->timemodified,
-                                                                          $assignment->timedue);
-        $mformdata->user                    = $user;
-        $mformdata->offset                  = false;
-        $mformdata->userid                  = $user->id;
-        $mformdata->cm                      = $coursemodule;
-        $mformdata->grading_info            = $grading_info;
-        $mformdata->enableoutcomes          = $CFG->enableoutcomes;
-        $mformdata->grade                   = $assignment->grade;
-        $mformdata->gradingdisabled         = $gradingdisabled;
-        // TODO set nextid to the nextnode id.
-        $mformdata->nextid                  = false;
-        $mformdata->submissioncomment       = $submission->submissioncomment;
-        $mformdata->submissioncommentformat = FORMAT_HTML;
-        $mformdata->submission_content      = $assignmentinstance->print_user_files($user->id,
-                                                                                    true);
-
-        if ($assignment->assignmenttype == 'upload') {
-            $mformdata->fileui_options = array(
-                    'subdirs' => 1,
-                    'maxbytes' => $assignment->maxbytes,
-                    'maxfiles' => $assignment->var1,
-                    'accepted_types' => '*',
-                    'return_types'=>FILE_INTERNAL);
-
-        } else if ($assignment->assignmenttype == 'uploadsingle') {
-            $mformdata->fileui_options = array(
-                    'subdirs' => 0,
-                    'maxbytes' => $CFG->userquota,
-                    'maxfiles' => 1,
-                    'accepted_types' => '*',
-                    'return_types' => FILE_INTERNAL);
-        }
-
-        // Here, we start to make a specific HTML display, rather than just getting data
-
+        // Sort out the form ready to tell it to display.
+        $mformdata =
+            $this->get_mform_data_object($context, $course, $assignment, $submission, $user,
+                                         $coursemodule, $grading_info, $gradingdisabled,
+                                         $assignmentinstance, $USER, $CFG);
         $submitform = new mod_assignment_grading_form(block_ajax_marking_form_url($params),
                                                       $mformdata);
         $submitform->set_data($mformdata);
 
+        // Make the actual page output
         $PAGE->set_title($course->fullname . ': ' .get_string('feedback', 'assignment').' - '.
                          fullname($user, true));
         $heading = get_string('feedback', 'assignment').': '.fullname($user, true);
+        $output = '';
         $output .= $OUTPUT->heading($heading);
 
         // Display mform here...
@@ -220,7 +169,103 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     }
 
     /**
-     * Process and save the data from the feedback form
+     * Prepares the data for the grading form
+     *
+     * @param $context
+     * @param $course
+     * @param $assignment
+     * @param $submission
+     * @param $user
+     * @param $coursemodule
+     * @param $grading_info
+     * @param $gradingdisabled
+     * @param $assignmentinstance
+     * @global $USER
+     * @global $CFG
+     * @return array
+     */
+    private function get_mform_data_object($context, $course, $assignment, $submission, $user,
+                                          $coursemodule, $grading_info, $gradingdisabled,
+                                          $assignmentinstance) {
+
+        global $USER, $CFG;
+
+        $mformdata = new stdClass();
+        $mformdata->context = $context;
+        $mformdata->maxbytes = $course->maxbytes;
+        $mformdata->courseid = $course->id;
+        $mformdata->teacher = $USER;
+        $mformdata->assignment = $assignment;
+        $mformdata->submission = $submission;
+        $mformdata->lateness = assignment_display_lateness($submission->timemodified,
+                                                           $assignment->timedue);
+        $mformdata->user = $user;
+        $mformdata->offset = false;
+        $mformdata->userid = $user->id;
+        $mformdata->cm = $coursemodule;
+        $mformdata->grading_info = $grading_info;
+        $mformdata->enableoutcomes = $CFG->enableoutcomes;
+        $mformdata->grade = $assignment->grade;
+        $mformdata->gradingdisabled = $gradingdisabled;
+        // TODO set nextid to the nextnode id.
+        $mformdata->nextid = false;
+        $mformdata->submissioncomment = $submission->submissioncomment;
+        $mformdata->submissioncommentformat = FORMAT_HTML;
+        $mformdata->submission_content = $assignmentinstance->print_user_files($user->id,
+                                                                               true);
+
+        if ($assignment->assignmenttype == 'upload') {
+            $mformdata->fileui_options = array(
+                'subdirs' => 1,
+                'maxbytes' => $assignment->maxbytes,
+                'maxfiles' => $assignment->var1,
+                'accepted_types' => '*',
+                'return_types' => FILE_INTERNAL);
+        } else if ($assignment->assignmenttype == 'uploadsingle') {
+            $mformdata->fileui_options = array(
+                'subdirs' => 0,
+                'maxbytes' => $CFG->userquota,
+                'maxfiles' => 1,
+                'accepted_types' => '*',
+                'return_types' => FILE_INTERNAL);
+        }
+
+        $advancedgradingwarning = false;
+        $gradingmanager = get_grading_manager($context, 'mod_assignment', 'submission');
+        if ($gradingmethod = $gradingmanager->get_active_method()) {
+            $controller = $gradingmanager->get_controller($gradingmethod);
+            if ($controller->is_form_available()) {
+                $itemid = null;
+                if (!empty($submission->id)) {
+                    $itemid = $submission->id;
+                }
+                if ($gradingdisabled && $itemid) {
+                    $mformdata->advancedgradinginstance =
+                        $controller->get_current_instance($USER->id, $itemid);
+                    return array($mformdata,
+                                 $advancedgradingwarning);
+                } else if (!$gradingdisabled) {
+                    $instanceid = optional_param('advancedgradinginstanceid', 0, PARAM_INT);
+                    $mformdata->advancedgradinginstance =
+                        $controller->get_or_create_instance($instanceid, $USER->id, $itemid);
+                    return array($mformdata,
+                                 $advancedgradingwarning);
+                }
+                return array($mformdata,
+                              $advancedgradingwarning);
+            } else {
+                $advancedgradingwarning = $controller->form_unavailable_notification();
+                return array($mformdata,
+                             $advancedgradingwarning);
+            }
+        }
+        return array($mformdata,
+                     $advancedgradingwarning);
+    }
+
+    /**
+     * Process and save the data from the feedback form. Mostly lifted from
+     * $assignmentinstance->process_feedback().
      *
      * @param object $data from the feedback form
      * @param $params
@@ -228,13 +273,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      */
     public function process_data($data, $params) {
 
-        // From $assignmentinstance->process_feedback()...
-
-        global $CFG, $USER, $DB, $PAGE;
-
-        if (!$data || !$params) {      // No incoming data?
-            return 'No incoming data';
-        }
+        global $CFG, $DB;
 
         // TODO validate data.
 
@@ -256,125 +295,157 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         }
 
         // Get DB records.
-        $coursemodule = $DB->get_record('course_modules', array('id' => $params['coursemoduleid']));
-        $assignment   = $DB->get_record('assignment', array('id' => $coursemodule->instance));
+        $coursemodule = $DB->get_record('course_modules', array('id' => $params['coursemoduleid']),
+                                        '*', MUST_EXIST);
+        $assignment   = $DB->get_record('assignment', array('id' => $coursemodule->instance),
+                                        '*', MUST_EXIST);
         $grading_info = grade_get_grades($coursemodule->course, 'mod', 'assignment',
                                          $assignment->id, $data->userid);
-        $userid = $data->userid;
-        $submission   = $DB->get_record('assignment_submissions',
-                                        array('assignment' => $assignment->id,
-                                              'userid' => $userid));
-
-        if (!$submission) {
-            return 'Wrong submission id';
-        }
-
-        if (!$coursemodule) {
-            return 'Wrong coursemodule id';
-        }
-
-        if (!$assignment) {
-            return 'Wrong assignment id';
-        }
 
         if (!$grading_info) {
             return 'Could not retrieve grading info.';
         }
-
         // Check to see if grade has been locked or overridden.
-        if (!($grading_info->items[0]->grades[$data->userid]->locked ||
+        if (($grading_info->items[0]->grades[$data->userid]->locked ||
             $grading_info->items[0]->grades[$data->userid]->overridden) ) {
+            return 'Grade is locked or overridden';
+        }
 
-            // Save outcomes if necessary.
-            if (!empty($CFG->enableoutcomes)) {
+        // Save outcomes if necessary.
+        if (!empty($CFG->enableoutcomes)) {
+            $this->save_outcomes($assignment, $grading_info, $data);
+        }
 
-                $outcomedata = array();
+        $submission = $this->save_submission($assignment, $data);
+        if (!$submission) {
+            return 'Problem saving feedback';
+        }
 
-                // TODO needs sorting out!
-                if (!empty($grading_info->outcomes)) {
+        // Trigger grade event to update gradebook.
+        $assignment->cmidnumber = $coursemodule->id;
+        assignment_update_grades($assignment, $data->userid);
 
-                    foreach ($grading_info->outcomes as $n => $old) {
-                        $name = 'outcome_'.$n;
-                        $newvalue = $old->grades[$userid]->grade != $data->{$name}[$userid];
-                        if (isset($data->{$name}[$userid]) and $newvalue) {
-                            $outcomedata[$n] = $data->{$name}[$userid];
-                        }
-                    }
+        add_to_log($coursemodule->course, 'assignment', 'update grades',
+                   'submissions.php?id='.$coursemodule->id.'&user='.$data->userid,
+                   $data->userid, $coursemodule->id);
 
-                    if (count($outcomedata) > 0) {
-                        grade_update_outcomes('mod/assignment', $assignment->course, 'mod',
-                                              'assignment', $assignment->id, $userid,
-                                              $outcomedata);
-                    }
-                }
-            }
-
-            // Prepare the submission object.
-            $submission->grade      = $data->xgrade;
-            $submission->submissioncomment    = $data->submissioncomment_editor['text'];
-            $submission->teacher    = $USER->id;
-            $submission->timemarked = time();
-
-            $mailinfo = get_user_preferences('assignment_mailinfo', 0);
-
-            if (!$mailinfo) {
-                $submission->mailed = 1; // Treat as already mailed.
-            } else {
-                $submission->mailed = 0; // Make sure mail goes out (again, even).
-            }
-
-            unset($submission->data1);  // Don't need to update this.
-            unset($submission->data2);  // Don't need to update this.
-
-            // Save submission.
-            $saveresult = $DB->update_record('assignment_submissions', $submission);
-
-            if (!$saveresult) {
-                return 'Problem saving feedback';
-            }
-
-            // Trigger grade event to update gradebook.
-            $assignment->cmidnumber = $coursemodule->id;
-            assignment_update_grades($assignment, $submission->userid);
-
-            add_to_log($coursemodule->course, 'assignment', 'update grades',
-                       'submissions.php?id='.$coursemodule->id.'&user='.$data->userid,
-                       $data->userid, $coursemodule->id);
-
-            // Save files if necessary.
-            if (!is_null($data)) {
-                $isupload = $assignment->assignmenttype == 'upload';
-                $isuploadsingle = $assignment->assignmenttype == 'uploadsingle';
-                if ($isupload || $isuploadsingle) {
-                    $fileui_options = array();
-                    if ($isupload) {
-                        $fileui_options = array(
-                            'subdirs'=>1,
-                            'maxbytes'=>$assignment->maxbytes,
-                            'maxfiles'=>$assignment->var1,
-                            'accepted_types'=>'*',
-                            'return_types'=>FILE_INTERNAL);
-                    } else if ($isuploadsingle) {
-                        $fileui_options = array(
-                            'subdirs'=>0,
-                            'maxbytes'=>$CFG->userquota,
-                            'maxfiles'=>1,
-                            'accepted_types'=>'*',
-                            'return_types'=>FILE_INTERNAL);
-                    }
-
-                    file_postupdate_standard_filemanager($data,
-                                                         'files',
-                                                         $fileui_options,
-                                                         $PAGE->context,
-                                                         'mod_assignment',
-                                                         'response',
-                                                         $submission->id);
-                }
-            }
+        // Save files if necessary.
+        if (!is_null($data)) {
+            $this->save_files($assignment, $submission, $data);
         }
 
         return true;
+    }
+
+    /**
+     * Adds extra info to the submission record and returns the modified record.
+     *
+     * @param $assignment
+     * @param $data
+     * @global $DB
+     * @global $USER
+     * @return bool
+     */
+    private function save_submission($assignment, $data) {
+
+        global $DB, $USER;
+
+        $submission = $DB->get_record('assignment_submissions',
+                                      array('assignment' => $assignment->id,
+                                            'userid' => $data->userid), '*', MUST_EXIST);
+        $submission->grade = $data->xgrade;
+        $submission->submissioncomment = $data->submissioncomment_editor['text'];
+        $submission->teacher = $USER->id;
+        $submission->timemarked = time();
+        unset($submission->data1); // Don't need to update this.
+        unset($submission->data2); // Don't need to update this.
+
+        $mailinfo = get_user_preferences('assignment_mailinfo', 0);
+        if (!$mailinfo) {
+            $submission->mailed = 1; // Treat as already mailed.
+        } else {
+            $submission->mailed = 0; // Make sure mail goes out (again, even).
+        }
+
+        // Save submission.
+        $saveresult = $DB->update_record('assignment_submissions', $submission);
+
+        if ($saveresult) {
+            return $submission;
+        }
+        return false;
+    }
+
+    /**
+     * Saves any files that the teacher may have attached or embedded.
+     *
+     * @param $assignment
+     * @param $submission
+     * @param $data
+     * @global $PAGE
+     * @global $CFG
+     */
+    private function save_files($assignment, $submission, $data) {
+        global $PAGE, $CFG;
+
+        $isupload = $assignment->assignmenttype == 'upload';
+        $isuploadsingle = $assignment->assignmenttype == 'uploadsingle';
+        if ($isupload || $isuploadsingle) {
+            $fileui_options = array();
+            if ($isupload) {
+                $fileui_options = array(
+                    'subdirs' => 1,
+                    'maxbytes' => $assignment->maxbytes,
+                    'maxfiles' => $assignment->var1,
+                    'accepted_types' => '*',
+                    'return_types' => FILE_INTERNAL);
+            } else if ($isuploadsingle) {
+                $fileui_options = array(
+                    'subdirs' => 0,
+                    'maxbytes' => $CFG->userquota,
+                    'maxfiles' => 1,
+                    'accepted_types' => '*',
+                    'return_types' => FILE_INTERNAL);
+            }
+
+            file_postupdate_standard_filemanager($data,
+                                                 'files',
+                                                 $fileui_options,
+                                                 $PAGE->context,
+                                                 'mod_assignment',
+                                                 'response',
+                                                 $submission->id);
+        }
+    }
+
+    /**
+     * Saves outcome data from the form
+     *
+     * @param $assignment
+     * @param $grading_info
+     * @param $data
+     */
+    private function save_outcomes($assignment, $grading_info, $data) {
+        $outcomedata = array();
+        $userid = $data->userid;
+
+        // TODO needs sorting out!
+        if (!empty($grading_info->outcomes)) {
+
+            foreach ($grading_info->outcomes as $n => $old) {
+                $name = 'outcome_'.$n;
+                $newvalue = $old->grades[$userid]->grade != $data->{$name}[$userid];
+                if (isset($data->{$name}[$userid]) and $newvalue) {
+                    $outcomedata[$n] = $data->{$name}[$userid];
+                }
+            }
+
+            if (count($outcomedata) > 0) {
+                grade_update_outcomes('mod/assignment', $assignment->course, 'mod',
+                                      'assignment', $assignment->id, $userid,
+                                      $outcomedata);
+            }
+        }
     }
 
     /**
@@ -384,8 +455,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * @return block_ajax_marking_query_base
      */
     public function query_factory() {
-
-        global $DB;
 
         $query = new block_ajax_marking_query_base($this);
 
@@ -429,74 +498,69 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     }
 
 
+}
+
+/**
+ * Holds any custom filters for userid nodes that this module offers
+ */
+class block_ajax_marking_assignment_userid extends block_ajax_marking_filter_base {
+
     /**
-     * Applies filtering when assignment submission nodes need displaying by userid. Currently,
-     * this means that only the displayselect and countselect bit are used.
+     * Not sure we'll ever need this, but just in case...
      *
+     * @static
      * @param block_ajax_marking_query_base $query
-     * @param $operation
-     * @param bool $userid
-     * @return void
+     * @param $userid
      */
-    public function apply_userid_filter(block_ajax_marking_query_base $query, $operation,
-                                        $userid = false) {
-
-        $selects = array();
-        $countwrapper = $query->get_subquery('countwrapperquery');
-
-        switch ($operation) {
-
-            case 'where':
-                // Not sure we'll ever need this, but just in case...
-                $countwrapper->add_where(array(
-                        'type' => 'AND',
-                        'condition' => 'sub.userid = :assignmentuseridfilteruserid'));
-                $query->add_param('assignmentuseridfilteruserid', $userid);
-                break;
-
-            case 'countselect':
-
-                // Make the count be grouped by userid.
-                $countwrapper->add_select(array(
-                        'table'    => 'moduleunion',
-                        'column'   => 'userid',
-                        'alias'    => 'id'), true
-                );
-                $query->add_select(array(
-                        'table'  => 'countwrapperquery',
-                        'column' => 'timestamp',
-                        'alias'  => 'tooltip')
-                );
-                // Need this to make the popup show properly because some assignment code shows or
-                // not depending on this flag to tell if it's in a pop-up e.g. the revert to draft
-                // button for advanced upload.
-                $query->add_select(array('column' => "'single'",
-                                         'alias' => 'mode')
-                );
-
-                $selects = array(
-                    array(
-                        'table' => 'usertable',
-                        'column' => 'firstname'),
-                    array(
-                        'table' => 'usertable',
-                        'column' => 'lastname')
-
-                );
-
-                $query->add_from(array(
-                        'table' => 'user',
-                        'alias' => 'usertable',
-                        'on' => 'usertable.id = countwrapperquery.id'));
-
-                break;
-        }
-
-        foreach ($selects as $select) {
-            $query->add_select($select);
-        }
+    public static function where_filter($query, $userid) {
+        $countwrapper = self::get_countwrapper_subquery($query);
+        $clause = array(
+            'type' => 'AND',
+            'condition' => 'sub.userid = :assignmentuseridfilteruserid');
+        $countwrapper->add_where($clause);
+        $query->add_param('assignmentuseridfilteruserid', $userid);
     }
 
+    /**
+     * @static
+     * @param block_ajax_marking_query_base $query
+     */
+    public static function nextnodetype_filter($query) {
 
+        $countwrapper = self::get_countwrapper_subquery($query);
+
+        // Make the count be grouped by userid.
+        $conditions = array(
+            'table' => 'moduleunion',
+            'column' => 'userid',
+            'alias' => 'id');
+        $countwrapper->add_select($conditions, true);
+        $conditions = array(
+            'table' => 'countwrapperquery',
+            'column' => 'timestamp',
+            'alias' => 'tooltip');
+        $query->add_select($conditions);
+        // Need this to make the popup show properly because some assignment code shows or
+        // not depending on this flag to tell if it's in a pop-up e.g. the revert to draft
+        // button for advanced upload.
+        $conditions = array('column' => "'single'",
+                            'alias' => 'mode');
+        $query->add_select($conditions);
+
+        $conditions = array(
+            'table' => 'usertable',
+            'column' => 'firstname');
+        $query->add_select($conditions);
+        $conditions = array(
+            'table' => 'usertable',
+            'column' => 'lastname');
+        $query->add_select($conditions);
+
+        $table = array(
+            'table' => 'user',
+            'alias' => 'usertable',
+            'on' => 'usertable.id = countwrapperquery.id');
+        $query->add_from($table);
+    }
 
 }

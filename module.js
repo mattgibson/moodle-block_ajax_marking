@@ -1255,7 +1255,7 @@ YAHOO.lang.extend(M.block_ajax_marking.coursestree_node, M.block_ajax_marking.tr
     request_new_child_counts : function () {
 
         var nodefilters = this.get_filters(true);
-        nodefilters.push('nextnodefilter='+this.get_nextnodefilter());
+        nodefilters.push(this.get_nextnodefilter()+'=nextnodefilter');
         // This lets the AJAX success code find the right node to add stuff to.
         nodefilters.push('nodeindex='+this.index);
         nodefilters = nodefilters.join('&');
@@ -1572,7 +1572,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
 
         // The callback function is the SQL GROUP BY for the next set of nodes, so this is separate
         var nodefilters = clickednode.get_filters(true);
-        nodefilters.push('nextnodefilter='+clickednode.get_nextnodefilter());
+        nodefilters.push(clickednode.get_nextnodefilter()+'=nextnodefilter');
         // This lets the AJAX success code find the right node to add stuff to
         nodefilters.push('nodeindex='+clickednode.index);
         nodefilters = nodefilters.join('&');
@@ -1775,7 +1775,7 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
     /**
      * Used by initialise() to start the first AJAX call
      */
-    initial_nodes_data : 'nextnodefilter=courseid',
+    initial_nodes_data : 'courseid=nextnodefilter',
 
     /**
      * This is to control what node the tree asks for next when a user clicks on a node
@@ -1784,23 +1784,26 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
      * @return string|bool false if nothing
      */
     nextnodetype : function (node) {
-        // if nothing else is found, make the node into a final one with no children
+        // If nothing else is found, make the node into a final one with no children.
         var nextnodefilter = false,
             groupsdisplay,
             moduleoverride,
             modulename = node.get_modulename(),
             currentfilter = node.get_current_filter_name();
 
-        // Groups first if there are any. Always coursemodule -> group, to keep it consistent
+        // Allow override by modules.
+        moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
+                                                                              currentfilter);
+
+        // Groups first if there are any. Always coursemodule -> group, to keep it consistent.
+        // Workshop has no meaningful way to display by group (so far), so we hide the groups if
+        // The module says that the coursemodule nodes are final ones.
         groupsdisplay = node.get_calculated_groupsdisplay_setting();
-        if (currentfilter == 'coursemoduleid' && groupsdisplay == 1) {
+        if (currentfilter == 'coursemoduleid' && groupsdisplay == 1 && moduleoverride !== false) {
             // This takes precedence over the module override
             return 'groupid'
         }
 
-        // Allow override by modules
-        moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
-                                                                              currentfilter);
         if (moduleoverride !== null) {
             return moduleoverride;
         }
@@ -1869,7 +1872,7 @@ YAHOO.lang.extend(M.block_ajax_marking.cohorts_tree, M.block_ajax_marking.tree_b
     /**
      * Used by initialise() to start the AJAX call
      */
-    initial_nodes_data : 'nextnodefilter=cohortid',
+    initial_nodes_data : 'cohortid=nextnodefilter',
 
     /**
      * This is to control what node the cohorts tree asks for next when a user clicks on a node
@@ -1934,7 +1937,7 @@ M.block_ajax_marking.users_tree = function () {
 
 // make the users tree into a subclass of the base class
 YAHOO.lang.extend(M.block_ajax_marking.users_tree, M.block_ajax_marking.tree_base,
-                  {initial_nodes_data : 'nextnodefilter=userid'});
+                  {initial_nodes_data : 'userid=nextnodefilter'});
 
 /**
  * Constructor for the config tree
@@ -1955,7 +1958,7 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
     /**
      * Sent when the tree is first loaded in order to get the first nodes
      */
-    initial_nodes_data : 'nextnodefilter=courseid&config=1',
+    initial_nodes_data : 'courseid=nextnodefilter&config=1',
 
     /**
      * Sent when the tree asks for any AJAX data

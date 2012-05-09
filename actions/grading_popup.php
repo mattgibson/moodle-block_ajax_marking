@@ -37,6 +37,9 @@ $params = array();
 foreach ($_GET as $name => $value) {
     $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
 }
+if (empty($params)) {
+    die('No parmeters supplied');
+}
 
 $cmid = required_param('coursemoduleid', PARAM_INT);
 $nodeid = required_param('node', PARAM_INT);
