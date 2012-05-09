@@ -2321,6 +2321,9 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
                     errormessage += ajaxresponsearray.stacktrace;
                 }
                 M.block_ajax_marking.show_error(errormessage);
+                // The tree will fail to expand its nodes after refresh unless we tell it
+                // that this operation to expand a node worked.
+                currenttab.displaywidget.locked = false;
             }
 
         } else if (typeof(ajaxresponsearray['gradinginterface']) !== 'undefined') {
