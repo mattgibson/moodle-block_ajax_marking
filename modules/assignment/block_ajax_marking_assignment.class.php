@@ -420,6 +420,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * @param $data
      * @global $PAGE
      * @global $CFG
+     * @return string
      */
     private function save_files($assignment, $submission, $data) {
         global $PAGE, $CFG;
