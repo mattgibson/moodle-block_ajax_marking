@@ -305,37 +305,21 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                         '*', MUST_EXIST);
         $grading_info = grade_get_grades($coursemodule->course, 'mod', 'assignment',
                                          $assignment->id, $data->userid);
+        $submission = $DB->get_record('assignment_submissions',
+                                      array('assignment' => $assignment->id,
+                                            'userid' => $data->userid), '*', MUST_EXIST);
+
+        // If 'revert to draft' has been clicked, we want a confirm button only.
+        // We don't want to return yet because the main use case is to comment/grade and then
+        // ask the student to improve.
+        if (!empty($data->unfinalize)) {
+            $this->unfinalise_submission($submission, $assignment, $coursemodule, $course);
+        }
 
         if (!$grading_info) {
             return 'Could not retrieve grading info.';
         }
-
-        // If 'revert to draft' has been clicked, we want a confirm button only.
-        if (!empty($data->unfinalize)) {
-
-            $updated = new stdClass();
-            $updated->id = $submission->id;
-            $updated->data2 = '';
-            $DB->update_record('assignment_submissions', $updated);
-
-            $submission->data2 = '';
-
-            // Load up the required assignment code.
-            require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
-                '/assignment.class.php');
-            $assignmentclass = 'assignment_'.$assignment->assignmenttype;
-
-            /*
-             * @var assignment_base $assignmentinstance
-             */
-            $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
-                                                       $coursemodule, $course);
-            $assignmentinstance->update_grade($submission);
-
-            return '';
-        }
-
-        // Check to see if grade has been locked or overridden.
+        // Check to see if grade has been locked or overridden. If so, we can't save anything.
         if (($grading_info->items[0]->grades[$data->userid]->locked ||
             $grading_info->items[0]->grades[$data->userid]->overridden) ) {
             return 'Grade is locked or overridden';
@@ -346,8 +330,9 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
             $this->save_outcomes($assignment, $grading_info, $data);
         }
 
-        if (!$grading_info) {
-            return 'Could not retrieve grading info.';
+        $submission = $this->save_submission($submission, $data);
+        if (!$submission) {
+            return 'Problem saving feedback';
         }
 
         // Trigger grade event to update gradebook.
@@ -363,25 +348,54 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
             $this->save_files($assignment, $submission, $data);
         }
 
-        return true;
+        return '';
+    }
+
+    /**
+     * Puts the submission back in a state where the student can edit the files.
+     *
+     * @param $submission
+     * @param $assignment
+     * @param $coursemodule
+     * @param $course
+     */
+    private function unfinalise_submission($submission, $assignment, $coursemodule, $course) {
+
+        global $DB, $CFG;
+
+        $updated = new stdClass();
+        $updated->id = $submission->id;
+        $updated->data2 = '';
+        $DB->update_record('assignment_submissions', $updated);
+
+        $submission->data2 = '';
+
+        // Load up the required assignment code.
+        require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
+            '/assignment.class.php');
+        $assignmentclass = 'assignment_'.$assignment->assignmenttype;
+
+        /*
+        * @var assignment_base $assignmentinstance
+        */
+        $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
+                                                   $coursemodule, $course);
+        $assignmentinstance->update_grade($submission);
     }
 
     /**
      * Adds extra info to the submission record and returns the modified record.
      *
-     * @param $assignment
+     * @param $submission
      * @param $data
      * @global $DB
      * @global $USER
      * @return bool
      */
-    private function save_submission($assignment, $data) {
+    private function save_submission($submission, $data) {
 
         global $DB, $USER;
 
-        $submission = $DB->get_record('assignment_submissions',
-                                      array('assignment' => $assignment->id,
-                                            'userid' => $data->userid), '*', MUST_EXIST);
         $submission->grade = $data->xgrade;
         $submission->submissioncomment = $data->submissioncomment_editor['text'];
         $submission->teacher = $USER->id;
