@@ -627,6 +627,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
             this.set_count(itemcount);
 
         } else {
+            haschanged = true;
             this.tree.hide_context_menu_before_node_removal(this);
             this.tree.removeNode(this, true);
         }
