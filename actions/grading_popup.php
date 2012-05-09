@@ -101,9 +101,9 @@ if ($data && confirm_sesskey()) {
         $PAGE->set_pagelayout('popup');
 
         echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
-        $callfunction = '
-            window.opener.M.block_ajax_marking.remove_node_from_current_tab('.$nodeid.');
-        ';
+        $callfunction = "
+            window.opener.M.block_ajax_marking.remove_node_from_current_tab({$nodeid});
+        ";
         $PAGE->requires->js_init_code($callfunction, false);
 
         close_window(1);
