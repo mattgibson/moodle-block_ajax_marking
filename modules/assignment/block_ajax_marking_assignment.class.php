@@ -104,7 +104,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         global $PAGE, $CFG, $DB, $OUTPUT, $USER;
 
-        require_once($CFG->dirroot.'/grade/grading/lib.php');
+//        require_once($CFG->dirroot.'/grade/grading/lib.php');
         require_once($CFG->libdir.'/gradelib.php');
         require_once("$CFG->dirroot/repository/lib.php");
 
@@ -231,37 +231,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                 'return_types' => FILE_INTERNAL);
         }
 
-        $advancedgradingwarning = false;
-        $gradingmanager = get_grading_manager($context, 'mod_assignment', 'submission');
-        if ($gradingmethod = $gradingmanager->get_active_method()) {
-            $controller = $gradingmanager->get_controller($gradingmethod);
-            if ($controller->is_form_available()) {
-                $itemid = null;
-                if (!empty($submission->id)) {
-                    $itemid = $submission->id;
-                }
-                if ($gradingdisabled && $itemid) {
-                    $mformdata->advancedgradinginstance =
-                        $controller->get_current_instance($USER->id, $itemid);
-                    return array($mformdata,
-                                 $advancedgradingwarning);
-                } else if (!$gradingdisabled) {
-                    $instanceid = optional_param('advancedgradinginstanceid', 0, PARAM_INT);
-                    $mformdata->advancedgradinginstance =
-                        $controller->get_or_create_instance($instanceid, $USER->id, $itemid);
-                    return array($mformdata,
-                                 $advancedgradingwarning);
-                }
-                return array($mformdata,
-                              $advancedgradingwarning);
-            } else {
-                $advancedgradingwarning = $controller->form_unavailable_notification();
-                return array($mformdata,
-                             $advancedgradingwarning);
-            }
-        }
-        return array($mformdata,
-                     $advancedgradingwarning);
+        return $mformdata;
     }
 
     /**

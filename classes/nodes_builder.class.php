@@ -392,7 +392,7 @@ SQL;
          */
         $contexts = array();
         foreach (array_keys($coursemoduleids) as $cmid) {
-            $contexts[] = context_module::instance($cmid);
+            $contexts[] = get_context_instance(CONTEXT_MODULE, $cmid);
         }
         // Use has_capability to loop through them finding out which are blocked. Unset all that we
         // have permission to grade, leaving just those we are not allowed (smaller list). Hopefully
