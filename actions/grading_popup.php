@@ -81,6 +81,9 @@ $PAGE->set_url($url);
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('popup');
 
+// Do this here, so we can have a redirect if necessary.
+$htmlstuff = $moduleobject->grading_popup($params, $coursemodule);
+
 echo $OUTPUT->header();
 
 // Stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be
@@ -145,7 +148,7 @@ $PAGE->requires->js_init_code($code);
 
 // Don't display the form again if it was submitted.
 if (!$data) {
-    echo $moduleobject->grading_popup($params, $coursemodule);
+    echo $htmlstuff;
 }
 
 echo $OUTPUT->footer();
