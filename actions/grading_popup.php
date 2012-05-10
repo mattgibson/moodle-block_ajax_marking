@@ -31,24 +31,24 @@ require_once(dirname(__FILE__).'/../../../config.php');
 global $DB, $OUTPUT, $CFG, $PAGE;
 
 // Each popup request will have different stuff that we want to pass to
-// $moduleobject->grading_popup()
+// $moduleobject->grading_popup().
 $params = array();
 // Use GET to discriminate between submitted form stuff and url stuff. optional_param() doesn't.
 foreach ($_GET as $name => $value) {
     $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
+}
+if (empty($params)) {
+    die('No parmeters supplied');
 }
 
 $cmid = required_param('coursemoduleid', PARAM_INT);
 $nodeid = required_param('node', PARAM_INT);
 
 $coursemodule = $DB->get_record('course_modules', array('id' => $cmid));
-/** @var string $modname  */
+/* @var string $modname  */
 $modname = $DB->get_field('modules', 'name', array('id' => $coursemodule->module));
 
-// Page may need custom javascript.
-//$PAGE->require();
-
-//permissions checks
+// Permissions checks.
 if (!$coursemodule) {
     print_error('Bad coursemoduleid');
     die();
@@ -56,7 +56,7 @@ if (!$coursemodule) {
 require_login($coursemodule->course, false, $coursemodule);
 $context = get_context_instance(CONTEXT_MODULE, $cmid);
 
-/** @define "$blockdir" "../" */
+/* @define $blockdir "../" */
 $blockdir = $CFG->dirroot.'/blocks/ajax_marking/';
 require_once($blockdir.'lib.php');
 require_once($blockdir.'classes/module_base.class.php');
@@ -67,39 +67,11 @@ if (!class_exists($classname)) {
     print_error('AJAX marking block does not support the '.$modname.' module');
     die();
 }
-/** @var $moduleobject block_ajax_marking_module_base   */
+/* @var $moduleobject block_ajax_marking_module_base   */
 $moduleobject = new $classname;
 if (!has_capability($moduleobject->capability, $context)) {
     print_error('You do not have permission to grade submissions for this course module');
     die();
-}
-
-// stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be
-// processed
-$data = data_submitted();
-
-if ($data && confirm_sesskey()) {
-
-    // make sure this includes require_login() in order to set page context properly
-    $error = $moduleobject->process_data($data, $params);
-
-    // If success, notify and print a close button.
-    if (!is_string($error)) {
-
-        $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php',
-                              array('module' => $modname));
-        $PAGE->set_url($url);
-        $PAGE->set_pagelayout('popup');
-
-        echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
-        $callfunction = 'window.opener.M.block_ajax_marking.remove_node_from_current_tab('.$nodeid.'); ';
-        $PAGE->requires->js_init_code($callfunction, true);
-
-        close_window(1);
-    }
-
-    // Otherwise, display the error and fall through to re-display the form.
-    echo $OUTPUT->notification($error);
 }
 
 // Get the pop up header etc ready. This allows us the separate the interface (form) from
@@ -109,7 +81,44 @@ $PAGE->set_url($url);
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('popup');
 
-// Make sure that whatever happens, we lose the tree highlight when the pop up shuts
+// Do this here, so we can have a redirect if necessary.
+$htmlstuff = $moduleobject->grading_popup($params, $coursemodule);
+
+echo $OUTPUT->header();
+
+// Stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be
+// processed. Also catches all other submitted form data.
+$data = data_submitted();
+
+if ($data && confirm_sesskey()) {
+
+    // Make sure this includes require_login() in order to set page context properly.
+    $error = $moduleobject->process_data($data, $params);
+
+    // If success (empty string), notify and print a close button.
+    if (empty($error)) {
+
+        $url = new moodle_url('/blocks/ajax_marking/actions/grading_popup.php',
+                              array('module' => $modname));
+        $PAGE->set_url($url);
+        $PAGE->set_pagelayout('popup');
+
+        echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
+        $callfunction = "
+            window.opener.M.block_ajax_marking.remove_node_from_current_tab({$nodeid});
+        ";
+        $PAGE->requires->js_init_code($callfunction, false);
+
+        close_window(1);
+    } else if ($error != 'displayagain') {
+        // May have a specific second step e.g. confirm revert to draft, so we allow fall-through.
+        // Otherwise, display the error and fall through to re-display the form.
+        echo $OUTPUT->notification($error);
+    }
+
+}
+
+// Make sure that whatever happens, we lose the tree highlight when the pop up shuts.
 $code = "
     window.onbeforeunload = function(e) {
         // YAHOO.util.Event.addListener(window, 'beforeunload', function(args) {
@@ -137,9 +146,9 @@ $code = "
 ";
 $PAGE->requires->js_init_code($code);
 
-// may involve a redirect if we don't want a form
-$content = $moduleobject->grading_popup($params, $coursemodule);
+// Don't display the form again if it was submitted.
+if (!$data) {
+    echo $htmlstuff;
+}
 
-echo $OUTPUT->header();
-echo $content;
 echo $OUTPUT->footer();

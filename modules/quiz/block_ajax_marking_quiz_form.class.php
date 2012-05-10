@@ -42,7 +42,7 @@ class block_ajax_marking_quiz_form extends moodleform {
 
     public function definition() {
 
-        global $DB, $OUTPUT;
+        global $OUTPUT;
 
         $mform =& $this->_form;
 
@@ -58,28 +58,29 @@ class block_ajax_marking_quiz_form extends moodleform {
                             userdate($this->_customdata->submission->timemodified) .
                             $this->_customdata->lateness );
 
-        // Now come multiple (possibly) question comment fields
+        // Now come multiple (possibly) question comment fields.
 
-        // use $atemptobj->get_questions($arrayofquestionis) for this
+        // Use $attemptobj->get_questions($arrayofquestionis) for this.
 
         foreach ($this->_customdata->questions as $questionid => $question) {
 
             $mform->addElement('header', 'question'.$questionid,
                                get_string('question', 'modulename'));
 
-            // Display question text
+            // Display question text.
 
-            // Display user's answer
+            // Display user's answer.
 
-            // Display comment form
+            // Display comment form.
             $mform->addElement('editor', 'comment['.$questionid.']',
                                get_string('comment', 'quiz').':',
                                null, $this->get_editor_options() );
 
-            // Display grade selector
+            // Display grade selector.
             $grademenu = make_grades_menu($question->grade);
             $grademenu['-1'] = get_string('nograde');
             // TODO broken!
+            $attributes = array();
             $mform->addElement('select', 'grade['.$questionid.']',
                                get_string('grade').':', $grademenu, $attributes);
 

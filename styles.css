@@ -175,10 +175,12 @@ table.ygtvtable {
     margin: 0 7px 3px 7px;
 }
 #block_ajax_marking .refreshbutton {
-    width: 25px;
+    /*width: 25px;*/
     /*border-right: 1px solid #000;*/
-    height: 100%;
+    /*height: 100%;*/
     float: left;
+    /*padding-top: 1px;*/
+    /*width: 20px;*/
 }
 #block_ajax_marking .statusdiv {
     padding-left: 4px;
@@ -189,12 +191,19 @@ table.ygtvtable {
     width: 12px;
     margin: 2px;
 }
+#block_ajax_marking #coursesrefresh_button,
+#block_ajax_marking #configrefresh_button,
+#block_ajax_marking #cohortsrefresh_button {
+    margin-top: 1px;
+}
 #block_ajax_marking #coursesrefresh_button-button,
 #block_ajax_marking #configrefresh_button-button,
 #block_ajax_marking #cohortsrefresh_button-button {
-    padding: 2px;
-    height: auto;
+    padding: 0 3px 1px 3px;
+    line-height: 1;
+    height: 21px;
     font-size: 0;
+    width: 21px;
 }
 #block_ajax_marking .countspan {
     font-weight: bold;
@@ -202,12 +211,10 @@ table.ygtvtable {
 #block_ajax_marking .treetabheader {
     border-bottom: 1px solid #c3c3c3;
 }
-#block_ajax_marking .refreshbutton {
-    padding-top: 1px;
-}
 #block_ajax_marking .statusdiv {
     margin-top: 3px;
     padding-left: 5px;
+    margin-left: 2px;
 }
 #block_ajax_marking #configtabicon {
     width: 11px;
@@ -240,6 +247,3 @@ table.ygtvtable {
 #block_ajax_marking .ygtvdepth4 div.nodelabelwrapper div.nodelabel:hover {
     width: 40%;
 }
-
-
-

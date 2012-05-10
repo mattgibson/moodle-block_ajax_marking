@@ -63,8 +63,8 @@ $string['errorcontactadmin']     = 'Error: Please contact your administrator.';
 $string['cog']                   = 'Configuration icon';
 $string['sessiontimedout']       = 'Your session has timed out. Please <a href="{$a}/login/index.php">log in again</a>';
 
-// Specific to modules
+// Specific to modules.
 
-// Forum
+// Forum.
 $string['forummarkcomplete'] = 'Mark this discussion as done. It will reappear in the block '.
                                'if further items are posted.';

@@ -51,15 +51,15 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
 
         // TODO why did the IDE put that $reference bit into the docblock?
 
-        // must be the same as the DB modulename
-        $this->modulename        = $this->moduletable = 'journal';
-        // doesn't seem to be a journal capability :s
+        // Must be the same as the DB modulename.
+        $this->modulename        = 'journal';
+        // Doesn't seem to be a journal capability.
         $this->capability  = 'mod/assignment:grade';
         // How many nodes in total when fully expanded (no groups)?
-        // function to trigger for the third level nodes (might be different if there are four
+        // function to trigger for the third level nodes (might be different if there are four.
         $this->icon        = 'mod/journal/icon.gif';
 
-        // call parent constructor with the same arguments
+        // Call parent constructor with the same arguments.
         call_user_func_array(array($this, 'parent::__construct'), func_get_args());
     }
 
@@ -74,7 +74,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
     public function submissions($journalid) {
 
         global $USER, $DB;
-        // need to get course id in order to retrieve students
+        // Need to get course id in order to retrieve students.
         $journal = $DB->get_record('journal', array('id' => $journalid));
         $courseid = $journal->course;
 
@@ -113,7 +113,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
 
         // TODO: does this work with 'journal' rather than 'journal_final'?
 
-        return;
+        return $submissions;
     }
 
     /**
@@ -150,7 +150,7 @@ class block_ajax_marking_journal extends block_ajax_marking_module_base {
                 'alias' => 'sub',
                 'on' => 'sub.journal = moduletable.id'
         ));
-        // Standard userid for joins
+        // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
 
