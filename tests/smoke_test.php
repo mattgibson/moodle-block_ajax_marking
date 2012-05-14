@@ -23,7 +23,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-class smoke_testcase extends PHPUnit_TestCase {
+class smoke_testcase extends PHPUnit_Framework_TestCase {
     public function test_equals() {
         $a = 1 + 2;
         $this->assertEquals(3, $a);
