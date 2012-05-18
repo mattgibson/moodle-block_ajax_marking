@@ -445,6 +445,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 class block_ajax_marking_forum_discussionid extends block_ajax_marking_filter_base {
 
     /**
+     * Adds SQL for when there is a discussion node as an ancestor of the current nodes.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      * @param int $discussionid
@@ -461,6 +463,8 @@ class block_ajax_marking_forum_discussionid extends block_ajax_marking_filter_ba
     }
 
     /**
+     * Adds SQL to construct a set of discussion nodes.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      */

@@ -23,7 +23,14 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+/**
+ * Tests to see if testing infrastructure is running OK.
+ */
 class smoke_testcase extends basic_testcase {
+
+    /**
+     * Basic test to see if we can get it all working.
+     */
     public function test_equals() {
         $a = 1 + 2;
         $this->assertEquals(3, $a);

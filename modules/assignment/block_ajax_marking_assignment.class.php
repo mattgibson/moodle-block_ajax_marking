@@ -536,6 +536,9 @@ class block_ajax_marking_assignment_userid extends block_ajax_marking_filter_bas
     }
 
     /**
+     * Makes user nodes for the assignment modules by grouping them and then adding in the right
+     * text to describe them.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      */

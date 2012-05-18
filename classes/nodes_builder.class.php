@@ -181,10 +181,10 @@ class block_ajax_marking_nodes_builder {
     }
 
     /**
-     * @static
      * Uses the list of filters supplied by AJAX to find functions within this class and the
      * module classes which will modify the query
      *
+     * @static
      * @param array $filters
      * @param block_ajax_marking_query_base $query which will have varying levels of nesting
      * @param bool $config flag to tell us if this is the config tree, which has a differently
