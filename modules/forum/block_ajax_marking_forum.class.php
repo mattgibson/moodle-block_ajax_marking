@@ -144,10 +144,10 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * See parent class for docs
      *
      * @param object $submission
-     * @param int $forumid
+     * @param int $moduleinstanceid
      * @return string
      */
-    protected function submission_title(&$submission, $forumid) {
+    protected function submission_title(&$submission, $moduleinstanceid) {
 
         global $DB;
 
@@ -156,7 +156,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         static $iseachuser;
 
         if (!isset($iseachuser)) {
-            $type = $DB->get_field('forum', 'type', array('id' => $forumid));
+            $type = $DB->get_field('forum', 'type', array('id' => $moduleinstanceid));
             $iseachuser = ($type == 'eachuser') ? true : false;
         }
 
