@@ -173,9 +173,10 @@ abstract class block_ajax_marking_module_base {
      * allows modules to override the default label text of the node, which is the user's name.
      *
      * @param object $submission
+     * @param int $moduleinstanceid
      * @return string
      */
-    protected function submission_title(&$submission) {
+    protected function submission_title(&$submission, $moduleinstanceid) {
         $title = fullname($submission);
         unset($submission->firstname, $submission->lastname);
         return $title;
