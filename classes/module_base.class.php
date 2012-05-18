@@ -19,15 +19,19 @@ if (!defined('MOODLE_INTERNAL')) {
 }
 
 /**
- * This class forms the basis of the objects that hold and process the module data. The aim is for
- * node data to be returned ready for output in JSON or HTML format. Each module that's active will
- * provide a class definition in it's modname_grading.php file, which will extend this base class
- * and add methods specific to that module which can return the right nodes.
+ * Class file for module_base
  *
  * @package    block
  * @subpackage ajax_marking
  * @copyright  2008 Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+/**
+ * This class forms the basis of the objects that hold and process the module data. The aim is for
+ * node data to be returned ready for output in JSON or HTML format. Each module that's active will
+ * provide a class definition in it's modname_grading.php file, which will extend this base class
+ * and add methods specific to that module which can return the right nodes.
  */
 abstract class block_ajax_marking_module_base {
 
