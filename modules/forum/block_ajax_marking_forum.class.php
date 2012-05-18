@@ -313,8 +313,9 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * in need of marking unless the posts date from beyond this point in time.
      *
      * @param $data
+     * @param $params
      */
-    public function process_data($data) {
+    public function process_data($data, $params) {
 
         // Validate everything.
 
