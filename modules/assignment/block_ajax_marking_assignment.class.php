@@ -146,7 +146,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                                       $mformdata);
         $submitform->set_data($mformdata);
 
-        // Make the actual page output
+        // Make the actual page output.
         $PAGE->set_title($course->fullname . ': ' .get_string('feedback', 'assignment').' - '.
                          fullname($user, true));
         $heading = get_string('feedback', 'assignment').': '.fullname($user, true);
