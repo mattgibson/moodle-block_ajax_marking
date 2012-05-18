@@ -14,9 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-if (!defined('MOODLE_INTERNAL')) {
-    die();
-}
 
 /**
  * Class file for module_base
@@ -26,6 +23,10 @@ if (!defined('MOODLE_INTERNAL')) {
  * @copyright  2008 Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
+
+if (!defined('MOODLE_INTERNAL')) {
+    die();
+}
 
 /**
  * This class forms the basis of the objects that hold and process the module data. The aim is for
