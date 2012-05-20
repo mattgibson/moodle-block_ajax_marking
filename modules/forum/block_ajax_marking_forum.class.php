@@ -57,80 +57,25 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
 
     /**
-     * Puts all the generation of the sql for 'is this person not a teacher in this course' This is
-     * so that anything already marked by another teacher will not show up.
+     * Checks to make sure that it has not been rated by anyone else.
      *
-     * Assumes that it is part of a larger query with course aliased as c
-     *
-     * @internal param int $forumid
-     * @return array named parameters
+     * @return array sql and named parameters
      */
     private function get_teacher_sql() {
 
         global $USER;
 
-        // Making a where not exists to make sure the rating is not a teacher.
-        // assume that the main query has a 'course c' and 'ratings r' clause in FROM.
-
-        // Correlated sub query for the where should be OK if the joins only give a small number of
-        // rows.
-
-        /*
-          Role_assignment -> context -> cat1 -> coursecategory
-                                     -> cat1 -> coursecategory
-        */
-
-        // Possible use cases:
-        // - Only teacher rate things
-        // - Teachers and students rate things
-        // Checks to make sure that it has not been rated by anyone else.
         $params = array();
         $notmyrating = "NOT EXISTS (SELECT 1
-                                      FROM {ratings} ratings
-                                     WHERE ratings.component = 'mod_forum'
-                                       AND ratings.contextid = forumcontext.id
-                                       AND ratings.ratingarea = 'post'
-                                       AND ratings.itemid = sub.id
-                                       AND ratings.userid != :forumratinguserid
+                                      FROM {rating} rating
+                                     WHERE rating.component = 'mod_forum'
+                                       AND rating.contextid = forumcontext.id
+                                       AND rating.ratingarea = 'post'
+                                       AND rating.itemid = sub.id
+                                       AND rating.userid != :forumratinguserid
                                       )";
         $params['forumratinguserid'] = $USER->id;
 
-        $categorylevels = block_ajax_marking_get_number_of_category_levels();
-
-        // Get category and course role assignments separately.
-        // For category level, we look for users with a role assignment where the context instance
-        // can be left joined to any category that's a parent of the supplied course.
-        $select = "NOT EXISTS( SELECT 1
-                                 FROM {role_assignments} ra
-                           INNER JOIN {context} cx
-                                   ON ra.contextid = cx.id
-                           INNER JOIN {course_categories} cat1
-                                   ON cx.instanceid = cat1.id) ";
-
-        $selectwhere = array('course.category = cat1.id');
-
-        for ($i = 2; $i <= $categorylevels; $i++) {
-
-            $onebefore = $i - 1;
-            $select .= "LEFT JOIN {course_categories} cat{$i}
-                                   ON cat{$onebefore}.parent = cat{$i}.id ";
-            $selectwhere[] =      "course.category = cat{$i}.id";
-
-        }
-
-        $select .= 'WHERE('.implode(' OR ', $selectwhere).') ';
-        $select .= 'AND ra.userid = r.userid
-                    AND cx.contextlevel = '.CONTEXT_COURSECAT.' ';
-        $select .=    " UNION
-
-                       SELECT 1
-                         FROM {role_assignments} ra
-                   INNER JOIN {context} cx
-                           ON ra.contextid = cx.id
-                        WHERE cx.contextlevel = ".CONTEXT_COURSE."
-                          AND ra.userid = r.userid
-                          AND cx.instanceid = course.id
-                        ) ";
         return array($notmyrating, $params);
     }
 
@@ -376,14 +321,14 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $query->add_from(array(
                 'table' => 'course_modules',
                 'alias' => 'forumcoursemodules',
-                'on' => 'discussions.id = forumcoursemodules.instanceid '.
+                'on' => 'discussions.id = forumcoursemodules.instance '.
                         'AND forumcoursemodules.module = '.$this->get_module_id()
         ));
         $query->add_from(array(
                 'table' => 'context',
                 'alias' => 'forumcontext',
-                'on' => 'forumcoursemodules.id = context.instanceid '.
-                        'AND context.contextlevel = '.CONTEXT_MODULE
+                'on' => 'forumcoursemodules.id = forumcontext.instanceid '.
+                        'AND forumcontext.contextlevel = '.CONTEXT_MODULE
         ));
         // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
@@ -404,7 +349,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                            {$notmyratingsql}
                             AND ( ( ".$DB->sql_compare_text('moduletable.type')." != 'eachuser')
                                   OR ( ".$DB->sql_compare_text('moduletable.type')." = 'eachuser'
-                                       AND sub.id = discussions.firstpost))"));
+                                       AND sub.id = discussions.firstpost)))"));
         $query->add_where(array(
                                'type' => 'AND',
                                'condition' => '( (moduletable.assesstimestart = 0) OR
