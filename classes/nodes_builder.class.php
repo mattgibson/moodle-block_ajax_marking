@@ -38,6 +38,7 @@ define('BLOCK_AJAX_MARKING_TEN_DAYS', 864000);
 
 global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/bulk_context_module.class.php');
 
 /**
  * This is to build a query based on the parameters passed in from the client. Without parameters,
@@ -373,38 +374,40 @@ SQL;
                 'on' => 'course.id = course_modules.course'
         ));
 
-        // Get coursemoduleids for all items of this type in all courses as one query. Won't come
-        // back empty or else we would not have gotten this far.
-        $courses = block_ajax_marking_get_my_teacher_courses();
-        // TODO Note that change to login as... in another tab may break this. Needs testing.
-        list($coursesql, $params) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
-        // Get all course modules the current user could potentially access.
-        $sql = "SELECT id
-                  FROM {course_modules}
-                 WHERE course {$coursesql}";
-        // No point caching - only one request per module per page request...
-        $coursemoduleids = $DB->get_records_sql($sql, $params);
-
-        // Get all contexts (will cache them). This is expensive and hopefully has been cached in
-        // the session already, so we take advantage of it.
-        /*
-         * @var array $contexts PHPDoc needs updating for get_context_instance()
-         */
-        $contexts = array();
-        foreach (array_keys($coursemoduleids) as $cmid) {
-            $contexts[] = context_module::instance($cmid);
-        }
-        // Use has_capability to loop through them finding out which are blocked. Unset all that we
-        // have permission to grade, leaving just those we are not allowed (smaller list). Hopefully
-        // this will never exceed 1000 (oracle hard limit on number of IN values).
         $mods = block_ajax_marking_get_module_classes();
         $modids = array();
         foreach ($mods as $mod) {
             $modids[] = $mod->get_module_id(); // Save these for later.
+        }
+
+        // Get coursemoduleids for all items of this type in all courses as one query. Won't come
+        // back empty or else we would not have gotten this far.
+        $courses = block_ajax_marking_get_my_teacher_courses();
+        // TODO Note that change to login as... in another tab may break this. Needs testing.
+        list($coursesql, $courseparams) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
+        list($modsql, $modparams) = $DB->get_in_or_equal(array_keys($modids), SQL_PARAMS_NAMED);
+        $params = array_merge($courseparams, $modparams);
+        // Get all course modules the current user could potentially access. Limit to the enabled
+        // mods. We could use
+        $sql = "SELECT context.*
+                  FROM {context} context
+            INNER JOIN {course_modules} course_modules
+                    ON context.instanceid = course_modules.id
+                   AND context.contextlevel = ".CONTEXT_MODULE."
+                 WHERE course_modules.course {$coursesql}
+                   AND course_modules.module {$modsql}";
+        // No point caching - only one request per module per page request...
+        $contexts = $DB->get_records_sql($sql, $params);
+
+        // Use has_capability to loop through them finding out which are blocked. Unset all that we
+        // have permission to grade, leaving just those we are not allowed (smaller list). Hopefully
+        // this will never exceed 1000 (oracle hard limit on number of IN values).
+        foreach ($mods as $mod) {
             foreach ($contexts as $key => $context) {
                 // If we don't find any capabilities for a context, it will remain and be excluded
-                // from the SQL. Hopefully this will be a small list.
-                if (has_capability($mod->get_capability(), $context)) { // This is cached, so fast.
+                // from the SQL. Hopefully this will be a small list. n.b. the list is of all
+                // course modules
+                if (has_capability($mod->get_capability(), new bulk_context_module($context))) {
                     unset($contexts[$key]);
                 }
             }
