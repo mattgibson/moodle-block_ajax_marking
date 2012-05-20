@@ -321,7 +321,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $query->add_from(array(
                 'table' => 'course_modules',
                 'alias' => 'forumcoursemodules',
-                'on' => 'discussions.id = forumcoursemodules.instance '.
+                'on' => 'moduletable.id = forumcoursemodules.instance '.
                         'AND forumcoursemodules.module = '.$this->get_module_id()
         ));
         $query->add_from(array(
