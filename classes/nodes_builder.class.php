@@ -159,7 +159,7 @@ class block_ajax_marking_nodes_builder {
 
         // Adds the config settings if there are any, so that we
         // know what the current settings are for the context menu.
-        self::apply_sql_config_settings($displayquery, $nextnodefilter);
+        self::attach_config_settings($displayquery, $nextnodefilter);
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
@@ -181,10 +181,10 @@ class block_ajax_marking_nodes_builder {
     }
 
     /**
-     * @static
      * Uses the list of filters supplied by AJAX to find functions within this class and the
      * module classes which will modify the query
      *
+     * @static
      * @param array $filters
      * @param block_ajax_marking_query_base $query which will have varying levels of nesting
      * @param bool $config flag to tell us if this is the config tree, which has a differently
@@ -303,11 +303,11 @@ class block_ajax_marking_nodes_builder {
         $hidden = <<<SQL
     (
         ( NOT EXISTS (SELECT NULL
-                FROM {groups_members} groups_members
-          INNER JOIN {groups} groups
-                  ON groups_members.groupid = groups.id
-               WHERE groups_members.userid = moduleunion.userid
-                 AND groups.courseid = moduleunion.course)
+                        FROM {groups_members} groups_members
+                  INNER JOIN {groups} groups
+                          ON groups_members.groupid = groups.id
+                       WHERE groups_members.userid = moduleunion.userid
+                         AND groups.courseid = moduleunion.course)
 
           AND ( COALESCE(cmconfig.showorphans,
                          courseconfig.showorphans,
@@ -696,7 +696,7 @@ SQL;
      * @param string $nextnodefilter
      * @return void
      */
-    private static function apply_sql_config_settings(block_ajax_marking_query_base $query,
+    private static function attach_config_settings(block_ajax_marking_query_base $query,
                                                       $nextnodefilter = '') {
 
         if (!$nextnodefilter) {
