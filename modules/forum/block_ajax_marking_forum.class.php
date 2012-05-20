@@ -194,6 +194,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                                       '*', MUST_EXIST);
         $cm         = get_coursemodule_from_instance('forum', $forum->id, $course->id,
                                                      false, MUST_EXIST);
+        $modcontext = context_module::instance($cm->id);
 
         // Security - cmid is used to check context permissions earlier on, so it must match when
         // derived from the discussion.
@@ -294,13 +295,10 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         global $DB, $USER;
 
         $query = new block_ajax_marking_query_base($this);
+        // This currently does a simple check for whether or not the current user has added a
+        // rating or not. No scope for another teacher to do all the marking, or some of it.
         list($notmyratingsql, $notmyratingparams) = $this->get_teacher_sql();
         $query->add_params($notmyratingparams);
-
-        // TODO this is broken - I think multiple ratings per post will make multiple submissions
-        // appear.
-        // TODO Ought to be NOT EXISTS(). OR will it be OK as it disregards the rows with
-        // other users?
 
         $query->add_from(array(
                 'table' => 'forum_posts',
