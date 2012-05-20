@@ -159,7 +159,7 @@ class block_ajax_marking_nodes_builder {
 
         // Adds the config settings if there are any, so that we
         // know what the current settings are for the context menu.
-        self::apply_sql_config_settings($displayquery, $nextnodefilter);
+        self::attach_config_settings($displayquery, $nextnodefilter);
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
@@ -696,7 +696,7 @@ SQL;
      * @param string $nextnodefilter
      * @return void
      */
-    private static function apply_sql_config_settings(block_ajax_marking_query_base $query,
+    private static function attach_config_settings(block_ajax_marking_query_base $query,
                                                       $nextnodefilter = '') {
 
         if (!$nextnodefilter) {
