@@ -147,7 +147,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                                       $mformdata);
         $submitform->set_data($mformdata);
 
-        // Make the actual page output
+        // Make the actual page output.
         $PAGE->set_title($course->fullname . ': ' .get_string('feedback', 'assignment').' - '.
                          fullname($user, true));
         $heading = get_string('feedback', 'assignment').': '.fullname($user, true);
@@ -270,7 +270,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                         array('id' => $params['coursemoduleid']),
                                         '*',
                                         MUST_EXIST);
-        $course = $DB->get_record('course', array('id' => $coursemodule->course));
+        $course = $DB->get_record('course', array('id' => $coursemodule->course), '*', MUST_EXIST);
         $assignment   = $DB->get_record('assignment', array('id' => $coursemodule->instance),
                                         '*', MUST_EXIST);
         $grading_info = grade_get_grades($coursemodule->course, 'mod', 'assignment',
@@ -296,9 +296,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         }
 
         // Save outcomes if necessary.
-        if (!empty($CFG->enableoutcomes)) {
-            $this->save_outcomes($assignment, $grading_info, $data);
-        }
+        $this->save_outcomes($assignment, $grading_info, $data);
 
         $submission = $this->save_submission($submission, $data);
         if (!$submission) {
@@ -314,9 +312,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                    $data->userid, $coursemodule->id);
 
         // Save files if necessary.
-        if (!is_null($data)) {
-            $this->save_files($assignment, $submission, $data);
-        }
+        $this->save_files($assignment, $submission, $data);
 
         return '';
     }
@@ -438,8 +434,16 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * @param $assignment
      * @param $grading_info
      * @param $data
+     * @return void
      */
     private function save_outcomes($assignment, $grading_info, $data) {
+
+        global $CFG;
+
+        if (empty($CFG->enableoutcomes)) {
+            return;
+        }
+
         $outcomedata = array();
         $userid = $data->userid;
 
@@ -536,6 +540,9 @@ class block_ajax_marking_assignment_userid extends block_ajax_marking_filter_bas
     }
 
     /**
+     * Makes user nodes for the assignment modules by grouping them and then adding in the right
+     * text to describe them.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      */

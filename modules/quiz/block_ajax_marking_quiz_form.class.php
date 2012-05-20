@@ -40,6 +40,9 @@ require_once($CFG->dirroot.'/lib/formslib.php');
  */
 class block_ajax_marking_quiz_form extends moodleform {
 
+    /**
+     * Defines the elements of the form used to mark a quiz submission.
+     */
     public function definition() {
 
         global $OUTPUT;
@@ -91,8 +94,5 @@ class block_ajax_marking_quiz_form extends moodleform {
 
     }
 
-    public function process_data() {
-
-    }
 
 }

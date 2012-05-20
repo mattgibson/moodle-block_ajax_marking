@@ -32,16 +32,56 @@ defined('MOODLE_INTERNAL') || die();
  */
 interface block_ajax_marking_query {
 
+    /**
+     * Returns an SQL string for the SELECT part of the query after joining together all the bits
+     * of the select array.
+     *
+     * @abstract
+     * @return mixed
+     */
     public function get_select();
 
+    /**
+     * Returns an SQL string for the FROM part of the query after joining together all the bits
+     * of the from array.
+     *
+     * @abstract
+     * @return mixed
+     */
     public function get_from();
 
+    /**
+     * Returns an SQL string for the WHERE part of the query after joining together all the bits
+     * of the where array.
+     *
+     * @abstract
+     * @return mixed
+     */
     public function get_where();
 
+    /**
+     * Returns an SQL string for the ORDER BY part of the query after joining together all the bits
+     * of the orderby array.
+     *
+     * @abstract
+     * @return mixed
+     */
     public function get_orderby();
 
+    /**
+     * Returns all the params for this query, including subqueries.
+     *
+     * @abstract
+     * @return mixed
+     */
     public function get_params();
 
+    /**
+     * Runs the query using standard Moodle DB functions and returns the result.
+     *
+     * @abstract
+     * @return mixed
+     */
     public function execute();
 
 }

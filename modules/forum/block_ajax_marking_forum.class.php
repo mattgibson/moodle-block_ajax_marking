@@ -144,10 +144,10 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * See parent class for docs
      *
      * @param object $submission
-     * @param int $forumid
+     * @param int $moduleinstanceid
      * @return string
      */
-    protected function submission_title(&$submission, $forumid) {
+    protected function submission_title(&$submission, $moduleinstanceid) {
 
         global $DB;
 
@@ -156,7 +156,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         static $iseachuser;
 
         if (!isset($iseachuser)) {
-            $type = $DB->get_field('forum', 'type', array('id' => $forumid));
+            $type = $DB->get_field('forum', 'type', array('id' => $moduleinstanceid));
             $iseachuser = ($type == 'eachuser') ? true : false;
         }
 
@@ -313,8 +313,9 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * in need of marking unless the posts date from beyond this point in time.
      *
      * @param $data
+     * @param $params
      */
-    public function process_data($data) {
+    public function process_data($data, $params) {
 
         // Validate everything.
 
@@ -444,6 +445,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 class block_ajax_marking_forum_discussionid extends block_ajax_marking_filter_base {
 
     /**
+     * Adds SQL for when there is a discussion node as an ancestor of the current nodes.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      * @param int $discussionid
@@ -460,6 +463,8 @@ class block_ajax_marking_forum_discussionid extends block_ajax_marking_filter_ba
     }
 
     /**
+     * Adds SQL to construct a set of discussion nodes.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      */

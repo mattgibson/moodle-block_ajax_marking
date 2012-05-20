@@ -14,6 +14,16 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
+
+/**
+ * Class file for module_base
+ *
+ * @package    block
+ * @subpackage ajax_marking
+ * @copyright  2008 Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
 if (!defined('MOODLE_INTERNAL')) {
     die();
 }
@@ -23,11 +33,6 @@ if (!defined('MOODLE_INTERNAL')) {
  * node data to be returned ready for output in JSON or HTML format. Each module that's active will
  * provide a class definition in it's modname_grading.php file, which will extend this base class
  * and add methods specific to that module which can return the right nodes.
- *
- * @package    block
- * @subpackage ajax_marking
- * @copyright  2008 Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
- * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 abstract class block_ajax_marking_module_base {
 
@@ -173,9 +178,10 @@ abstract class block_ajax_marking_module_base {
      * allows modules to override the default label text of the node, which is the user's name.
      *
      * @param object $submission
+     * @param int $moduleinstanceid
      * @return string
      */
-    protected function submission_title(&$submission) {
+    protected function submission_title(&$submission, $moduleinstanceid) {
         $title = fullname($submission);
         unset($submission->firstname, $submission->lastname);
         return $title;
@@ -235,9 +241,11 @@ abstract class block_ajax_marking_module_base {
      * This function will take the data returned by the grading popup and process it. Not always
      * implemented as not all modules have a grading popup yet
      *
+     * @param $data
+     * @param $params
      * @return string
      */
-    public function process_data() {
+    public function process_data($data, $params) {
         return '';
     }
 
