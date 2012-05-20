@@ -118,30 +118,17 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                             'userid' => $params['userid']), '*', MUST_EXIST);
         $course         = $DB->get_record('course', array('id' => $assignment->course));
         $coursemodule   = $DB->get_record('course_modules', array('id' => $coursemodule->id));
-        $context        = context_module::instance($coursemodule->id);
         $user           = $DB->get_record('user', array('id' => $submission->userid),
                                           '*', MUST_EXIST);
 
-        // Load up the required assignment code.
-        require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
-                     '/assignment.class.php');
-        $assignmentclass = 'assignment_'.$assignment->assignmenttype;
-        $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
-                                                   $coursemodule, $course);
-        $assignmentinstance->preprocess_submission($submission);
+        $assignmentinstance = $this->get_assignment_instance($assignment, $coursemodule, $course);
 
-        // Get grading information to see whether we should be allowed to make changed at all.
-        $grading_info = grade_get_grades($course->id, 'mod', 'assignment',
-                                         $assignment->id, array($user->id));
-        $locked = $grading_info->items[0]->grades[$user->id]->locked;
-        $overridden = $grading_info->items[0]->grades[$user->id]->overridden;
-        $gradingdisabled = $locked || $overridden;
+        $assignmentinstance->preprocess_submission($submission);
 
         // Sort out the form ready to tell it to display.
         list($mformdata, $advancedgradingwarning) =
-            $this->get_mform_data_object($context, $course, $assignment, $submission, $user,
-                                         $coursemodule, $grading_info, $gradingdisabled,
-                                         $assignmentinstance, $USER, $CFG);
+            $this->get_mform_data_object($course, $assignment, $submission, $user,
+                                         $coursemodule, $assignmentinstance);
         $submitform = new mod_assignment_grading_form(block_ajax_marking_form_url($params),
                                                       $mformdata);
         $submitform->set_data($mformdata);
@@ -172,26 +159,49 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     }
 
     /**
-     * Prepares the data for the grading form
+     * Load up the required assignment code.
      *
-     * @param $context
+     * @param $assignment
+     * @param $coursemodule
+     * @param $course
+     * @return mixed
+     */
+    private function get_assignment_instance($assignment, $coursemodule, $course) {
+        global $CFG;
+
+        require_once($CFG->dirroot.'/mod/assignment/type/'.$assignment->assignmenttype.
+            '/assignment.class.php');
+        $assignmentclass = 'assignment_'.$assignment->assignmenttype;
+        $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
+                                                   $coursemodule, $course);
+        return $assignmentinstance;
+    }
+
+    /**
+     * Prepares the data for the grading form.
+     *
      * @param $course
      * @param $assignment
      * @param $submission
      * @param $user
      * @param $coursemodule
-     * @param $grading_info
-     * @param $gradingdisabled
-     * @param $assignmentinstance
+     * @param assignment_base $assignmentinstance
      * @global $USER
      * @global $CFG
      * @return array
      */
-    private function get_mform_data_object($context, $course, $assignment, $submission, $user,
-                                          $coursemodule, $grading_info, $gradingdisabled,
-                                          $assignmentinstance) {
+    private function get_mform_data_object($course, $assignment, $submission, $user,
+                                          $coursemodule, $assignmentinstance) {
 
         global $USER, $CFG;
+
+        $context = context_module::instance($coursemodule->id);
+        // Get grading information to see whether we should be allowed to make changed at all.
+        $grading_info = grade_get_grades($course->id, 'mod', 'assignment',
+                                         $assignment->id, array($user->id));
+        $locked = $grading_info->items[0]->grades[$user->id]->locked;
+        $overridden = $grading_info->items[0]->grades[$user->id]->overridden;
+        $gradingdisabled = $locked || $overridden;
 
         $mformdata = new stdClass();
         $mformdata->context = $context;
@@ -236,6 +246,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $advancedgradingwarning = false;
         $gradingmanager = get_grading_manager($context, 'mod_assignment', 'submission');
         if ($gradingmethod = $gradingmanager->get_active_method()) {
+            // This returns a gradingform_controller instance.
             $controller = $gradingmanager->get_controller($gradingmethod);
             if ($controller->is_form_available()) {
                 $itemid = null;
@@ -310,6 +321,9 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $submission = $DB->get_record('assignment_submissions',
                                       array('assignment' => $assignment->id,
                                             'userid' => $data->userid), '*', MUST_EXIST);
+        $user = $DB->get_record('user', array('id' => $data->userid),
+                                '*', MUST_EXIST);
+        $assignmentinstance = $this->get_assignment_instance($assignment, $coursemodule, $course);
 
         // If 'revert to draft' has been clicked, we want a confirm button only.
         // We don't want to return yet because the main use case is to comment/grade and then
@@ -327,8 +341,37 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
             return 'Grade is locked or overridden';
         }
 
+        // Advanced grading if enabled. From assignment_base->validate_and_process_feedback().
+        // Sort out the form ready to tell it to display.
+        list($mformdata, $advancedgradingwarning) =
+            $this->get_mform_data_object($course, $assignment, $submission, $user,
+                                         $coursemodule, $assignmentinstance);
+        $submitform = new mod_assignment_grading_form(block_ajax_marking_form_url($params),
+                                                      $mformdata);
+        $submitform->set_data($mformdata);
+        if ($submitform->is_submitted()) {
+            // Form was submitted (= a submit button other than 'cancel' or 'next' has been
+            // clicked).
+            if (!$submitform->is_validated()) {
+                return false;
+            }
+            $gradinginstance = $submitform->use_advanced_grading();
+            // Preprocess advanced grading here.
+            if ($gradinginstance) {
+                $formdata = $submitform->get_data();
+                // Create submission if it did not exist yet because we need submission->id for
+                // storing the grading instance.
+                $advancedgrading = $formdata->advancedgrading;
+                // Calculates the gradebook grade based on the rubrics.
+                $data->xgrade = $gradinginstance->submit_and_get_grade($advancedgrading,
+                                                                       $submission->id);
+            }
+        }
+
         // Save outcomes if necessary.
-        $this->save_outcomes($assignment, $grading_info, $data);
+        if (!empty($CFG->enableoutcomes)) {
+            $assignmentinstance->process_outcomes($data->userid);
+        }
 
         $submission = $this->save_submission($submission, $data);
         if (!$submission) {
