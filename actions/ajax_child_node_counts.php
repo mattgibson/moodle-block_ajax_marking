@@ -34,7 +34,6 @@ require_once(dirname(__FILE__).'/../../../config.php');
 global $CFG, $PAGE;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/output.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
 
