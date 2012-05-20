@@ -303,11 +303,11 @@ class block_ajax_marking_nodes_builder {
         $hidden = <<<SQL
     (
         ( NOT EXISTS (SELECT NULL
-                FROM {groups_members} groups_members
-          INNER JOIN {groups} groups
-                  ON groups_members.groupid = groups.id
-               WHERE groups_members.userid = moduleunion.userid
-                 AND groups.courseid = moduleunion.course)
+                        FROM {groups_members} groups_members
+                  INNER JOIN {groups} groups
+                          ON groups_members.groupid = groups.id
+                       WHERE groups_members.userid = moduleunion.userid
+                         AND groups.courseid = moduleunion.course)
 
           AND ( COALESCE(cmconfig.showorphans,
                          courseconfig.showorphans,
