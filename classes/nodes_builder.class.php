@@ -238,12 +238,12 @@ class block_ajax_marking_nodes_builder {
      * Finds out whether there is a method provided by the modules that overrides the core ones.
      *
      * @static
-     * @param block_ajax_marking_module_base $moduleclass
+     * @param block_ajax_marking_module_base|bool $moduleclass
      * @param $classnamesuffix
      * @param $filterfunctionname
      * @return bool|string
      */
-    private static function module_override_available(block_ajax_marking_module_base $moduleclass,
+    private static function module_override_available($moduleclass,
                                                       $classnamesuffix,
                                                       $filterfunctionname) {
 
