@@ -28,7 +28,9 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-define('AJAX_SCRIPT', true);
+if (!defined('AJAX_SCRIPT')) {
+    define('AJAX_SCRIPT', true);
+}
 
 require_once(dirname(__FILE__).'/../../../config.php');
 
@@ -36,7 +38,6 @@ require_once(dirname(__FILE__).'/../../../config.php');
 global $CFG, $PAGE;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/output.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
 

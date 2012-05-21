@@ -396,6 +396,9 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 class block_ajax_marking_quiz_questionid extends block_ajax_marking_filter_base {
 
     /**
+     * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
+     * nodes.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      * @param int $questionid
@@ -421,11 +424,9 @@ class block_ajax_marking_quiz_questionid extends block_ajax_marking_filter_base 
     }
 
     /**
-     * @static
-     * We can add this as we can be sure that we are only looking at quiz nodes, so there
-     * will be no other modules being added with UNION, so they won't all need the same
-     * columns for the UNION to work.
+     * Makes a set of question nodes by grouping submissions by questionid.
      *
+     * @static
      * @param block_ajax_marking_query_base $query
      */
     public static function nextnodetype_filter($query) {
@@ -438,6 +439,9 @@ class block_ajax_marking_quiz_questionid extends block_ajax_marking_filter_base 
                                               'column' => 'id',
                                               'alias' => 'questionid'
                                          ));
+        // We can add this as we can be sure that we are only looking at quiz nodes, so there
+        // will be no other modules being added with UNION, so they won't all need the same
+        // columns for the UNION to work.
         $countwrapper->add_select(array(
                                        'table' => 'moduleunion',
                                        'column' => 'questionid',
@@ -471,6 +475,9 @@ class block_ajax_marking_quiz_questionid extends block_ajax_marking_filter_base 
 class block_ajax_marking_quiz_userid extends block_ajax_marking_filter_base {
 
     /**
+     * Adds SQL for when there is a userid node as an ancestor of the current nodes. Unlikely to
+     * be used.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      * @param int $userid
@@ -486,6 +493,9 @@ class block_ajax_marking_quiz_userid extends block_ajax_marking_filter_base {
     }
 
     /**
+     * Makes a bunch of user nodes by grouping quiz submissions by the user id. The grouping is
+     * automatic, but the text labels for the nodes are specified here.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      */
