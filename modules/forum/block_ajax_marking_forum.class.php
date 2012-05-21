@@ -194,7 +194,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                                       '*', MUST_EXIST);
         $cm         = get_coursemodule_from_instance('forum', $forum->id, $course->id,
                                                      false, MUST_EXIST);
-        $modcontext = context_module::instance($cm->id);
+        $modcontext = get_context_instance(CONTEXT_MODULE, $cm->id);
 
         // Security - cmid is used to check context permissions earlier on, so it must match when
         // derived from the discussion.

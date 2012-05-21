@@ -38,7 +38,6 @@ define('BLOCK_AJAX_MARKING_TEN_DAYS', 864000);
 
 global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/bulk_context_module.class.php');
 
 /**
  * This is to build a query based on the parameters passed in from the client. Without parameters,
@@ -239,12 +238,13 @@ class block_ajax_marking_nodes_builder {
      * Finds out whether there is a method provided by the modules that overrides the core ones.
      *
      * @static
-     * @param $moduleclass
+     * @param block_ajax_marking_module_base|bool $moduleclass
      * @param $classnamesuffix
      * @param $filterfunctionname
      * @return bool|string
      */
-    private static function module_override_available($moduleclass, $classnamesuffix,
+    private static function module_override_available($moduleclass,
+                                                      $classnamesuffix,
                                                       $filterfunctionname) {
 
         // If we are filtering by a specific module, look there first.
@@ -407,7 +407,7 @@ SQL;
                 // If we don't find any capabilities for a context, it will remain and be excluded
                 // from the SQL. Hopefully this will be a small list. n.b. the list is of all
                 // course modules
-                if (has_capability($mod->get_capability(), new bulk_context_module($context))) {
+                if (has_capability($mod->get_capability(), $context)) {
                     unset($contexts[$key]);
                 }
             }
