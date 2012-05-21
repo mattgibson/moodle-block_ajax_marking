@@ -14,19 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
- * Keeps track of the version number
+ * This is to use as a basic always-passes test to get the test harness working.
  *
  * @package    block
  * @subpackage ajax_marking
- * @copyright  2010 Matt Gibson
- * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
+ * @copyright  2012 Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$plugin->version = 2012052100;
-$plugin->maturity = MATURITY_BETA;
-$plugin->requires = 2011070100; // 2.1.
-$plugin->component = 'block_ajax_marking';
-$plugin->release = '2.1.5b11';
+/**
+ * Tests to see if testing infrastructure is running OK.
+ */
+class smoke_testcase extends basic_testcase {
+
+    /**
+     * Basic test to see if we can get it all working.
+     */
+    public function test_equals() {
+        $a = 1 + 2;
+        $this->assertEquals(3, $a);
+    }
+}

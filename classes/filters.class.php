@@ -212,6 +212,8 @@ class block_ajax_marking_coursemoduleid extends block_ajax_marking_filter_base {
     }
 
     /**
+     * Makes SQL for the text labels for the course nodes.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      */
@@ -322,6 +324,8 @@ class block_ajax_marking_coursemoduleid extends block_ajax_marking_filter_base {
 class block_ajax_marking_groupid extends block_ajax_marking_filter_base {
 
     /**
+     * Adds SQL for when there is a group node as an ancestor of the nodes currently being made.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      * @param int $groupid
@@ -337,6 +341,8 @@ class block_ajax_marking_groupid extends block_ajax_marking_filter_base {
     }
 
     /**
+     * Makes the SQL to add in stuff for the text labels on group nodes.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      */
@@ -616,7 +622,8 @@ SQL;
 class block_ajax_marking_cohortid extends block_ajax_marking_filter_base {
 
     /**
-     * Apply WHERE clause.
+     * Apply WHERE clause in case there is a cohort node as ancestor of the current nodes.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      * @param int $cohortid
@@ -635,6 +642,8 @@ class block_ajax_marking_cohortid extends block_ajax_marking_filter_base {
     }
 
     /**
+     * Make SQL to add the stuff for text labels of cohort nodes.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      */
@@ -669,6 +678,9 @@ class block_ajax_marking_cohortid extends block_ajax_marking_filter_base {
     }
 
     /**
+     * Need to join whatever we have to the users table so we can find out whether a particular
+     * submission should be in one cohort or another.
+     *
      * @static
      * @param block_ajax_marking_query_base $query
      */
