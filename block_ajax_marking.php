@@ -46,31 +46,31 @@ class block_ajax_marking extends block_base {
             // role check bit borrowed from block_narking, thanks to Mark J Tyers [ZANNET]
             $context = get_context_instance(CONTEXT_COURSE, $course->id);
 
-                // check for editing teachers
-                $teachers = get_role_users($teacher_role, $context, true);
-                $correct_role = false;
-                if ($teachers) {
-                    foreach($teachers as $teacher) {
-                        if ($teacher->id == $USER->id) {
-                                $correct_role = true;
-                        }
-                    }
-                }
-                // check for non-editing teachers
-                $teachers_ne = get_role_users($ne_teacher_role, $context, true);
-                if ($teachers_ne) {
-                    foreach($teachers_ne as $teacher) {
-                        if ($teacher->id == $USER->id) {
+            // check for editing teachers
+            $teachers = get_role_users($teacher_role, $context, true);
+            $correct_role = false;
+            if ($teachers) {
+                foreach($teachers as $teacher) {
+                    if ($teacher->id == $USER->id) {
                             $correct_role = true;
-                        }
                     }
                 }
-                // skip this course if no teacher or teacher_non_editing role
-                if (!$correct_role) {
-                    continue;
+            }
+            // check for non-editing teachers
+            $teachers_ne = get_role_users($ne_teacher_role, $context, true);
+            if ($teachers_ne) {
+                foreach($teachers_ne as $teacher) {
+                    if ($teacher->id == $USER->id) {
+                        $correct_role = true;
+                    }
                 }
+            }
+            // skip this course if no teacher or teacher_non_editing role
+            if (!$correct_role) {
+                continue;
+            }
 
-                $coursecheck++;
+            $coursecheck++;
 
         }
         if ($coursecheck>0) {
