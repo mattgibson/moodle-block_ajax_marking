@@ -61,6 +61,11 @@ class block_ajax_marking extends block_base {
      */
     public function get_content() {
 
+        if (!isloggedin()) {
+            // Save all the DB stuff for the non-logged in front page.
+            return false;
+        }
+
         if ($this->content !== null) {
             return $this->content;
         }
