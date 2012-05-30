@@ -1677,7 +1677,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     /**
      * Tell other trees they need a refresh. Subclasses to override
      */
-    notify_refresh_needed : function() {
+    notify_refresh_needed_after_config : function() {
 
     },
 
@@ -1758,6 +1758,13 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
                                            ' class="refreshicon"'+
                                            ' alt="'+M.str.block_ajax_marking.refresh+'" />');
         this.tab.refreshbutton.blur();
+    },
+
+    /**
+     * Tells other trees that stuff may have disappeared and that they therefore needs to be
+     * refreshed to avoid being stale. Subclasses to override.
+     */
+    notify_refresh_needed_after_marking : function() {
     }
 
 
@@ -1855,9 +1862,16 @@ YAHOO.lang.extend(M.block_ajax_marking.courses_tree, M.block_ajax_marking.tree_b
     /**
      * Tell other trees they need a refresh. Subclasses to override
      */
-    notify_refresh_needed : function () {
+    notify_refresh_needed_after_config : function () {
         M.block_ajax_marking.configtab_tree.set_needs_refresh(true);
         // M.block_ajax_marking.cohorts_tree.set_refresh_needed(true);
+    },
+
+    /**
+     * Tells other trees to refresh after marking.
+     */
+    notify_refresh_needed_after_marking : function () {
+        M.block_ajax_marking.cohortstab_tree.set_needs_refresh(true);
     }
 
 });
@@ -1930,6 +1944,13 @@ YAHOO.lang.extend(M.block_ajax_marking.cohorts_tree, M.block_ajax_marking.tree_b
         }
 
         return nextnodefilter;
+    },
+
+    /**
+     * Tells other trees to refresh after marking.
+     */
+    notify_refresh_needed_after_marking : function () {
+        M.block_ajax_marking.coursestab_tree.set_needs_refresh(true);
     }
 
 });
@@ -2042,7 +2063,7 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
     /**
      * Tell other trees they need a refresh. Subclasses to override
      */
-    notify_refresh_needed : function () {
+    notify_refresh_needed_after_config : function () {
         M.block_ajax_marking.coursestab_tree.set_needs_refresh(true);
     },
 
@@ -2353,7 +2374,7 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
                 }
 
                 // Notify other trees to refresh now that settings have changed
-                M.block_ajax_marking.get_current_tab().displaywidget.notify_refresh_needed();
+                M.block_ajax_marking.get_current_tab().displaywidget.notify_refresh_needed_after_config();
             }
         }
     }
