@@ -2087,6 +2087,14 @@ YAHOO.lang.extend(M.block_ajax_marking.config_tree, M.block_ajax_marking.tree_ba
             // function call to it's loadComplete() function.
             this.add_groups_buttons();
         }
+    },
+
+    /**
+     * Does not need refresh after marking, so deliberately empty. Should never be called, but here
+     * in order to fulfil Liskov principle.
+     */
+    notify_refresh_needed_after_marking : function() {
+
     }
 });
 
@@ -2602,6 +2610,7 @@ M.block_ajax_marking.remove_node_from_current_tab = function (node) {
     }
 
     currenttree.remove_node(node.index);
+    currenttree.notify_refresh_needed_after_marking();
 };
 
 /**
