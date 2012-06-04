@@ -383,8 +383,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         assignment_update_grades($assignment, $data->userid);
 
         add_to_log($coursemodule->course, 'assignment', 'update grades',
-                   'submissions.php?id='.$coursemodule->id.'&user='.$data->userid,
-                   $data->userid, $coursemodule->id);
+               'submissions.php?id='.$coursemodule->id.'&user='.$data->userid,
+               $data->userid, $coursemodule->id);
 
         // Save files if necessary.
         $this->save_files($assignment, $submission, $data);
@@ -550,6 +550,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      */
     public function query_factory() {
 
+        global $DB;
+
         $query = new block_ajax_marking_query_base($this);
 
         $query->add_from(array(
@@ -575,12 +577,15 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // Second bit of first bit: has been resubmitted
         // Third bit: if it's advanced upload, only care about the first bit if 'send for marking'
         // was clicked.
+        $commentstring = $DB->sql_compare_text('sub.submissioncomment');
+        $assignmenttypestring = $DB->sql_compare_text('moduletable.assignmenttype');
+        $datastring = $DB->sql_compare_text('sub.data2');
         $query->add_where(array('type' => 'AND',
                                 'condition' =>
-                                "( (sub.grade = -1 AND sub.submissioncomment = '') OR
+                                "( (sub.grade = -1 AND {$commentstring} = '') OR
                                    (moduletable.resubmit = 1 AND (sub.timemodified > sub.timemarked)) )
-                                 AND ( moduletable.assignmenttype != 'upload'
-                                       OR (moduletable.assignmenttype = 'upload' AND sub.data2 = 'submitted')) "));
+                                 AND ( {$assignmenttypestring} != 'upload'
+                                       OR ({$assignmenttypestring} = 'upload' AND {$datastring} = 'submitted')) "));
 
         // TODO only sent for marking.
 

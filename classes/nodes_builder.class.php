@@ -782,7 +782,8 @@ SQL;
             return array(); // No nodes.
         }
 
-        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
+        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters) &&
+                                  $filters['coursemoduleid'] != 'nextnodefilter';
 
         // If one of the filters is coursemodule, then we want to avoid querying all of the module
         // tables and just stick to the one with that coursemodule. If not, we do a UNION of all
