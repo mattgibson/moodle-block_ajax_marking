@@ -110,7 +110,11 @@ if ($data && confirm_sesskey()) {
         $PAGE->requires->js_init_code($callfunction, false);
 
         close_window(1);
+    } else if ($error != 'cancel') {
+        // Close the window immediately
+
     } else if ($error != 'displayagain') {
+
         // May have a specific second step e.g. confirm revert to draft, so we allow fall-through.
         // Otherwise, display the error and fall through to re-display the form.
         echo $OUTPUT->notification($error);
@@ -120,6 +124,21 @@ if ($data && confirm_sesskey()) {
 
 // Make sure that whatever happens, we lose the tree highlight when the pop up shuts.
 $code = "
+
+    function close_window_and_remove_node_highlight(nodeid) {
+        // Get tree
+        var tab = window.opener.M.block_ajax_marking.get_current_tab();
+        var tree = tab.displaywidget;
+
+        // get node
+        var node = tree.getNodeByIndex(nodeid);
+
+        if (node !== null) {
+            // un-highlight node
+            node.unhighlight();
+        }
+    }
+
     window.onbeforeunload = function(e) {
         // YAHOO.util.Event.addListener(window, 'beforeunload', function(args) {
 
@@ -127,22 +146,31 @@ $code = "
         // e.returnValue = msg; // most browsers
         // return msg; // safari
 
-        // Get tree
-        var tab = window.opener.M.block_ajax_marking.get_current_tab();
-        var tree = tab.displaywidget;
-
-        // get node
-        var node = tree.getNodeByIndex({$nodeid});
-
-        if (node !== null) {
-            // un-highlight node
-            node.unhighlight();
-        }
+        close_window_and_remove_node_highlight({$nodeid});
 
         // Don't remove the node here because the window may just have been closed with no marking
         // done. We want to keep the tree node in this case.
 
     };
+
+    // Makes sure that any cancel button on screen will close the window after removing the tree
+    // highlight
+    YUI().use('event', function (Y) {
+        var button = Y.one('#id_cancel');
+
+        // Subscribe to its click event with a callback function.
+        button.on('click', function (e) {
+
+            e.preventDefault();
+
+            close_window_and_remove_node_highlight({$nodeid});
+
+            window.close();
+            return false;
+
+        });
+    });
+
 ";
 $PAGE->requires->js_init_code($code);
 
