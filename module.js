@@ -713,8 +713,6 @@ M.block_ajax_marking.initialise = function () {
         configtab.displaywidget.tab = configtab; // reference to allow links back to tab from tree
 
         configtab.displaywidget.render();
-//        configtab.displaywidget.subscribe('clickEvent',
-//                                          M.block_ajax_marking.config_treenodeonclick);
         // We want the dropdown for the current node to hide when an expand action happens (if it's
         // open)
         configtab.displaywidget.subscribe('expand', M.block_ajax_marking.hide_open_menu);
