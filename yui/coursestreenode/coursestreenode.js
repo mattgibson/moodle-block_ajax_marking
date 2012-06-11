@@ -14,9 +14,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * YUI3 JavaScript module for the nodes in the marking tree. This acts as a base which the config
- * tree overrides. This subclasses the textnode to make a node that will have an icon, and methods
- * to get.
+ * YUI3 JavaScript module for the nodes in the courses tree.
  *
  * @package    block
  * @subpackage ajax_marking
