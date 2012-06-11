@@ -14,7 +14,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Javascript for the AJAX Marking block base tree, which other trees extend.
+ * YUI3 JavaScript module for the cohorts tree.
  *
  * @package    block
  * @subpackage ajax_marking
@@ -46,7 +46,7 @@ YUI.add('moodle-block_ajax_marking-cohortstree', function (Y) {
         /**
          * This is to control what node the cohorts tree asks for next when a user clicks on a node
          *
-         * @param {M.block_ajax_marking.tree_node} node
+         * @param {M.block_ajax_marking.markingtreenode} node
          * @return string|bool false if nothing
          */
         nextnodetype : function (node) {
@@ -117,7 +117,7 @@ YUI.add('moodle-block_ajax_marking-cohortstree', function (Y) {
     M.block_ajax_marking.cohortstree = COHORTSTREE;
 
 }, '1.0', {
-    requires : ['moodle-block_ajax_marking-markingtree']
+    requires : ['moodle-block_ajax_marking-markingtree', 'moodle-block_ajax_marking-markingtreenode']
 });
 
 

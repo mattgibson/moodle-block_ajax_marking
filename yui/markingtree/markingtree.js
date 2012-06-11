@@ -14,7 +14,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Javascript for the AJAX Marking block base tree, which other trees extend.
+ * YUI3 JavaScript module for the base tree, which other trees extend.
  *
  * @package    block
  * @subpackage ajax_marking
@@ -45,7 +45,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
         /**
          * Subclasses may wish to have different nodes.
          */
-        nodetype : M.block_ajax_marking.tree_node,
+        nodetype : M.block_ajax_marking.markingtreenode,
 
         /**
          * New unified build nodes function.
@@ -381,7 +381,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
     M.block_ajax_marking.markingtree = MARKINGTREE;
 
 }, '1.0', {
-    requires : ['yui2-treeview']
+    requires : ['yui2-treeview', 'moodle-block_ajax_marking-markingtreenode']
 });
 
 
