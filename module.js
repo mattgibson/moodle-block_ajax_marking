@@ -96,206 +96,8 @@ M.block_ajax_marking.groups_menu_button_render = function() {
 };
 
 
-M.block_ajax_marking.context_menu_base = function (p_oElement, p_oConfig) {
-    M.block_ajax_marking.context_menu_base.superclass.constructor.call(this, p_oElement, p_oConfig);
-};
-YAHOO.lang.extend(M.block_ajax_marking.context_menu_base, YAHOO.widget.ContextMenu, {
-
-    /**
-     * Gets the groups from the course node and displays them in the contextmenu.
-     *
-     * Coming from an onclick in the context menu, so 'this' is the contextmenu instance.
-     */
-    load_settings : function () {
-
-        // Make the settings items and make sure they reflect the current settings as stored in the
-        // tree node.
-        var groups,
-            target,
-            clickednode,
-            currentfilter;
-
-        this.clearContent();
-
-        target = this.contextEventTarget;
-        clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
-        this.clickednode = clickednode; // Makes it easier later.
-        groups = clickednode.get_groups();
-
-        // We don't want to allow the context menu for items that we can't hide yet. Right now it
-        // only applies to courses and course modules.
-        currentfilter = clickednode.get_current_filter_name();
-        if (currentfilter !== 'courseid' &&
-            currentfilter !== 'coursemoduleid' &&
-            currentfilter !== 'groupid') {
-
-            this.cancel();
-            return false;
-        }
-
-        this.make_setting_menuitem('display', clickednode);
-
-        // If there are no groups, no need to show the groups settings. Also if there are no
-        // child nodes e.g. for workshop, or if this is a group node itself.
-        if (currentfilter !== 'groupid' &&
-            clickednode.isDynamic() && groups.length) {
-
-            this.make_setting_menuitem('groupsdisplay', clickednode);
-
-            if (groups.length) {
-                // Wipe all groups out of the groups sub-menu.
-                M.block_ajax_marking.contextmenu_add_groups_to_menu(this, clickednode);
-                // Enable the menu item, since we have groups in it.
-            }
-        }
-
-        this.render();
-        clickednode.highlight(); // So the user knows what node this menu is for.
-    },
-
-    /**
-     * Make sure the item reflects the current settings as stored in the tree node.
-     *
-     * @param {string} settingname
-     * @param {YAHOO.widget.HTMLNode} clickednode
-     */
-    make_setting_menuitem : function (settingname, clickednode) {
-
-        var menuitem,
-            title,
-            checked,
-            currentsetting,
-            defaultsetting;
-
-        switch (settingname) {
-
-            case 'display':
-                title = M.str.block_ajax_marking.show;
-                menuitem = {
-                    onclick : { fn : M.block_ajax_marking.contextmenu_setting_onclick,
-                        obj : {'settingtype' : 'display'} },
-                    checked : true,
-                    id : 'block_ajax_marking_context_show',
-                    value : {}};
-                break;
-
-            case 'groupsdisplay':
-                title = M.str.block_ajax_marking.showgroups;
-                menuitem = {
-                    onclick : { fn : M.block_ajax_marking.contextmenu_setting_onclick,
-                        obj : {'settingtype' : 'groupsdisplay'} },
-                    checked : false,
-                    id : 'block_ajax_marking_context_showgroups',
-                    value : {}};
-                break;
-
-            case 'groups':
-                title = M.str.block_ajax_marking.choosegroups+':';
-                menuitem = {
-                    classname : 'nocheck'
-                };
-                break;
-        }
-
-        menuitem = new YAHOO.widget.ContextMenuItem(title, menuitem);
-        menuitem = this.addItem(menuitem);
-
-        if (clickednode.get_current_filter_name() === 'groupid') {
-            clickednode = clickednode.parent;
-        }
-
-        if (settingname !== 'groups') {
-            checked = false;
-            currentsetting = clickednode.get_config_setting(settingname);
-            if (currentsetting !== null) {
-                checked = currentsetting ? true : false;
-                if (M.block_ajax_marking.showinheritance) {
-                    menuitem.cfg.setProperty("classname", 'notinherited');
-                }
-            } else {
-                defaultsetting = clickednode.get_default_setting(settingname);
-                checked = defaultsetting ? true : false;
-                if (M.block_ajax_marking.showinheritance) {
-
-                    menuitem.cfg.setProperty("classname", 'inherited');
-                }
-            }
-            menuitem.cfg.setProperty('checked', checked);
-        }
-
-        return menuitem;
-    },
-
-    ajaxcallback : function() {
-        // No need for action. Nothing more to update. Drop-down is different.
-    }
-});
 
 
-/**
- * Handles the clicks on the config tree icons so that they can toggle settings state
- *
- * @param {object} data
- */
-M.block_ajax_marking.config_treenodeonclick = function (data) {
-
-    var clickednode = data.node,
-        settingtype;
-
-    YAHOO.util.Event.stopEvent(data.event); // Stop it from expanding the tree
-
-    // is the clicked thing an icon that needs to trigger some thing?
-    var target = YAHOO.util.Event.getTarget(data.event); // the img
-    target = target.parentNode.parentNode; // the spacer <div> -> the <td>
-
-    var coursenodeclicked = false;
-    if (clickednode.get_current_filter_name() == 'courseid') {
-        coursenodeclicked = true;
-    }
-
-    if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_display_icon')) {
-        settingtype = 'display';
-    } else if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_groupsdisplay_icon')) {
-        settingtype = 'groupsdisplay';
-    } else if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_groups_icon')) {
-        settingtype = 'groups';
-        return false;
-    } else {
-        // Not one of the ones we want. ignore this click
-        return false;
-    }
-
-    var currentsetting = clickednode.get_config_setting(settingtype);
-    var defaultsetting = clickednode.get_default_setting(settingtype);
-    var settingtorequest = 1;
-    // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
-    // This means we want to assume that it needs to be the opposite of the default if there is
-    // no current setting.
-    if (currentsetting === null) {
-        settingtorequest = defaultsetting ? 0 : 1;
-    } else {
-        // There is an existing setting. The user toggled from the default last time, so
-        // will want to toggle back to default. No point deliberately making a setting when we can
-        // just use the default, leaving more flexibility if the defaults are changed (rare)
-        settingtorequest = null;
-    }
-
-    // do the AJAX request for the settings change
-    // gather data
-    var requestdata = {};
-    requestdata.nodeindex = clickednode.index;
-    requestdata.settingtype = settingtype;
-    if (settingtorequest !== null) { // leaving out defaults to null on the other end
-        requestdata.settingvalue = settingtorequest;
-    }
-    requestdata.tablename = coursenodeclicked ? 'course' : 'course_modules';
-    requestdata.instanceid = clickednode.get_current_filter_value();
-
-    // send request
-    M.block_ajax_marking.save_setting_ajax_request(requestdata, clickednode);
-
-    return false;
-};
 
 /**
  * OnClick handler for the nodes of the tree. Attached to the root node in order to catch all events
@@ -953,8 +755,8 @@ M.block_ajax_marking.initialise = function () {
         configtab.displaywidget.tab = configtab; // reference to allow links back to tab from tree
 
         configtab.displaywidget.render();
-        configtab.displaywidget.subscribe('clickEvent',
-                                          M.block_ajax_marking.config_treenodeonclick);
+//        configtab.displaywidget.subscribe('clickEvent',
+//                                          M.block_ajax_marking.config_treenodeonclick);
         // We want the dropdown for the current node to hide when an expand action happens (if it's
         // open)
         configtab.displaywidget.subscribe('expand', M.block_ajax_marking.hide_open_menu);
@@ -980,7 +782,7 @@ M.block_ajax_marking.initialise = function () {
         // - show/hide toggle
         // - show/hide group nodes
         // - submenu to show/hide specific groups
-        coursestab.contextmenu = new M.block_ajax_marking.context_menu_base(
+        coursestab.contextmenu = new M.block_ajax_marking.contextmenu(
             "maincontextmenu",
             {
                 trigger : "coursestree",

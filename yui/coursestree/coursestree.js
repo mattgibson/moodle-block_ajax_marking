@@ -146,7 +146,9 @@ YUI.add('moodle-block_ajax_marking-coursestree', function (Y) {
     M.block_ajax_marking.coursestree = COURSESTREE;
 
 }, '1.0', {
-    requires : ['moodle-block_ajax_marking-markingtree', 'moodle-block_ajax_marking-coursestreenode']
+    requires : ['moodle-block_ajax_marking-markingtree',
+                'moodle-block_ajax_marking-coursestreenode',
+                'moodle-block_ajax_marking-contextmenu']
 });
 
 
