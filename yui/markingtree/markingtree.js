@@ -34,6 +34,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
     var MARKINGTREE = function () {
         MARKINGTREE.superclass.constructor.apply(this, arguments);
         this.singleNodeHighlight = true;
+        this.subscribe('clickEvent', this.clickhandler);
     };
 
     Y.extend(MARKINGTREE, YAHOO.widget.TreeView, {
@@ -358,6 +359,49 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
                                            ' class="refreshicon"'+
                                            ' alt="'+M.str.block_ajax_marking.refresh+'" />');
             this.tab.refreshbutton.blur();
+        },
+
+        /**
+         * OnClick handler for the nodes of the tree. Attached to the root node in order to catch all events
+         * via bubbling. Deals with making the marking popup appear.
+         *
+         * @param {object} oArgs from the YUI event
+         */
+        clickhandler :  function (oArgs) {
+
+            /**
+             * @var M.block_ajax_marking.markingtreenode
+             */
+            var node = oArgs.node;
+            var mbam = window.M.block_ajax_marking;
+
+            // we only need to do anything if the clicked node is one of
+            // the final ones with no children to fetch.
+            if (node.get_nextnodefilter() !== false) {
+                return false;
+            }
+
+            // Keep track of what we clicked so the user won't wonder what's in the pop up
+            node.toggleHighlight();
+
+            // Get window size, etc
+            var popupurl = window.M.cfg.wwwroot+'/blocks/ajax_marking/actions/grading_popup.php?';
+            var modulejavascript = mbam[node.get_modulename()];
+            var popupargs = modulejavascript.pop_up_arguments(node);
+
+            var nodefilters = node.get_filters(true);
+            nodefilters.push('node='+node.index);
+            // Add any extra stuff e.g. assignments always need mode=single to make optional_param() stuff
+            // work internally in assignment classes.
+            var popupstuff = node.get_popup_stuff();
+            nodefilters = nodefilters.concat(popupstuff);
+            popupurl += nodefilters.join('&');
+
+            // Pop-up version
+            mbam.popupholder = window.open(popupurl, 'ajax_marking_popup', popupargs);
+            mbam.popupholder.focus();
+
+            return false;
         }
 
     }, {

@@ -33,7 +33,6 @@ YUI.add('moodle-block_ajax_marking-coursestree', function (Y) {
 
     var COURSESTREE = function () {
         COURSESTREE.superclass.constructor.apply(this, arguments);
-        this.singleNodeHighlight = true;
     };
 
     Y.extend(COURSESTREE, M.block_ajax_marking.markingtree, {
