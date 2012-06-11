@@ -236,6 +236,7 @@ class block_ajax_marking extends block_base {
      * @return array
      */
     private function js_module() {
+
         // Set up the javascript module, with any data that the JS will need.
         return array(
             'name' => 'block_ajax_marking',
@@ -246,7 +247,11 @@ class block_ajax_marking extends block_base {
                                 'yui2-json',
                                 'yui2-container',
                                 'yui2-menu',
-                                'tabview'),
+                                'tabview',
+                                'moodle-block_ajax_marking-markingtree',
+                                'moodle-block_ajax_marking-coursestree',
+                                'moodle-block_ajax_marking-cohortstree',
+                                'moodle-block_ajax_marking-configtree'),
             'strings' => array(
                 array('totaltomark',
                       'block_ajax_marking'),
