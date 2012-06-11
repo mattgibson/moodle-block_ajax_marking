@@ -117,7 +117,9 @@ YUI.add('moodle-block_ajax_marking-cohortstree', function (Y) {
     M.block_ajax_marking.cohortstree = COHORTSTREE;
 
 }, '1.0', {
-    requires : ['moodle-block_ajax_marking-markingtree', 'moodle-block_ajax_marking-markingtreenode']
+    requires : ['moodle-block_ajax_marking-markingtree',
+                'moodle-block_ajax_marking-markingtreenode',
+                'moodle-block_ajax_marking-contextmenu']
 });
 
 
