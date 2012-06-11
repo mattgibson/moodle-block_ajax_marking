@@ -152,69 +152,70 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
         },
 
         /**
-         * Handles the clicks on the config tree icons so that they can toggle settings state
+         * Handles the clicks on the config tree icons so that they can toggle settings state.
+         * Overrides the function that makes the marking popups appear.
          *
          * @param {object} data
          */
         clickhandler : function (data) {
 
-        var clickednode = data.node,
-            settingtype;
+            var clickednode = data.node,
+                settingtype;
 
-        YAHOO.util.Event.stopEvent(data.event); // Stop it from expanding the tree
+            YAHOO.util.Event.stopEvent(data.event); // Stop it from expanding the tree
 
-        // is the clicked thing an icon that needs to trigger some thing?
-        var target = YAHOO.util.Event.getTarget(data.event); // the img
-        target = target.parentNode.parentNode; // the spacer <div> -> the <td>
+            // is the clicked thing an icon that needs to trigger some thing?
+            var target = YAHOO.util.Event.getTarget(data.event); // the img
+            target = target.parentNode.parentNode; // the spacer <div> -> the <td>
 
-        var coursenodeclicked = false;
-        if (clickednode.get_current_filter_name() == 'courseid') {
-            coursenodeclicked = true;
-        }
+            var coursenodeclicked = false;
+            if (clickednode.get_current_filter_name() == 'courseid') {
+                coursenodeclicked = true;
+            }
 
-        if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_display_icon')) {
-            settingtype = 'display';
-        } else if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_groupsdisplay_icon')) {
-            settingtype = 'groupsdisplay';
-        } else if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_groups_icon')) {
-            settingtype = 'groups';
+            if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_display_icon')) {
+                settingtype = 'display';
+            } else if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_groupsdisplay_icon')) {
+                settingtype = 'groupsdisplay';
+            } else if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_groups_icon')) {
+                settingtype = 'groups';
+                return false;
+            } else {
+                // Not one of the ones we want. ignore this click
+                return false;
+            }
+
+            var currentsetting = clickednode.get_config_setting(settingtype);
+            var defaultsetting = clickednode.get_default_setting(settingtype);
+            var settingtorequest = 1;
+            // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
+            // This means we want to assume that it needs to be the opposite of the default if there is
+            // no current setting.
+            if (currentsetting === null) {
+                settingtorequest = defaultsetting ? 0 : 1;
+            } else {
+                // There is an existing setting. The user toggled from the default last time, so
+                // will want to toggle back to default. No point deliberately making a setting when we can
+                // just use the default, leaving more flexibility if the defaults are changed (rare)
+                settingtorequest = null;
+            }
+
+            // do the AJAX request for the settings change
+            // gather data
+            var requestdata = {};
+            requestdata.nodeindex = clickednode.index;
+            requestdata.settingtype = settingtype;
+            if (settingtorequest !== null) { // leaving out defaults to null on the other end
+                requestdata.settingvalue = settingtorequest;
+            }
+            requestdata.tablename = coursenodeclicked ? 'course' : 'course_modules';
+            requestdata.instanceid = clickednode.get_current_filter_value();
+
+            // send request
+            M.block_ajax_marking.save_setting_ajax_request(requestdata, clickednode);
+
             return false;
-        } else {
-            // Not one of the ones we want. ignore this click
-            return false;
         }
-
-        var currentsetting = clickednode.get_config_setting(settingtype);
-        var defaultsetting = clickednode.get_default_setting(settingtype);
-        var settingtorequest = 1;
-        // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
-        // This means we want to assume that it needs to be the opposite of the default if there is
-        // no current setting.
-        if (currentsetting === null) {
-            settingtorequest = defaultsetting ? 0 : 1;
-        } else {
-            // There is an existing setting. The user toggled from the default last time, so
-            // will want to toggle back to default. No point deliberately making a setting when we can
-            // just use the default, leaving more flexibility if the defaults are changed (rare)
-            settingtorequest = null;
-        }
-
-        // do the AJAX request for the settings change
-        // gather data
-        var requestdata = {};
-        requestdata.nodeindex = clickednode.index;
-        requestdata.settingtype = settingtype;
-        if (settingtorequest !== null) { // leaving out defaults to null on the other end
-            requestdata.settingvalue = settingtorequest;
-        }
-        requestdata.tablename = coursenodeclicked ? 'course' : 'course_modules';
-        requestdata.instanceid = clickednode.get_current_filter_value();
-
-        // send request
-        M.block_ajax_marking.save_setting_ajax_request(requestdata, clickednode);
-
-        return false;
-    }
 
     }, {
         NAME : CONFIGTREENAME, //module name is something mandatory.

@@ -33,7 +33,6 @@ YUI.add('moodle-block_ajax_marking-cohortstree', function (Y) {
 
     var COHORTSTREE = function () {
         COHORTSTREE.superclass.constructor.apply(this, arguments);
-        this.singleNodeHighlight = true;
     };
 
     Y.extend(COHORTSTREE, M.block_ajax_marking.markingtree, {
