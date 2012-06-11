@@ -103,24 +103,39 @@ switch ($settingtype) {
     case 'display':
 
     case 'groupsdisplay':
+
+        // First, update the main setting for the thing that was clicked.
         $existingsetting->$settingtype = $settingvalue;
         $success = $DB->update_record('block_ajax_marking', $existingsetting);
 
         // For a course level node, we also want to set all child nodes to default, otherwise
         // it could get complex/confusing for the users.
         if ($tablename === 'course') {
-            $sql = "UPDATE {block_ajax_marking} course_module_config
+
+            // Because MSSQL doesn't work with normal SQL for updates involving INNER JOIN
+            // and aliases, we need to split this into two operations.
+            // Start by getting the ids of all coursemodule settings records in this course.
+            $params = array('settingid' => $existingsetting->id);
+            $sql = "SELECT course_module_config.id
+                      FROM {block_ajax_marking} course_module_config
                 INNER JOIN {course_modules} course_modules
                         ON (course_modules.id = course_module_config.instanceid
                             AND course_module_config.tablename = 'course_modules')
                 INNER JOIN {block_ajax_marking} course_config
                         ON (course_config.instanceid = course_modules.course
                             AND course_config.tablename = 'course')
-                       SET course_module_config.{$settingtype} = NULL
-                     WHERE course_config.id = :settingid
-                       ";
-            $params = array('settingid' => $existingsetting->id);
-            $DB->execute($sql, $params);
+                     WHERE course_config.id = :settingid";
+            $settingids = $DB->get_records_sql($sql, $params);
+
+            if ($settingids) {
+                // Now update each record. Hopefully we won't hit the 1000 limit for IN on Oracle.
+                list($idsql, $idparams) = $DB->get_in_or_equal(array_keys($settingids));
+                $sql = "UPDATE {block_ajax_marking}
+                           SET {$settingtype} = NULL
+                         WHERE id {$idsql}
+                           ";
+                $DB->execute($sql, $idparams);
+            }
         }
         break;
 
