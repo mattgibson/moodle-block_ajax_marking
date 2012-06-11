@@ -270,9 +270,11 @@ class block_ajax_marking extends block_base {
                                 'yui2-menu',
                                 'tabview',
                                 'moodle-block_ajax_marking-markingtree',
+                                'moodle-block_ajax_marking-markingtreenode',
                                 'moodle-block_ajax_marking-coursestree',
                                 'moodle-block_ajax_marking-cohortstree',
-                                'moodle-block_ajax_marking-configtree'),
+                                'moodle-block_ajax_marking-configtree'
+            ),
             'strings' => array(
                 array('totaltomark',
                       'block_ajax_marking'),
