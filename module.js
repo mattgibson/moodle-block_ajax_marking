@@ -95,7 +95,7 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_node, YAHOO.widget.HTMLNode, {
     /**
      * Getter for the count of unmarked items for this node.
      *
-     * @param type recent, medium, overdue, or null to get the total.
+     * @param type recent, medium, overdue, or null|false|0 to get the total.
      */
     get_count : function (type) {
 
@@ -1615,7 +1615,6 @@ YAHOO.lang.extend(M.block_ajax_marking.tree_base, YAHOO.widget.TreeView, {
     update_total_count : function () {
         this.recalculate_total_count();
         this.countdiv.innerHTML = this.totalcount.toString();
-        var debugpause = '';
     },
 
     /**
@@ -1963,7 +1962,8 @@ M.block_ajax_marking.users_tree = function () {
 };
 
 // make the users tree into a subclass of the base class
-YAHOO.lang.extend(M.block_ajax_marking.users_tree, M.block_ajax_marking.tree_base,
+YAHOO.lang.extend(M.block_ajax_marking.users_tree,
+                  M.block_ajax_marking.tree_base,
                   {initial_nodes_data : 'userid=nextnodefilter'});
 
 /**
@@ -2234,8 +2234,8 @@ M.block_ajax_marking.get_next_nodefilter_from_module = function (modulename, cur
  * the course groups (courses will have all groups even if there are no settings) to make the full
  * list and combines course defaults and coursemodule settings when it needs to for coursemodules
  *
- * @param {YAHOO.widget.Menu} menu A pre-existing context menu
- * @param {YAHOO.widget.Node} clickednode
+ * @param {YAHOO.widget.ContextMenu} menu A pre-existing context menu
+ * @param {M.block_ajax_marking.tree_node} clickednode
  * @return void
  */
 M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednode) {
@@ -2270,7 +2270,7 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
             // We want to show that this node inherits it's setting for this group
             // newgroup.classname = 'inherited';
             // Now we need to get the right default for it and show it as checked or not
-            groupdefault = clickednode.get_default_setting('group', groups[i].id);
+            var groupdefault = clickednode.get_default_setting('group', groups[i].id);
             newgroup.checked = groupdefault ? true : false;
             if (M.block_ajax_marking.showinheritance) {
                 newgroup.classname = 'inherited';
@@ -2288,7 +2288,7 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
     if (numberofgroups === 0) {
         // TODO probably don't need this now - never used?
         menu.addItem({"text" : M.str.block_ajax_marking.nogroups,
-                         "value" : 0 });
+                      "value" : 0 });
     } else if (iscontextmenu) {
         menu.setItemGroupTitle(M.str.block_ajax_marking.choosegroups+':', 1);
     }
@@ -2313,7 +2313,7 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
         // add an empty array of nodes so we trigger all the update and cleanup stuff
         errormessage = '<strong>An error occurred:</strong><br />';
         errormessage += o.responseText;
-        M.block_ajax_marking.show_error(errormessage);
+        M.block_ajax_marking.show_error(errormessage, false);
     }
 
     // first object holds data about what kind of nodes we have so we can
@@ -2349,7 +2349,7 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
                     errormessage += '<br /><strong>Stacktrace:</strong><br />';
                     errormessage += ajaxresponsearray.stacktrace;
                 }
-                M.block_ajax_marking.show_error(errormessage);
+                M.block_ajax_marking.show_error(errormessage, false);
                 // The tree will fail to expand its nodes after refresh unless we tell it
                 // that this operation to expand a node worked.
                 currenttab.displaywidget.locked = false;
@@ -2523,7 +2523,7 @@ M.block_ajax_marking.ajax_failure_handler = function (o) {
  * If the AJAX connection times out, this will handle things so we know what happened
  */
 M.block_ajax_marking.ajax_timeout_handler = function () {
-    M.block_ajax_marking.show_error(M.str.block_ajax_marking.connecttimeout);
+    M.block_ajax_marking.show_error(M.str.block_ajax_marking.connecttimeout, false);
     M.block_ajax_marking.get_current_tab().displaywidget.rebuild_parent_and_tree_count_after_new_nodes();
     YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
 };
@@ -2727,7 +2727,7 @@ M.block_ajax_marking.initialise = function () {
 
         // Courses tab
         var coursetabconfig = {
-            'label' : 'Courses',
+            label : 'Courses',
             id : 'coursestab',
 
             'content' : '<div id="coursessheader" class="treetabheader">'+
@@ -2765,9 +2765,9 @@ M.block_ajax_marking.initialise = function () {
 
         // Cohorts tab
         var cohortstabconfig = {
-            'label' : 'Cohorts',
+            label : 'Cohorts',
             id : 'cohortstab',
-            'content' : '<div id="cohortsheader" class="treetabheader">'+
+            content : '<div id="cohortsheader" class="treetabheader">'+
                             '<div id="cohortsrefresh" class="refreshbutton"></div>'+
                             '<div id="cohortsstatus" class="statusdiv">'+
                                 M.str.block_ajax_marking.totaltomark+
@@ -2804,9 +2804,9 @@ M.block_ajax_marking.initialise = function () {
 
         // Config tab
         var configtabconfig = {
-            'label' : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/cog.png" alt="cogs" id="configtabicon" />',
+            label : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/cog.png" alt="cogs" id="configtabicon" />',
              id : 'configtab',
-            'content' : '<div id="configheader" class="treetabheader">'+
+            content : '<div id="configheader" class="treetabheader">'+
                             '<div id="configrefresh" class="refreshbutton"></div>'+
                             '<div id="configstatus" class="statusdiv"></div>'+
                             '<div class="block_ajax_marking_spacer"></div>'+
