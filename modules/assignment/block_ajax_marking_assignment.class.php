@@ -164,7 +164,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * @param $assignment
      * @param $coursemodule
      * @param $course
-     * @return mixed
+     * @return assignment_base
      */
     private function get_assignment_instance($assignment, $coursemodule, $course) {
         global $CFG;
@@ -316,6 +316,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $course = $DB->get_record('course', array('id' => $coursemodule->course), '*', MUST_EXIST);
         $assignment   = $DB->get_record('assignment', array('id' => $coursemodule->instance),
                                         '*', MUST_EXIST);
+        /* @var stdClass[] $grading_info */
         $grading_info = grade_get_grades($coursemodule->course, 'mod', 'assignment',
                                          $assignment->id, $data->userid);
         $submission = $DB->get_record('assignment_submissions',
@@ -349,12 +350,14 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $submitform = new mod_assignment_grading_form(block_ajax_marking_form_url($params),
                                                       $mformdata);
         $submitform->set_data($mformdata);
+//        if ($submitform->is_submitted() || !empty($data->unfinalize)) {
         if ($submitform->is_submitted()) {
             // Form was submitted (= a submit button other than 'cancel' or 'next' has been
             // clicked).
             if (!$submitform->is_validated()) {
                 return false;
             }
+            /* @var  */
             $gradinginstance = $submitform->use_advanced_grading();
             // Preprocess advanced grading here.
             if ($gradinginstance) {
@@ -416,9 +419,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
             '/assignment.class.php');
         $assignmentclass = 'assignment_'.$assignment->assignmenttype;
 
-        /*
-        * @var assignment_base $assignmentinstance
-        */
+        /* @var assignment_base $assignmentinstance */
         $assignmentinstance = new $assignmentclass($coursemodule->id, $assignment,
                                                    $coursemodule, $course);
         $assignmentinstance->update_grade($submission);
@@ -580,12 +581,21 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $commentstring = $DB->sql_compare_text('sub.submissioncomment');
         $assignmenttypestring = $DB->sql_compare_text('moduletable.assignmenttype');
         $datastring = $DB->sql_compare_text('sub.data2');
+        // Resubmit seems not to be used for upload types.
         $query->add_where(array('type' => 'AND',
                                 'condition' =>
-                                "( (sub.grade = -1 AND {$commentstring} = '') OR
-                                   (moduletable.resubmit = 1 AND (sub.timemodified > sub.timemarked)) )
-                                 AND ( {$assignmenttypestring} != 'upload'
-                                       OR ({$assignmenttypestring} = 'upload' AND {$datastring} = 'submitted')) "));
+                                "( (sub.grade = -1 AND {$commentstring} = '') /* Never marked */
+                                    OR
+                                    ( (  moduletable.resubmit = 1
+                                         OR ({$assignmenttypestring} = 'upload' AND moduletable.var4 = 1)
+                                       ) /* Resubmit allowed */
+                                       AND (sub.timemodified > sub.timemarked) /* Resubmit happened */
+                                    )
+                                )
+                                /* Not in draft state */
+                                AND ( {$assignmenttypestring} != 'upload'
+                                      OR ( {$assignmenttypestring} = 'upload' AND {$datastring} = 'submitted'))
+                                  "));
 
         // TODO only sent for marking.
 
