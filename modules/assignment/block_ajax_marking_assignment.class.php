@@ -33,6 +33,7 @@ global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/modules/assignment/block_ajax_marking_assignment_form.class.php');
 
 /**
  * Wrapper for the module_base class which adds the parts that deal with the assignment module.
@@ -143,8 +144,9 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
             $this->get_mform_data_object($context, $course, $assignment, $submission, $user,
                                          $coursemodule, $grading_info, $gradingdisabled,
                                          $assignmentinstance, $USER, $CFG);
-        $submitform = new mod_assignment_grading_form(block_ajax_marking_form_url($params),
+        $submitform = new block_ajax_marking_assignment_form(block_ajax_marking_form_url($params),
                                                       $mformdata);
+
         $submitform->set_data($mformdata);
 
         // Make the actual page output.
@@ -283,7 +285,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // If 'revert to draft' has been clicked, we want a confirm button only.
         // We don't want to return yet because the main use case is to comment/grade and then
         // ask the student to improve.
-        if (!empty($data->unfinalize)) {
+        if (!empty($data->unfinalize) || !empty($data->revertbutton)) {
             $this->unfinalise_submission($submission, $assignment, $coursemodule, $course);
         }
 
@@ -355,7 +357,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * @param $data
      * @global $DB
      * @global $USER
-     * @return bool
+     * @return bool|stdClass
      */
     private function save_submission($submission, $data) {
 
