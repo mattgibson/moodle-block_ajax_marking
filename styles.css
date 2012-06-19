@@ -247,3 +247,10 @@ table.ygtvtable {
 #block_ajax_marking .ygtvdepth4 div.nodelabelwrapper div.nodelabel:hover {
     width: 40%;
 }
+/* Hide revert to draft button */
+#page-blocks-ajax_marking-actions-grading_popup div.box.files > input {
+    display: none;
+}
+#page-blocks-ajax_marking-actions-grading_popup div.box.files > .helplink {
+    display: none;
+}
