@@ -128,9 +128,15 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
         /**
          * Tell other trees they need a refresh. Subclasses to override
          */
-        notify_refresh_needed : function () {
+        notify_refresh_needed_after_config : function () {
             M.block_ajax_marking.coursestab_tree.set_needs_refresh(true);
         },
+
+        /**
+         * Does not need refresh after marking, so deliberately empty. Should never be called, but here
+         * in order to fulfil Liskov principle.
+         */
+         notify_refresh_needed_after_marking : function () {},
 
         /**
          * Should empty the count

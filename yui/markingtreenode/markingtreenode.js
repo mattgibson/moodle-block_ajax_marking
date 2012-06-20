@@ -52,7 +52,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
         /**
          * Getter for the count of unmarked items for this node.
          *
-         * @param type recent, medium, overdue, or null to get the total.
+         * @param type recent, medium, overdue, or null|false|0 to get the total.
          */
         get_count : function (type) {
 

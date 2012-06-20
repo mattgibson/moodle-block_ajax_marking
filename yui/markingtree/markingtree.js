@@ -365,6 +365,15 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
         },
 
         /**
+         * Tells other trees that stuff may have disappeared and that they therefore needs to be
+         * refreshed to avoid being stale. Subclasses to override.
+         */
+        notify_refresh_needed_after_marking : function () {},
+
+        notify_refresh_needed_after_config : function () {},
+
+
+        /**
          * OnClick handler for the nodes of the tree. Attached to the root node in order to catch all events
          * via bubbling. Deals with making the marking popup appear.
          *
