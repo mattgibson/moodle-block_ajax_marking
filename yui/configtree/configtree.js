@@ -37,6 +37,9 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
         this.subscribe('clickEvent', this.clickhandler);
     };
 
+    /**
+     * @class M.block_ajax_marking.configtree
+     */
     Y.extend(CONFIGTREE, M.block_ajax_marking.markingtree, {
 
         /**

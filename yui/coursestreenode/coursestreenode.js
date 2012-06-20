@@ -42,6 +42,9 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
         COURSESTREENODE.superclass.constructor.apply(this, arguments);
     };
 
+    /**
+     * M.block_ajax_marking.coursestreenode
+     */
     Y.extend(COURSESTREENODE, M.block_ajax_marking.markingtreenode, {
 
         set_config_setting : function (settingtype, newsetting, childnode) {

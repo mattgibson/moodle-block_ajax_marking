@@ -44,6 +44,9 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
         MARKINGTREENODE.superclass.constructor.apply(this, arguments);
     };
 
+    /**
+     * @class M.block_ajax_marking.markingtreenode
+     */
     Y.extend(MARKINGTREENODE, YAHOO.widget.HTMLNode, {
 
         /**

@@ -42,6 +42,9 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
         CONFIGTREENODE.superclass.constructor.apply(this, arguments);
     };
 
+    /**
+     * @class M.block_ajax_marking.configtreenode
+     */
     Y.extend(CONFIGTREENODE, M.block_ajax_marking.markingtreenode, {
 
         /**

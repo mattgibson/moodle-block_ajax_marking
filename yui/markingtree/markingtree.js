@@ -37,6 +37,9 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
         this.subscribe('clickEvent', this.clickhandler);
     };
 
+    /**
+     * @class M.block_ajax_marking.markingtree
+     */
     Y.extend(MARKINGTREE, YAHOO.widget.TreeView, {
 
         // Keeps track of whether this tree needs to be refreshed when the tab changes (if config

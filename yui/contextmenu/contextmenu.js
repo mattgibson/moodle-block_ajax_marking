@@ -36,6 +36,9 @@ YUI.add('moodle-block_ajax_marking-contextmenu', function (Y) {
         CONTEXTMENU.superclass.constructor.apply(this, arguments);
     };
 
+    /**
+     * @class M.block_ajax_marking.contextmenu
+     */
     Y.extend(CONTEXTMENU, YAHOO.widget.ContextMenu, {
 
         /**
