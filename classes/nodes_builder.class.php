@@ -566,7 +566,7 @@ SQL;
      * @param array $nodes
      * @return array
      */
-    private function attach_groups_to_course_nodes($nodes) {
+    private static function attach_groups_to_course_nodes($nodes) {
 
         global $DB, $USER;
 

@@ -42,7 +42,7 @@ class block_ajax_marking_filter_base {
      * @param $query
      * @return block_ajax_marking_query_base
      */
-    protected function get_countwrapper_subquery($query) {
+    protected static function get_countwrapper_subquery($query) {
         return $query->get_subquery('countwrapperquery');
     }
 
@@ -53,7 +53,7 @@ class block_ajax_marking_filter_base {
      * @param $query
      * @return block_ajax_marking_query_base
      */
-    protected function get_moduleunion_subquery($query) {
+    protected static function get_moduleunion_subquery($query) {
         $coutwrapper = self::get_countwrapper_subquery($query);
         return $coutwrapper->get_subquery('moduleunion');
     }
