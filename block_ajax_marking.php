@@ -26,6 +26,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+global $CFG;
+
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+
 /**
  * This class builds a marking block on the front page which loads assignments and submissions
  * dynamically into a tree structure using AJAX. All marking occurs in pop-up windows and each node
@@ -57,31 +61,47 @@ class block_ajax_marking extends block_base {
     /**
      * Standard get content function returns $this->content containing the block HTML etc
      *
-     * @return stdClass
+     * @return bool|\stdClass
      */
     public function get_content() {
+
+        global $CFG, $PAGE;
 
         if (!isloggedin()) {
             // Save all the DB stuff for the non-logged in front page.
             return false;
         }
 
+        $modclasses = block_ajax_marking_get_module_classes();
+
+        // If the user has switched role, we want to hide the block if the role would not normally
+        // see the block. Normally, we don't check at this level so that we can have overrides
+        // at module level.
+        if (!empty($PAGE->course->id) && is_role_switched($PAGE->course->id)) {
+            $canseeblock = false;
+            foreach ($modclasses as $mod) {
+                if (has_capability($mod->get_capability(), $PAGE->context)) {
+                    $canseeblock = true;
+                }
+                if (!$canseeblock) {
+                    return false;
+                }
+            }
+        }
+
         if ($this->content !== null) {
             return $this->content;
         }
 
-        global $CFG, $PAGE;
-
-        require_once($CFG->dirroot . '/blocks/ajax_marking/lib.php');
+        require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 
         $courses = block_ajax_marking_get_my_teacher_courses();
-        // This function will include all the module class files and instantiate copies.
-        $modclasses = block_ajax_marking_get_module_classes();
 
         if (count($courses) > 0) { // Grading permissions exist in at least one course, so display.
 
-            // Start building content output.
             $this->content = new stdClass();
+
+            // Start building content output.
             $this->content->footer = '';
             $this->content->text = '<div id="block_ajax_marking">';
 
@@ -130,6 +150,7 @@ class block_ajax_marking extends block_base {
             // for when the block is just installed and the user can edit. Might look broken
             // otherwise.
             if (has_capability('moodle/course:manageactivities', $PAGE->context)) {
+                $this->content = new stdClass();
                 $this->content->text .= get_string('nogradedassessments', 'block_ajax_marking');
             } else {
                 // This will stop the other functions like has_content() from running all the way
