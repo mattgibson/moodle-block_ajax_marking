@@ -645,7 +645,7 @@ SQL;
      * @param array $nodes
      * @return mixed
      */
-    private function attach_groups_to_coursemodule_nodes($nodes) {
+    private static function attach_groups_to_coursemodule_nodes($nodes) {
 
         global $DB;
 
