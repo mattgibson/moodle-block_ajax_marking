@@ -159,16 +159,18 @@ $code = "
         var button = Y.one('#id_cancel');
 
         // Subscribe to its click event with a callback function.
-        button.on('click', function (e) {
+        if (button) {
+            button.on('click', function (e) {
 
-            e.preventDefault();
+                e.preventDefault();
 
-            close_window_and_remove_node_highlight({$nodeid});
+                close_window_and_remove_node_highlight({$nodeid});
 
-            window.close();
-            return false;
+                window.close();
+                return false;
 
-        });
+            });
+        }
     });
 
 ";
