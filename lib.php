@@ -212,7 +212,7 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
  * @return block_ajax_marking_module_base[] array of objects keyed by modulename, each one being
  * the module plugin for that name. Returns a reference.
  */
-function &block_ajax_marking_get_module_classes($reset=false) {
+function &block_ajax_marking_get_module_classes($reset = false) {
 
     global $DB, $CFG;
 
