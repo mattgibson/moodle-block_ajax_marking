@@ -29,8 +29,13 @@ global $CFG;
 
 require_once($CFG->dirroot.'/enrol/locallib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
+require_once($CFG->dirroot.'/mod/assign/lib.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_assign_generator.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_quiz_generator.class.php');
 
-
+/**
+ * Unit test for the nodes_builder class.
+ */
 class test_nodes_builder extends advanced_testcase {
 
     /**
@@ -117,19 +122,22 @@ class test_nodes_builder extends advanced_testcase {
                 // Let the modules decide what number of things should be expected. Some are more
                 // complex than others.
                 $expectedcount = $this->$createdatamethod();
+
+                if (empty($expectedcount)) {
+                    continue;
+                }
             } else {
                 // No point carrying on without some data to check.
                 continue;
             }
 
             // Make query.
-            $filters = array('nextnodetype' => 'userid');
             $query = $modclass->query_factory();
             // We will get an error if we leave it like this as the userids in the first
             // column are not unique.
             $wrapper = new block_ajax_marking_query_base();
             $wrapper->add_select(array('function' => 'COUNT',
-                                       'column' => 'userid',
+                                       'column' => '*',
                                        'alias' => 'count'));
             $wrapper->add_from(array('table' => $query,
                                      'alias' => 'modulequery'));
@@ -140,12 +148,23 @@ class test_nodes_builder extends advanced_testcase {
             // Make sure we get the right number of things back.
             $this->assertEquals($expectedcount, reset($unmarkedstuff)->count);
 
+            // Now make sure we have the right columns for the SQL UNION ALL.
+            // We will get duplicate user ids causing problems in the first column if we
+            // use standard DB functions.
+            $sql = $query->to_string();
+            $params = $query->get_params();
+            $records = $DB->get_recordset_sql($sql, $params);
+
+            $firstrow = $records->current();
+
         }
     }
 
     /**
-     * Makes 10 submissions that ought to be picked up by test_basic_module_retrieval() as well as
+     * Makes submissions that ought to be picked up by test_basic_module_retrieval() as well as
      * a few others that shouldn't be. This is for the 2.2 and earlier assignment module.
+     *
+     * @return int how many to expect
      */
     private function create_assignment_submission_data() {
 
@@ -208,7 +227,6 @@ class test_nodes_builder extends advanced_testcase {
                         $submission->data1 = '';
                         $submission->data2 = '';
                         break;
-
                 }
 
                 $this->make_assignment_submission($submission);
@@ -269,8 +287,9 @@ class test_nodes_builder extends advanced_testcase {
     }
 
     /**
-     * @param stdClass $submissionrecord
+     * Makes a fake assignment submission.
      *
+     * @param stdClass $submissionrecord
      * @throws coding_exception
      * @return bool|\stdClass
      */
@@ -307,6 +326,168 @@ class test_nodes_builder extends advanced_testcase {
         return $DB->insert_record('assignment_submissions', $extended);
     }
 
+    /**
+     * Makes forum discussions to be checked against the module query factory.
+     *
+     * @return int how many to expect.
+     */
+    private function create_forum_submission_data() {
+
+        global $DB;
+
+        $submissioncount = 0;
+        // Provide defaults to prevent IDE griping.
+        $student = new stdClass();
+        $student->id = 3;
+
+        // Make forums
+        /* @var phpunit_module_generator $forumgenerator */
+        $forumgenerator = $this->getDataGenerator()->get_plugin_generator('mod_forum');
+        $forums = array();
+        $forumrecord = new stdClass();
+        $forumrecord->assessed = 1;
+        $forumrecord->scale = 4;
+        $forumrecord->course = $this->course->id;
+        $forumtypes = array(
+            'single',
+            'eachuser',
+            'qanda',
+            'blog',
+            'general'
+        );
+        foreach ($forumtypes as $type) {
+            $forumrecord->type = $type;
+            $forums[] = $forumgenerator->create_instance($forumrecord);
+        }
+
+        // Make posts and discussions.
+        foreach ($forums as $forum) {
+
+            // Make discussion. Make sure each student makes one (in case we violate
+            // eachuser constraints).
+            foreach ($this->students as $student) {
+                $discussion = new stdClass();
+                $discussion->course = $this->course->id;
+                $discussion->forum = $forum->id;
+                $discussion->userid = $student->id;
+                $discussion->timemodified = strtotime('1 hour ago');
+                $discussion->id = $DB->insert_record('forum_discussions', $discussion);
+
+                // Make some reply posts.
+                foreach ($this->students as $replystudent) { // TODO does this mess up the pointer?
+                    if ($replystudent->id == $student->id) {
+                        // Eachuser won't like this.
+                        continue;
+                    }
+
+                    $post = new stdclass();
+                    $post->discussion = $discussion->id;
+                    $post->parent = 0; // All direct replies to the first post for simplicity.
+                    $post->userid = $replystudent->id;
+                    $post->created = time();
+                    $post->modified = time();
+                    $post->subject = 'blah';
+                    $post->message = 'blah';
+
+                    $post->id = $DB->insert_record('forum_posts', $post);
+
+                    // TODO is this still relevant?
+                    $submissioncount++;
+
+                    if (empty($discussion->firstpost)) {
+                        $discussion->firstpost = $post->id;
+                        $DB->update_record('forum_discussions', $discussion);
+                    }
+                }
+            }
+        }
+
+        return $submissioncount;
+    }
+
+    /**
+     * Makes test submission data for the assign module.
+     *
+     * @return int how many things to expect.
+     */
+    private function create_assign_submission_data () {
+
+        $submissioncount = 0;
+        // Provide defaults to prevent IDE griping.
+        $student = new stdClass();
+        $student->id = 3;
+
+        /* @var phpunit_module_generator $assigngenerator */
+        $assigngenerator = new block_ajax_marking_mod_assign_generator($this->getDataGenerator());
+        $assigns = array();
+        $assignrecord = new stdClass();
+        $assignrecord->assessed = 1;
+        $assignrecord->scale = 4;
+        $assignrecord->course = $this->course->id;
+        $assigns[] = $assigngenerator->create_instance($assignrecord);
+
+        foreach ($assigns as $assign) {
+            foreach ($this->students as $student) {
+                $submission = new stdClass();
+                $submission->userid = $student->id;
+                $submission->assignment = $assign->id;
+                $assigngenerator->create_assign_submission($submission);
+                $submissioncount++;
+            }
+        }
+
+        return $submissioncount;
+
+    }
+
+    /**
+     * Makes test submission data for the quiz module.
+     *
+     * @return int how many things to expect.
+     */
+    private function create_quiz_submission_data() {
+
+        $submissioncount = 0;
+        // Provide defaults to prevent IDE griping.
+        $student = new stdClass();
+        $student->id = 3;
+
+        /* @var phpunit_module_generator $quizgenerator */
+        $quizgenerator = new block_ajax_marking_quiz_generator($this->getDataGenerator());
+        $quizzes = array();
+        $quizrecord = new stdClass();
+        $quizrecord->assessed = 1;
+        $quizrecord->scale = 4;
+        $quizrecord->course = $this->course->id;
+        $quizzes[] = $quizgenerator->create_instance($quizrecord);
+
+        foreach ($quizzes as $assign) {
+            foreach ($this->students as $student) {
+                $submission = new stdClass();
+                $submission->userid = $student->id;
+                $submission->assignment = $assign->id;
+                $quizgenerator->create_submission($submission);
+                $submissioncount++;
+            }
+        }
+
+        return $submissioncount;
+    }
+
+    /**
+     * This function will run the whole query with all filters against a data set which ought
+     * ot all come back, i.e. none of the items will be intercepted by any filters.
+     */
+    public function test_full_module_retrieval() {
+
+        // Make all the test data and get a total cout back.
+
+        // Make a full module query with nextnodefilter as coursemodule.
+
+        // Compare result
+
+    }
 
 
 }
+

@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
  * Class file for the forum grading functions
  *
@@ -50,11 +49,10 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         parent::__construct();
 
         // Must be the same as the DB modulename.
-        $this->modulename  = 'forum';
-        $this->capability  = 'mod/forum:viewhiddentimedposts';
-        $this->icon        = 'mod/forum/icon.gif';
+        $this->modulename = 'forum';
+        $this->capability = 'mod/forum:viewhiddentimedposts';
+        $this->icon = 'mod/forum/icon.gif';
     }
-
 
     /**
      * Checks to make sure that it has not been rated by anyone else.
@@ -76,7 +74,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                                       )";
         $params['forumratinguserid'] = $USER->id;
 
-        return array($notmyrating, $params);
+        return array($notmyrating,
+                     $params);
     }
 
     /**
@@ -142,7 +141,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         return 'discussions.userid';
     }
 
-
     /**
      * Returns a HTML link allowing a student's work to be marked
      *
@@ -188,12 +186,12 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         $discussion = $DB->get_record('forum_discussions', array('id' => $params['discussionid']),
                                       '*', MUST_EXIST);
-        $course     = $DB->get_record('course', array('id' => $discussion->course),
-                                      '*', MUST_EXIST);
-        $forum      = $DB->get_record('forum', array('id' => $discussion->forum),
-                                      '*', MUST_EXIST);
-        $cm         = get_coursemodule_from_instance('forum', $forum->id, $course->id,
-                                                     false, MUST_EXIST);
+        $course = $DB->get_record('course', array('id' => $discussion->course),
+                                  '*', MUST_EXIST);
+        $forum = $DB->get_record('forum', array('id' => $discussion->forum),
+                                 '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('forum', $forum->id, $course->id,
+                                             false, MUST_EXIST);
         $modcontext = context_module::instance($cm->id);
 
         // Security - cmid is used to check context permissions earlier on, so it must match when
@@ -268,7 +266,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $output .= html_writer::end_tag('div');
 
         return $output;
-
     }
 
     /**
@@ -277,11 +274,10 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      *
      * @param $data
      * @param $params
+     * @return string|void
      */
     public function process_data($data, $params) {
-
-        // Validate everything.
-
+        // All done via forms AJAX functions, so deliberately empty.
     }
 
     /**
@@ -292,7 +288,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      */
     public function query_factory() {
 
-        global $DB, $USER;
+        global $USER;
 
         $query = new block_ajax_marking_query_base($this);
         // This currently does a simple check for whether or not the current user has added a
@@ -301,53 +297,49 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $query->add_params($notmyratingparams);
 
         $query->add_from(array(
-                'table' => 'forum_posts',
-                'alias' => 'sub',
-        ));
+                              'table' => 'forum_posts',
+                              'alias' => 'sub',
+                         ));
 
         $query->add_from(array(
-                'table' => 'forum_discussions',
-                'alias' => 'discussions',
-                'on' => 'sub.discussion = discussions.id'
-        ));
+                              'table' => 'forum_discussions',
+                              'alias' => 'discussions',
+                              'on' => 'sub.discussion = discussions.id'
+                         ));
         $query->add_from(array(
-                'table' => $this->modulename,
-                'alias' => 'moduletable',
-                'on' => 'discussions.forum = moduletable.id'
-        ));
+                              'table' => $this->modulename,
+                              'alias' => 'moduletable',
+                              'on' => 'discussions.forum = moduletable.id'
+                         ));
         // We need the context id to check the ratings table in the teacher SQL.
         $query->add_from(array(
-                'table' => 'course_modules',
-                'alias' => 'forumcoursemodules',
-                'on' => 'moduletable.id = forumcoursemodules.instance '.
-                        'AND forumcoursemodules.module = '.$this->get_module_id()
-        ));
+                              'table' => 'course_modules',
+                              'alias' => 'forumcoursemodules',
+                              'on' => 'moduletable.id = forumcoursemodules.instance '.
+                                  'AND forumcoursemodules.module = '.$this->get_module_id()
+                         ));
         $query->add_from(array(
-                'table' => 'context',
-                'alias' => 'forumcontext',
-                'on' => 'forumcoursemodules.id = forumcontext.instanceid '.
-                        'AND forumcontext.contextlevel = '.CONTEXT_MODULE
-        ));
+                              'table' => 'context',
+                              'alias' => 'forumcontext',
+                              'on' => 'forumcoursemodules.id = forumcontext.instanceid '.
+                                  'AND forumcontext.contextlevel = '.CONTEXT_MODULE
+                         ));
         // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
         $query->add_select(array('table' => 'sub',
-                                'column' => 'modified',
-                                'alias'  => 'timestamp'));
+                                 'column' => 'modified',
+                                 'alias' => 'timestamp'));
 
         $query->add_where(array(
-                           'type' => 'AND',
-                           'condition' => 'sub.userid <> :forumuserid'));
+                               'type' => 'AND',
+                               'condition' => 'sub.userid <> :forumuserid'));
         $query->add_where(array(
-                           'type' => 'AND',
-                           'condition' => 'moduletable.assessed > 0'));
+                               'type' => 'AND',
+                               'condition' => 'moduletable.assessed > 0'));
         $query->add_where(array(
-                           'type' => 'AND',
-                           'condition' => "(
-                           {$notmyratingsql}
-                            AND ( ( ".$DB->sql_compare_text('moduletable.type')." != 'eachuser')
-                                  OR ( ".$DB->sql_compare_text('moduletable.type')." = 'eachuser'
-                                       AND sub.id = discussions.firstpost)))"));
+                               'type' => 'AND',
+                               'condition' => " {$notmyratingsql} "));
         $query->add_where(array(
                                'type' => 'AND',
                                'condition' => '( (moduletable.assesstimestart = 0) OR
@@ -360,7 +352,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $query->add_param('forumuserid', $USER->id);
 
         return $query;
-
     }
 
     /**
@@ -399,7 +390,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         }
         return $nodes;
     }
-
 }
 
 /**
@@ -495,5 +485,4 @@ class block_ajax_marking_forum_discussionid extends block_ajax_marking_filter_ba
 
         $query->add_orderby("timestamp ASC");
     }
-
 }

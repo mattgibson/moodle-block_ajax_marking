@@ -628,6 +628,7 @@ class block_ajax_marking_query_base {
                  $this->get_orderby();
 
         return $query;
+
     }
 
     /**
