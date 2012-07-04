@@ -58,6 +58,10 @@ function block_ajax_marking_teacherrole_sql() {
 
     // TODO should be a site wide or block level setting.
     $teacherroles = $DB->get_records_sql($sql, $capparams);
+    // This is in case we can't do get_in_or_equal() because no roles are found and we get false.
+    if (!$teacherroles) {
+        return array('', array());
+    }
     $teacherroleids = array_keys($teacherroles);
 
     return $DB->get_in_or_equal($teacherroleids);
