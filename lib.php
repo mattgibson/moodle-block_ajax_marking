@@ -24,7 +24,7 @@ class ajax_marking_functions {
      */
     function get_variables() {
         // refers to the part being built
-        $this->type              = required_param('type',                   PARAM_TEXT); 
+        $this->type              = required_param('type',                   PARAM_TEXT);
         $this->id                = optional_param('id',               NULL, PARAM_INT);
         $this->secondary_id      = optional_param('secondary_id',           NULL, PARAM_INT);
         $this->groups            = optional_param('groups',           NULL, PARAM_TEXT);
@@ -50,7 +50,7 @@ class ajax_marking_functions {
         if ($html) {
             $this->type = 'html';
         }
-       
+
         global $USER, $CFG;
 
         // show/hide constants for config settings
@@ -73,7 +73,7 @@ class ajax_marking_functions {
             $classname = $modname.'_functions';
             $this->$modname = new $classname($this);
         }
-        
+
         // call expensive queries only when needed. The
         // ajax calls that dont need this are all the submissions ones and some
         // of the config save ones
@@ -104,7 +104,7 @@ class ajax_marking_functions {
                 $this->get_teachers();
             }
         }
- 
+
         // only the main nodes need groups.
         $standard_get_my_groups_types = array(
                 'html',
@@ -116,7 +116,7 @@ class ajax_marking_functions {
             $this->group_members = $this->get_my_groups();
         }
 
-        
+
 
 
         // get all configuration options set by this user
@@ -189,6 +189,10 @@ class ajax_marking_functions {
             // get students in this course with this role. This defaults to getting them from higher
             // up contexts too. If you don't need this and want to avoid the performance hit, replace
             // 'true' with 'false' in the next line
+            // Might be more than one in CSV format.
+            if (is_string($this->student_roles)) {
+                $this->student_roles = explode(',', $this->student_roles);
+            }
             $course_students = get_role_users($this->student_roles, $course_context, true);
 
             if ($course_students) {
@@ -244,7 +248,7 @@ class ajax_marking_functions {
             // $teacher_array[$coure->id] = array();
 
             // get teachers in this course with this role
-            $course_teachers = get_role_users($teacher_roles, $course->context); 
+            $course_teachers = get_role_users($teacher_roles, $course->context);
             if ($course_teachers) {
 
                 foreach($course_teachers as $course_teacher) {
@@ -277,7 +281,7 @@ class ajax_marking_functions {
         $hoursstr = get_string('hours', 'block_ajax_marking');
         $hourstr = get_string('hour', 'block_ajax_marking');
         // make the time bold unless its a discussion where there is already a lot of bolding
-        $submitted = ""; 
+        $submitted = "";
         $ago = get_string('ago', 'block_ajax_marking');
 
         if ($seconds<3600) {
@@ -382,7 +386,7 @@ class ajax_marking_functions {
         } else {
             $config_settings = $this->get_groups_settings('course', $courseid);
         }
-        
+
         if ($config_settings) {
 
             //only make the array if there is not a null value
@@ -394,7 +398,7 @@ class ajax_marking_functions {
             }
         }
         $groups = get_records('groups', 'courseid', $courseid);
-        if ($groups) { 
+        if ($groups) {
 
             foreach($groups as $group) {
 
@@ -545,14 +549,14 @@ class ajax_marking_functions {
                 // seconds sent to allow style to change according to how long it has been
                 //$this->output .= '"seconds":"'.$seconds.'",';
                 // send the time of submission for tooltip
-                //$this->output .= '"time":"'.$submission->timemodified.'",'; 
+                //$this->output .= '"time":"'.$submission->timemodified.'",';
                 $this->output .= '"count":"' .$count.'"';
                 $this->output .= '}';
             }
         }
         $this->output .= ']';
         return false;
-        
+
     }
 
     /**
@@ -661,19 +665,19 @@ class ajax_marking_functions {
 
             if ($settings->showhide == AMB_CONF_HIDE) {
                 return false;
-            } 
+            }
         } else if ($course_settings) {
             // if there was no settings object for the item, check for a course level default
             if ($course_settings->showhide == AMB_CONF_HIDE) {
                 return false;
-            } 
+            }
         }
         // default to show
         return true;
     }
 
     /**
-     * This takes the settings for a particular assessment item and checks whether the submission 
+     * This takes the settings for a particular assessment item and checks whether the submission
      * should be added to the count for it, depending on the assessment's display settings and the
      * student's group membership.
      *
@@ -715,7 +719,7 @@ class ajax_marking_functions {
                 $displaywithgroups    = ($course_settings->showhide == AMB_CONF_GROUPS);
                 $intherightgroup      = $this->check_group_membership($course_settings->groups, $submission->userid);
                 $displaywithoutgroups = ($course_settings->showhide == AMB_CONF_SHOW);
-                
+
                 if ($displaywithoutgroups || ($displaywithgroups && $intherightgroup)) {
                     return true;
                 } else {
@@ -876,7 +880,7 @@ class ajax_marking_functions {
         global $USER;
         if ($this->courses) {
 
-            
+
             $this->course_ids = array();
 
             // retrieve the teacher role id (3)
@@ -926,7 +930,7 @@ class ajax_marking_functions {
                 }
                 // otherwise, add it to the list
                 $this->course_ids[] = $course->id;
-                 
+
             }
         }
         $this->course_ids = implode($this->course_ids, ',');
@@ -940,11 +944,11 @@ class ajax_marking_functions {
     function assessment_grading_permission($type, $assessment) {
 
         global $USER;
-        
+
         $context = get_context_instance(CONTEXT_MODULE, $assessment->cmid);
 
         $cap = $this->$type->capability;
-  
+
         if (has_capability($cap, $context, $USER->id, false)) {
             return true;
         } else {
@@ -971,18 +975,18 @@ class ajax_marking_functions {
         }
         $length = ($config) ? false : 30;
 
-        $this->output .= ','; 
+        $this->output .= ',';
         $this->output .= '{';
         $this->output .= '"label":"'        .$this->add_icon($assessment->type);
         $this->output .= ($this->config) ? '' : "(<span class='AMB_count'>".$assessment->count."</span>) ";
         $this->output .= $this->clean_name_text($assessment->name, $length).'",';
-        
+
         // Level 2 only nodes will be marked as non-dynamic if they are set to 'show' and dynamic
         // if they are set to 'groups'.
         $this->output .= ($assessment->dynamic) ? '"dynamic":"true",' : '"dynamic":"false",';
-        
+
         $this->output .= '"name":"'         .$this->clean_name_text($assessment->name, $length).'",';
-        
+
         $this->output .= '"id":"'           .$assessment->id.'",';
         $this->output .= '"icon":"'         .$this->add_icon($assessment->type).'",';
         // $this->output .= '"icon":"'         .$this->add_icon($assessment->type).'",';
@@ -990,7 +994,7 @@ class ajax_marking_functions {
         $this->output .= '"cmid":"'         .$assessment->cmid.'",';
         $this->output .= '"type":"'         .$assessment->type.'",';
         $this->output .= '"uniqueid":"'     .$assessment->type.$assessment->id.'",';
-        
+
         $this->output .= '"title":"';
         if ($config) {
             // make a tooltip showing current settings
@@ -1024,7 +1028,7 @@ class ajax_marking_functions {
         if ($assessment->count) {
             $this->output .= ',"count":"'   .$assessment->count.'"';
         }
-        
+
         $this->output .= '}';
     }
 
@@ -1044,7 +1048,7 @@ class ajax_marking_functions {
         // and use the main pix folder
         if ($THEME->custompix) {
             $result .= 'theme/'.current_theme().'/';
-        } 
+        }
 
         // TODO - make question into a function held within the quiz file
         switch ($type) {
@@ -1091,7 +1095,7 @@ class ajax_marking_functions {
         $node .= $this->clean_name_text($item->description).'" >'.$this->add_icon($item->type);
         $node .= '<strong>('.$item->count.')</strong> '.$item->name.'</a></li>';
         return $node;
- 
+
     }
 
 }
@@ -1104,7 +1108,7 @@ class ajax_marking_functions {
  * and add methods specific to that module which can return the right nodes.
  */
 class module_base {
-    
+
     /**
      * This counts how many unmarked assessments of a particular type are waiting for a particular
      * course
@@ -1132,7 +1136,7 @@ class module_base {
 
         // get a list of all the assessments in this course, ready to loop through
         $this->assessment_ids = $this->mainobject->list_assessment_ids($this->all_submissions, $course);
-       
+
         // echo count($this->assessment_ids).' ';
         // Now check all of these assessment ids to see if the user has grading capabilities
         foreach ($this->assessment_ids as $key => $assessment) {
@@ -1142,7 +1146,7 @@ class module_base {
             }
             // TODO get the group settings here and attach them to the array, avoiding a
             // get_groups_settings function call later for each submission
-            
+
             // This assessment might be set to 'hidden'
             //echo $this->mainobject->check_assessment_display_settings('quiz', 1, 2);
 
@@ -1150,11 +1154,11 @@ class module_base {
             if (!$this->mainobject->check_assessment_display_settings($this->type, $assessment->id, $course)) {
                 unset($this->assessment_ids[$key]);
             }
-            
+
         }
-        
+
         $count = 0;
-        
+
         // loop through all of the submissions, ignoring any that should not be counted
         foreach ($this->all_submissions as $submission) {
 
@@ -1164,7 +1168,7 @@ class module_base {
             if ($submission->course != $course)  {
                 continue;
             }
-            
+
             // the object may contain assessments with no submissions
             if (!isset($submission->userid))  {
                 continue;
@@ -1179,7 +1183,7 @@ class module_base {
             if (!isset($this->assessment_ids[$submission->id]))  {
                 continue;
             }
-           
+
             if(!$this->mainobject->check_submission_display_settings($this->type, $submission) ) {
                 continue;
             }
@@ -1228,9 +1232,9 @@ class module_base {
          } else {
              // We have no data, so get it from the DB (normal ajax.php call)
              $this->course_unmarked->$courseid = $this->get_all_course_unmarked($courseid);
-             
+
          }
-     
+
         // now loop through the returned items, checking for permission to grade etc.
 
         // check that there is stuff to loop through
@@ -1243,7 +1247,7 @@ class module_base {
 
                 // counter for number of unmarked submissions
                 $count = 0;
-                
+
                 // permission to grade?
                 $modulecontext = get_context_instance(CONTEXT_MODULE, $assessment->cmid);
                 if (!has_capability($this->capability, $modulecontext, $USER->id)) {
@@ -1299,15 +1303,15 @@ class module_base {
 
                     if ($assessment_settings) {
                         if ($assessment_settings->showhide == AMB_CONF_GROUPS) {
-                      
+
                             $dynamic = true;
                         }
-                        
+
                     } elseif ($course_settings && ($course_settings->showhide == AMB_CONF_GROUPS)) {
                         $dynamic = true;
-                    }  
-                } 
-                    
+                    }
+                }
+
                 $assessment->count   = $count;
                 $assessment->type    = $this->type;
                 $assessment->icon    = $this->mainobject->add_icon($this->type);
@@ -1328,8 +1332,8 @@ class module_base {
                 $html_array = array('count' =>$html_count, 'data' => $html_output);
                 return $html_array;
             }
-        } 
-    } 
+        }
+    }
 
     /**
      * This counts the assessments that a course has available. Called when the config tree is built.
@@ -1392,8 +1396,8 @@ class module_base {
      * This is to allow the ajax call to be sent to the correct function. When the
      * type of one of the pluggable modules is sent back via the ajax call, the ajax_marking_response constructor
      * will refer to this function in each of the module objects in turn from the default in the switch statement
-     * 
-     * 
+     *
+     *
      */
     function return_function($type) {
 
@@ -1405,7 +1409,7 @@ class module_base {
             return false;
         }
     }
-    
+
     /**
      * @return <type> Getter function for the levels stored as part of the
      * pluggable modules object
@@ -1440,16 +1444,23 @@ class module_base {
             }
         }
 
-        // get the roles that are specified as graded in site config settings. Will sometimes be here,
+        // Get the roles that are specified as graded in site config settings. Will sometimes be here,
         // sometimes not depending on ajax call
-        if (empty($this->mainobject->student_roles)) {
-            $this->mainobject->student_roles = get_field('config','value', 'name', 'gradebookroles');
+        $studentroles = $this->mainobject->student_roles;
+        if (empty($studentroles)) {
+            $studentroles = get_field('config','value', 'name', 'gradebookroles');
         }
 
-        if (is_array($this->mainobject->student_roles)) {
-            $roleselect = ' AND ra.roleid IN ('.implode(',', $this->mainobject->student_roles).')';
-        } elseif (!empty($this->mainobject->student_roles)) { // should not test for int, because it can come in as a string
-            $roleselect = "AND ra.roleid = {$this->mainobject->student_roles}";
+        // Standardise to an array.
+        if (is_string($studentroles)) {
+            $studentroles = explode(',', $studentroles);
+        }
+
+        if (count($studentroles) > 1) {
+            $roleselect = ' AND ra.roleid IN ('.implode(',', $studentroles).')';
+        } elseif (count($studentroles) === 1) { // should not test for int, because it can come in as a string
+            $role = reset($studentroles);
+            $roleselect = "AND ra.roleid = {$role}";
         } else {
             $roleselect = '';
         }
