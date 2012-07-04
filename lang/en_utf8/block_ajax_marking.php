@@ -1,6 +1,7 @@
-<?PHP 
+<?PHP
 
 $string['ajaxmarking']          = 'AJAX marking';
+$string['pluginname']           = 'AJAX marking';
 $string['marking']              = 'Marking';
 $string['waiting']              = 'Pieces of work';
 $string['weeks']                = 'weeks';
