@@ -34,6 +34,15 @@ global $CFG;
 class block_ajax_marking_mod_assign_generator extends phpunit_module_generator {
 
     /**
+     * Gets DB module name.
+     *
+     * @return string
+     */
+    public function get_modulename() {
+        return 'assign';
+    }
+
+    /**
      * Create a test module
      *
      * @param array|stdClass $record

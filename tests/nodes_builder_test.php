@@ -447,29 +447,47 @@ class test_nodes_builder extends advanced_testcase {
      */
     private function create_quiz_submission_data() {
 
+        global $DB;
+
         $submissioncount = 0;
         // Provide defaults to prevent IDE griping.
         $student = new stdClass();
         $student->id = 3;
 
-        /* @var phpunit_module_generator $quizgenerator */
-        $quizgenerator = new block_ajax_marking_quiz_generator($this->getDataGenerator());
-        $quizzes = array();
+        /* @var block_ajax_marking_mod_quiz_generator $quizgenerator */
+        $quizgenerator = new block_ajax_marking_mod_quiz_generator($this->getDataGenerator());
         $quizrecord = new stdClass();
-        $quizrecord->assessed = 1;
-        $quizrecord->scale = 4;
         $quizrecord->course = $this->course->id;
-        $quizzes[] = $quizgenerator->create_instance($quizrecord);
+        $quiz = $quizgenerator->create_instance($quizrecord);
 
-        foreach ($quizzes as $assign) {
-            foreach ($this->students as $student) {
-                $submission = new stdClass();
-                $submission->userid = $student->id;
-                $submission->assignment = $assign->id;
-                $quizgenerator->create_submission($submission);
-                $submissioncount++;
-            }
+        $question = $quizgenerator->make_question($this->course->id);
+
+        $quizgenerator->add_question_to_quiz($question->id, $quiz);
+
+        foreach ($this->students as $student) {
+            $this->setUser($student->id);
+
+            $attempt = $quizgenerator->start_quiz_attempt($quiz->id, $student->id);
+            $quba = question_engine::load_questions_usage_by_activity($attempt->uniqueid);
+
+            // This bit strips out bits of quiz_attempt::process_submitted_actions()
+            // Simulates data from the form.
+            // TODO iterate over the questions.
+            $formdata = array(
+                'answer' => 'Sample essay answer text',
+                'answerformat' => FORMAT_MOODLE
+            );
+            $slot = 1; // Only 1 question so far.
+            $quba->process_action($slot, $formdata, time());
+            $submissioncount++;
+
+            question_engine::save_questions_usage_by_activity($quba);
+
+            $quizgenerator->end_quiz_attmept($quiz, $attempt);
+
         }
+
+        $this->setAdminUser();
 
         return $submissioncount;
     }
