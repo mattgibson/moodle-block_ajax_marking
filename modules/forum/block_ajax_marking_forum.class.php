@@ -30,8 +30,10 @@ if (!defined('MOODLE_INTERNAL')) {
 }
 
 global $CFG;
+
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
 /**
  * Provides functionality for grading of forum discussions
