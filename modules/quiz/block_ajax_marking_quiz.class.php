@@ -34,6 +34,7 @@ global $CFG;
 $blockdir = $CFG->dirroot.'/blocks/ajax_marking';
 require_once($blockdir.'/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
 // We only need this file for the constants. Doing this so that we don't have problems including
 // the file from module.js.
