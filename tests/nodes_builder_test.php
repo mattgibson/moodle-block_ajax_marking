@@ -447,8 +447,6 @@ class test_nodes_builder extends advanced_testcase {
      */
     private function create_quiz_submission_data() {
 
-        global $DB;
-
         $submissioncount = 0;
         // Provide defaults to prevent IDE griping.
         $student = new stdClass();

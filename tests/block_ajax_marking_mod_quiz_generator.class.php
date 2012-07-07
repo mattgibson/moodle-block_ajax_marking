@@ -273,13 +273,11 @@ class block_ajax_marking_mod_quiz_generator extends phpunit_module_generator {
 
         global $DB;
 
+        $timenow = time();
+
         $quba = question_engine::load_questions_usage_by_activity($attempt->uniqueid);
-
-        $attempt->timemodified = time();
-        $attempt->sumgrades = $quba->get_total_mark();
-
-        $DB->update_record('quiz_attempts', $attempt);
-        quiz_save_best_grade($quiz, $attempt->userid);
+        $attemptobj = quiz_attempt::create($attempt->id);
+        $attemptobj->process_finish($timenow, true);
     }
 
     /**
