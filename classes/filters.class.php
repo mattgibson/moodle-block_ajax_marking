@@ -454,23 +454,24 @@ class block_ajax_marking_groupid extends block_ajax_marking_filter_base {
         // TODO does moving the group id stuff into a WHERE xx OR IS NULL make it faster?
         // What things should we not show?
         $grouphidesql = <<<SQL
-                 /* Course forces group mode on modules and it's permissive */
+                 /* Course forces group mode on modules and it's not permissive */
         (    (   (group_course.groupmodeforce = 1 AND
                   group_course.groupmode = {$separategroups}
                  )
                  OR
-                 /* Modules can choose group mode and this module is permissive */
+                 /* Modules can choose group mode and this module is not permissive */
                 ( group_course.groupmodeforce = 0 AND
                   group_course_modules.groupmode = {$separategroups}
                 )
              )
               AND
-              /* Teacher is a group member */
+              /* Teacher is not a group member */
               NOT EXISTS ( SELECT 1
                              FROM {groups_members} teachermemberships
                             WHERE teachermemberships.groupid = group_groups.id
                               AND teachermemberships.userid = :teacheruserid{$counter} )
 
+              /* Course is not one where the teacher can see all groups */
              {$oriscourseadminsql}
         )
 SQL;
