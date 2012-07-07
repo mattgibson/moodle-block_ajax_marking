@@ -32,6 +32,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/mod/assign/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_assign_generator.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_quiz_generator.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_workshop_generator.class.php');
 
 /**
  * Unit test for the nodes_builder class.
@@ -448,7 +449,8 @@ class test_nodes_builder extends advanced_testcase {
     private function create_quiz_submission_data() {
 
         $submissioncount = 0;
-        // Provide defaults to prevent IDE griping.
+
+        // Provide defaults to prevent the IDE griping.
         $student = new stdClass();
         $student->id = 3;
 
@@ -464,30 +466,48 @@ class test_nodes_builder extends advanced_testcase {
 
         foreach ($this->students as $student) {
             $this->setUser($student->id);
-
-            $attempt = $quizgenerator->start_quiz_attempt($quiz->id, $student->id);
-            $quba = question_engine::load_questions_usage_by_activity($attempt->uniqueid);
-
-            // This bit strips out bits of quiz_attempt::process_submitted_actions()
-            // Simulates data from the form.
-            // TODO iterate over the questions.
-            $formdata = array(
-                'answer' => 'Sample essay answer text',
-                'answerformat' => FORMAT_MOODLE
-            );
-            $slot = 1; // Only 1 question so far.
-            $quba->process_action($slot, $formdata, time());
-            $submissioncount++;
-
-            question_engine::save_questions_usage_by_activity($quba);
-
-            $quizgenerator->end_quiz_attmept($quiz, $attempt);
-
+            $submissioncount += $quizgenerator->make_student_quiz_atttempt($student, $quiz);
         }
 
         $this->setAdminUser();
 
         return $submissioncount;
+    }
+
+    /**
+     * Makes fake submission data for the workshop module so we can see if the block retrieves it
+     * OK.
+     */
+    public function create_workshop_submission_data() {
+
+        global $DB;
+
+        $submissionscount = 0;
+
+        // Make a workshop.
+        $workshopgenerator = new block_ajax_marking_mod_workshop_generator($this->getDataGenerator());
+        $workshoprecord = new stdClass();
+        $workshoprecord->course = $this->course->id;
+
+        $workshop = $workshopgenerator->create_instance($workshoprecord);
+
+        // Make any other stuff it needs in order for setup to be finished.
+
+        // Put it into submissions mode.
+
+        // Make a submission for each student.
+        foreach ($this->students as $student) {
+
+            $submissionscount += $workshopgenerator->make_student_submission($student, $workshop);
+
+        }
+
+        // Take it into assessment mode.
+        $workshop->phase = workshop::PHASE_EVALUATION;
+        $DB->update_record('workshop', $workshop);
+
+        return $submissionscount;
+
     }
 
     /**
@@ -500,7 +520,7 @@ class test_nodes_builder extends advanced_testcase {
 
         // Make a full module query with nextnodefilter as coursemodule.
 
-        // Compare result
+        // Compare result.
 
     }
 

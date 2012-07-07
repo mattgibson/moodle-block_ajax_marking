@@ -117,13 +117,17 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
                                 'column' => 'timemodified',
                                 'alias'  => 'timestamp'));
 
-        // Assumes that we want to see stuff that has not been assessed yet. Perhaps we still want
-        // this but also ones where we have not reviewed the assessments?
+        // Assumes that we want to see stuff that has not been assessed by the current user yet. Perhaps
+        // we have more than one assessor? Perhaps it's peer assessment only?
         $query->add_where(array(
-                'type' => 'AND',
-                'condition' => '(a.reviewerid != :workshopuserid
-                                   OR (a.reviewerid = :workshopuserid2
-                                       AND a.grade = -1))'));
+                               'type' => 'AND',
+                               'condition' => 'NOT EXISTS(
+                                   SELECT 1
+                                     FROM {workshop_assessments} workshop_assessments
+                                    WHERE workshop_assessments.submissionid = sub.id
+                                      AND workshop_assessments.reviewerid = :workshopuserid
+                                      AND workshop_assessments.grade != -1
+                               )'));
         $query->add_where(array(
             'type' => 'AND',
             'condition' => 'moduletable.phase < '.workshop::PHASE_CLOSED

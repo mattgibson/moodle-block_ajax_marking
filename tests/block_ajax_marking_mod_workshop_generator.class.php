@@ -32,7 +32,7 @@ require_once($CFG->dirroot.'/lib/phpunit/classes/module_generator.php');
 /**
  * Makes test data for the workshop module for use with phpunit tests.
  */
-class block_ajax_marking_mod_workshop_genertator extends phpunit_module_generator {
+class block_ajax_marking_mod_workshop_generator extends phpunit_module_generator {
 
     /**
      * Create a test module
@@ -41,7 +41,7 @@ class block_ajax_marking_mod_workshop_genertator extends phpunit_module_generato
      * @throws coding_exception
      * @return \stdClass activity record
      */
-    public function create_instance($record = null, array $options = null) {
+    public function create_instance($record = null, array $options = array()) {
 
         global $DB;
 
@@ -83,8 +83,68 @@ class block_ajax_marking_mod_workshop_genertator extends phpunit_module_generato
         $extended = (object)array_merge((array)$prototypeworkshop, (array)$record);
 
         $extended->coursemodule = $this->precreate_course_module($extended->course, $options);
-        $extended->id = $DB->insert_record('quiz', $extended);
-        return $this->post_add_instance($extended->id, $extended->coursemodule);
+        $extended->id = $DB->insert_record('workshop', $extended);
+        $workshop = $this->post_add_instance($extended->id, $extended->coursemodule);
 
+        // Now make assessment targets for accumulative strategy.
+        $prototypeaspect = new stdClass();
+        $prototypeaspect->workshopid = $workshop->id;
+        $prototypeaspect->description = 'Description';
+        $prototypeaspect->descriptionformat = FORMAT_MOODLE;
+        $prototypeaspect->grade = 10;
+        $prototypeaspect->weight = 1;
+
+        for ($i = 1; $i <= 3; $i++) {
+            $prototypeaspect->sort = $i;
+            $DB->insert_record('workshopform_accumulative', $prototypeaspect);
+        }
+
+        return $workshop;
+    }
+
+    /**
+     * Makes a single student submission for the supplied workshop.
+     *
+     * @param $student
+     * @param $workshop
+     * @return int Number of submissions we just made (1)
+     */
+    public function make_student_submission($student, $workshop) {
+
+        global $DB;
+
+        $submission = new stdClass();
+        $submission->workshopid = $workshop->id;
+        $submission->example = 0;
+        $submission->authorid = $student->id;
+        $submission->timecreated = time();
+        $submission->timemodified = time();
+        $submission->title = 'Submission title';
+        $submission->content = 'Content text fo submission';
+        $submission->contentformat = FORMAT_MOODLE;
+        $submission->contenttrust = 0;
+        $submission->attachment = 0;
+        $submission->grade = null;
+        $submission->gradeover = null;
+        $submission->gradeoverby = null;
+        $submission->feedbackauthor = null;
+        $submission->feedbackauthorformat = FORMAT_MOODLE;
+        $submission->timegraded = null;
+        $submission->published = 0;
+        $submission->late = 0;
+
+        $DB->insert_record('workshop_submissions', $submission);
+
+        return 1;
+
+    }
+
+    /**
+     * Returns the name of the module that this generates things for. 'workshop in this case'.
+     *
+     * @return string
+     */
+    public function get_modulename() {
+        return 'workshop';
     }
 }

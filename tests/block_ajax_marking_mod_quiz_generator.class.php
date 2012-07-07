@@ -28,6 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 require_once($CFG->dirroot.'/mod/quiz/editlib.php');
+require_once($CFG->dirroot.'/lib/phpunit/classes/module_generator.php');
 
 /**
  * Makes unit test data for the quiz module.
@@ -292,6 +293,38 @@ class block_ajax_marking_mod_quiz_generator extends phpunit_module_generator {
         quiz_add_quiz_question($questionid, $quiz, 0);
         quiz_delete_previews($quiz);
         quiz_update_sumgrades($quiz);
+    }
+
+    /**
+     * Makes an attempt for one student in this quiz, answering all the questions.
+     *
+     * @param $student
+     * @param $quiz
+     * @return int How many questions answers were made.
+     */
+    public function make_student_quiz_atttempt($student, $quiz) {
+
+        $submissioncount = 0;
+
+        $attempt = $this->start_quiz_attempt($quiz->id, $student->id);
+        $quba = question_engine::load_questions_usage_by_activity($attempt->uniqueid);
+
+        // This bit strips out bits of quiz_attempt::process_submitted_actions()
+        // Simulates data from the form.
+        // TODO iterate over the questions.
+        $formdata = array(
+            'answer' => 'Sample essay answer text',
+            'answerformat' => FORMAT_MOODLE
+        );
+        $slot = 1; // Only 1 question so far.
+        $quba->process_action($slot, $formdata, time());
+        $submissioncount++;
+
+        question_engine::save_questions_usage_by_activity($quba);
+
+        $this->end_quiz_attmept($quiz, $attempt);
+
+        return $submissioncount;
     }
 
 

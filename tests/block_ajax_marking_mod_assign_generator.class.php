@@ -28,6 +28,8 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+require_once($CFG->dirroot.'/lib/phpunit/classes/module_generator.php');
+
 /**
  * The assign module doesn't have a data generator, so this will do instead till one is made.
  */
