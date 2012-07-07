@@ -33,6 +33,7 @@ require_once($CFG->dirroot.'/mod/assign/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_assign_generator.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_quiz_generator.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_workshop_generator.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
 
 /**
  * Unit test for the nodes_builder class.
@@ -55,12 +56,18 @@ class test_nodes_builder extends advanced_testcase {
     protected $teachers;
 
     /**
+     * @var int How many submissions ought to come back
+     */
+    protected $submissioncount;
+
+    /**
      * Gets a blank course with users ready for each test
      */
     protected function setUp() {
 
         global $PAGE, $DB;
 
+        // First test will set up DB submissions, so we keep it hanging around for the others.
         $this->resetAfterTest();
 
         // Make a course.
@@ -94,6 +101,36 @@ class test_nodes_builder extends advanced_testcase {
         $teacher2 = $generator->create_user();
         $this->teachers[$teacher2->id] = $teacher2;
         $manualenrolplugin->enrol_user($manualenrolinstance, $teacher2->id, $teacherroleid);
+
+    }
+
+    /**
+     * Makes data for all the modules.
+     */
+    private function make_module_submissions() {
+
+        global $DB;
+
+        // Assignment module is disabled in the PHPUnit DB, so we need to re-enable it.
+        $DB->set_field('modules', 'visible', 1, array('name' => 'assignment'));
+
+        $classes = block_ajax_marking_get_module_classes();
+
+        foreach ($classes as $modclass) {
+
+            $modname = $modclass->get_module_name();
+
+            // We need some submissions, but these are different for every module.
+            // Without a standardised way of doing this, we will use methods in this class to do
+            // the job until a better way emerges.
+            $createdatamethod = 'create_'.$modname.'_submission_data';
+            if (method_exists($this, $createdatamethod)) {
+                // Let the modules decide what number of things should be expected. Some are more
+                // complex than others.
+                $this->$createdatamethod();
+
+            }
+        }
     }
 
     /**
@@ -105,7 +142,7 @@ class test_nodes_builder extends advanced_testcase {
 
         global $DB;
 
-        // Assignment module is disabled in the PHPUnit DB, so we need to reenable it.
+        // Assignment module is disabled in the PHPUnit DB, so we need to re-enable it.
         $DB->set_field('modules', 'visible', 1, array('name' => 'assignment'));
 
         $classes = block_ajax_marking_get_module_classes();
@@ -283,8 +320,9 @@ class test_nodes_builder extends advanced_testcase {
         $this->make_assignment_submission($submission);
         $submissioncount++;
 
-        return $submissioncount;
+        $this->submissioncount += $submissioncount;
 
+        return $submissioncount;
     }
 
     /**
@@ -403,6 +441,8 @@ class test_nodes_builder extends advanced_testcase {
             }
         }
 
+        $this->submissioncount += $submissioncount;
+
         return $submissioncount;
     }
 
@@ -436,6 +476,8 @@ class test_nodes_builder extends advanced_testcase {
                 $submissioncount++;
             }
         }
+
+        $this->submissioncount += $submissioncount;
 
         return $submissioncount;
 
@@ -471,6 +513,8 @@ class test_nodes_builder extends advanced_testcase {
 
         $this->setAdminUser();
 
+        $this->submissioncount += $submissioncount;
+
         return $submissioncount;
     }
 
@@ -478,7 +522,7 @@ class test_nodes_builder extends advanced_testcase {
      * Makes fake submission data for the workshop module so we can see if the block retrieves it
      * OK.
      */
-    public function create_workshop_submission_data() {
+    private function create_workshop_submission_data() {
 
         global $DB;
 
@@ -491,20 +535,16 @@ class test_nodes_builder extends advanced_testcase {
 
         $workshop = $workshopgenerator->create_instance($workshoprecord);
 
-        // Make any other stuff it needs in order for setup to be finished.
-
-        // Put it into submissions mode.
-
         // Make a submission for each student.
         foreach ($this->students as $student) {
-
             $submissionscount += $workshopgenerator->make_student_submission($student, $workshop);
-
         }
 
-        // Take it into assessment mode.
+        // Take it into evaluation mode.
         $workshop->phase = workshop::PHASE_EVALUATION;
         $DB->update_record('workshop', $workshop);
+
+        $this->submissioncount += $submissionscount;
 
         return $submissionscount;
 
@@ -516,11 +556,20 @@ class test_nodes_builder extends advanced_testcase {
      */
     public function test_full_module_retrieval() {
 
-        // Make all the test data and get a total cout back.
+        // Make all the test data and get a total count back.
+        $this->make_module_submissions();
+
+        // Make sure the current user is a teacher in the course.
+        $this->setUser(key($this->teachers));
 
         // Make a full module query with nextnodefilter as coursemodule.
+        $filters = array('courseid' => 'nextnodefilter');
+        $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
 
         // Compare result.
+        $actual = reset($nodes)->itemcount;
+        $message = 'Wrong number of nodes: '.$actual.' instead of '.$this->submissioncount;
+        $this->assertEquals($this->submissioncount, $actual, $message);
 
     }
 

@@ -67,6 +67,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
     public function make_html_link($item) {
 
         global $CFG;
+
         $address = $CFG->wwwroot.'/mod/workshop/view.php?id='.$item->cmid;
         return $address;
     }
@@ -138,7 +139,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         // Unless there are two teachers.
 
         $query->add_param('workshopuserid', $USER->id);
-        $query->add_param('workshopuserid2', $USER->id);
 
         return $query;
 
@@ -156,6 +156,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
      * @global $OUTPUT
      * @global $USER
      *
+     * @return string|void
      */
     public function grading_popup($params, $coursemodule) {
 
