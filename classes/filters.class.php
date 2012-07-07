@@ -29,6 +29,12 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
+
 /**
  * Provides common functions that are needed when applying filters to the parameterised query object
  * such as extracting a particular subquery so it can be altered.
@@ -408,6 +414,71 @@ class block_ajax_marking_groupid extends block_ajax_marking_filter_base {
     }
 
     /**
+     * Helper function that defines what the SQL to hide groups that a teacher is not a member of
+     * is. This is not the same as using the block config setings - we are talking about whatever
+     * is already configured in Moodle.
+     *
+     * @static
+     * @param int $counter
+     * @global $USER
+     * @return array
+     */
+    private static function get_group_hide_sql($counter) {
+
+        global $USER, $DB;
+
+        $separategroups = SEPARATEGROUPS;
+
+        $params = array('teacheruserid'.$counter => $USER->id);
+
+        // If a user is an admin in their course, we should show them all stuff for all groups.
+        $oriscourseadminsql = '';
+        $allowedcourses = array();
+        $teachercourses = block_ajax_marking_get_my_teacher_courses();
+        foreach (array_keys($teachercourses) as $courseid) {
+            if (has_capability('moodle/site:accessallgroups',
+                               context_course::instance($courseid))
+            ) {
+                $allowedcourses[] = $courseid;
+            }
+        }
+        if ($allowedcourses) {
+            list($oriscourseadminsql, $oriscourseadminparams) =
+                $DB->get_in_or_equal($allowedcourses,
+                                     SQL_PARAMS_NAMED,
+                                     'groupsacess001',
+                                     false);
+            $params = array_merge($params, $oriscourseadminparams);
+        }
+
+        // TODO does moving the group id stuff into a WHERE xx OR IS NULL make it faster?
+        // What things should we not show?
+        $grouphidesql = <<<SQL
+                 /* Course forces group mode on modules and it's permissive */
+        (    (   (group_course.groupmodeforce = 1 AND
+                  group_course.groupmode = {$separategroups}
+                 )
+                 OR
+                 /* Modules can choose group mode and this module is permissive */
+                ( group_course.groupmodeforce = 0 AND
+                  group_course_modules.groupmode = {$separategroups}
+                )
+             )
+              AND
+              /* Teacher is a group member */
+              NOT EXISTS ( SELECT 1
+                             FROM {groups_members} teachermemberships
+                            WHERE teachermemberships.groupid = group_groups.id
+                              AND teachermemberships.userid = :teacheruserid{$counter} )
+
+             {$oriscourseadminsql}
+        )
+SQL;
+        return array($grouphidesql,
+                     $params);
+    }
+
+    /**
      * Once we have filtered out the ones we don't want based on display settings, those that are
      * left may have memberships in more than one group. We want to choose one of these so that
      * the piece of work is not counted twice. This query returns the maximum (in terms of DB row
@@ -438,17 +509,13 @@ SQL;
 
     /**
      * In order to display the right things, we need to work out the visibility of each group for
-     * each course module. This subquery lists all submodules once for each coursemodule in the
+     * each course module. This subquery lists all groups once for each coursemodule in the
      * user's courses, along with it's most relevant show/hide setting, i.e. a coursemodule level
      * override if it's there, otherwise a course level setting, or if neither, the site default.
      * This is potentially very expensive if there are hundreds of courses as it's effectively a
      * cartesian join between the groups and coursemodules tables, so we filter using the user's
      * courses. This may or may not impact on the query optimiser being able to cache the execution
      * plan between users.
-     *
-     * We need to reuse this subquery. Because it uses the user's teacher courses as a
-     * filter (less calculation that way), we might have issues with the query optimiser
-     * not reusing the execution plan. Hopefully not.
      *
      * // Query visualisation:
      *               ______________________________________________________________
@@ -462,7 +529,7 @@ SQL;
      *               |____________________________________________________________|
      *
      *
-     * Table we get back:
+     * Temp table we get back:
      * ----------------------------------------
      * | course_module_id/ | groupid | display |
      * |    course_id      |         |
@@ -472,7 +539,8 @@ SQL;
      *
      * @param string $type We may want to know the combined visibility (coalesce) or just the
      * visibility at either (course) or (coursemodule) level. The latter two are for getting
-     * the groups in their current settings states so config stuff can be adjusted.
+     * the groups in their current settings states so config stuff can be adjusted, whereas
+     * the combined one is for retrieving unmarked work.
      *
      * @return array SQL and params
      * @todo Unit test this!
@@ -491,6 +559,10 @@ SQL;
         list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
                                                                  SQL_PARAMS_NAMED,
                                                                  "groups{$counter}courses");
+
+        list($grouphidesql, $grouphideparams) = self::get_group_hide_sql($counter);
+        $coursesparams = array_merge($coursesparams, $grouphideparams);
+
         $sitedefault = 1; // Configurable in future.
         $select = $join = $where = '';
 
@@ -523,12 +595,16 @@ SQL;
 
         // We have similar code in use for three cases, so we construct the SQL dynamically.
         switch ($type) {
+
             case 'coalesce':
                 $select = <<<SQL
                group_course_modules.id AS cmid,
-               COALESCE(group_cmconfig_groups.display,
-                        group_courseconfig_groups.display,
-                        {$sitedefault}) AS display
+               CASE
+                   WHEN {$grouphidesql} THEN 0
+                   ELSE COALESCE(group_cmconfig_groups.display,
+                                 group_courseconfig_groups.display,
+                                 {$sitedefault})
+               END AS display
 SQL;
                 $join = $coursemodulejoin.$coursejoin;
                 $where = $coursewhere.$coursemodulewhere;
@@ -557,9 +633,6 @@ SQL;
                 break;
         }
 
-        list($grouphidesql, $grouphideparams) = self::get_group_hide_sql($counter);
-        $coursesparams = array_merge($coursesparams, $grouphideparams);
-
         $groupdisplaysubquery = <<<SQL
         SELECT group_groups.id AS groupid,
                {$select}
@@ -571,46 +644,12 @@ SQL;
                {$join}
          WHERE group_course_modules.course {$coursessql}
                {$where}
-           AND {$grouphidesql}
 SQL;
 
         return array($groupdisplaysubquery, $coursesparams);
     }
 
-    /**
-     * Helper function that defines what the SQL to hide groups that a teacher is not a member of
-     * is. This is not the same as using the block config setings - we are talking about whatever
-     * is already configured in Moodle.
-     *
-     * @static
-     * @param int $counter
-     * @global $USER
-     * @return array
-     */
-    private static function get_group_hide_sql($counter) {
 
-        global $USER;
-
-        $separategroups = SEPARATEGROUPS;
-
-        // TODO does moving the group id stuff into a WHERE xx OR IS NULL make it faster?
-        $grouphidesql = <<<SQL
-        (    (  (group_course.groupmodeforce = 1 AND
-                        group_course.groupmode != {$separategroups})
-                      OR
-                       (group_course.groupmodeforce = 0 AND
-                        group_course_modules.groupmode != {$separategroups})
-                    )
-                  OR
-                    ( EXISTS ( SELECT 1
-                                 FROM {groups_members} teachermemberships
-                                WHERE teachermemberships.groupid = group_groups.id
-                                  AND teachermemberships.userid = :teacheruserid{$counter}
-               )     )         )
-SQL;
-        $params = array('teacheruserid'.$counter => $USER->id);
-        return array($grouphidesql, $params);
-    }
 }
 
 /**
@@ -703,4 +742,6 @@ class block_ajax_marking_cohortid extends block_ajax_marking_filter_base {
         );
         $countwrapper->add_from($table);
     }
+
+
 }

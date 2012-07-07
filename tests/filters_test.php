@@ -29,6 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_Assign_generator.class.php');
 
 /**
  * Tests the filter system to see if it alters the query properly.
@@ -37,7 +38,7 @@ class filters_test extends advanced_testcase {
 
     public function test_group_visibility_subquery() {
 
-        global $DB, $PAGE;
+        global $DB, $PAGE, $USER;
 
         $this->resetAfterTest();
 
@@ -77,10 +78,11 @@ class filters_test extends advanced_testcase {
         // Make two coursemodules.
         /* @var mod_forum_generator $forumgenerator */
         $forumgenerator = $generator->get_plugin_generator('mod_forum');
-        $prototypeforum = new stdClass();
-        $prototypeforum->course = $course->id;
-        $forum1 = $forumgenerator->create_instance($prototypeforum);
-        $forum2 = $forumgenerator->create_instance($prototypeforum);
+        $prototypemodule = new stdClass();
+        $prototypemodule->course = $course->id;
+        $forum1 = $forumgenerator->create_instance($prototypemodule);
+        $assigngenerator = new block_ajax_marking_mod_assign_generator($generator);
+        $assign1 = $assigngenerator->create_instance($prototypemodule);
 
         // Check we got everything.
         $this->assertEquals(2, $DB->count_records('course_modules'), 'Wrong number of course modules');
@@ -100,24 +102,57 @@ class filters_test extends advanced_testcase {
         }
 
         $expectedlist = array();
-        $item = new stdClass();
-        $item->groupid = $group1->id;
-        $item->cmid = $forum1->cmid;
-        $item->display = 1;
-        $expectedlist['a'] = $item;
-        $item2 = clone($item);
+
+        $item1 = new stdClass();
+        $item1->groupid = $group1->id;
+        $item1->cmid = $forum1->cmid;
+        $item1->display = 1;
+        $expectedlist['a'] = $item1;
+
+        $item2 = new stdClass();
         $item2->groupid = $group2->id;
+        $item2->cmid = $forum1->cmid;
+        $item2->display = 1;
         $expectedlist['b'] = $item2;
-        $item3 = clone($item2);
+
+        $item3 = new stdClass();
         $item3->groupid = $group1->id;
-        $item3->cmid = $forum2->cmid;
+        $item3->cmid = $assign1->cmid;
+        $item3->display = 1;
         $expectedlist['c'] = $item3;
-        $item4 = clone($item3);
+
+        $item4 = new stdClass();
         $item4->groupid = $group2->id;
+        $item4->cmid = $assign1->cmid;
+        $item4->display = 1;
         $expectedlist['d'] = $item4;
 
         $this->assertEquals($expectedlist, $vanillalist);
 
+        // Now see if altering the settings work. Hide one group for one course module.
+        $setting = new stdClass();
+        $setting->userid = $USER->id;
+        $setting->tablename = 'course_modules';
+        $setting->instanceid = $forum1->cmid;
+        $setting->display = 1;
+        $setting->id = $DB->insert_record('block_ajax_marking', $setting);
+
+        $groupsetting = new stdClass();
+        $groupsetting->configid = $setting->id;
+        $groupsetting->groupid = $group1->id;
+        $groupsetting->display = 0;
+        $DB->insert_record('block_ajax_marking_groups', $groupsetting);
+
+        $expectedlist['a']->display = 0;
+
+        $vanillars = $DB->get_recordset_sql($query, $params);
+        $vanillalist = array();
+        for ($i = 'a'; $i <= 'd'; $i++) {
+            $vanillalist[$i] = $vanillars->current();
+            $vanillars->next();
+        }
+
+        $this->assertEquals($expectedlist, $vanillalist);
     }
 
 }

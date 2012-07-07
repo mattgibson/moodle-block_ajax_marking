@@ -274,24 +274,6 @@ class block_ajax_marking_nodes_builder {
      */
     private static function apply_sql_display_settings($query) {
 
-        global $USER;
-
-        $query->add_from(array('join' => 'LEFT JOIN',
-                               'table' => 'block_ajax_marking',
-                               'on' => "cmconfig.tablename = 'course_modules'
-                                        AND cmconfig.instanceid = moduleunion.coursemoduleid
-                                        AND cmconfig.userid = :confuserid1 ",
-                               'alias' => 'cmconfig' ));
-
-        $query->add_from(array('join' => 'LEFT JOIN',
-                               'table' => 'block_ajax_marking',
-                               'on' => "courseconfig.tablename = 'course'
-                                       AND courseconfig.instanceid = moduleunion.course
-                                       AND courseconfig.userid = :confuserid2 ",
-                               'alias' => 'courseconfig' ));
-        $query->add_param('confuserid1', $USER->id);
-        $query->add_param('confuserid2', $USER->id);
-
         // Here, we filter out the users with no group memberships, where the users without group
         // memberships have been set to be hidden for this coursemodule.
         // Second bit (after OR) filters out those who have group memberships, but all of them are
@@ -303,19 +285,22 @@ class block_ajax_marking_nodes_builder {
         $query->add_params($existsparams);
         $hidden = <<<SQL
     (
-        ( NOT EXISTS (SELECT NULL
+        ( /* User has no group memberships */
+          NOT EXISTS (SELECT NULL
                         FROM {groups_members} groups_members
                   INNER JOIN {groups} groups
                           ON groups_members.groupid = groups.id
                        WHERE groups_members.userid = moduleunion.userid
                          AND groups.courseid = moduleunion.course)
 
+                /* Settings say 'show people who have no group memberships' */
           AND ( COALESCE(cmconfig.showorphans,
                          courseconfig.showorphans,
                          {$sitedefaultnogroup}) = 1 ) )
 
         OR
 
+            /* student is in at least one group that is supposed to be shown to this teacher  */
         ( EXISTS (SELECT NULL
                     FROM {groups_members} groups_members
               INNER JOIN {groups} groups
@@ -326,7 +311,6 @@ class block_ajax_marking_nodes_builder {
                      AND existsvisibilitysubquery.cmid = moduleunion.coursemoduleid
                      AND groups.courseid = moduleunion.course
                      AND existsvisibilitysubquery.display = 1)
-
         )
     )
 SQL;
@@ -343,6 +327,34 @@ SQL;
                                          {$sitedefaultactivitydisplay}) = 1")
         );
 
+    }
+
+    /**
+     * Joins the config table to the query as courseconfig and cmconfig. REquires moduleunion alias
+     * to join to.
+     *
+     * @static
+     * @param block_ajax_marking_query_base $query
+     */
+    private static function attach_config_tables(block_ajax_marking_query_base $query) {
+
+        global $USER;
+
+        $query->add_from(array('join' => 'LEFT JOIN',
+                               'table' => 'block_ajax_marking',
+                               'on' => "cmconfig.tablename = 'course_modules'
+                                        AND cmconfig.instanceid = moduleunion.coursemoduleid
+                                        AND cmconfig.userid = :confuserid1 ",
+                               'alias' => 'cmconfig'));
+
+        $query->add_from(array('join' => 'LEFT JOIN',
+                               'table' => 'block_ajax_marking',
+                               'on' => "courseconfig.tablename = 'course'
+                                       AND courseconfig.instanceid = moduleunion.course
+                                       AND courseconfig.userid = :confuserid2 ",
+                               'alias' => 'courseconfig'));
+        $query->add_param('confuserid1', $USER->id);
+        $query->add_param('confuserid2', $USER->id);
     }
 
     /**
@@ -876,6 +888,9 @@ SQL;
                                            'union' => true,
                                            'subquery' => true));
 
+        // Join to the config tables.
+        self::attach_config_tables($countwrapperquery);
+
         // Apply all the standard filters. These only make sense when there's unmarked work.
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
         self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid',
@@ -1015,5 +1030,7 @@ SQL;
                      'itemcount'    => $node->itemcount);
 
     }
+
+
 }
 
