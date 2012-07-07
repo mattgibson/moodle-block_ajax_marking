@@ -138,7 +138,7 @@ class test_nodes_builder extends advanced_testcase {
      * the module's query factory. Possible problem with third (fourth?) party module access code,
      * so check first to see if the generator can handle making one to test with.
      */
-    public function test_basic_module_retrieval() {
+    public function test_module_query_factories() {
 
         global $DB;
 
@@ -554,7 +554,7 @@ class test_nodes_builder extends advanced_testcase {
      * This function will run the whole query with all filters against a data set which ought
      * ot all come back, i.e. none of the items will be intercepted by any filters.
      */
-    public function test_full_module_retrieval() {
+    public function test_unmarked_nodes_basic() {
 
         // Make all the test data and get a total count back.
         $this->make_module_submissions();
@@ -562,7 +562,7 @@ class test_nodes_builder extends advanced_testcase {
         // Make sure the current user is a teacher in the course.
         $this->setUser(key($this->teachers));
 
-        // Make a full module query with nextnodefilter as coursemodule.
+        // Make a full nodes query. Doesn't work without a filter of some sort.
         $filters = array('courseid' => 'nextnodefilter');
         $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
 
