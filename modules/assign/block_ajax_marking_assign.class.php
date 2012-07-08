@@ -59,12 +59,14 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
     }
 
     /**
-     * Makes the grading interface for the pop up
+     * Makes the grading interface for the pop up. Robbed from /mod/assign/locallib.php
+     * line 1583ish - view_single_grade_page().
      *
      * @param array $params From $_GET
      * @param object $coursemodule The coursemodule object that the user has been authenticated
      * against
      * @param bool $data
+     * @throws coding_exception
      * @global $PAGE
      * @global stdClass $CFG
      * @global moodle_database $DB
@@ -74,9 +76,118 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
      */
     public function grading_popup($params, $coursemodule, $data = false) {
 
-        global $PAGE, $CFG, $DB, $OUTPUT;
+        global $PAGE, $CFG, $DB;
+
+        $modulecontext = context_module::instance($coursemodule->id);
+        $course = $DB->get_record('course', array('id' => $coursemodule->course));
+        $coursecontext = context_course::instance($course->id);
+
+        $assign = new assign($modulecontext, $coursemodule, $course);
+
+        /* @var mod_assign_renderer $renderer */
+        $renderer = $PAGE->get_renderer('mod_assign');
 
         $output = '';
+
+        $offset = 1;
+
+        // Include grade form.
+        require_once($CFG->dirroot.'/mod/assign/gradeform.php');
+
+        // Need submit permission to submit an assignment.
+        require_capability('mod/assign:grade', $modulecontext);
+
+        /* Pinched from private method assign::get_grading_userid_list() */
+        $filter = get_user_preferences('assign_filter', '');
+        $table = new assign_grading_table($assign, 0, $filter, 0, false);
+        $useridlist = $table->get_column_data('userid');
+
+        $userid = $params['userid'];
+
+        $rownum = 0;
+        foreach ($useridlist as $key => $useridinlist) {
+            if ($useridinlist == $userid) {
+                $rownum = $key;
+                reset ($useridlist); // Just in case.
+                break;
+            }
+        }
+
+        $last = false;
+        if ($rownum == count($useridlist) - 1) {
+            $last = true;
+        }
+
+        // The placement of this is important so can pass the list of userids above.
+        if ($offset) {
+            $_POST = array();
+        }
+
+        $user = $DB->get_record('user', array('id' => $userid));
+        if ($user) {
+            $output .= $renderer->render(new assign_user_summary($user, $course->id,
+                                                                     has_capability('moodle/site:viewfullnames',
+                                                                                    $coursecontext)));
+        }
+        $submission = $DB->get_record('assign_submission',
+                                      array('assignment' => $assign->get_instance()->id,
+                                            'userid' => $userid));
+
+        // Get the current grade. Pinched from assign::get_user_grade().
+        $grade = $DB->get_record('assign_grades',
+                                 array('assignment' => $assign->get_instance()->id,
+                                       'userid' => $userid));
+        // Pinched from assign::is_graded().
+        $isgraded = (!empty($grade) && $grade->grade !== null && $grade->grade >= 0);
+
+        if ($assign->can_view_submission($userid)) {
+            $gradelocked = ($grade && $grade->locked) || $assign->grading_disabled($userid);
+            $widget =
+                new assign_submission_status($assign->get_instance()->allowsubmissionsfromdate,
+                                             $assign->get_instance()->alwaysshowdescription,
+                                             $submission,
+                                             $assign->is_any_submission_plugin_enabled(),
+                                             $gradelocked,
+                                             $isgraded,
+                                             $assign->get_instance()->duedate,
+                                             $assign->get_submission_plugins(),
+                                             $assign->get_return_action(),
+                                             $assign->get_return_params(),
+                                             $assign->get_course_module()->id,
+                                             assign_submission_status::GRADER_VIEW,
+                                             false,
+                                             false);
+            $output .= $renderer->render($widget);
+        }
+        if ($grade) {
+            $data = new stdClass();
+            if ($grade->grade !== null && $grade->grade >= 0) {
+                $data->grade = format_float($grade->grade, 2);
+            }
+        } else {
+            $data = new stdClass();
+            $data->grade = '';
+        }
+
+        // Now show the grading form.
+        $customdata = array(
+            'useridlist' => $useridlist,
+            'rownum' => $rownum,
+            'last' => $last
+        );
+        $mform = new mod_assign_grade_form(null,
+                                           array($assign,
+                                                 $data,
+                                                 $customdata),
+                                           'post',
+                                           '',
+                                           array('class' => 'gradeform'));
+        $output .= $renderer->render(new assign_form('gradingform', $mform));
+
+        $assign->add_to_log('view grading form',
+                          get_string('viewgradingformforstudent', 'assign',
+                                     array('id' => $user->id,
+                                           'fullname' => fullname($user))));
 
         return $output;
     }
@@ -203,4 +314,5 @@ class block_ajax_marking_assign_userid extends block_ajax_marking_filter_base {
             'on' => 'usertable.id = countwrapperquery.id');
         $query->add_from($table);
     }
+
 }

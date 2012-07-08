@@ -162,7 +162,17 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
 
         $workshopurl = new moodle_url('/mod/workshop/view.php?id='.$coursemodule->id);
         redirect($workshopurl);
-
     }
 
+    /**
+     * This function will take the data returned by the grading popup and process it. Not always
+     * implemented as not all modules have a grading popup yet
+     *
+     * @param $data
+     * @param $params
+     * @return string
+     */
+    public function process_data($data, $params) {
+        return '';
+    }
 }

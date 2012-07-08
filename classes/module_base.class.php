@@ -245,9 +245,7 @@ abstract class block_ajax_marking_module_base {
      * @param $params
      * @return string
      */
-    public function process_data($data, $params) {
-        return '';
-    }
+    abstract public function process_data($data, $params);
 
     /**
      * Makes the contents of the pop up grading window
@@ -257,8 +255,5 @@ abstract class block_ajax_marking_module_base {
      * @return string HTML
      * @SuppressWarnings(PHPMD.UnusedFormalParameter)
      */
-    public function grading_popup($params, $coursemodule) {
-    }
-
-
+    abstract public function grading_popup($params, $coursemodule);
 }
