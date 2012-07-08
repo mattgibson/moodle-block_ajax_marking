@@ -220,7 +220,7 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
      */
     public function query_factory() {
 
-        global $DB;
+        global $DB, $USER;
 
         $query = new block_ajax_marking_query_base($this);
 
@@ -235,6 +235,14 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
                               'alias' => 'sub',
                               'on' => 'sub.assignment = moduletable.id'
                          ));
+        $query->add_from(array(
+                              'join' => 'LEFT JOIN',
+                              'table' => 'assign_grades',
+                              'on' => 'assign_grades.assignment = moduletable.id AND
+                                       assign_grades.userid = sub.userid AND
+                                       assign_grades.grader = :assigngraderid'
+                         ));
+        $query->add_param('assigngraderid', $USER->id);
 
         // Standard user id for joins.
         $query->add_select(array('table' => 'sub',
@@ -247,6 +255,10 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
         $query->add_where(array(
                                'type' => 'AND',
                                'condition' => $statustext." = '".ASSIGN_SUBMISSION_STATUS_SUBMITTED."'"));
+        $query->add_where(array(
+                               'type' => 'AND',
+                               'condition' => 'assign_grades.grade IS NULL'
+                          ));
 
         // First bit: not graded
         // Second bit of first bit: has been resubmitted
