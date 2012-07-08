@@ -301,7 +301,6 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
             }
         },
 
-
         /**
          * Saves a new setting into the nodes internal store, so we can keep track of things.
          */
@@ -692,6 +691,3 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
 }, '1.0', {
     requires : ['yui2-treeview']
 });
-
-
-

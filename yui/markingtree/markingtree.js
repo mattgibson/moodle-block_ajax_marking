@@ -372,7 +372,6 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
 
         notify_refresh_needed_after_config : function () {},
 
-
         /**
          * OnClick handler for the nodes of the tree. Attached to the root node in order to catch all events
          * via bubbling. Deals with making the marking popup appear.
@@ -439,6 +438,3 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
 }, '1.0', {
     requires : ['yui2-treeview', 'moodle-block_ajax_marking-markingtreenode']
 });
-
-
-

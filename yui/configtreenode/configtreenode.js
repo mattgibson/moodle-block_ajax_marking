@@ -454,6 +454,3 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
 }, '1.0', {
     requires : ['moodle-block_ajax_marking-markingtreenode']
 });
-
-
-

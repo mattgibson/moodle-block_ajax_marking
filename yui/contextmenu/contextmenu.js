@@ -193,6 +193,3 @@ YUI.add('moodle-block_ajax_marking-contextmenu', function (Y) {
 }, '1.0', {
     requires : ['yui2-menu']
 });
-
-
-

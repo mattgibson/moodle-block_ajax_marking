@@ -87,7 +87,7 @@ $htmlstuff = $moduleobject->grading_popup($params, $coursemodule);
 echo $OUTPUT->header();
 
 // Stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be
-// processed. Also catches all other submitted form data. Will redirect if
+// processed. Also catches all other submitted form data.
 $data = data_submitted();
 
 if ($data && confirm_sesskey()) {
@@ -110,8 +110,6 @@ if ($data && confirm_sesskey()) {
         $PAGE->requires->js_init_code($callfunction, false);
 
         close_window(1);
-    } else if ($error != 'cancel') {
-        // Close the window immediately
 
     } else if ($error != 'displayagain') {
 

@@ -211,18 +211,19 @@ class block_ajax_marking_nodes_builder {
             $classnamesuffix = $name;
             $filterfunctionname = ($value == 'nextnodefilter') ? 'nextnodetype_filter' : 'where_filter';
             $filterfunctionname = $config ? 'config'.$filterfunctionname : $filterfunctionname;
-            // Special case for nextnodefilter. Usually, we will have ancestors.
-            $moduleclassname = self::module_override_available($moduleclass,
-                                                               $classnamesuffix,
-                                                               $filterfunctionname);
-
             $coreclassname = 'block_ajax_marking_'.$classnamesuffix;
 
-            if ($moduleclassname) {
+            if ($moduleclass) {
+                // Special case for nextnodefilter. Usually, we will have ancestors.
+                $moduleclassname = self::module_override_available($moduleclass,
+                                                                   $classnamesuffix,
+                                                                   $filterfunctionname);
+                if ($moduleclassname) {
 
-                // Modules provide a separate class for each type of node (userid, groupid, etc)
-                // which provide static methods for these operations.
-                $moduleclassname::$filterfunctionname($query, $value);
+                    // Modules provide a separate class for each type of node (userid, groupid, etc)
+                    // which provide static methods for these operations.
+                    $moduleclassname::$filterfunctionname($query, $value);
+                }
 
             } else if (class_exists($coreclassname) &&
                        method_exists($coreclassname, $filterfunctionname)) {
@@ -244,19 +245,16 @@ class block_ajax_marking_nodes_builder {
      * @param $filterfunctionname
      * @return bool|string
      */
-    private static function module_override_available($moduleclass, $classnamesuffix,
+    private static function module_override_available(block_ajax_marking_module_base $moduleclass,
+                                                      $classnamesuffix,
                                                       $filterfunctionname) {
 
         // If we are filtering by a specific module, look there first.
-        $moduleclassname = '';
-        if ($moduleclass instanceof block_ajax_marking_module_base) {
-            $moduleclassname = 'block_ajax_marking_'.$moduleclass->get_module_name().
-                '_'.$classnamesuffix;
-        }
+        $moduleclassname = 'block_ajax_marking_'.$moduleclass->get_module_name().'_'.$classnamesuffix;
 
-        $moduleoverrideavailable = $moduleclass instanceof block_ajax_marking_module_base &&
-            class_exists($moduleclassname) &&
-            method_exists($moduleclassname, $filterfunctionname);
+        $moduleoverrideavailable = class_exists($moduleclassname) &&
+                                   method_exists($moduleclassname, $filterfunctionname);
+
         if ($moduleoverrideavailable) {
             return $moduleclassname;
         }
@@ -400,7 +398,7 @@ SQL;
         list($modsql, $modparams) = $DB->get_in_or_equal(array_keys($modids), SQL_PARAMS_NAMED);
         $params = array_merge($courseparams, $modparams);
         // Get all course modules the current user could potentially access. Limit to the enabled
-        // mods. We could use
+        // mods.
         $sql = "SELECT context.*
                   FROM {context} context
             INNER JOIN {course_modules} course_modules
@@ -418,7 +416,7 @@ SQL;
             foreach ($contexts as $key => $context) {
                 // If we don't find any capabilities for a context, it will remain and be excluded
                 // from the SQL. Hopefully this will be a small list. n.b. the list is of all
-                // course modules
+                // course modules.
                 if (has_capability($mod->get_capability(), new bulk_context_module($context))) {
                     unset($contexts[$key]);
                 }
