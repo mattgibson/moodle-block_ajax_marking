@@ -129,6 +129,3 @@ YUI.add('moodle-block_ajax_marking-cohortstree', function (Y) {
                 'moodle-block_ajax_marking-markingtreenode',
                 'moodle-block_ajax_marking-contextmenu']
 });
-
-
-

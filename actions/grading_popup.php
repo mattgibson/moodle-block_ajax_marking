@@ -110,8 +110,6 @@ if ($data && confirm_sesskey()) {
         $PAGE->requires->js_init_code($callfunction, false);
 
         close_window(1);
-    } else if ($error != 'cancel') {
-        // Close the window immediately
 
     } else if ($error != 'displayagain') {
 

@@ -134,7 +134,6 @@ YUI.add('moodle-block_ajax_marking-coursestree', function (Y) {
             M.block_ajax_marking.cohortstab_tree.set_needs_refresh(true);
         }
 
-
     }, {
         NAME : COURSESTREENAME, //module name is something mandatory.
         // It should be in lower case without space
@@ -160,6 +159,3 @@ YUI.add('moodle-block_ajax_marking-coursestree', function (Y) {
                 'moodle-block_ajax_marking-coursestreenode',
                 'moodle-block_ajax_marking-contextmenu']
 });
-
-
-

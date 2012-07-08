@@ -39,7 +39,7 @@ class block_ajax_marking_assignment_form extends assignment_grading_form {
     /**
      * Adds the 'save and revert to draft' button.
      */
-    public function add_action_buttons($cancel = true, $submitlabel = NULL) {
+    public function add_action_buttons($cancel = true, $submitlabel = null) {
 
         $mform =& $this->_form;
 

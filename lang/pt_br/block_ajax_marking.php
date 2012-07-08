@@ -56,8 +56,8 @@ $string['recentitems']           = 'itens recentes';
 $string['mediumitems']           = 'itens intermediários';
 $string['overdueitems']          = 'itens antigos';
 
-// Specific to modules
+// Specific to modules.
 
-// Forum
+// Forum.
 $string['forummarkcomplete'] = 'Marcar este discussão como feita. Ela aparecerá no bloco '.
                                'se algum novo item for publicado.';

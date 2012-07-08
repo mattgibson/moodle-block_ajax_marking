@@ -599,6 +599,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                 /* Not in draft state */
                                 AND ( {$assignmenttypestring} != 'upload'
                                       OR ( {$assignmenttypestring} = 'upload' AND {$datastring} = 'submitted'))
+                                AND {$assignmenttypestring} != 'offline'
                                   "));
 
         // TODO only sent for marking.

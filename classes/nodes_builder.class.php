@@ -211,18 +211,19 @@ class block_ajax_marking_nodes_builder {
             $classnamesuffix = $name;
             $filterfunctionname = ($value == 'nextnodefilter') ? 'nextnodetype_filter' : 'where_filter';
             $filterfunctionname = $config ? 'config'.$filterfunctionname : $filterfunctionname;
-            // Special case for nextnodefilter. Usually, we will have ancestors.
-            $moduleclassname = self::module_override_available($moduleclass,
-                                                               $classnamesuffix,
-                                                               $filterfunctionname);
-
             $coreclassname = 'block_ajax_marking_'.$classnamesuffix;
 
-            if ($moduleclassname) {
+            if ($moduleclass) {
+                // Special case for nextnodefilter. Usually, we will have ancestors.
+                $moduleclassname = self::module_override_available($moduleclass,
+                                                                   $classnamesuffix,
+                                                                   $filterfunctionname);
+                if ($moduleclassname) {
 
-                // Modules provide a separate class for each type of node (userid, groupid, etc)
-                // which provide static methods for these operations.
-                $moduleclassname::$filterfunctionname($query, $value);
+                    // Modules provide a separate class for each type of node (userid, groupid, etc)
+                    // which provide static methods for these operations.
+                    $moduleclassname::$filterfunctionname($query, $value);
+                }
 
             } else if (class_exists($coreclassname) &&
                        method_exists($coreclassname, $filterfunctionname)) {
@@ -244,19 +245,16 @@ class block_ajax_marking_nodes_builder {
      * @param $filterfunctionname
      * @return bool|string
      */
-    private static function module_override_available($moduleclass, $classnamesuffix,
+    private static function module_override_available(block_ajax_marking_module_base $moduleclass,
+                                                      $classnamesuffix,
                                                       $filterfunctionname) {
 
         // If we are filtering by a specific module, look there first.
-        $moduleclassname = '';
-        if ($moduleclass instanceof block_ajax_marking_module_base) {
-            $moduleclassname = 'block_ajax_marking_'.$moduleclass->get_module_name().
-                '_'.$classnamesuffix;
-        }
+        $moduleclassname = 'block_ajax_marking_'.$moduleclass->get_module_name().'_'.$classnamesuffix;
 
-        $moduleoverrideavailable = $moduleclass instanceof block_ajax_marking_module_base &&
-            class_exists($moduleclassname) &&
-            method_exists($moduleclassname, $filterfunctionname);
+        $moduleoverrideavailable = class_exists($moduleclassname) &&
+                                   method_exists($moduleclassname, $filterfunctionname);
+
         if ($moduleoverrideavailable) {
             return $moduleclassname;
         }
@@ -274,24 +272,6 @@ class block_ajax_marking_nodes_builder {
      */
     private static function apply_sql_display_settings($query) {
 
-        global $USER;
-
-        $query->add_from(array('join' => 'LEFT JOIN',
-                               'table' => 'block_ajax_marking',
-                               'on' => "cmconfig.tablename = 'course_modules'
-                                        AND cmconfig.instanceid = moduleunion.coursemoduleid
-                                        AND cmconfig.userid = :confuserid1 ",
-                               'alias' => 'cmconfig' ));
-
-        $query->add_from(array('join' => 'LEFT JOIN',
-                               'table' => 'block_ajax_marking',
-                               'on' => "courseconfig.tablename = 'course'
-                                       AND courseconfig.instanceid = moduleunion.course
-                                       AND courseconfig.userid = :confuserid2 ",
-                               'alias' => 'courseconfig' ));
-        $query->add_param('confuserid1', $USER->id);
-        $query->add_param('confuserid2', $USER->id);
-
         // Here, we filter out the users with no group memberships, where the users without group
         // memberships have been set to be hidden for this coursemodule.
         // Second bit (after OR) filters out those who have group memberships, but all of them are
@@ -303,19 +283,22 @@ class block_ajax_marking_nodes_builder {
         $query->add_params($existsparams);
         $hidden = <<<SQL
     (
-        ( NOT EXISTS (SELECT NULL
+        ( /* User has no group memberships */
+          NOT EXISTS (SELECT NULL
                         FROM {groups_members} groups_members
                   INNER JOIN {groups} groups
                           ON groups_members.groupid = groups.id
                        WHERE groups_members.userid = moduleunion.userid
                          AND groups.courseid = moduleunion.course)
 
+                /* Settings say 'show people who have no group memberships' */
           AND ( COALESCE(cmconfig.showorphans,
                          courseconfig.showorphans,
                          {$sitedefaultnogroup}) = 1 ) )
 
         OR
 
+            /* student is in at least one group that is supposed to be shown to this teacher  */
         ( EXISTS (SELECT NULL
                     FROM {groups_members} groups_members
               INNER JOIN {groups} groups
@@ -326,7 +309,6 @@ class block_ajax_marking_nodes_builder {
                      AND existsvisibilitysubquery.cmid = moduleunion.coursemoduleid
                      AND groups.courseid = moduleunion.course
                      AND existsvisibilitysubquery.display = 1)
-
         )
     )
 SQL;
@@ -343,6 +325,34 @@ SQL;
                                          {$sitedefaultactivitydisplay}) = 1")
         );
 
+    }
+
+    /**
+     * Joins the config table to the query as courseconfig and cmconfig. REquires moduleunion alias
+     * to join to.
+     *
+     * @static
+     * @param block_ajax_marking_query_base $query
+     */
+    private static function attach_config_tables(block_ajax_marking_query_base $query) {
+
+        global $USER;
+
+        $query->add_from(array('join' => 'LEFT JOIN',
+                               'table' => 'block_ajax_marking',
+                               'on' => "cmconfig.tablename = 'course_modules'
+                                        AND cmconfig.instanceid = moduleunion.coursemoduleid
+                                        AND cmconfig.userid = :confuserid1 ",
+                               'alias' => 'cmconfig'));
+
+        $query->add_from(array('join' => 'LEFT JOIN',
+                               'table' => 'block_ajax_marking',
+                               'on' => "courseconfig.tablename = 'course'
+                                       AND courseconfig.instanceid = moduleunion.course
+                                       AND courseconfig.userid = :confuserid2 ",
+                               'alias' => 'courseconfig'));
+        $query->add_param('confuserid1', $USER->id);
+        $query->add_param('confuserid2', $USER->id);
     }
 
     /**
@@ -388,7 +398,7 @@ SQL;
         list($modsql, $modparams) = $DB->get_in_or_equal(array_keys($modids), SQL_PARAMS_NAMED);
         $params = array_merge($courseparams, $modparams);
         // Get all course modules the current user could potentially access. Limit to the enabled
-        // mods. We could use
+        // mods.
         $sql = "SELECT context.*
                   FROM {context} context
             INNER JOIN {course_modules} course_modules
@@ -406,7 +416,7 @@ SQL;
             foreach ($contexts as $key => $context) {
                 // If we don't find any capabilities for a context, it will remain and be excluded
                 // from the SQL. Hopefully this will be a small list. n.b. the list is of all
-                // course modules
+                // course modules.
                 if (has_capability($mod->get_capability(), new bulk_context_module($context))) {
                     unset($contexts[$key]);
                 }
@@ -876,6 +886,9 @@ SQL;
                                            'union' => true,
                                            'subquery' => true));
 
+        // Join to the config tables.
+        self::attach_config_tables($countwrapperquery);
+
         // Apply all the standard filters. These only make sense when there's unmarked work.
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
         self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid',
@@ -1015,5 +1028,7 @@ SQL;
                      'itemcount'    => $node->itemcount);
 
     }
+
+
 }
 
