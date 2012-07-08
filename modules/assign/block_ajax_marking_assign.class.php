@@ -89,8 +89,6 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
 
         $output = '';
 
-        $offset = 1;
-
         // Include grade form.
         require_once($CFG->dirroot.'/mod/assign/gradeform.php');
 
@@ -116,11 +114,6 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
         $last = false;
         if ($rownum == count($useridlist) - 1) {
             $last = true;
-        }
-
-        // The placement of this is important so can pass the list of userids above.
-        if ($offset) {
-            $_POST = array();
         }
 
         $user = $DB->get_record('user', array('id' => $userid));
@@ -175,7 +168,7 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
             'rownum' => $rownum,
             'last' => $last
         );
-        $mform = new mod_assign_grade_form(null,
+        $mform = new mod_assign_grade_form(block_ajax_marking_form_url($params),
                                            array($assign,
                                                  $data,
                                                  $customdata),
@@ -193,13 +186,28 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
     }
 
     /**
-     * Process and save the data from the feedback form.
+     * Process and save the data from the feedback form. Pinched from
+     * assign::process_and_save_grade().
      *
      * @param object $data from the feedback form
      * @param $params
      * @return string
      */
     public function process_data($data, $params) {
+
+        global $DB;
+
+        $coursemodule = $DB->get_record('course_modules', array('id' => $params['coursemoduleid']));
+        $modulecontext = context_module::instance($coursemodule->id);
+        $course = $DB->get_record('course', array('id' => $coursemodule->course));
+        $assign = new assign($modulecontext, $coursemodule, $course);
+
+        // This is horrible, but seems to be the least ugly approach. The alternative is to
+        // duplicate all the functionality o0f this method outside of the class.
+        $assignrelector = new ReflectionClass('assign');
+        $method = $assignrelector->getMethod("process_save_grade");
+        $method->setAccessible(true);
+        $method->invoke($assign, null);
 
         return '';
     }
