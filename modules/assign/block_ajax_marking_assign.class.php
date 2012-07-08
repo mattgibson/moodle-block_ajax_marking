@@ -235,6 +235,8 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
                               'alias' => 'sub',
                               'on' => 'sub.assignment = moduletable.id'
                          ));
+        // LEFT JOIN, rather than NOT EXISTS because we may have an empty form saved, which
+        // will create a grade record, but with a null grade. These should still count as ungraded.
         $query->add_from(array(
                               'join' => 'LEFT JOIN',
                               'table' => 'assign_grades',
