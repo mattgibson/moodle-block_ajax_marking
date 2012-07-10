@@ -29,7 +29,7 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_Assign_generator.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_assign_generator.class.php');
 
 /**
  * Tests the filter system to see if it alters the query properly.

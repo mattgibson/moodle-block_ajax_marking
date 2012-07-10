@@ -117,13 +117,9 @@ class block_ajax_marking_mod_quiz_generator extends phpunit_module_generator {
      */
     public function make_question($courseid) {
 
-        static $questioncategoryid;
-
-        if (!isset($questioncategoryid)) {
-            $context = context_course::instance($courseid);
-            $defaultcategory = question_make_default_categories(array($context));
-            $questioncategoryid = $defaultcategory->id;
-        }
+        $context = context_course::instance($courseid);
+        $defaultcategory = question_make_default_categories(array($context));
+        $questioncategoryid = $defaultcategory->id;
 
         global $USER, $DB;
 
