@@ -314,12 +314,6 @@ class block_ajax_marking_assign_userid extends block_ajax_marking_filter_base {
             'column' => 'timestamp',
             'alias' => 'tooltip');
         $query->add_select($conditions);
-        // Need this to make the popup show properly because some assign code shows or
-        // not depending on this flag to tell if it's in a pop-up e.g. the revert to draft
-        // button for advanced upload.
-        $conditions = array('column' => "'single'",
-                            'alias' => 'mode');
-        $query->add_select($conditions);
 
         $conditions = array(
             'table' => 'usertable',

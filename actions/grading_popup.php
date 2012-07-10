@@ -154,21 +154,16 @@ $code = "
     // Makes sure that any cancel button on screen will close the window after removing the tree
     // highlight
     YUI().use('event', function (Y) {
-        var button = Y.one('#id_cancel');
+        var buttons = Y.all('#id_cancel, #id_cancelbutton').on('click', function(e) {
 
-        // Subscribe to its click event with a callback function.
-        if (button) {
-            button.on('click', function (e) {
+            e.preventDefault();
 
-                e.preventDefault();
+            close_window_and_remove_node_highlight({$nodeid});
 
-                close_window_and_remove_node_highlight({$nodeid});
+            window.close();
+            return false;
 
-                window.close();
-                return false;
-
-            });
-        }
+        });
     });
 
 ";
