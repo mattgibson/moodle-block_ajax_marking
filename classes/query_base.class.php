@@ -605,7 +605,7 @@ class block_ajax_marking_query_base {
         $nogroupbyfunctions = array('COALESCE');
 
         foreach ($this->select as $select) {
-            if (isset($select['function']) && !in_array($select['function'], $nogroupbyfunctions)) {
+            if (isset($select['function']) && !in_array(strtoupper($select['function']), $nogroupbyfunctions)) {
                 return true;
             }
         }
