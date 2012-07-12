@@ -255,7 +255,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         global $DB;
 
         $query = new block_ajax_marking_query_base($this);
-        $query->set_userid_column('quiz_attempts.userid');
 
         $query->add_from(array(
                 'table' => $this->modulename,

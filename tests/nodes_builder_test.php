@@ -189,9 +189,7 @@ class test_nodes_builder extends advanced_testcase {
             // Now make sure we have the right columns for the SQL UNION ALL.
             // We will get duplicate user ids causing problems in the first column if we
             // use standard DB functions.
-            $sql = $query->to_string();
-            $params = $query->get_params();
-            $records = $DB->get_recordset_sql($sql, $params);
+            $records = $query->execute(true);
 
             $firstrow = $records->current();
 

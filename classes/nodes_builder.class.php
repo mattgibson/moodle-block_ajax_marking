@@ -95,7 +95,7 @@ class block_ajax_marking_nodes_builder {
         // Some filters need a coursemoduleid to join to, so we need to make it part of every query.
         $query->add_from(array('table' => 'course_modules',
                                'on'    => 'course_modules.instance = moduletable.id AND
-                                           course_modules.module = '.$query->get_module_id()));
+                                           course_modules.module = '.$moduleclass->get_module_id()));
         // Some modules need to add stuff by joining the moduleunion back to the sub table. This
         // gets round the way we can't add stuff from just one module's sub table into the UNION
         // bit.
@@ -103,7 +103,7 @@ class block_ajax_marking_nodes_builder {
                                  'column' => 'id',
                                  'alias'  =>'subid'));
         // Need to pass this through sometimes for the javascript to know what sort of node it is.
-        $query->add_select(array('column' => "'".$query->get_modulename()."'",
+        $query->add_select(array('column' => "'".$moduleclass->get_module_name()."'",
                                  'alias'  =>'modulename'));
 
         return $query;
@@ -151,7 +151,7 @@ class block_ajax_marking_nodes_builder {
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
-            $debugquery = block_ajax_marking_debuggable_query($countwrapperquery);
+            $debugquery = $countwrapperquery->debuggable_query();
         }
 
         $displayquery = self::get_display_query($countwrapperquery, $filters);
@@ -164,7 +164,7 @@ class block_ajax_marking_nodes_builder {
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
-            $debugquery = block_ajax_marking_debuggable_query($displayquery);
+            $debugquery = $displayquery->debuggable_query();
         }
 
         $nodes = $displayquery->execute();
@@ -551,7 +551,7 @@ SQL;
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
-            $debugquery = block_ajax_marking_debuggable_query($configbasequery);
+            $debugquery = $configbasequery->debuggable_query();
         }
 
         $nodes = $configbasequery->execute();
@@ -956,7 +956,7 @@ SQL;
      * to it
      *
      * @static
-     * @param $coursemoduleid
+     * @param int $coursemoduleid
      * @return block_ajax_marking_module_base|bool
      */
     private static function get_module_object_from_cmid($coursemoduleid) {
@@ -1016,7 +1016,7 @@ SQL;
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
-            $debugquery = block_ajax_marking_debuggable_query($displayquery);
+            $debugquery = $displayquery->debuggable_query();
         }
 
         $nodes = $displayquery->execute();
@@ -1026,9 +1026,7 @@ SQL;
                      'mediumcount'  => $node->mediumcount,
                      'overduecount' => $node->overduecount,
                      'itemcount'    => $node->itemcount);
-
     }
-
 
 }
 

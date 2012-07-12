@@ -344,57 +344,6 @@ function block_ajax_marking_form_url($params=array()) {
 }
 
 /**
- * This is not used for output, but just converts the parametrised query to one that can be
- * copy/pasted into an SQL GUI in order to debug SQL errors
- *
- * @param block_ajax_marking_query_base|string $query
- * @param array $params
- * @global stdClass $CFG
- * @return string
- */
-function block_ajax_marking_debuggable_query($query,
-                                             $params = array()) {
-
-    global $CFG;
-
-    if (!is_string($query)) {
-        $params = $query->get_params();
-        $query = $query->to_string();
-    }
-
-    // We may have a problem with params being missing. Check here (assuming the params ar in
-    // SQL_PARAMS_NAMED format And tell us the names of the offending params via an exception.
-    $pattern = '/:([\w]+)/';
-    $expectedparamcount = preg_match_all($pattern, $query, $paramnames);
-    if ($expectedparamcount) {
-        $arrayparamnames = array_keys($params);
-        $queryparamnames = $paramnames[1];
-        if ($expectedparamcount > count($params)) {
-            // Params are indexed by the name we gave, whereas the $paramnames are indexed by
-            // numeric position in $query. First array has colons at start of keys.
-            $missingparams = array_diff($queryparamnames, $arrayparamnames);
-            throw new coding_exception('Missing parameters: '.implode(', ', $missingparams));
-        } else if ($expectedparamcount < count($params)) {
-            $extraparams = array_diff($arrayparamnames, $queryparamnames);
-            throw new coding_exception('Too many parameters: '.implode(', ', $extraparams));
-        }
-    }
-
-    // Substitute all the {tablename} bits.
-    $query = preg_replace('/\{/', $CFG->prefix, $query);
-    $query = preg_replace('/}/', '', $query);
-
-    // Now put all the params in place.
-    foreach ($params as $name => $value) {
-        $pattern = '/:'.$name.'/';
-        $replacevalue = (is_numeric($value) ? $value : "'".$value."'");
-        $query = preg_replace($pattern, $replacevalue, $query);
-    }
-
-    return $query;
-}
-
-/**
  * strip_tags() leaves no spaces between what used to be different paragraphs. This (pinched
  * from a comment in the strip_tags() man page) replaces with spaces.
  *
