@@ -107,4 +107,14 @@ interface block_ajax_marking_query {
      * @return array
      */
     public function get_params();
+
+    /**
+     * This is not used for output, but just converts the parametrised query to one that can be
+     * copy/pasted into an SQL GUI in order to debug SQL errors
+     *
+     * @throws coding_exception
+     * @global stdClass $CFG
+     * @return string
+     */
+    public function debuggable_query();
 }

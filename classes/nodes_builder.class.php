@@ -280,7 +280,7 @@ class block_ajax_marking_nodes_builder {
         // The bit after that, talking about separate groups is to make sure users don't see any
         // of these groups unless they are members of them if separate groups is enabled.
         $sitedefaultnogroup = 1; // what to do with users who have no group membership?
-        list($existsvisibilitysubquery, $existsparams) = block_ajax_marking_groupid::group_visibility_subquery();
+        list($existsvisibilitysubquery, $existsparams) = block_ajax_marking_group_visibility_subquery();
         $query->add_params($existsparams);
         $hidden = <<<SQL
     (
@@ -333,9 +333,9 @@ SQL;
      * to join to.
      *
      * @static
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      */
-    private static function attach_config_tables(block_ajax_marking_query_base $query) {
+    private static function attach_config_tables(block_ajax_marking_query $query) {
 
         global $USER;
 
@@ -363,12 +363,12 @@ SQL;
      * find a small list of contexts that a teacher cannot grade in within the courses where they
      * normally can, then do a NOT IN thing with it. Also the obvious visible = 1 stuff.
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      * @param string $coursemodulejoin What table.column to join to course_modules.id
      * @param bool $includehidden Do we want to have hidden coursemodules included? Config = yes
      * @return array The join string, where string and params array. Note, where starts with 'AND'
      */
-    private static function apply_sql_visible(block_ajax_marking_query_base $query,
+    private static function apply_sql_visible(block_ajax_marking_query $query,
                                               $coursemodulejoin = '', $includehidden = false) {
         global $DB;
 
@@ -455,11 +455,11 @@ SQL;
     /**
      * Makes sure we only get stuff for the courses this user is a teacher in
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      * @param string $coursecolumn
      * @return void
      */
-    private static function apply_sql_owncourses(block_ajax_marking_query_base $query,
+    private static function apply_sql_owncourses(block_ajax_marking_query $query,
                                                  $coursecolumn = '') {
 
         global $DB;
@@ -483,11 +483,11 @@ SQL;
      * Returns an SQL snippet that will tell us whether a student is directly enrolled in this
      * course
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      * @param array $filters So we can filter by cohortid if we need to
      * @return array The join and where strings, with params. (Where starts with 'AND)
      */
-    private static function apply_sql_enrolled_students(block_ajax_marking_query_base $query,
+    private static function apply_sql_enrolled_students(block_ajax_marking_query $query,
                                                         array $filters) {
 
         global $DB, $CFG, $USER;
@@ -672,8 +672,7 @@ SQL;
             // This will include groups that have no settings as we may want to make settings
             // for them.
             list($cmsql, $params) = $DB->get_in_or_equal($coursemoduleids, SQL_PARAMS_NAMED);
-            list($gsql, $gparams) =
-                block_ajax_marking_groupid::group_visibility_subquery('coursemodule');
+            list($gsql, $gparams) = block_ajax_marking_group_visibility_subquery('coursemodule');
             // Can't have repeating groupids in column 1 or it throws an error.
             $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
             $sql = <<<SQL
@@ -706,11 +705,11 @@ SQL;
      * Config nodes need some stuff to be returned from the config tables so we can have settings
      * adjusted based on existing values.
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      * @param string $nextnodefilter
      * @return void
      */
-    private static function attach_config_settings(block_ajax_marking_query_base $query,
+    private static function attach_config_settings(block_ajax_marking_query $query,
                                                       $nextnodefilter = '') {
 
         if (!$nextnodefilter) {

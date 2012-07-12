@@ -142,7 +142,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
                 $from['join'] = 'INNER JOIN'; // Default.
             }
 
-            if ($from['table'] instanceof block_ajax_marking_query_base) { // Allow for recursion.
+            if ($from['table'] instanceof block_ajax_marking_query) { // Allow for recursion.
                 /* @define block_ajax_marking_query $from['table'] */
                 $fromstring = '('.$from['table']->get_sql().')';
 
@@ -519,7 +519,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
         $params = array();
         foreach ($this->from as $jointable) {
             $table = $jointable['table'];
-            if ($table instanceof block_ajax_marking_query_base) {
+            if ($table instanceof block_ajax_marking_query) {
                 /* @var block_ajax_marking_query_base $table */
                 $params = $this->add_params($table->get_params(), $params);
             } else if (is_array($table)) {
@@ -543,7 +543,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     private function validate_union_array($unionarray) {
         foreach ($unionarray as $table) {
-            if (!($table instanceof block_ajax_marking_query_base)) {
+            if (!($table instanceof block_ajax_marking_query)) {
                 $error = 'Array of queries for union are not all instances of '.
                          'block_ajax_marking_query_base';
                 throw new coding_exception($error);

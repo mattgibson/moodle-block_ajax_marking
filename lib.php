@@ -427,3 +427,215 @@ function block_ajax_marking_get_nextnodefilter_from_params(array $params) {
     }
     return false;
 }
+
+/**
+ * In order to display the right things, we need to work out the visibility of each group for
+ * each course module. This subquery lists all groups once for each coursemodule in the
+ * user's courses, along with it's most relevant show/hide setting, i.e. a coursemodule level
+ * override if it's there, otherwise a course level setting, or if neither, the site default.
+ * This is potentially very expensive if there are hundreds of courses as it's effectively a
+ * cartesian join between the groups and coursemodules tables, so we filter using the user's
+ * courses. This may or may not impact on the query optimiser being able to cache the execution
+ * plan between users.
+ *
+ * // Query visualisation:
+ *               ______________________________________________________________
+ *               |                                                            |
+ * Course - Groups - coursemodules                                            |
+ *               |   course |  |id__ block_ajax_marking_settings - block_ajax_marking_groups
+ *               |          |            (for coursemodules)           (per coursemodule)
+ *               |          |
+ *               |          |_____ block_ajax_marking_settings --- block_ajax_marking_groups
+ *               |                       (for courses)                   (per course)
+ *               |____________________________________________________________|
+ *
+ *
+ * Temp table we get back:
+ * ----------------------------------------
+ * | course_module_id/ | groupid | display |
+ * |    course_id      |         |
+ * |---------------------------------------|
+ * |        543        |    67   |    0    |
+ * |        342        |    6    |    1    |
+ *
+ * @param string $type We may want to know the combined visibility (coalesce) or just the
+ * visibility at either (course) or (coursemodule) level. The latter two are for getting
+ * the groups in their current settings states so config stuff can be adjusted, whereas
+ * the combined one is for retrieving unmarked work.
+ *
+ * @return array SQL and params
+ * @todo Unit test this!
+ * @SuppressWarnings(PHPMD.UnusedLocalVariable) Debuggable query
+ */
+function block_ajax_marking_group_visibility_subquery($type = 'coalesce') {
+
+    global $DB, $USER;
+
+    // In case the subquery is used twice, this variable allows us to feed the same teacher
+    // courses in more than once because Moodle requires variables with different suffixes.
+    static $counter = 0;
+    $counter++;
+
+    $courses = block_ajax_marking_get_my_teacher_courses();
+    list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
+                                                             SQL_PARAMS_NAMED,
+                                                             "groups{$counter}courses");
+
+    list($grouphidesql, $grouphideparams) = block_ajax_marking_get_group_hide_sql($counter);
+    $coursesparams = array_merge($coursesparams, $grouphideparams);
+
+    $sitedefault = 1; // Configurable in future.
+    $select = $join = $where = '';
+
+    // These fragments are recombined as needed. Arguably less duplication is better than the 3
+    // separate functions this would otherwise need.
+    $coursemodulejoin = <<<SQL
+     LEFT JOIN {block_ajax_marking} group_cmconfig
+            ON group_course_modules.id = group_cmconfig.instanceid
+                AND group_cmconfig.tablename = 'course_modules'
+     LEFT JOIN {block_ajax_marking_groups} group_cmconfig_groups
+            ON group_cmconfig_groups.configid = group_cmconfig.id
+           AND group_cmconfig_groups.groupid = group_groups.id
+SQL;
+    $coursejoin = <<<SQL
+     LEFT JOIN {block_ajax_marking} group_courseconfig
+            ON group_courseconfig.instanceid = group_course_modules.course
+                AND group_courseconfig.tablename = 'course'
+     LEFT JOIN {block_ajax_marking_groups} group_courseconfig_groups
+            ON group_courseconfig_groups.configid = group_courseconfig.id
+               AND group_courseconfig_groups.groupid = group_groups.id
+SQL;
+    $coursewhere = <<<SQL
+           AND (group_courseconfig.userid = :groupuserid1_{$counter}
+                OR group_courseconfig.userid IS NULL)
+SQL;
+    $coursemodulewhere = <<<SQL
+           AND (group_cmconfig.userid = :groupuserid2_{$counter}
+                OR group_cmconfig.userid IS NULL)
+SQL;
+
+    // We have similar code in use for three cases, so we construct the SQL dynamically.
+    switch ($type) {
+
+        case 'coalesce':
+            $select = <<<SQL
+               group_course_modules.id AS cmid,
+               CASE
+                   WHEN {$grouphidesql} THEN 0
+                   ELSE COALESCE(group_cmconfig_groups.display,
+                                 group_courseconfig_groups.display,
+                                 {$sitedefault})
+               END AS display
+SQL;
+            $join = $coursemodulejoin.$coursejoin;
+            $where = $coursewhere.$coursemodulewhere;
+            $coursesparams['groupuserid1_'.$counter] = $USER->id;
+            $coursesparams['groupuserid2_'.$counter] = $USER->id;
+            break;
+
+        case 'course':
+            $select = <<<SQL
+               group_groups.courseid,
+               group_courseconfig_groups.display AS display
+SQL;
+            $join = $coursejoin;
+            $where = $coursewhere;
+            $coursesparams['groupuserid1_'.$counter] = $USER->id;
+            break;
+
+        case 'coursemodule':
+            $select = <<<SQL
+               group_course_modules.id AS cmid,
+               group_cmconfig_groups.display AS display
+SQL;
+            $join = $coursemodulejoin;
+            $where = $coursemodulewhere;
+            $coursesparams['groupuserid2_'.$counter] = $USER->id;
+            break;
+    }
+
+    $groupdisplaysubquery = <<<SQL
+        SELECT group_groups.id AS groupid,
+               {$select}
+          FROM {course_modules} group_course_modules
+    INNER JOIN {course} group_course
+            ON group_course.id = group_course_modules.course
+    INNER JOIN {groups} group_groups
+            ON group_groups.courseid = group_course_modules.course
+               {$join}
+         WHERE group_course_modules.course {$coursessql}
+               {$where}
+SQL;
+
+    return array($groupdisplaysubquery,
+                 $coursesparams);
+}
+
+/**
+ * Helper function that defines what the SQL to hide groups that a teacher is not a member of
+ * is. This is not the same as using the block config settings - we are talking about whatever
+ * is already configured in Moodle.
+ *
+ * @static
+ * @param int $counter
+ * @global $USER
+ * @return array
+ */
+function block_ajax_marking_get_group_hide_sql($counter) {
+
+    global $USER, $DB;
+
+    $separategroups = SEPARATEGROUPS;
+
+    $params = array('teacheruserid'.$counter => $USER->id);
+
+    // If a user is an admin in their course, we should show them all stuff for all groups.
+    $oriscourseadminsql = '';
+    $allowedcourses = array();
+    $teachercourses = block_ajax_marking_get_my_teacher_courses();
+    foreach (array_keys($teachercourses) as $courseid) {
+        if (has_capability('moodle/site:accessallgroups',
+                           context_course::instance($courseid))
+        ) {
+            $allowedcourses[] = $courseid;
+        }
+    }
+    if ($allowedcourses) {
+        list($oriscourseadminsql, $oriscourseadminparams) =
+            $DB->get_in_or_equal($allowedcourses,
+                                 SQL_PARAMS_NAMED,
+                                 'groupsacess001',
+                                 false);
+        $params = array_merge($params, $oriscourseadminparams);
+    }
+
+    // TODO does moving the group id stuff into a WHERE xx OR IS NULL make it faster?
+    // What things should we not show?
+    $grouphidesql = <<<SQL
+                 /* Course forces group mode on modules and it's not permissive */
+        (    (   (group_course.groupmodeforce = 1 AND
+                  group_course.groupmode = {$separategroups}
+                 )
+                 OR
+                 /* Modules can choose group mode and this module is not permissive */
+                ( group_course.groupmodeforce = 0 AND
+                  group_course_modules.groupmode = {$separategroups}
+                )
+             )
+              AND
+              /* Teacher is not a group member */
+              NOT EXISTS ( SELECT 1
+                             FROM {groups_members} teachermemberships
+                            WHERE teachermemberships.groupid = group_groups.id
+                              AND teachermemberships.userid = :teacheruserid{$counter} )
+
+              /* Course is not one where the teacher can see all groups */
+             {$oriscourseadminsql}
+        )
+SQL;
+    return array($grouphidesql,
+                 $params);
+}
+
+
+
