@@ -45,10 +45,10 @@ class block_ajax_marking_filter_base {
      * Fetches the subquery from within the main query. Assumes that we have the outer displayquery
      * wrapped around it already.
      *
-     * @param $query
-     * @return block_ajax_marking_query_base
+     * @param block_ajax_marking_query $query
+     * @return block_ajax_marking_query
      */
-    protected static function get_countwrapper_subquery($query) {
+    protected static function get_countwrapper_subquery(block_ajax_marking_query $query) {
         return $query->get_subquery('countwrapperquery');
     }
 
@@ -415,7 +415,7 @@ class block_ajax_marking_groupid extends block_ajax_marking_filter_base {
 
     /**
      * Helper function that defines what the SQL to hide groups that a teacher is not a member of
-     * is. This is not the same as using the block config setings - we are talking about whatever
+     * is. This is not the same as using the block config settings - we are talking about whatever
      * is already configured in Moodle.
      *
      * @static

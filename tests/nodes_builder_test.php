@@ -155,7 +155,6 @@ class test_nodes_builder extends advanced_testcase {
             // Without a standardised way of doing this, we will use methods in this class to do
             // the job until a better way emerges.
             $createdatamethod = 'create_'.$modname.'_submission_data';
-            $expectedcount = 0;
             if (method_exists($this, $createdatamethod)) {
                 // Let the modules decide what number of things should be expected. Some are more
                 // complex than others.

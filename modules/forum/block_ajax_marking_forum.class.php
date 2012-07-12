@@ -104,37 +104,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     /**
      * See parent class for docs
      *
-     * @param object $submission
-     * @param int $moduleinstanceid
-     * @return string
-     */
-    protected function submission_title(&$submission, $moduleinstanceid) {
-
-        global $DB;
-
-        // We will only get to this bit repeatedly for a single forum, so we can cache this and
-        // save some queries.
-        static $iseachuser;
-
-        if (!isset($iseachuser)) {
-            $type = $DB->get_field('forum', 'type', array('id' => $moduleinstanceid));
-            $iseachuser = ($type == 'eachuser') ? true : false;
-        }
-
-        if ($iseachuser) {
-            return fullname($submission);
-        }
-
-        // Keep the $submission object clean.
-        $label = $submission->label;
-        unset($submission->label);
-
-        return $label;
-    }
-
-    /**
-     * See parent class for docs
-     *
      * @return string
      */
     protected function get_sql_userid_column() {
@@ -216,7 +185,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         }
 
         unset($SESSION->fromdiscussion);
-        // In case the user has used the dropdown to change from threaded to flat or something.
+        // In case the user has used the drop-down to change from threaded to flat or something.
         if (isset($params['mode'])) {
             set_user_preference('forum_displaymode', $params['mode']);
         }

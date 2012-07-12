@@ -130,7 +130,7 @@ M.block_ajax_marking.get_next_nodefilter_from_module = function (modulename, cur
  * list and combines course defaults and coursemodule settings when it needs to for coursemodules
  *
  * @param {YAHOO.widget.ContextMenu} menu A pre-existing context menu
- * @param {M.block_ajax_marking.tree_node} clickednode
+ * @param {M.block_ajax_marking.markingtreenode} clickednode
  * @return void
  */
 M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednode) {
@@ -166,7 +166,7 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
             // We want to show that this node inherits it's setting for this group
             // newgroup.classname = 'inherited';
             // Now we need to get the right default for it and show it as checked or not
-            var groupdefault = clickednode.get_default_setting('group', groups[i].id);
+            groupdefault = clickednode.get_default_setting('group', groups[i].id);
             newgroup.checked = groupdefault ? true : false;
             if (M.block_ajax_marking.showinheritance) {
                 newgroup.classname = 'inherited';
@@ -174,7 +174,7 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
         }
 
         // Add to group 1 so we can keep it separate from group 0 with the basic settings so that
-        // the contextmenu will have these all grouped to gether with a title
+        // the contextmenu will have these all grouped together with a title
         var groupindex = iscontextmenu ? 1 :0;
         menu.addItem(newgroup, groupindex);
     }
@@ -369,8 +369,8 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
 
 /**
  * Shows an error message in the div below the tree.
- * @param errormessage
- * @param notloggedin ignores the fact that a user is not an admin. Used to show 'not logged in'
+ * @param {string} errormessage
+ * @param {bool} notloggedin ignores the fact that a user is not an admin. Used to show 'not logged in'
  */
 M.block_ajax_marking.show_error = function (errormessage, notloggedin) {
 
@@ -383,7 +383,7 @@ M.block_ajax_marking.show_error = function (errormessage, notloggedin) {
     }
     YAHOO.util.Dom.setStyle('block_ajax_marking_error', 'display', 'block');
     if (notloggedin) {
-        // Login message never needs scrollbars and they mess it up
+        // Login message never needs scroll bars and they mess it up
         YAHOO.util.Dom.setStyle('block_ajax_marking_error', 'overflow-x', 'auto');
     }
 };
@@ -522,7 +522,7 @@ M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
         return false;
     }
 
-    newicon = icon.cloneNode(true); // avoid altring the original one
+    newicon = icon.cloneNode(true); // Avoid altering the original one.
 
     if (newicon && typeof(alttext) !== 'undefined') {
         newicon.alt = alttext;

@@ -137,7 +137,7 @@ $code = "
         }
     }
 
-    window.onbeforeunload = function(e) {
+    window.onbeforeunload = function() {
         // YAHOO.util.Event.addListener(window, 'beforeunload', function(args) {
 
         // Apparently no standard way to do this in YUI: http://yuilibrary.com/projects/yui3/ticket/2528059

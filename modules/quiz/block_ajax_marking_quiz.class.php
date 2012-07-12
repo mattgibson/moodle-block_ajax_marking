@@ -300,6 +300,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         $gradedstates = array();
         $us = new ReflectionClass('question_state');
         foreach ($us->getStaticProperties() as $name => $class) {
+            /* @var question_state $class */
             if ($class->is_graded()) {
                 $gradedstates[] = $name;
             }

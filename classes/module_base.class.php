@@ -173,21 +173,6 @@ abstract class block_ajax_marking_module_base {
     }
 
     /**
-     * The submissions nodes may be aggregating actual work so that it is easier to view/grade e.g.
-     * seeing a whole forum discussion at once because posts are meaningless without context. This
-     * allows modules to override the default label text of the node, which is the user's name.
-     *
-     * @param object $submission
-     * @param int $moduleinstanceid
-     * @return string
-     */
-    protected function submission_title(&$submission, $moduleinstanceid) {
-        $title = fullname($submission);
-        unset($submission->firstname, $submission->lastname);
-        return $title;
-    }
-
-    /**
      * Returns a query object that has been set up to retrieve all unmarked submissions for this
      * teacher and this (subclassed) module
      *

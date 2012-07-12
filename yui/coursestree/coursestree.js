@@ -53,7 +53,7 @@ YUI.add('moodle-block_ajax_marking-coursestree', function (Y) {
         /**
          * This is to control what node the tree asks for next when a user clicks on a node
          *
-         * @param {M.block_ajax_marking.tree_node} node can be false or undefined if not there
+         * @param {M.block_ajax_marking.markingtreenode} node can be false or undefined if not there
          * @return string|bool false if nothing
          */
         nextnodetype : function (node) {

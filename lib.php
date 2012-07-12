@@ -252,7 +252,7 @@ function &block_ajax_marking_get_module_classes($reset = false) {
 
 /**
  * Splits the node into display and returndata bits. Display will only involve certain things, so we
- * can hardcode them to be shunted into where they belong. Anything else should be in returndata,
+ * can hard code them to be shunted into where they belong. Anything else should be in returndata,
  * which will vary a lot, so we use that as the default.
  *
  * @param object $node

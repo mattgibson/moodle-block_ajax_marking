@@ -328,7 +328,7 @@ SQL;
     }
 
     /**
-     * Joins the config table to the query as courseconfig and cmconfig. REquires moduleunion alias
+     * Joins the config table to the query as courseconfig and cmconfig. Requires moduleunion alias
      * to join to.
      *
      * @static
@@ -1006,7 +1006,7 @@ SQL;
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
         $displayquery = self::get_display_query($countwrapperquery, $filters);
 
-        // This will give us a query that will get the relavant node and all its siblings.
+        // This will give us a query that will get the relevant node and all its siblings.
         self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
 
         // Now, add the current node as a WHERE clause, so we only get that one.

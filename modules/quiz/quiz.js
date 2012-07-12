@@ -43,7 +43,7 @@ M.block_ajax_marking.quiz = (function() {
          */
         nextnodetype : function(currenttype) {
 
-            userchoosesquestions = true;
+            var userchoosesquestions = true;
 
             switch (currenttype) {
 

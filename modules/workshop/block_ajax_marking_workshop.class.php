@@ -44,7 +44,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
     /**
      * Constructor
      *
-     * @internal param object $mainobject the parent object passed in by reference
      * @return \block_ajax_marking_workshop
      */
     public function __construct() {

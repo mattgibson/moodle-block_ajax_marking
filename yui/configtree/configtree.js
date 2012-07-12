@@ -60,7 +60,7 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
         /**
          * This is to control what node the tree asks for next when a user clicks on a node
          *
-         * @param {M.block_ajax_marking.tree_node} node
+         * @param {M.block_ajax_marking.markingtreenode} node
          * @return string|bool false if nothing
          */
         nextnodetype : function (node) {

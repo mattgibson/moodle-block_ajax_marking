@@ -131,7 +131,7 @@ class block_ajax_marking extends block_base {
                                     '</div>'; // End of #block_ajax_marking container.
 
             // Set things going.
-            $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', null, true,
+            $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', array(), true,
                                           $this->js_module());
 
             // We need to append all of the plugin specific javascript. This file will be
@@ -164,7 +164,7 @@ class block_ajax_marking extends block_base {
 
     /**
      * Standard function - does the block allow configuration for specific instances of itself
-     * rather than sitewide?
+     * rather than site-wide?
      *
      * @return bool false
      */

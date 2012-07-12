@@ -60,7 +60,7 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
                 settingtype == 'display' &&
                 newsetting === 0) {
 
-                // This should only be for the contextmenu - dropdown can't do hide.
+                // This should only be for the context menu - drop-down can't do hide.
                 if (this.tree && this.tree.tab && this.tree.tab.contextmenu) {
                     this.tree.tab.contextmenu.hide();
                 }

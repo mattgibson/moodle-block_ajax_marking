@@ -266,13 +266,10 @@ class block_ajax_marking_mod_quiz_generator extends phpunit_module_generator {
     /**
      * Stops the attempt and saves the grade.
      */
-    public function end_quiz_attmept($quiz, $attempt) {
-
-        global $DB;
+    public function end_quiz_attmept($attempt) {
 
         $timenow = time();
 
-        $quba = question_engine::load_questions_usage_by_activity($attempt->uniqueid);
         $attemptobj = quiz_attempt::create($attempt->id);
         $attemptobj->process_finish($timenow, true);
     }
@@ -318,7 +315,7 @@ class block_ajax_marking_mod_quiz_generator extends phpunit_module_generator {
 
         question_engine::save_questions_usage_by_activity($quba);
 
-        $this->end_quiz_attmept($quiz, $attempt);
+        $this->end_quiz_attmept($attempt);
 
         return $submissioncount;
     }

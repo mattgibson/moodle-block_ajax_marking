@@ -239,7 +239,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                     for (i = 0; i < this.children.length; i++) {
                         this.children[i].unhighlight(true);
                     }
-                } // If (highlighState == 2) leave child nodes with whichever highlight state
+                } // If (highlightState == 2) leave child nodes with whichever highlight state
                 // they are set.
             }
 

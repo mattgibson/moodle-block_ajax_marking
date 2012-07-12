@@ -236,7 +236,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
         /**
          * If a node is removed, it might have it's context menu open. This will check and hide the
          * context menu if it is. We don't want to hide the context menu if it's a child node of the
-         * contextmenu's node.
+         * context menu's node.
          *
          * @param nodebeingremoved
          */
@@ -259,7 +259,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
 
         /**
          * Tells us whether a flag was set by another tree saying that the rest need a refresh. The
-         * tree that has changed settings notifies the others so that they can lazyload refresh when
+         * tree that has changed settings notifies the others so that they can lazy load refresh when
          * clicked on.
          */
         needs_refresh : function () {
