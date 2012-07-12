@@ -33,27 +33,25 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+
 /**
- * Applies the filter needed for course nodes or their descendants
+ * Provides a base class for all the query decorators that are going to group the nodes by some field.
  */
-class block_ajax_marking_filter_courseid_ancestor extends block_ajax_marking_filter_base {
+class block_ajax_marking_quiz_filter_userid_ancestor extends
+    block_ajax_marking_filter_ancestor_base {
 
     /**
-     * This is for when a courseid node is an ancestor of the node that has been
-     * selected, so we just do a where.
-     *
-     * @param block_ajax_marking_query_base $query
-     * @param int $courseid
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
+     * @param block_ajax_marking_query $query
+     * @param int|string $userid
      */
-    public static function where_filter(block_ajax_marking_query_base $query, $courseid) {
-
-        $conditions = array(
+    protected function alter_query(block_ajax_marking_query $query, $userid) {
+        // Applies if users are not the final nodes.
+        $clause = array(
             'type' => 'AND',
-            'condition' => 'moduleunion.course = :courseidancestorcourseid');
-        $query->add_where($conditions);
-        $query->add_param('courseidancestorcourseid', $courseid);
+            'condition' => 'quiz_attempts.userid = :quizuseridfilterancestor');
+        $query->add_where($clause);
+        $query->add_param('quizuseridfilterancestor', $userid);
     }
-
-
 }
+

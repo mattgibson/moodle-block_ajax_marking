@@ -33,83 +33,114 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query.interface.php');
+
 /**
  * Provides the base functions for the decorators that alter the query. We are combining the
  * template and decorator patterns, so to avoid the template functions of the wrapped class being defeated
  * by using $this and then not getting any of the decorator stuff, all of the wrappers are being given all
  * of the template functions
  */
-class block_ajax_marking_filter_base extends block_ajax_marking_query_base {
+abstract class block_ajax_marking_filter_base implements block_ajax_marking_query {
 
     /**
-     * @var block_ajax_marking_query_base The wrapped object that this decorator operates on.
+     * @var block_ajax_marking_query The wrapped object that this decorator operates on.
      */
     protected $wrappedquery;
 
     /**
      * Constructor assigns the wrapped object ot the member variable.
+     *
+     * @param block_ajax_marking_query $query
      */
-    public function __construct(block_ajax_marking_query_base $query) {
+    public function __construct(block_ajax_marking_query $query) {
         $this->wrappedquery = $query;
-
-    }
-
-//    /**
-//     * Fetches the subquery from within the main query. Assumes that we have the outer displayquery
-//     * wrapped around it already.
-//     *
-//     * @param block_ajax_marking_query_base $query
-//     * @return block_ajax_marking_query_base
-//     */
-//    protected static function get_countwrapper_subquery(block_ajax_marking_query_base $query) {
-//        return $query->get_subquery('countwrapperquery');
-//    }
-//
-//    /**
-//     * Fetches the subquery from within the main query. Assumes that we have the outer displayquery
-//     * and middle-level countwrapper query wrapped around it already.
-//     *
-//     * @param block_ajax_marking_query_base $query
-//     * @return block_ajax_marking_query_base
-//     */
-//    protected static function get_moduleunion_subquery(block_ajax_marking_query_base $query) {
-//        $coutwrapper = self::get_countwrapper_subquery($query);
-//        return $coutwrapper->get_subquery('moduleunion');
-//    }
-
-    /**
-     * @return string|void
-     */
-    public function get_select() {
-        return $this->wrappedquery->get_select();
     }
 
     /**
-     * @return string|void
+     * @param array $column
+     * @param bool $prefix
+     * @return void
      */
-    public function get_from() {
-        return $this->wrappedquery->get_from();
+    public function add_select(array $column, $prefix = false) {
+        $this->wrappedquery->add_select($column, $prefix);
     }
 
     /**
-     * @return string|void
+     * @param array $table containing 'join', 'table', 'alias', 'on', 'subquery' (last one optional)
+     * @throws coding_exception
+     * @throws invalid_parameter_exception
      */
-    public function get_where() {
-        return $this->wrappedquery->get_where();
+    public function add_from(array $table) {
+        $this->wrappedquery->add_from($table);
     }
 
     /**
+     * @param array $clause
      * @return string|void
      */
-    public function get_orderby() {
-        return $this->wrappedquery->get_orderby();
+    public function add_where(array $clause) {
+        $this->wrappedquery->add_where($clause);
     }
 
     /**
+     * @param string $column
+     * @param bool $prefix
      * @return string|void
      */
-    public function get_groupby() {
-        return $this->wrappedquery->get_groupby();
+    public function add_orderby($column, $prefix = false) {
+        $this->wrappedquery->add_orderby($column, $prefix);
+    }
+
+    /**
+     * Adds an array of params.
+     *
+     * @abstract
+     * @param array $params
+     * @param bool $arraytoaddto
+     */
+    public function add_params(array $params, $arraytoaddto = false) {
+        $this->wrappedquery->add_params($params, $arraytoaddto);
+    }
+
+    /**
+     * Adds one item to the params array. Always use SQL_PARAMS_NAMED.
+     *
+     * @param string $name
+     * @param string $value
+     */
+    public function add_param($name, $value) {
+        $this->wrappedquery->add_param($name, $value);
+    }
+
+    /**
+     * Runs the query using standard Moodle DB functions and returns the result.
+     *
+     * @abstract
+     * @param bool $returnrecordset
+     */
+    public function execute($returnrecordset = false) {
+        return $this->wrappedquery->execute($returnrecordset);
+    }
+
+    /**
+     * Returns the SQL with the placeholders in it ready for the Moodle DB functions.
+     *
+     * @abstract
+     * @return string
+     */
+    public function get_sql() {
+        return $this->wrappedquery->get_sql();
+    }
+
+    /**
+     * Returns the params array ready for the Moodle DB functions.
+     *
+     * @abstract
+     * @return array
+     */
+    public function get_params() {
+        return $this->wrappedquery->get_params();
     }
 
 }

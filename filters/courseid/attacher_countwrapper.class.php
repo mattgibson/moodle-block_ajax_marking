@@ -33,27 +33,24 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attacher_base.class.php');
+
 /**
- * Applies the filter needed for course nodes or their descendants
+ * Makes the countwrapper query retrieve the courseid from the inner moduleunion query.
  */
-class block_ajax_marking_filter_courseid_ancestor extends block_ajax_marking_filter_base {
+class block_ajax_marking_filter_courseid_attacher_countwraper extends block_ajax_marking_filter_attacher_base {
 
     /**
-     * This is for when a courseid node is an ancestor of the node that has been
-     * selected, so we just do a where.
+     * This will change the query so that it does whatever this decorator is supposed to do.
      *
-     * @param block_ajax_marking_query_base $query
-     * @param int $courseid
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
+     * @param block_ajax_marking_query $query
+     * @return void
      */
-    public static function where_filter(block_ajax_marking_query_base $query, $courseid) {
-
-        $conditions = array(
-            'type' => 'AND',
-            'condition' => 'moduleunion.course = :courseidancestorcourseid');
-        $query->add_where($conditions);
-        $query->add_param('courseidancestorcourseid', $courseid);
+    protected function alter_query(block_ajax_marking_query $query) {
+        $select = array(
+            'table' => 'moduleunion',
+            'column' => 'coursemoduleid',
+            'alias' => 'id');
+        $query->add_select($select, true);
     }
-
-
 }

@@ -36,10 +36,9 @@ interface block_ajax_marking_query {
      * @abstract
      * @param array $column
      * @param bool $prefix
-     * @param bool $replace
-     * @return mixed
+     * @return
      */
-    public function add_select(array $column, $prefix = false, $replace = false);
+    public function add_select(array $column, $prefix = false);
 
     /**
      * This will add a join table. No alias means it'll use the table name.
@@ -47,7 +46,6 @@ interface block_ajax_marking_query {
      * @param array $table containing 'join', 'table', 'alias', 'on', 'subquery' (last one optional)
      * @throws coding_exception
      * @throws invalid_parameter_exception
-     * @return void
      */
     public function add_from(array $table);
 
@@ -56,7 +54,6 @@ interface block_ajax_marking_query {
      *
      * @abstract
      * @param array $clause
-     * @return mixed
      */
     public function add_where(array $clause);
 
@@ -65,9 +62,8 @@ interface block_ajax_marking_query {
      * of the orderby array.
      *
      * @abstract
-     * @param $column
+     * @param string $column
      * @param bool $prefix
-     * @return mixed
      */
     public function add_orderby($column, $prefix = false);
 
@@ -77,7 +73,6 @@ interface block_ajax_marking_query {
      * @abstract
      * @param array $params
      * @param bool $arraytoaddto
-     * @return mixed
      */
     public function add_params(array $params, $arraytoaddto = false);
 
@@ -86,7 +81,6 @@ interface block_ajax_marking_query {
      *
      * @param string $name
      * @param string $value
-     * @return void
      */
     public function add_param($name, $value);
 
@@ -95,7 +89,22 @@ interface block_ajax_marking_query {
      *
      * @abstract
      * @param bool $returnrecordset
-     * @return mixed
      */
     public function execute($returnrecordset = false);
+
+    /**
+     * Returns the SQL with the placeholders in it ready for the Moodle DB functions.
+     *
+     * @abstract
+     * @return string
+     */
+    public function get_sql();
+
+    /**
+     * Returns the params array ready for the Moodle DB functions.
+     *
+     * @abstract
+     * @return array
+     */
+    public function get_params();
 }

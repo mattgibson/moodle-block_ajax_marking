@@ -130,7 +130,7 @@ class block_ajax_marking_nodes_builder {
      * class
      * @return array
      */
-    public static function unmarked_nodes($filters = array()) {
+    public static function unmarked_nodes(array $filters = array()) {
 
         global $CFG;
 
@@ -149,6 +149,7 @@ class block_ajax_marking_nodes_builder {
         }
 
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
+
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
             $debugquery = $countwrapperquery->debuggable_query();
@@ -156,7 +157,7 @@ class block_ajax_marking_nodes_builder {
 
         $displayquery = self::get_display_query($countwrapperquery, $filters);
 
-        self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
+        //self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
 
         // Adds the config settings if there are any, so that we
         // know what the current settings are for the context menu.
@@ -835,6 +836,7 @@ SQL;
     private static function get_count_wrapper_query($modulequeries, $filters) {
 
         $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
+        $modulename = $havecoursemodulefilter ? $filters['coursemoduleid'] : null;
         $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
         $makingcoursemodulenodes = ($nextnodefilter === 'coursemoduleid');
 
@@ -886,17 +888,76 @@ SQL;
                                            'union' => true,
                                            'subquery' => true));
 
-        // Join to the config tables.
+        // Join to the config tables so we have settings available for the nodes context menus.
         self::attach_config_tables($countwrapperquery);
 
         // Apply all the standard filters. These only make sense when there's unmarked work.
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
-        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid',
-                                'moduleunion.course');
+        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
         self::apply_sql_display_settings($countwrapperquery);
         self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
 
+        // Apply the node decorators to the query, depending on what nodes are being asked for.
+        reset($filters);
+        foreach ($filters as $filtername => $filtervalue) {
+
+            if ($filtervalue === 'nextnodefilter') { // Current nodes need to be grouped by this filter.
+                // This will attach an id to the query, to either be retrieved directly from the moduleunion,
+                // or added via a join of some sort.
+                self::add_query_filter($countwrapperquery, $filtername, 'attach_countwrapper', null, $modulename);
+                self::add_query_filter($countwrapperquery, $filtername, 'current', null, $modulename);
+
+            } else { // The rest of the filters are all of the same sort.
+                self::add_query_filter($countwrapperquery, $filtername, 'ancestor', $filtervalue, $modulename);
+            }
+        }
+
         return $countwrapperquery;
+    }
+
+    /**
+     * Finds the file witht he right filter (decorator) class in it and wraps the query object in it if possible.
+     * Might be a filter provided by a module, so we need to check in the right place first if so in order
+     * that the modules can always override any core filters.
+     *
+     * @param block_ajax_marking_query $query
+     * @param string $filterid e.g. courseid, groupid
+     * @param string $type Name of the class within the folder for that id
+     * @param int|string|null $parameter
+     * @param string|null $modulename
+     */
+    private static function add_query_filter(block_ajax_marking_query &$query,
+                                             $filterid,
+                                             $type,
+                                             $parameter = null,
+                                             $modulename = null) {
+
+        global $CFG;
+
+        $placestotry = array();
+
+        // Module specific location. Try this first. We can't be sure that a module will
+        // actually provide an override.
+        if (!empty($modulename)) {
+            $filename = $CFG->dirroot.'/blocks/ajax_marking/modules/'.$modulename.'filters/'.
+                        $filterid.'/'.$type.'.class.php';
+            $classname = 'block_ajax_marking_'.$modulename.'filter_'.$filterid.'_'.$type;
+            $placestotry[$filename] = $classname;
+        }
+
+        // Core filter location.
+        $filename = $CFG->dirroot.'/blocks/ajax_marking/filters/'.$filterid.'/'.$type.'.class.php';
+        $classname = 'block_ajax_marking_filter_'.$filterid.'_'.$type;
+        $placestotry[$filename] = $classname;
+
+        foreach ($placestotry as $filename => $classname) {
+            if (file_exists($filename)) {
+                require_once($filename);
+                if (class_exists($classname)) {
+                    $query = new $classname($query, $parameter);
+                }
+            }
+        }
     }
 
     /**
@@ -947,6 +1008,16 @@ SQL;
                                      'table' => $countwrapperquery,
                                      'alias' => 'countwrapperquery',
                                      'subquery' => true));
+
+        reset($filters);
+        foreach ($filters as $filtername => $filtervalue) {
+
+            if ($filtervalue === 'nextnodefilter') { // Current nodes need to be grouped by this filter.
+                // This will attach an id to the query, to either be retrieved directly from the moduleunion,
+                // or added via a join of some sort.
+                self::add_query_filter($countwrapperquery, $filtername, 'current');
+            }
+        }
 
         return $displayquery;
     }

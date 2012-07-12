@@ -33,18 +33,20 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+
 /**
  * Applies the filter needed for course nodes or their descendants
  */
-class block_ajax_marking_filter_courseid_current_config extends block_ajax_marking_filter_base {
+class block_ajax_marking_filter_courseid_current_config extends block_ajax_marking_filter_current_base {
 
     /**
      * Applies the filter needed for course nodes or their descendants
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
-    public static function confignextnodetype_filter($query) {
+    protected function alter_query(block_ajax_marking_query $query) {
 
         global $USER;
 

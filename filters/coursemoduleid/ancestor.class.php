@@ -33,27 +33,28 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
+
 /**
- * Applies the filter needed for course nodes or their descendants
+ * Holds the filters to deal with coursemoduleid nodes.
  */
-class block_ajax_marking_filter_courseid_ancestor extends block_ajax_marking_filter_base {
+class block_ajax_marking_filter_coursemoduleid_ancestor extends block_ajax_marking_filter_ancestor_base {
 
     /**
-     * This is for when a courseid node is an ancestor of the node that has been
-     * selected, so we just do a where.
+     * Used when there is an ancestor node representing a coursemodule.
      *
-     * @param block_ajax_marking_query_base $query
-     * @param int $courseid
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
+     * @static
+     * @param block_ajax_marking_query $query
+     * @param int $coursemoduleid
      */
-    public static function where_filter(block_ajax_marking_query_base $query, $courseid) {
-
+    protected function alter_query(block_ajax_marking_query $query, $coursemoduleid) {
         $conditions = array(
             'type' => 'AND',
-            'condition' => 'moduleunion.course = :courseidancestorcourseid');
+            'condition' => 'moduleunion.coursemoduleid = :coursemoduleidfiltercmid');
         $query->add_where($conditions);
-        $query->add_param('courseidancestorcourseid', $courseid);
+        $query->add_param('coursemoduleidfiltercmid', $coursemoduleid);
     }
 
-
 }
+

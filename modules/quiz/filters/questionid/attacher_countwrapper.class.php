@@ -33,27 +33,27 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attacher_base.class.php');
+
 /**
- * Applies the filter needed for course nodes or their descendants
+ * Attaches the question id to the countwrapper query. Can only be used when quiz is the only one in
+ * use, or else it makes the union queries inconsistent.
  */
-class block_ajax_marking_filter_courseid_ancestor extends block_ajax_marking_filter_base {
+class block_ajax_marking_quiz_filter_questionid_attacher_countwrapper extends
+    block_ajax_marking_filter_attacher_base {
 
     /**
-     * This is for when a courseid node is an ancestor of the node that has been
-     * selected, so we just do a where.
+     * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
+     * nodes.
      *
-     * @param block_ajax_marking_query_base $query
-     * @param int $courseid
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
+     * @static
+     * @param block_ajax_marking_query $query
      */
-    public static function where_filter(block_ajax_marking_query_base $query, $courseid) {
+    protected function alter_query(block_ajax_marking_query $query) {
 
-        $conditions = array(
-            'type' => 'AND',
-            'condition' => 'moduleunion.course = :courseidancestorcourseid');
-        $query->add_where($conditions);
-        $query->add_param('courseidancestorcourseid', $courseid);
+        $query->add_select(array(
+                                'table' => 'moduleunion',
+                                'column' => 'questionid',
+                                'alias' => 'id'));
     }
-
-
 }

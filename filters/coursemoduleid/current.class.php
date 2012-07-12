@@ -33,46 +33,45 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
- * Applies the filter needed for course nodes or their descendants
+ * Holds the filters to deal with coursemoduleid nodes.
  */
-class block_ajax_marking_filter_courseid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_filter_coursemoduleid_current extends block_ajax_marking_filter_current_base {
 
     /**
-     * Applies the filter needed for course nodes or their descendants
+     * Makes SQL for the text labels for the course nodes.
      *
+     * @static
      * @param block_ajax_marking_query $query
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
     protected function alter_query(block_ajax_marking_query $query) {
 
-//        $countwrapper = self::get_countwrapper_subquery($query);
-//
-//        $countwrapper->add_select(array(
-//                                       'table' => 'moduleunion',
-//                                       'column' => 'course',
-//                                       'alias' => 'id'), true
-//        );
+        // Same order as the super query will need them. Prefixed so we will have it as the
+        // first column for the GROUP BY.
 
-        // This is for the displayquery when we are making course nodes.
         $query->add_from(array(
-                              'table' => 'course',
-                              'alias' => 'course',
-                              'on' => 'countwrapperquery.id = course.id'
-                         ));
+                              'join' => 'INNER JOIN',
+                              'table' => 'course_modules',
+                              'on' => 'course_modules.id = countwrapperquery.id'));
         $query->add_select(array(
-                                'table' => 'course',
-                                'column' => 'shortname',
-                                'alias' => 'name'));
+                                'table' => 'course_modules',
+                                'column' => 'id',
+                                'alias' => 'coursemoduleid'));
         $query->add_select(array(
-                                'table' => 'course',
-                                'column' => 'fullname',
-                                'alias' => 'tooltip'));
+                                'table' => 'countwrapperquery',
+                                'column' => 'modulename'));
 
-        $query->add_orderby('course.shortname ASC');
+        // This will add the stuff that will show us the name of the actual module instance.
+        // We use the same stuff for both config and marking trees, but the config tree doesn't need
+        // the stuff to pull through submission counts.
+        // TODO separate counts.
+        self::confignextnodetype_filter($query);
     }
 
 
 }
+
+

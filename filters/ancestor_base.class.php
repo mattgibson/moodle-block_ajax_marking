@@ -33,27 +33,33 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
+
 /**
- * Applies the filter needed for course nodes or their descendants
+ * Base class for all decorators that alter the query to have an extra where clause based on a particular node
+ * being clicked and all subsequent nodes needing to be children of it. These all apply to the countwrapper query.
  */
-class block_ajax_marking_filter_courseid_ancestor extends block_ajax_marking_filter_base {
+abstract class block_ajax_marking_filter_ancestor_base extends block_ajax_marking_filter_base {
 
     /**
-     * This is for when a courseid node is an ancestor of the node that has been
-     * selected, so we just do a where.
+     * Parent sets the query and then we alter it.
      *
-     * @param block_ajax_marking_query_base $query
-     * @param int $courseid
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
+     * @param block_ajax_marking_query $query
+     * @param int|string $parameter
      */
-    public static function where_filter(block_ajax_marking_query_base $query, $courseid) {
-
-        $conditions = array(
-            'type' => 'AND',
-            'condition' => 'moduleunion.course = :courseidancestorcourseid');
-        $query->add_where($conditions);
-        $query->add_param('courseidancestorcourseid', $courseid);
+    public function __construct(block_ajax_marking_query $query, $parameter) {
+        parent::__construct($query);
+        $this->alter_query($this->wrappedquery, $parameter);
     }
 
+    /**
+     * This will change the query so that it does whatever this decorator is supposed to do.
+     *
+     * @abstract
+     * @param block_ajax_marking_query $query
+     * @param int|string $parameter
+     * @return
+     */
+    abstract protected function alter_query(block_ajax_marking_query $query, $parameter);
 
 }

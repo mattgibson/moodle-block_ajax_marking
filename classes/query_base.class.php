@@ -330,13 +330,13 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      * @param array $column containing: 'function', 'table', 'column', 'alias', 'distinct' in any
      * order
      * @param bool $prefix Do we want this at the start, rather than the end?
-     * @param bool $replace If true, the start or end element will be replaced with the incoming
-     * one. Default: false
      * @throws coding_exception
      * @throws invalid_parameter_exception
+     * @internal param bool $replace If true, the start or end element will be replaced with the incoming
+     * one. Default: false
      * @return void
      */
-    public function add_select(array $column, $prefix = false, $replace = false) {
+    public function add_select(array $column, $prefix = false) {
 
         $requiredkeys = array('function', 'table', 'column', 'alias', 'distinct');
         $key = isset($column['alias']) ? $column['alias'] : $column['column'];
@@ -356,15 +356,9 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
         }
 
         if ($prefix) { // Put it at the start.
-            if ($replace) { // Knock off the existing one.
-                array_shift($this->select);
-            }
             // Array_unshift does not allow us to add using a specific key.
             $this->select = array($key => $column) + $this->select;
         } else {
-            if ($replace) {
-                array_pop($this->select);
-            }
             $this->select[$key] = $column;
         }
 

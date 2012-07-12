@@ -29,6 +29,7 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+return;
 defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
@@ -39,7 +40,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teach
  * Provides common functions that are needed when applying filters to the parameterised query object
  * such as extracting a particular subquery so it can be altered.
  */
-class block_ajax_marking_filter_base {
+class block_ajax_marking_filter_base_old {
 
     /**
      * Fetches the subquery from within the main query. Assumes that we have the outer displayquery
