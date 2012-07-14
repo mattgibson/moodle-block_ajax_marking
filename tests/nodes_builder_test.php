@@ -550,6 +550,8 @@ class test_nodes_builder extends advanced_testcase {
     /**
      * This function will run the whole query with all filters against a data set which ought
      * ot all come back, i.e. none of the items will be intercepted by any filters.
+     *
+     * @todo different courses - one in, one out.
      */
     public function test_unmarked_nodes_basic() {
 
@@ -562,11 +564,32 @@ class test_nodes_builder extends advanced_testcase {
         // Make a full nodes query. Doesn't work without a filter of some sort.
         $filters = array('courseid' => 'nextnodefilter');
         $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
-
         // Compare result.
         $actual = reset($nodes)->itemcount;
-        $message = 'Wrong number of nodes: '.$actual.' instead of '.$this->submissioncount;
+        $message = 'Wrong number of course nodes: '.$actual.' instead of '.$this->submissioncount;
         $this->assertEquals($this->submissioncount, $actual, $message);
+
+        // Now try with coursemoduleid. Counts should be the same as we have only one course.
+        $filters = array(
+            'courseid' => $this->course->id,
+            'coursemoduleid' => 'nextnodefilter'
+        );
+        $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
+        // Compare result.
+        $actual = 0;
+        foreach ($nodes as $node) {
+            $actual += $node->itemcount;
+        }
+        $message = 'Wrong number of coursemodule nodes: '.$actual.' instead of '.$this->submissioncount;
+        $this->assertEquals($this->submissioncount, $actual, $message);
+
+    }
+
+    /**
+     * This will test to make sure that when we tell it to group by courseid, we get the right count back.
+     */
+    public function test_courseid_current() {
+
 
     }
 

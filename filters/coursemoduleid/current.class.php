@@ -34,12 +34,15 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/coursemoduleid/current_config.class.php');
 
 /**
- * Holds the filters to deal with coursemoduleid nodes.
+ * Holds the filters to group the coursemodule node together. This is complex because the joins needed
+ * to get the module details have to be constructed dynamically. See superclass for details.
  */
-class block_ajax_marking_filter_coursemoduleid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_filter_coursemoduleid_current
+    extends block_ajax_marking_filter_coursemoduleid_current_config {
 
     /**
      * Makes SQL for the text labels for the course nodes.
@@ -60,15 +63,54 @@ class block_ajax_marking_filter_coursemoduleid_current extends block_ajax_markin
                                 'table' => 'course_modules',
                                 'column' => 'id',
                                 'alias' => 'coursemoduleid'));
+        // The javascript needs this for styling.
         $query->add_select(array(
                                 'table' => 'countwrapperquery',
                                 'column' => 'modulename'));
 
+        // This will add the stuff that joins to the various module tables and gets the right names.
+        $moduleclasses = block_ajax_marking_get_module_classes();
+        $introcoalesce = array();
+        $namecoalesce = array();
+        $orderbycoalesce = array();
+        foreach ($moduleclasses as $moduleclass) {
+            $moduletablename = $moduleclass->get_module_name();
+            $query->add_from(array(
+                                  'join' => 'LEFT JOIN',
+                                  'table' => $moduletablename,
+                                  // Ids of modules will be constant for one install, so we
+                                  // don't need to worry about parameterising them for
+                                  // query caching.
+                                  'on' => "(course_modules.instance = ".$moduletablename.".id
+                                            AND course_modules.module = '".$moduleclass->get_module_id()."')"
+                             ));
+            $namecoalesce[$moduletablename] = 'name';
+            $introcoalesce[$moduletablename] = 'intro';
+            $orderbycoalesce[$moduletablename] = $moduletablename.'.name';
+        }
+        $query->add_select(array(
+                                'table' => 'course_modules',
+                                'column' => 'id',
+                                'alias' => 'coursemoduleid'));
+        $query->add_select(array(
+                                'table' => $namecoalesce,
+                                'function' => 'COALESCE',
+                                'column' => 'name',
+                                'alias' => 'name'));
+        $query->add_select(array(
+                                'table' => $introcoalesce,
+                                'function' => 'COALESCE',
+                                'column' => 'intro',
+                                'alias' => 'tooltip'));
+
+        $query->add_orderby('COALESCE('.implode(', ', $orderbycoalesce).') ASC');
         // This will add the stuff that will show us the name of the actual module instance.
         // We use the same stuff for both config and marking trees, but the config tree doesn't need
         // the stuff to pull through submission counts.
         // TODO separate counts.
-        self::confignextnodetype_filter($query);
+
+        // This allows us to have separate decorators, but may obfuscate what's happening a bit.
+        // Code is not duplicated, though.
     }
 
 

@@ -862,13 +862,13 @@ SQL;
                                            'subquery' => true));
 
         // Join to the config tables so we have settings available for the nodes context menus.
-//        self::attach_config_tables($countwrapperquery);
         self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
 
         // Apply all the standard filters. These only make sense when there's unmarked work.
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
         self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
         self::apply_sql_display_settings($countwrapperquery);
+        // TODO is it more efficient to have this in the moduleunions to limit the rows?
         self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
 
         // Apply the node decorators to the query, depending on what nodes are being asked for.
@@ -914,7 +914,7 @@ SQL;
 
         // Module specific location. Try this first. We can't be sure that a module will
         // actually provide an override.
-        if (!empty($modulename)) {
+        if (!empty($modulename) && $modulename !== 'nextnodefilter') {
             $filename = $CFG->dirroot.'/blocks/ajax_marking/modules/'.$modulename.'filters/'.
                         $filterid.'/'.$type.'.class.php';
             $classname = 'block_ajax_marking_'.$modulename.'filter_'.$filterid.'_'.$type;

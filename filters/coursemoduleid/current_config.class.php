@@ -51,67 +51,33 @@ class block_ajax_marking_filter_coursemoduleid_current_config extends block_ajax
      * @static
      * @param block_ajax_marking_query $query
      */
-    public function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query(block_ajax_marking_query $query) {
 
-        global $USER;
 
-        $moduleclasses = block_ajax_marking_get_module_classes();
-        $introcoalesce = array();
-        $namecoalesce = array();
-        $orderbycoalesce = array();
-        foreach ($moduleclasses as $moduleclass) {
-            $moduletablename = $moduleclass->get_module_name();
-            $query->add_from(array(
-                                  'join' => 'LEFT JOIN',
-                                  'table' => $moduletablename,
-                                  // Ids of modules will be constant for one install, so we
-                                  // don't need to worry about parameterising them for
-                                  // query caching.
-                                  'on' => "(course_modules.instance = ".$moduletablename.".id
-                                            AND course_modules.module = '".$moduleclass->get_module_id()."')"
-                             ));
-            $namecoalesce[$moduletablename] = 'name';
-            $introcoalesce[$moduletablename] = 'intro';
-            $orderbycoalesce[$moduletablename] = $moduletablename.'.name';
-        }
-        $query->add_select(array(
-                                'table' => 'course_modules',
-                                'column' => 'id',
-                                'alias' => 'coursemoduleid'));
-        $query->add_select(array(
-                                'table' => $namecoalesce,
-                                'function' => 'COALESCE',
-                                'column' => 'name',
-                                'alias' => 'name'));
-        $query->add_select(array(
-                                'table' => $introcoalesce,
-                                'function' => 'COALESCE',
-                                'column' => 'intro',
-                                'alias' => 'tooltip'));
 
         // We need the config settings too, if there are any.
-        $query->add_from(array(
-                              'join' => 'LEFT JOIN',
-                              'table' => 'block_ajax_marking',
-                              'alias' => 'settings',
-                              'on' => "settings.instanceid = course_modules.id
-                                    AND settings.tablename = 'course_modules'
-                                    AND settings.userid = :settingsuserid"
-                         ));
-        $query->add_param('settingsuserid', $USER->id);
-        $query->add_select(array(
-                                'table' => 'settings',
-                                'column' => 'display'));
-        $query->add_select(array(
-                                'table' => 'settings',
-                                'column' => 'groupsdisplay'));
-        $query->add_select(array(
-                                'table' => 'settings',
-                                'column' => 'id',
-                                'alias' => 'settingsid'));
+        // TODO should be in a separate decorator.
+//        $query->add_from(array(
+//                              'join' => 'LEFT JOIN',
+//                              'table' => 'block_ajax_marking',
+//                              'alias' => 'settings',
+//                              'on' => "settings.instanceid = course_modules.id
+//                                    AND settings.tablename = 'course_modules'
+//                                    AND settings.userid = :settingsuserid"
+//                         ));
+//        $query->add_param('settingsuserid', $USER->id);
+//        $query->add_select(array(
+//                                'table' => 'settings',
+//                                'column' => 'display'));
+//        $query->add_select(array(
+//                                'table' => 'settings',
+//                                'column' => 'groupsdisplay'));
+//        $query->add_select(array(
+//                                'table' => 'settings',
+//                                'column' => 'id',
+//                                'alias' => 'settingsid'));
 
         // TODO get them in order of module type first?
-        $query->add_orderby('COALESCE('.implode(', ', $orderbycoalesce).') ASC');
     }
 }
 
