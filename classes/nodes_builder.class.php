@@ -161,7 +161,7 @@ class block_ajax_marking_nodes_builder {
 
         // Adds the config settings if there are any, so that we
         // know what the current settings are for the context menu.
-        self::attach_config_settings($displayquery, $nextnodefilter);
+        //self::attach_config_settings($displayquery, $nextnodefilter);
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
@@ -710,11 +710,8 @@ SQL;
      * @return void
      */
     private static function attach_config_settings(block_ajax_marking_query $query,
-                                                      $nextnodefilter = '') {
+                                                   $nextnodefilter) {
 
-        if (!$nextnodefilter) {
-            return;
-        }
         $nodesthatneedconfigsettings = array('courseid',
                                              'coursemoduleid');
         if (!in_array($nextnodefilter, $nodesthatneedconfigsettings)) {
@@ -842,32 +839,9 @@ SQL;
         $countwrapperquery = new block_ajax_marking_query_base();
         // We find out how many submissions we have here. Not DISTINCT as we are grouping by
         // nextnodefilter in the superquery.
-        $countwrapperquery->add_select(array('table' => 'moduleunion',
-                                             'column' => 'userid',
-                                             'alias' => 'itemcount',
-                                             // COUNT is a reserved word.
-                                             'function' => 'COUNT'));
 
-        // To get the three times for recent, medium and overdue pieces of work, we do three
-        // count operations here.
-        $fourdaysago = time() - BLOCK_AJAX_MARKING_FOUR_DAYS;
-        $tendaysago = time() - BLOCK_AJAX_MARKING_TEN_DAYS;
-        $recentcolumn = "CASE WHEN (moduleunion.timestamp > {$fourdaysago}) THEN 1 ELSE 0 END";
-        $countwrapperquery->add_select(array('column' => $recentcolumn,
-                                             'alias' => 'recentcount',
-                                             // COUNT is a reserved word.
-                                             'function' => 'SUM'));
-        $mediumcolumn = "CASE WHEN (moduleunion.timestamp < {$fourdaysago} AND ".
-            "moduleunion.timestamp > {$tendaysago}) THEN 1 ELSE 0 END";
-        $countwrapperquery->add_select(array('column' => $mediumcolumn,
-                                             'alias' => 'mediumcount',
-                                             // COUNT is a reserved word.
-                                             'function' => 'SUM'));
-        $overduecolumn = "CASE WHEN moduleunion.timestamp < $tendaysago THEN 1 ELSE 0 END";
-        $countwrapperquery->add_select(array('column' => $overduecolumn,
-                                             'alias' => 'overduecount',
-                                             // COUNT is a reserved word.
-                                             'function' => 'SUM'));
+        // Add the counts - total, recent, medium and overdue.
+        self::add_query_filter($countwrapperquery, 'core', 'counts_countwrapper');
 
         if ($havecoursemodulefilter || $makingcoursemodulenodes) {
             // Needed to access the correct javascript so we can open the correct popup, so
@@ -888,7 +862,8 @@ SQL;
                                            'subquery' => true));
 
         // Join to the config tables so we have settings available for the nodes context menus.
-        self::attach_config_tables($countwrapperquery);
+//        self::attach_config_tables($countwrapperquery);
+        self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
 
         // Apply all the standard filters. These only make sense when there's unmarked work.
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
@@ -904,7 +879,7 @@ SQL;
                 // This will attach an id to the query, to either be retrieved directly from the moduleunion,
                 // or added via a join of some sort.
                 self::add_query_filter($countwrapperquery, $filtername, 'attach_countwrapper', null, $modulename);
-                self::add_query_filter($countwrapperquery, $filtername, 'current', null, $modulename);
+                self::add_query_filter($countwrapperquery, $filtername, 'select_config_display_countwrapper');
 
             } else { // The rest of the filters are all of the same sort.
                 self::add_query_filter($countwrapperquery, $filtername, 'ancestor', $filtervalue, $modulename);
@@ -915,15 +890,17 @@ SQL;
     }
 
     /**
-     * Finds the file witht he right filter (decorator) class in it and wraps the query object in it if possible.
+     * Finds the file with the right filter (decorator) class in it and wraps the query object in it if possible.
      * Might be a filter provided by a module, so we need to check in the right place first if so in order
-     * that the modules can always override any core filters.
+     * that the modules can always override any core filters. Occasionally, we use the return value to know
+     * whether related filters need to be attached.
      *
      * @param block_ajax_marking_query $query
      * @param string $filterid e.g. courseid, groupid
      * @param string $type Name of the class within the folder for that id
      * @param int|string|null $parameter
      * @param string|null $modulename
+     * @return bool
      */
     private static function add_query_filter(block_ajax_marking_query &$query,
                                              $filterid,
@@ -954,9 +931,12 @@ SQL;
                 require_once($filename);
                 if (class_exists($classname)) {
                     $query = new $classname($query, $parameter);
+                    return true;
                 }
             }
         }
+
+        return false;
     }
 
     /**
@@ -1014,7 +994,12 @@ SQL;
             if ($filtervalue === 'nextnodefilter') { // Current nodes need to be grouped by this filter.
                 // This will attach an id to the query, to either be retrieved directly from the moduleunion,
                 // or added via a join of some sort.
-                self::add_query_filter($countwrapperquery, $filtername, 'current');
+                self::add_query_filter($displayquery, $filtername, 'current');
+                // If this one needs it, we add the decorator that gets the config settings.
+                // TODO this is not a very elegant way of determining this.
+                if (in_array($filtername, array('courseid', 'coursemoduleid'))) {
+                    self::add_query_filter($displayquery, $filtername, 'select_config_display_displayquery');
+                }
             }
         }
 

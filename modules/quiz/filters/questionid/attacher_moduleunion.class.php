@@ -33,13 +33,13 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attacher_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
 
 /**
  * Attaches the questionid to the quiz element of the moduleunion query. Can only be used when quiz is the only one in
  * use, or else it makes the union queries inconsistent.
  */
-class block_ajax_marking_quiz_filter_questionid_attacher_moduleunion extends block_ajax_marking_filter_attacher_base {
+class block_ajax_marking_quiz_filter_questionid_attacher_moduleunion extends block_ajax_marking_filter_attach_base {
 
     /**
      * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current

@@ -15,6 +15,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * These classes provide filters that modify the dynamic query that fetches the nodes. Depending on
+ * what node is being requested and what that node's ancestor nodes are, a different combination
+ * of filters will be applied. There is one class per type of node, and one method with the class
+ * for the type of operation. If there is a courseid node as an ancestor, we want to use the
+ * courseid::where_filter, but if we are asking for courseid nodes, we want the
+ * courseid::count_select filter.
+ *
  * @package    block
  * @subpackage ajax_marking
  * @copyright  2012 Matt Gibson
@@ -29,34 +36,21 @@ global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
 
 /**
- * Deals with SQL wrapper stuff for the discussion nodes.
+ * Makes the countwrapper query retrieve the courseid from the inner moduleunion query.
  */
-class block_ajax_marking_forum_filter_discussionid_attacher_countwrapper extends
-    block_ajax_marking_filter_attach_base {
+class block_ajax_marking_filter_coursemoduleid_attacher_countwraper extends block_ajax_marking_filter_attach_base {
 
     /**
-     * Adds SQL to construct a set of discussion nodes.
+     * This will change the query so that it does whatever this decorator is supposed to do.
      *
-     * @static
      * @param block_ajax_marking_query $query
+     * @return void
      */
     protected function alter_query(block_ajax_marking_query $query) {
-
-        // We join like this because we can't put extra stuff into the UNION ALL bit
-        // unless all modules have it and this is unique to forums.
-        $query->add_from(array(
-                              'table' => 'forum_posts',
-                              'on' => 'moduleunion.subid = post.id',
-                              'alias' => 'post')
-        );
-        $query->add_from(array(
-                              'table' => 'forum_discussions',
-                              'on' => 'discussion.id = post.discussion',
-                              'alias' => 'discussion')
-        );
-        $query->add_select(array(
-                                'table' => 'discussion',
-                                'column' => 'id'), true
-        );
+        $select = array(
+            'table' => 'moduleunion',
+            'column' => 'coursemoduleid',
+            'alias' => 'id');
+        $query->add_select($select, true);
     }
 }

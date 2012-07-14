@@ -33,38 +33,30 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
- * Applies the filter needed for course nodes or their descendants
+ * Base class for all decorators that attach an id of something to a query.
  */
-class block_ajax_marking_filter_courseid_current extends block_ajax_marking_filter_current_base {
+abstract class block_ajax_marking_filter_attach_base extends block_ajax_marking_filter_base {
 
     /**
-     * Applies the filter needed for course nodes or their descendants
+     * Parent sets the query and then we alter it.
      *
      * @param block_ajax_marking_query $query
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
+     * @param int|string $parameter
      */
-    protected function alter_query(block_ajax_marking_query $query) {
-
-        // This is for the displayquery when we are making course nodes.
-        $query->add_from(array(
-                              'table' => 'course',
-                              'alias' => 'course',
-                              'on' => 'countwrapperquery.id = course.id'
-                         ));
-        $query->add_select(array(
-                                'table' => 'course',
-                                'column' => 'shortname',
-                                'alias' => 'name'));
-        $query->add_select(array(
-                                'table' => 'course',
-                                'column' => 'fullname',
-                                'alias' => 'tooltip'));
-
-        $query->add_orderby('course.shortname ASC');
+    public function __construct(block_ajax_marking_query $query, $parameter) {
+        parent::__construct($query);
+        $this->alter_query($this->wrappedquery, $parameter);
     }
 
-
+    /**
+     * This will change the query so that it does whatever this decorator is supposed to do.
+     *
+     * @abstract
+     * @param block_ajax_marking_query $query
+     * @return mixed
+     */
+    abstract protected function alter_query(block_ajax_marking_query $query);
 }

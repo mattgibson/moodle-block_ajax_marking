@@ -33,30 +33,44 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/core_base.class.php');
 
 /**
- * Base class for all decorators that attach an id of something to a query.
+ * This decorator attaches the config tables for course and coursemodule so display decisions can be made
+ * based ont heir settings.
  */
-abstract class block_ajax_marking_filter_attacher_base extends block_ajax_marking_filter_base {
+class block_ajax_marking_filter_core_attach_config_tables_countwrapper extends block_ajax_marking_filter_core_base {
 
     /**
-     * Parent sets the query and then we alter it.
-     *
      * @param block_ajax_marking_query $query
-     * @param int|string $parameter
      */
-    public function __construct(block_ajax_marking_query $query, $parameter) {
+    public function __construct(block_ajax_marking_query $query) {
         parent::__construct($query);
-        $this->alter_query($this->wrappedquery, $parameter);
+        $this->alter_query();
     }
 
     /**
-     * This will change the query so that it does whatever this decorator is supposed to do.
-     *
-     * @abstract
-     * @param block_ajax_marking_query $query
-     * @return
+     * Sticks the stuff onto the query.
      */
-    abstract protected function alter_query(block_ajax_marking_query $query);
+    protected function alter_query() {
+
+        global $USER;
+
+        $this->wrappedquery->add_from(array('join' => 'LEFT JOIN',
+                               'table' => 'block_ajax_marking',
+                               'on' => "cmconfig.tablename = 'course_modules'
+                                        AND cmconfig.instanceid = moduleunion.coursemoduleid
+                                        AND cmconfig.userid = :confuserid1 ",
+                               'alias' => 'cmconfig'));
+
+        $this->wrappedquery->add_from(array('join' => 'LEFT JOIN',
+                               'table' => 'block_ajax_marking',
+                               'on' => "courseconfig.tablename = 'course'
+                                       AND courseconfig.instanceid = moduleunion.course
+                                       AND courseconfig.userid = :confuserid2 ",
+                               'alias' => 'courseconfig'));
+        $this->wrappedquery->add_param('confuserid1', $USER->id);
+        $this->wrappedquery->add_param('confuserid2', $USER->id);
+    }
+
 }

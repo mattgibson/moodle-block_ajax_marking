@@ -33,38 +33,34 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/core_base.class.php');
 
 /**
- * Applies the filter needed for course nodes or their descendants
+ * This gets the display settings from the config tables so that the course nodes have them and the user
+ * can alter them if necessary.
  */
-class block_ajax_marking_filter_courseid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_filter_courseid_select_config_display_countwrapper
+    extends block_ajax_marking_filter_core_base {
 
     /**
-     * Applies the filter needed for course nodes or their descendants
-     *
      * @param block_ajax_marking_query $query
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
-    protected function alter_query(block_ajax_marking_query $query) {
-
-        // This is for the displayquery when we are making course nodes.
-        $query->add_from(array(
-                              'table' => 'course',
-                              'alias' => 'course',
-                              'on' => 'countwrapperquery.id = course.id'
-                         ));
-        $query->add_select(array(
-                                'table' => 'course',
-                                'column' => 'shortname',
-                                'alias' => 'name'));
-        $query->add_select(array(
-                                'table' => 'course',
-                                'column' => 'fullname',
-                                'alias' => 'tooltip'));
-
-        $query->add_orderby('course.shortname ASC');
+    public function __construct(block_ajax_marking_query $query) {
+        parent::__construct($query);
+        $this->alter_query();
     }
 
+    /**
+     * Sticks the stuff onto the query.
+     */
+    protected function alter_query() {
+
+        $this->wrappedquery->add_select(array(
+                                       'table' => 'courseconfig',
+                                       'column' => 'display'));
+        $this->wrappedquery->add_select(array(
+                                       'table' => 'courseconfig',
+                                       'column' => 'groupsdisplay'));
+    }
 
 }
