@@ -485,7 +485,7 @@ function block_ajax_marking_group_visibility_subquery($type = 'coalesce') {
     $coursesparams = array_merge($coursesparams, $grouphideparams);
 
     $sitedefault = 1; // Configurable in future.
-    $select = $join = $where = '';
+    $select = $join = '';
 
     // These fragments are recombined as needed. Arguably less duplication is better than the 3
     // separate functions this would otherwise need.
@@ -493,6 +493,7 @@ function block_ajax_marking_group_visibility_subquery($type = 'coalesce') {
      LEFT JOIN {block_ajax_marking} group_cmconfig
             ON group_course_modules.id = group_cmconfig.instanceid
                 AND group_cmconfig.tablename = 'course_modules'
+                AND group_cmconfig.userid = :groupuserid2_{$counter}
      LEFT JOIN {block_ajax_marking_groups} group_cmconfig_groups
             ON group_cmconfig_groups.configid = group_cmconfig.id
            AND group_cmconfig_groups.groupid = group_groups.id
@@ -501,17 +502,10 @@ SQL;
      LEFT JOIN {block_ajax_marking} group_courseconfig
             ON group_courseconfig.instanceid = group_course_modules.course
                 AND group_courseconfig.tablename = 'course'
+                AND group_courseconfig.userid = :groupuserid1_{$counter}
      LEFT JOIN {block_ajax_marking_groups} group_courseconfig_groups
             ON group_courseconfig_groups.configid = group_courseconfig.id
                AND group_courseconfig_groups.groupid = group_groups.id
-SQL;
-    $coursewhere = <<<SQL
-           AND (group_courseconfig.userid = :groupuserid1_{$counter}
-                OR group_courseconfig.userid IS NULL)
-SQL;
-    $coursemodulewhere = <<<SQL
-           AND (group_cmconfig.userid = :groupuserid2_{$counter}
-                OR group_cmconfig.userid IS NULL)
 SQL;
 
     // We have similar code in use for three cases, so we construct the SQL dynamically.
@@ -528,7 +522,6 @@ SQL;
                END AS display
 SQL;
             $join = $coursemodulejoin.$coursejoin;
-            $where = $coursewhere.$coursemodulewhere;
             $coursesparams['groupuserid1_'.$counter] = $USER->id;
             $coursesparams['groupuserid2_'.$counter] = $USER->id;
             break;
@@ -539,7 +532,6 @@ SQL;
                group_courseconfig_groups.display AS display
 SQL;
             $join = $coursejoin;
-            $where = $coursewhere;
             $coursesparams['groupuserid1_'.$counter] = $USER->id;
             break;
 
@@ -549,7 +541,6 @@ SQL;
                group_cmconfig_groups.display AS display
 SQL;
             $join = $coursemodulejoin;
-            $where = $coursemodulewhere;
             $coursesparams['groupuserid2_'.$counter] = $USER->id;
             break;
     }
@@ -567,7 +558,6 @@ SQL;
             ON group_groups.courseid = group_course_modules.course
                {$join}
          WHERE group_course_modules.course {$coursessql}
-               {$where}
 
    /* End group visibility subquery */
 
