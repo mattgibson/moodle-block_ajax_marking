@@ -555,6 +555,9 @@ SQL;
     }
 
     $groupdisplaysubquery = <<<SQL
+
+    /* Begin group visibility subquery */
+
         SELECT group_groups.id AS groupid,
                {$select}
           FROM {course_modules} group_course_modules
@@ -565,6 +568,9 @@ SQL;
                {$join}
          WHERE group_course_modules.course {$coursessql}
                {$where}
+
+   /* End group visibility subquery */
+
 SQL;
 
     return array($groupdisplaysubquery,
@@ -606,12 +612,15 @@ function block_ajax_marking_get_group_hide_sql($counter) {
                                  SQL_PARAMS_NAMED,
                                  'groupsacess001',
                                  false);
+        $oriscourseadminsql = ' OR group_groups.courseid '.$oriscourseadminsql;
         $params = array_merge($params, $oriscourseadminparams);
     }
 
     // TODO does moving the group id stuff into a WHERE xx OR IS NULL make it faster?
     // What things should we not show?
     $grouphidesql = <<<SQL
+    /* Begin group hide SQL */
+
                  /* Course forces group mode on modules and it's not permissive */
         (    (   (group_course.groupmodeforce = 1 AND
                   group_course.groupmode = {$separategroups}
@@ -630,8 +639,9 @@ function block_ajax_marking_get_group_hide_sql($counter) {
                               AND teachermemberships.userid = :teacheruserid{$counter} )
 
               /* Course is not one where the teacher can see all groups */
-             {$oriscourseadminsql}
+              {$oriscourseadminsql}
         )
+    /* End group hide SQL */
 SQL;
     return array($grouphidesql,
                  $params);
