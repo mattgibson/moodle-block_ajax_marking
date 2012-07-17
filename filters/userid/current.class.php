@@ -36,7 +36,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php'
 /**
  * Holds any custom filters for userid nodes that this module offers
  */
-class block_ajax_marking_assignment_filter_userid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_filter_userid_current extends block_ajax_marking_filter_current_base {
 
     /**
      * Makes user nodes for the assignment modules by grouping them and then adding in the right

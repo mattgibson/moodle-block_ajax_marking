@@ -166,12 +166,6 @@ class block_ajax_marking_nodes_builder {
 
         $displayquery = self::get_display_query($countwrapperquery, $filters);
 
-        //self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
-
-        // Adds the config settings if there are any, so that we
-        // know what the current settings are for the context menu.
-        //self::attach_config_settings($displayquery, $nextnodefilter);
-
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
             $debugquery = $displayquery->debuggable_query();

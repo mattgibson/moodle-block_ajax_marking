@@ -28,7 +28,6 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
 require_once($CFG->dirroot.'/enrol/locallib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
