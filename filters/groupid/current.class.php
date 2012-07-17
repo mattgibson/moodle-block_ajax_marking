@@ -33,23 +33,43 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
 
 /**
- * Sets the group id as the column that gets counts made for each one.
+ * Applies the filter needed for course nodes or their descendants
  */
-class block_ajax_marking_filter_groupid_attach_countwrapper extends block_ajax_marking_filter_attach_base {
+class block_ajax_marking_filter_groupid_current extends block_ajax_marking_filter_current_base {
 
     /**
+     * Applies the filter needed for course nodes or their descendants
+     *
      * @param block_ajax_marking_query $query
-     * @return void
      */
     protected function alter_query(block_ajax_marking_query $query) {
 
-        // This will add the select, which will get a zero as the groupid if we don't have a group membership at all.
+        // This is for the displayquery when we are making course nodes.
+        $query->add_from(array(
+                              'join' => 'LEFT JOIN',
+                              // Group id 0 will not match anything.
+                              'table' => 'groups',
+                              'on' => 'countwrapperquery.id = groups.id'
+                         ));
+        // We may get a load of people in no group.
         $query->add_select(array(
-                                'column' => block_ajax_marking_get_countwrapper_groupid_sql(),
-                                'alias' => 'id'
-                           ));
+                                'function' => 'COALESCE',
+                                'table' => array('groups' => 'name',
+                                                 get_string('notingroup', 'block_ajax_marking')),
+                                'alias' => 'name'));
+        $query->add_select(array(
+                                'function' => 'COALESCE',
+                                'table' => array('groups' => 'description',
+                                                 get_string('notingroupdescription',
+                                                            'block_ajax_marking')),
+                                'alias' => 'tooltip'));
+
+        $query->add_orderby("COALESCE(groups.name, '".get_string('notingroup',
+                                                                 'block_ajax_marking')."') ASC");
     }
+
+
 }

@@ -51,11 +51,9 @@ class block_ajax_marking_filter_groupid_ancestor extends block_ajax_marking_filt
      */
     protected function alter_query(block_ajax_marking_query $query, $groupid) {
 
-       // self::add_highest_groupid_to_submissions($query);
-
         $conditions = array(
             'type' => 'AND',
-            'condition' => 'COALESCE(maxgroupidsubquery.groupid, 0) = :groupid');
+            'condition' => block_ajax_marking_get_countwrapper_groupid_sql().' = :groupid');
         $query->add_where($conditions);
         $query->add_param('groupid', $groupid);
     }

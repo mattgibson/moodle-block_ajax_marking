@@ -92,7 +92,7 @@ class block_ajax_marking_nodes_builder {
         // Need the course to join to other filters.
         $query->add_select(array('table'  => 'moduletable',
                                  'column' => 'course'));
-        // Some filters need a coursemoduleid to join to, so we need to make it part of every query.
+        // Some filters need a coursemodule id to join to, so we need to make it part of every query.
         $query->add_from(array('table' => 'course_modules',
                                'on'    => 'course_modules.instance = moduletable.id AND
                                            course_modules.module = '.$moduleclass->get_module_id()));
@@ -849,9 +849,6 @@ SQL;
         // We find out how many submissions we have here. Not DISTINCT as we are grouping by
         // nextnodefilter in the superquery.
 
-        // Add the counts - total, recent, medium and overdue.
-        self::add_query_filter($countwrapperquery, 'core', 'counts_countwrapper');
-
         if ($havecoursemodulefilter || $makingcoursemodulenodes) {
             // Needed to access the correct javascript so we can open the correct popup, so
             // we include the name of the module.
@@ -869,6 +866,11 @@ SQL;
                                            'alias' => 'moduleunion',
                                            'union' => true,
                                            'subquery' => true));
+
+        // Add the counts - total, recent, medium and overdue.
+        self::add_query_filter($countwrapperquery, 'core', 'counts_countwrapper');
+        // Add the groupid so we can check the settings.
+        self::add_query_filter($countwrapperquery, 'groupid', 'attach_highest');
 
         // Apply the node decorators to the query, depending on what nodes are being asked for.
         reset($filters);
@@ -914,9 +916,9 @@ SQL;
         // Module specific location. Try this first. We can't be sure that a module will
         // actually provide an override.
         if (!empty($modulename) && $modulename !== 'nextnodefilter') {
-            $filename = $CFG->dirroot.'/blocks/ajax_marking/modules/'.$modulename.'filters/'.
+            $filename = $CFG->dirroot.'/blocks/ajax_marking/modules/'.$modulename.'/filters/'.
                         $filterid.'/'.$type.'.class.php';
-            $classname = 'block_ajax_marking_'.$modulename.'filter_'.$filterid.'_'.$type;
+            $classname = 'block_ajax_marking_'.$modulename.'_filter_'.$filterid.'_'.$type;
             $placestotry[$filename] = $classname;
         }
 
@@ -955,6 +957,13 @@ SQL;
         // but we don't do this in the counting bit so as to avoid weird issues with group by on
         // Oracle.
         $displayquery = new block_ajax_marking_query_base();
+        $modulename = null;
+        if (!empty($filters['coursemoduleid']) && is_numeric($filters['coursemoduleid'])) {
+            $moduleobject = self::get_module_object_from_cmid($filters['coursemoduleid']);
+            if ($moduleobject) {
+                $modulename = $moduleobject->get_module_name();
+            }
+        }
         $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
         $displayquery->add_select(array(
                                        'table' => 'countwrapperquery',
@@ -993,7 +1002,7 @@ SQL;
             if ($filtervalue === 'nextnodefilter') { // Current nodes need to be grouped by this filter.
                 // This will attach an id to the query, to either be retrieved directly from the moduleunion,
                 // or added via a join of some sort.
-                self::add_query_filter($displayquery, $filtername, 'current');
+                self::add_query_filter($displayquery, $filtername, 'current', null, $modulename);
                 // If this one needs it, we add the decorator that gets the config settings.
                 // TODO this is not a very elegant way of determining this.
                 if (in_array($filtername, array('courseid', 'coursemoduleid'))) {

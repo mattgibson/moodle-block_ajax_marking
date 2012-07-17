@@ -36,7 +36,7 @@ global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/core_base.class.php');
 
 /**
- * This joins the countwrapper to the join config tables so that each node can have the current
+ * This joins the countwrapper to the join config tables so that each coursemodule node can have the current
  * config settings fo the right click context menu to display them.
  */
 class block_ajax_marking_filter_coursemoduleid_select_config_display_countwrapper
