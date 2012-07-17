@@ -31,14 +31,14 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php')
 /**
  * Deals with SQL wrapper stuff for the discussion nodes.
  */
-class block_ajax_marking_forum_filter_discussionid_attacher_countwrapper extends
+class block_ajax_marking_forum_filter_discussionid_attach_countwrapper extends
     block_ajax_marking_filter_attach_base {
 
     /**
      * Adds SQL to construct a set of discussion nodes.
      *
-     * @static
      * @param block_ajax_marking_query $query
+     * @return mixed|void
      */
     protected function alter_query(block_ajax_marking_query $query) {
 

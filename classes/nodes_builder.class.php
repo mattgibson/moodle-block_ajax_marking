@@ -835,7 +835,13 @@ SQL;
     private static function get_count_wrapper_query($modulequeries, $filters) {
 
         $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
-        $modulename = $havecoursemodulefilter ? $filters['coursemoduleid'] : null;
+        $modulename = null;
+        if (!empty($filters['coursemoduleid']) && is_numeric($filters['coursemoduleid'])) {
+            $moduleobject = self::get_module_object_from_cmid($filters['coursemoduleid']);
+            if ($moduleobject) {
+                $modulename = $moduleobject->get_module_name();
+            }
+        }
         $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
         $makingcoursemodulenodes = ($nextnodefilter === 'coursemoduleid');
 
