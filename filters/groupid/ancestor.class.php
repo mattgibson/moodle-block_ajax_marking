@@ -33,28 +33,32 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
 
 /**
- * Applies the filter needed for course nodes or their descendants
+ * Holds the filters to deal with coursemoduleid nodes.
  */
-class block_ajax_marking_filter_courseid_ancestor extends block_ajax_marking_filter_ancestor_base {
+class block_ajax_marking_filter_groupid_ancestor extends block_ajax_marking_filter_ancestor_base {
 
     /**
-     * This is for when a courseid node is an ancestor of the node that has been
-     * selected, so we just do a where.
+     * Used when there is an ancestor node representing a coursemodule.
      *
+     * @static
      * @param block_ajax_marking_query $query
-     * @param int $courseid
+     * @param int|string $groupid
+     * @return void
      */
-    protected function alter_query(block_ajax_marking_query $query, $courseid) {
+    protected function alter_query(block_ajax_marking_query $query, $groupid) {
+
+       // self::add_highest_groupid_to_submissions($query);
 
         $conditions = array(
             'type' => 'AND',
-            'condition' => 'moduleunion.course = :courseidancestorcourseid');
+            'condition' => 'COALESCE(maxgroupidsubquery.groupid, 0) = :groupid');
         $query->add_where($conditions);
-        $query->add_param('courseidancestorcourseid', $courseid);
+        $query->add_param('groupid', $groupid);
     }
 
-
 }
+

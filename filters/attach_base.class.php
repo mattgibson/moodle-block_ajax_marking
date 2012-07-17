@@ -44,11 +44,10 @@ abstract class block_ajax_marking_filter_attach_base extends block_ajax_marking_
      * Parent sets the query and then we alter it.
      *
      * @param block_ajax_marking_query $query
-     * @param int|string $parameter
      */
-    public function __construct(block_ajax_marking_query $query, $parameter) {
+    public function __construct(block_ajax_marking_query $query) {
         parent::__construct($query);
-        $this->alter_query($this->wrappedquery, $parameter);
+        $this->alter_query($this->wrappedquery);
     }
 
     /**

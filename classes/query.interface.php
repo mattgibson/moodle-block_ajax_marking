@@ -50,7 +50,7 @@ interface block_ajax_marking_query {
     public function add_from(array $table);
 
     /**
-     * Adds a condition to the WHERE part of the query.
+     * Adds a condition to the WHERE part of the query. Needs 'type' and 'condition' in the array.
      *
      * @abstract
      * @param array $clause

@@ -93,7 +93,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
     }
 
     /**
-     * Makes one array of the SELECT options into a string of SQL
+     * Makes one array of the SELECT options into a string of SQL.
      *
      * @param $select
      * @param bool $forgroupby If we are using this to make the COALESCE bit for GROUP BY, we don't

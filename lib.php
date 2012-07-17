@@ -515,7 +515,8 @@ SQL;
             $select = <<<SQL
                group_course_modules.id AS cmid,
                CASE
-                   WHEN {$grouphidesql} THEN 0
+                   WHEN {$grouphidesql}
+                   THEN 0
                    ELSE COALESCE(group_cmconfig_groups.display,
                                  group_courseconfig_groups.display,
                                  {$sitedefault})
@@ -547,19 +548,19 @@ SQL;
 
     $groupdisplaysubquery = <<<SQL
 
-    /* Begin group visibility subquery */
+         /* Begin group visibility subquery */
 
-        SELECT group_groups.id AS groupid,
-               {$select}
-          FROM {course_modules} group_course_modules
-    INNER JOIN {course} group_course
-            ON group_course.id = group_course_modules.course
-    INNER JOIN {groups} group_groups
-            ON group_groups.courseid = group_course_modules.course
-               {$join}
-         WHERE group_course_modules.course {$coursessql}
+                SELECT group_groups.id AS groupid,
+                       {$select}
+                  FROM {course_modules} group_course_modules
+            INNER JOIN {course} group_course
+                    ON group_course.id = group_course_modules.course
+            INNER JOIN {groups} group_groups
+                    ON group_groups.courseid = group_course_modules.course
+                       {$join}
+                 WHERE group_course_modules.course {$coursessql}
 
-   /* End group visibility subquery */
+        /* End group visibility subquery */
 
 SQL;
 
@@ -609,32 +610,54 @@ function block_ajax_marking_get_group_hide_sql($counter) {
     // TODO does moving the group id stuff into a WHERE xx OR IS NULL make it faster?
     // What things should we not show?
     $grouphidesql = <<<SQL
-    /* Begin group hide SQL */
+                /* Begin group hide SQL */
 
                  /* Course forces group mode on modules and it's not permissive */
-        (    (   (group_course.groupmodeforce = 1 AND
-                  group_course.groupmode = {$separategroups}
-                 )
-                 OR
-                 /* Modules can choose group mode and this module is not permissive */
-                ( group_course.groupmodeforce = 0 AND
-                  group_course_modules.groupmode = {$separategroups}
-                )
-             )
-              AND
-              /* Teacher is not a group member */
-              NOT EXISTS ( SELECT 1
-                             FROM {groups_members} teachermemberships
-                            WHERE teachermemberships.groupid = group_groups.id
-                              AND teachermemberships.userid = :teacheruserid{$counter} )
+                    (    (   (group_course.groupmodeforce = 1 AND
+                              group_course.groupmode = {$separategroups}
+                             )
+                             OR
+                             /* Modules can choose group mode and this module is not permissive */
+                            ( group_course.groupmodeforce = 0 AND
+                              group_course_modules.groupmode = {$separategroups}
+                            )
+                         )
+                          AND
+                          /* Teacher is not a group member */
+                          NOT EXISTS ( SELECT 1
+                                         FROM {groups_members} teachermemberships
+                                        WHERE teachermemberships.groupid = group_groups.id
+                                          AND teachermemberships.userid = :teacheruserid{$counter} )
 
-              /* Course is not one where the teacher can see all groups */
-              {$oriscourseadminsql}
-        )
+                          /* Course is not one where the teacher can see all groups */
+                          {$oriscourseadminsql}
+                    )
     /* End group hide SQL */
 SQL;
     return array($grouphidesql,
                  $params);
+}
+
+/**
+ * This fragment needs to be used in several places as we need cross-db ways of reusing the same thing and SQL variables
+ * are implemented differently, so we just copy/paste and let the optimiser deal with it.
+ */
+function block_ajax_marking_get_countwrapper_groupid_sql() {
+    $sql = <<<SQL
+        CASE
+           WHEN EXISTS (SELECT 1
+                          FROM {groups_members} groupidsqlmembers
+                    INNER JOIN {groups} groupidsqlgroups
+                          WHERE groupidsqlmembers.userid = moduleunion.userid
+                            AND groupidsqlgroups.courseid = moduleunion.course)
+           THEN maxgroupidsubquery.groupid
+           /* default to groupid of zero if there are no group memberships. This allows us to
+           show or hide orphans */
+           ELSE 0
+       END
+SQL;
+    return $sql;
+
 }
 
 

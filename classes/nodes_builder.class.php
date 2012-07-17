@@ -150,6 +150,15 @@ class block_ajax_marking_nodes_builder {
 
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
 
+        // Join to the config tables so we have settings available for the nodes context menus.
+        self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
+        // Apply all the standard filters. These only make sense when there's unmarked work.
+        self::apply_sql_enrolled_students($countwrapperquery, $filters);
+        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
+        self::apply_sql_display_settings($countwrapperquery);
+        // TODO is it more efficient to have this in the moduleunions to limit the rows?
+        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
+
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
             $debugquery = $countwrapperquery->debuggable_query();
@@ -860,16 +869,6 @@ SQL;
                                            'alias' => 'moduleunion',
                                            'union' => true,
                                            'subquery' => true));
-
-        // Join to the config tables so we have settings available for the nodes context menus.
-        self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
-
-        // Apply all the standard filters. These only make sense when there's unmarked work.
-        self::apply_sql_enrolled_students($countwrapperquery, $filters);
-        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
-        self::apply_sql_display_settings($countwrapperquery);
-        // TODO is it more efficient to have this in the moduleunions to limit the rows?
-        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
 
         // Apply the node decorators to the query, depending on what nodes are being asked for.
         reset($filters);
