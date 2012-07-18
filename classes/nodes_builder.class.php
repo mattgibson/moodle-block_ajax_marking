@@ -812,7 +812,19 @@ SQL;
                 continue;
             }
 
-            $modulequeries[$modname] = self::get_unmarked_module_query($filters, $moduleclass);
+            $query = self::get_unmarked_module_query($filters, $moduleclass);
+
+            // A very small (currently only quiz question id) number of filters need to be applied
+            // at moduleunion level.
+            if ($havecoursemodulefilter) {
+                foreach (array_keys($filters) as $filter) {
+                    if (!in_array($filter, array('courseid', 'coursemoduleid'))) { // Save a filesystem lookup.
+                        self::add_query_filter($query, $filter, 'attach_moduleunion', null, $modname);
+                    }
+                }
+            }
+
+            $modulequeries[$modname] = $query;
 
             if ($moduleid) {
                 break; // No need to carry on once we've got the only one we need.
