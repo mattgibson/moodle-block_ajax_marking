@@ -150,12 +150,17 @@ class block_ajax_marking_nodes_builder {
 
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
 
+        // This is just for copying and pasting from the paused debugger into a DB GUI.
+        if ($CFG->debug == DEBUG_DEVELOPER) {
+            $debugquery = $countwrapperquery->debuggable_query();
+        }
+
         // Join to the config tables so we have settings available for the nodes context menus.
         self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
         // Apply all the standard filters. These only make sense when there's unmarked work.
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
         self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
-        self::apply_sql_display_settings($countwrapperquery);
+        //self::apply_sql_display_settings($countwrapperquery);
         // TODO is it more efficient to have this in the moduleunions to limit the rows?
         self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
 
@@ -675,21 +680,35 @@ SQL;
             // This will include groups that have no settings as we may want to make settings
             // for them.
             list($cmsql, $params) = $DB->get_in_or_equal($coursemoduleids, SQL_PARAMS_NAMED);
-            list($gsql, $gparams) = block_ajax_marking_group_visibility_subquery('coursemodule');
             // Can't have repeating groupids in column 1 or it throws an error.
             $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
+            // TODO - this ought not to use the visibility subquery as we don't need to worry about the course defaults.
+            // Even if it does, we should keep the SQL here separate from the SQL for the main query so that the
+            // functions are cleaner.
             $sql = <<<SQL
                  SELECT {$concat} as uniqueid,
                         groups.id,
                         visibilitysubquery.cmid AS coursemoduleid,
                         groups.name,
-                        visibilitysubquery.display
+                        COALESCE(coursemodulesettingsgroups.display, coursesettingsgroups.display, 1) AS display
                    FROM {groups} groups
-             INNER JOIN ({$gsql}) visibilitysubquery
-                     ON visibilitysubquery.groupid = groups.id
-                    AND visibilitysubquery.cmid {$cmsql}
+             INNER JOIN {course_modules} course_modules
+                     ON course_modules.courseid = groups.courseid
+
+              LEFT JOIN {block_ajax_marking_groups} coursesettingsgroups
+                     ON coursesettingsgroups.groupid = groups.id
+              LEFT JOIN {block_ajax_marking} coursesettings
+                     ON coursesettings.id = coursesettingsgroups.configid
+                        AND coursesettings.tablename = 'course'
+
+              LEFT JOIN {block_ajax_marking_groups} coursemodulesettingsgroups
+                     ON coursemodulesettingsgroups.groupid = groups.id
+              LEFT JOIN {block_ajax_marking} coursemodulesettings
+                     ON coursemodulesettings.id = coursemodulesettingsgroups.configid
+                        AND coursemodulesettings.tablename = 'course_modules'
+
+                    WHERE course_module.id {$cmsql}
 SQL;
-            $params = array_merge($params, $gparams);
 
             $groups = $DB->get_records_sql($sql, $params);
 
