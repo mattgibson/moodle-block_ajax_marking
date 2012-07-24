@@ -695,19 +695,30 @@ SQL;
              INNER JOIN {course_modules} course_modules
                      ON course_modules.courseid = groups.courseid
 
+               /* Get course default if it's there */
+               /* There can only be one config setting at course level per group, so this is unique */
               LEFT JOIN {block_ajax_marking_groups} coursesettingsgroups
                      ON coursesettingsgroups.groupid = groups.id
               LEFT JOIN {block_ajax_marking} coursesettings
                      ON coursesettings.id = coursesettingsgroups.configid
                         AND coursesettings.tablename = 'course'
 
+               /* Get coursemodule setting if it's there */
               LEFT JOIN {block_ajax_marking_groups} coursemodulesettingsgroups
                      ON coursemodulesettingsgroups.groupid = groups.id
               LEFT JOIN {block_ajax_marking} coursemodulesettings
                      ON coursemodulesettings.id = coursemodulesettingsgroups.configid
                         AND coursemodulesettings.tablename = 'course_modules'
+                        AND coursemodulesettings.instanceid = course_modules.id
 
                     WHERE course_module.id {$cmsql}
+             /* Due to left joins, we may get some group settings without the corresponding main settings */
+             /* This is the same as 'IS NOT DISTINCT FROM', but works everywhere. */
+                       AND (coursesettingsgroups.configid = coursesettings.id OR
+                            (coursesettingsgroups.configid IS NULL AND coursesettings.id IS NULL) )
+                       AND (coursemodulesettingsgroups.configid = coursemodulesettings.id OR
+                            (coursemodulesettingsgroups.configid IS NULL AND coursemodulesettings.id IS NULL) )
+
 SQL;
 
             $groups = $DB->get_records_sql($sql, $params);
