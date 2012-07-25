@@ -681,43 +681,39 @@ SQL;
             // for them.
             list($cmsql, $params) = $DB->get_in_or_equal($coursemoduleids, SQL_PARAMS_NAMED);
             // Can't have repeating groupids in column 1 or it throws an error.
-            $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
+            $concat = $DB->sql_concat('groups.id', "'-'", 'course_modules.id');
             // TODO - this ought not to use the visibility subquery as we don't need to worry about the course defaults.
             // Even if it does, we should keep the SQL here separate from the SQL for the main query so that the
             // functions are cleaner.
             $sql = <<<SQL
                  SELECT {$concat} as uniqueid,
                         groups.id,
-                        visibilitysubquery.cmid AS coursemoduleid,
+                        course_modules.id AS coursemoduleid,
                         groups.name,
                         COALESCE(coursemodulesettingsgroups.display, coursesettingsgroups.display, 1) AS display
                    FROM {groups} groups
              INNER JOIN {course_modules} course_modules
-                     ON course_modules.courseid = groups.courseid
+                     ON course_modules.course = groups.courseid
 
                /* Get course default if it's there */
                /* There can only be one config setting at course level per group, so this is unique */
+              LEFT JOIN {block_ajax_marking} coursesettings
+                     ON coursesettings.tablename = 'course'
+                        AND coursesettings.instanceid = groups.courseid
               LEFT JOIN {block_ajax_marking_groups} coursesettingsgroups
                      ON coursesettingsgroups.groupid = groups.id
-              LEFT JOIN {block_ajax_marking} coursesettings
-                     ON coursesettings.id = coursesettingsgroups.configid
-                        AND coursesettings.tablename = 'course'
+                    AND coursesettings.id = coursesettingsgroups.configid
+
 
                /* Get coursemodule setting if it's there */
+              LEFT JOIN {block_ajax_marking} coursemodulesettings
+                     ON coursemodulesettings.tablename = 'course_modules'
+                        AND coursemodulesettings.instanceid = course_modules.id
               LEFT JOIN {block_ajax_marking_groups} coursemodulesettingsgroups
                      ON coursemodulesettingsgroups.groupid = groups.id
-              LEFT JOIN {block_ajax_marking} coursemodulesettings
-                     ON coursemodulesettings.id = coursemodulesettingsgroups.configid
-                        AND coursemodulesettings.tablename = 'course_modules'
-                        AND coursemodulesettings.instanceid = course_modules.id
+                    AND coursemodulesettings.id = coursemodulesettingsgroups.configid
 
-                    WHERE course_module.id {$cmsql}
-             /* Due to left joins, we may get some group settings without the corresponding main settings */
-             /* This is the same as 'IS NOT DISTINCT FROM', but works everywhere. */
-                       AND (coursesettingsgroups.configid = coursesettings.id OR
-                            (coursesettingsgroups.configid IS NULL AND coursesettings.id IS NULL) )
-                       AND (coursemodulesettingsgroups.configid = coursemodulesettings.id OR
-                            (coursemodulesettingsgroups.configid IS NULL AND coursemodulesettings.id IS NULL) )
+                    WHERE course_modules.id {$cmsql}
 
 SQL;
 
@@ -727,7 +723,7 @@ SQL;
                 if (!isset($nodes[$group->coursemoduleid]->groups)) {
                     $nodes[$group->coursemoduleid]->groups = array();
                 }
-                $nodes[$group->coursemoduleid]->groups[] = $group;
+                $nodes[$group->coursemoduleid]->groups[$group->id] = $group;
             }
         }
 

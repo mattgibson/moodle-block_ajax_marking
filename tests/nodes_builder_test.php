@@ -590,6 +590,142 @@ class test_nodes_builder extends advanced_testcase {
      */
     public function test_courseid_current() {
 
+    }
+
+    /**
+     * This tests the function that takes a load of coursemodule nodes, then attaches the groups and each group's
+     * current display status.
+     *
+     * Need to test:
+     * - Get the groups that are there
+     * - Group to have display 1 if no settings
+     * - Group to have display 1/0 at course level with no coursemodule level setting
+     *- Group to have 1/0 at coursemodule level if set, regardless of the course level setting.
+     */
+    public function test_attach_groups_to_coursemodule_nodes() {
+
+        global $USER, $DB;
+
+        // The setUp() leaves us with 10 users and two teachers in one course.
+
+        // Make two coursemodules.
+        /* @var phpunit_module_generator $assigngenerator */
+        $generator = $this->getDataGenerator();
+        $assigngenerator = new block_ajax_marking_mod_assign_generator($generator);
+        $assignrecord = new stdClass();
+        $assignrecord->assessed = 1;
+        $assignrecord->scale = 4;
+        $assignrecord->course = $this->course->id;
+        $assign1 = $assigngenerator->create_instance($assignrecord);
+        $assignrecord = new stdClass();
+        $assignrecord->assessed = 1;
+        $assignrecord->scale = 4;
+        $assignrecord->course = $this->course->id;
+        $assign2 = $assigngenerator->create_instance($assignrecord);
+
+        // Make two groups.
+        $protptypegroup = new stdClass();
+        $protptypegroup->courseid = $this->course->id;
+        $group1 = $generator->create_group($protptypegroup);
+        $protptypegroup = new stdClass();
+        $protptypegroup->courseid = $this->course->id;
+        $group2 = $generator->create_group($protptypegroup);
+
+        // Make some fake nodes.
+        $nodeswithgroups = array();
+        $node = new stdClass();
+        $node->coursemoduleid = $assign1->cmid;
+        $nodeswithgroups[$assign1->cmid] = $node;
+        $node = new stdClass();
+        $node->coursemoduleid = $assign2->cmid;
+        $nodeswithgroups[$assign2->cmid] = $node;
+
+        // Test that we get the groups. All should have display = 1.
+        $class = new ReflectionClass('block_ajax_marking_nodes_builder');
+        $method = $class->getMethod('attach_groups_to_coursemodule_nodes');
+        $method->setAccessible(true);
+        $nodeswithgroups = $method->invokeArgs($class, array($nodeswithgroups));
+
+        $this->assertEquals(2, count($nodeswithgroups));
+        $this->assertEquals(2, count($nodeswithgroups[$assign1->cmid]->groups));
+        $this->assertEquals(2, count($nodeswithgroups[$assign2->cmid]->groups));
+        $this->assertArrayHasKey($group1->id, $nodeswithgroups[$assign1->id]->groups);
+        $this->assertArrayHasKey($group2->id, $nodeswithgroups[$assign1->id]->groups);
+        $this->assertEquals(1, $nodeswithgroups[$assign1->id]->groups[$group1->id]->display);
+        $this->assertEquals(1, $nodeswithgroups[$assign1->id]->groups[$group2->id]->display);
+
+        // Hide one group at course level.
+        $coursesetting = new stdClass();
+        $coursesetting->userid = $USER->id;
+        $coursesetting->tablename = 'course';
+        $coursesetting->instanceid = $this->course->id;
+        $coursesetting->display = 1;
+        $coursesetting->groupsdisplay = 1;
+        $coursesetting->showorphans = 1;
+        $coursesetting->id = $DB->insert_record('block_ajax_marking', $coursesetting);
+
+        $groupsetting = new stdClass();
+        $groupsetting->configid = $coursesetting->id;
+        $groupsetting->groupid = $group1->id;
+        $groupsetting->display = 0;
+        $groupsetting->id = $DB->insert_record('block_ajax_marking_groups', $groupsetting);
+
+        // Make some fake nodes.
+        $nodescoursehidden = array();
+        $node = new stdClass();
+        $node->coursemoduleid = $assign1->cmid;
+        $nodescoursemodulehidden[$assign1->cmid] = $node;
+        $node = new stdClass();
+        $node->coursemoduleid = $assign2->cmid;
+        $nodescoursemodulehidden[$assign2->cmid] = $node;
+        $nodescoursemodulehidden = $method->invokeArgs($class, array($nodescoursemodulehidden));
+
+        $this->assertEquals(2, count($nodescoursemodulehidden));
+        $message = 'Wrong number of groups';
+        $this->assertEquals(2, count($nodescoursemodulehidden[$assign1->cmid]->groups), $message);
+        $this->assertEquals(2, count($nodescoursemodulehidden[$assign2->cmid]->groups), $message);
+        $this->assertArrayHasKey($group1->id, $nodescoursemodulehidden[$assign1->id]->groups);
+        $this->assertArrayHasKey($group2->id, $nodescoursemodulehidden[$assign1->id]->groups);
+        $message = 'Display should be 0 after group was hidden at course level';
+        $this->assertEquals(0, $nodescoursemodulehidden[$assign1->id]->groups[$group1->id]->display, $message);
+        $this->assertEquals(1, $nodescoursemodulehidden[$assign1->id]->groups[$group2->id]->display);
+
+        // Now try hiding at course module level.
+        $coursemodulesetting = new stdClass();
+        $coursemodulesetting->userid = $USER->id;
+        $coursemodulesetting->tablename = 'course_modules';
+        $coursemodulesetting->instanceid = $assign1->cmid;
+        $coursemodulesetting->display = 1;
+        $coursemodulesetting->groupsdisplay = 1;
+        $coursemodulesetting->showorphans = 1;
+        $coursemodulesetting->id = $DB->insert_record('block_ajax_marking', $coursemodulesetting);
+
+        $groupsetting = new stdClass();
+        $groupsetting->configid = $coursemodulesetting->id;
+        $groupsetting->groupid = $group1->id;
+        $groupsetting->display = 1;
+        $groupsetting->id = $DB->insert_record('block_ajax_marking_groups', $groupsetting);
+
+        // Make some fake nodes.
+        $nodescoursemodulehidden = array();
+        $node = new stdClass();
+        $node->coursemoduleid = $assign1->cmid;
+        $nodescoursehidden[$assign1->cmid] = $node;
+        $node = new stdClass();
+        $node->coursemoduleid = $assign2->cmid;
+        $nodescoursehidden[$assign2->cmid] = $node;
+        $nodescoursehidden = $method->invokeArgs($class, array($nodescoursehidden));
+
+        // Now, group 1 should be hidden for assign 2 (no override), but visible for assign 1.
+        $this->assertEquals(2, count($nodescoursehidden));
+        $message = 'Wrong number of groups';
+        $this->assertEquals(2, count($nodescoursehidden[$assign1->cmid]->groups), $message);
+        $this->assertEquals(2, count($nodescoursehidden[$assign2->cmid]->groups), $message);
+        $this->assertArrayHasKey($group1->id, $nodescoursehidden[$assign1->id]->groups);
+        $this->assertArrayHasKey($group2->id, $nodescoursehidden[$assign1->id]->groups);
+        $message = 'Display should be 1 after group was made visible at course module level';
+        $this->assertEquals(1, $nodescoursehidden[$assign1->id]->groups[$group1->id]->display, $message);
+        $this->assertEquals(0, $nodescoursehidden[$assign2->id]->groups[$group1->id]->display);
 
     }
 
