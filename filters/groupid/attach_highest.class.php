@@ -53,37 +53,58 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
      */
     protected function alter_query(block_ajax_marking_query $query) {
 
-        list($visibilitysubquery, $maxgroupidparams) = block_ajax_marking_group_visibility_subquery();
+        list($maxquery, $maxparams) = block_ajax_marking_group_max_subquery();
+        list($memberquery, $memberparams) = block_ajax_marking_group_members_subquery();
+        list($visibilitysubquery, $visibilityparams) = block_ajax_marking_group_visibility_subquery();
 
-        $maxgroupidsubquery = <<<SQL
-        /* This query shows the maximum visible group id for every group member-coursemodule combination */
-         SELECT members.userid,
-                MAX(displaytable.groupid) AS groupid,
-                displaytable.cmid
-           FROM ({$visibilitysubquery}) AS displaytable
-     INNER JOIN {groups_members} members
-             ON members.groupid = displaytable.groupid
-          WHERE displaytable.display = 1
-       GROUP BY members.userid,
-                displaytable.cmid
-        /* End query to show maximum visible group id */
-SQL;
-
-        $query->add_params($maxgroupidparams);
+        // We need to join to groups members to see if there are any memberships at all (in which case
+        // we use the highest visible id if there is one), or 0 if there are no memberships at all.
         $table = array(
             'join' => 'LEFT JOIN',
-            'table' => $maxgroupidsubquery,
-            'on' => 'maxgroupidsubquery.cmid = moduleunion.coursemoduleid AND
-                             maxgroupidsubquery.userid = moduleunion.userid',
-            'alias' => 'maxgroupidsubquery',
+            'table' => $memberquery,
+            'on' => 'membergroupquery.userid = moduleunion.userid
+                     AND membergroupquery.coursemoduleid = moduleunion.coursemoduleid',
+            'alias' => 'membergroupquery',
             'subquery' => true);
         $query->add_from($table);
+        $query->add_params($memberparams);
 
-        // Make sure we don't retrieve items where there are group memberships and they are all set to hidden.
+        // To make sure it's the highest visible one, we use this subquery as a greatest-n-per-group thing.
+        $table = array(
+            'join' => 'LEFT JOIN',
+            'table' => $maxquery,
+            'on' => 'membergroupquery.userid = maxgroupquery.userid
+                     AND membergroupquery.coursemoduleid = maxgroupquery.coursemoduleid
+                     AND maxgroupquery.groupid > membergroupquery.groupid',
+            'alias' => 'maxgroupquery',
+            'subquery' => true);
+        $query->add_from($table);
+        $query->add_params($maxparams);
+
+        // We join only if the group id is larger, then specify that it must be null. This means that
+        // the membergroupquery group id will be the largest available.
         $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => block_ajax_marking_get_countwrapper_groupid_sql().' IS NOT NULL'
-                          ));
+                           'type' => 'AND',
+                           'condition' => 'maxgroupquery.groupid IS NULL'
+                      ));
+
+        // Make sure it's not hidden. We want to know if there are people with no group, compared to a group that
+        // is hidden, so the aim is to get a null group id if there are no memberships by left joining, then
+        // hide that null row if the settings for group id 0 say so.
+        $table = array(
+            'join' => 'LEFT JOIN',
+            'table' => $visibilitysubquery,
+            'on' => '(membervisibilityquery.groupid = membergroupquery.groupid OR
+                      (membervisibilityquery.groupid = 0 AND membergroupquery.groupid IS NULL))
+                     AND membervisibilityquery.coursemoduleid = membergroupquery.coursemoduleid',
+            'alias' => 'membervisibilityquery',
+            'subquery' => true);
+        $query->add_from($table);
+        $query->add_params($visibilityparams);
+        $query->add_where(array(
+            'type' => 'AND',
+            'condition' => 'membervisibilityquery.coursemoduleid IS NULL'
+        ));
 
     }
 }

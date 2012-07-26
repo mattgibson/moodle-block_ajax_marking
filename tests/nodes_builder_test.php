@@ -549,7 +549,7 @@ class test_nodes_builder extends advanced_testcase {
 
     /**
      * This function will run the whole query with all filters against a data set which ought
-     * ot all come back, i.e. none of the items will be intercepted by any filters.
+     * to all come back, i.e. none of the items will be intercepted by any filters.
      *
      * @todo different courses - one in, one out.
      */
