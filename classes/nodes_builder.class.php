@@ -160,7 +160,7 @@ class block_ajax_marking_nodes_builder {
         // Apply all the standard filters. These only make sense when there's unmarked work.
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
         self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
-        //self::apply_sql_display_settings($countwrapperquery);
+        self::apply_sql_display_settings($countwrapperquery);
         // TODO is it more efficient to have this in the moduleunions to limit the rows?
         self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
 
@@ -287,42 +287,42 @@ class block_ajax_marking_nodes_builder {
         // set to be hidden. This is done by saying 'are there any visible at all'
         // The bit after that, talking about separate groups is to make sure users don't see any
         // of these groups unless they are members of them if separate groups is enabled.
-        $sitedefaultnogroup = 1; // what to do with users who have no group membership?
-        list($existsvisibilitysubquery, $existsparams) = block_ajax_marking_group_visibility_subquery();
-        $query->add_params($existsparams);
-        $hidden = <<<SQL
-    (
-        ( /* User has no group memberships */
-          NOT EXISTS (SELECT NULL
-                        FROM {groups_members} groups_members
-                  INNER JOIN {groups} groups
-                          ON groups_members.groupid = groups.id
-                       WHERE groups_members.userid = moduleunion.userid
-                         AND groups.courseid = moduleunion.course)
-
-                /* Settings say 'show people who have no group memberships' */
-          AND ( COALESCE(cmconfig.showorphans,
-                         courseconfig.showorphans,
-                         {$sitedefaultnogroup}) = 1 ) )
-
-        OR
-
-            /* student is in at least one group that is supposed to be shown to this teacher  */
-        ( EXISTS (SELECT NULL
-                    FROM {groups_members} groups_members
-              INNER JOIN {groups} groups
-                      ON groups_members.groupid = groups.id
-              INNER JOIN ({$existsvisibilitysubquery}) existsvisibilitysubquery
-                      ON existsvisibilitysubquery.groupid = groups.id
-                   WHERE groups_members.userid = moduleunion.userid
-                     AND existsvisibilitysubquery.cmid = moduleunion.coursemoduleid
-                     AND groups.courseid = moduleunion.course
-                     AND existsvisibilitysubquery.display = 1)
-        )
-    )
-SQL;
-        $query->add_where(array('type' => 'AND',
-                                'condition' => $hidden));
+//        $sitedefaultnogroup = 1; // what to do with users who have no group membership?
+//        list($existsvisibilitysubquery, $existsparams) = block_ajax_marking_group_visibility_subquery();
+//        $query->add_params($existsparams);
+//        $hidden = <<<SQL
+//    (
+//        ( /* User has no group memberships */
+//          NOT EXISTS (SELECT NULL
+//                        FROM {groups_members} groups_members
+//                  INNER JOIN {groups} groups
+//                          ON groups_members.groupid = groups.id
+//                       WHERE groups_members.userid = moduleunion.userid
+//                         AND groups.courseid = moduleunion.course)
+//
+//                /* Settings say 'show people who have no group memberships' */
+//          AND ( COALESCE(cmconfig.showorphans,
+//                         courseconfig.showorphans,
+//                         {$sitedefaultnogroup}) = 1 ) )
+//
+//        OR
+//
+//            /* student is in at least one group that is supposed to be shown to this teacher  */
+//        ( EXISTS (SELECT NULL
+//                    FROM {groups_members} groups_members
+//              INNER JOIN {groups} groups
+//                      ON groups_members.groupid = groups.id
+//              INNER JOIN ({$existsvisibilitysubquery}) existsvisibilitysubquery
+//                      ON existsvisibilitysubquery.groupid = groups.id
+//                   WHERE groups_members.userid = moduleunion.userid
+//                     AND existsvisibilitysubquery.cmid = moduleunion.coursemoduleid
+//                     AND groups.courseid = moduleunion.course
+//                     AND existsvisibilitysubquery.display = 1)
+//        )
+//    )
+//SQL;
+//        $query->add_where(array('type' => 'AND',
+//                                'condition' => $hidden));
 
         // We allow course settings to override the site default and activity settings to override
         // the course ones.
@@ -682,9 +682,6 @@ SQL;
             list($cmsql, $params) = $DB->get_in_or_equal($coursemoduleids, SQL_PARAMS_NAMED);
             // Can't have repeating groupids in column 1 or it throws an error.
             $concat = $DB->sql_concat('groups.id', "'-'", 'course_modules.id');
-            // TODO - this ought not to use the visibility subquery as we don't need to worry about the course defaults.
-            // Even if it does, we should keep the SQL here separate from the SQL for the main query so that the
-            // functions are cleaner.
             $sql = <<<SQL
                  SELECT {$concat} as uniqueid,
                         groups.id,
@@ -712,7 +709,6 @@ SQL;
               LEFT JOIN {block_ajax_marking_groups} coursemodulesettingsgroups
                      ON coursemodulesettingsgroups.groupid = groups.id
                     AND coursemodulesettings.id = coursemodulesettingsgroups.configid
-
                     WHERE course_modules.id {$cmsql}
 
 SQL;
@@ -723,7 +719,9 @@ SQL;
                 if (!isset($nodes[$group->coursemoduleid]->groups)) {
                     $nodes[$group->coursemoduleid]->groups = array();
                 }
-                $nodes[$group->coursemoduleid]->groups[$group->id] = $group;
+                unset($group->uniqueid);
+                $id = (int)$group->id;
+                $nodes[$group->coursemoduleid]->groups[$id] = $group;
             }
         }
 
@@ -1033,6 +1031,9 @@ SQL;
                                      'table' => $countwrapperquery,
                                      'alias' => 'countwrapperquery',
                                      'subquery' => true));
+
+        // Make sure we have the config settings so that right click menus know what to show.
+        self::attach_config_settings($displayquery, $nextnodefilter);
 
         reset($filters);
         foreach ($filters as $filtername => $filtervalue) {

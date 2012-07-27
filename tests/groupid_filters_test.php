@@ -256,7 +256,6 @@ class groupid_filters_test extends advanced_testcase {
         // Enrol the users into the courses.
         $studentroleid = $DB->get_field('role', 'id', array('shortname' => 'student'));
         $teacherroleid = $DB->get_field('role', 'id', array('shortname' => 'teacher'));
-
         $PAGE->set_course($coursea);
         $manager = new course_enrolment_manager($PAGE, $coursea);
         $plugins = $manager->get_enrolment_plugins();
@@ -267,12 +266,10 @@ class groupid_filters_test extends advanced_testcase {
         $manualenrolplugin->enrol_user($manualenrolinstance, $student1a->id, $studentroleid);
         $manualenrolplugin->enrol_user($manualenrolinstance, $student2a->id, $studentroleid);
         $manualenrolplugin->enrol_user($manualenrolinstance, $teacher->id, $teacherroleid);
-
         $PAGE->set_course($courseb);
         $manager = new course_enrolment_manager($PAGE, $courseb);
         $plugins = $manager->get_enrolment_plugins();
         $instances = $manager->get_enrolment_instances();
-        /* @var enrol_manual_plugin $manualenrolplugin */
         $manualenrolplugin = reset($plugins);
         $manualenrolinstance = reset($instances);
         $manualenrolplugin->enrol_user($manualenrolinstance, $student3b->id, $studentroleid);
@@ -382,9 +379,9 @@ class groupid_filters_test extends advanced_testcase {
                             'Query not working before we even get to the groups decorator');
 
         // OK - query works. now get the basic group ids that we expect.
-        // Wrap in groups decorator.
+        // Wrap countwrapper in group id decorator.
         $countwrapper = new block_ajax_marking_filter_groupid_attach_countwrapper($countwrapper);
-        // Add a select so we can see if the groupid is there.
+        // Add a select or two so we can see if the groupid is there.
         $countwrapper->add_select(array(
                                        'table' => 'membergroupquery',
                                        'column' => 'groupid'
@@ -397,9 +394,12 @@ class groupid_filters_test extends advanced_testcase {
                                        'table' => 'moduleunion',
                                        'column' => 'coursemoduleid'
                                   ));
+        // For debugging. Stop here and copy this to see what's in the query.
         $wrappedquery = $countwrapper->debuggable_query();
+
         $results = $countwrapper->execute();
 
+        // Sanity check: we should still get the whole lot before messing with anything.
         $this->assertEquals($totalnumberofsubmissions,
                             count($results),
                             'Groups decorator has broken the query before any settings changed');
