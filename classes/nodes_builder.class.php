@@ -1034,8 +1034,6 @@ SQL;
                                      'alias' => 'countwrapperquery',
                                      'subquery' => true));
 
-
-
         reset($filters);
         foreach ($filters as $filtername => $filtervalue) {
 
@@ -1049,7 +1047,7 @@ SQL;
                 // for getting the settings into the countwrapper query is, because they will just have standard
                 // aliases. We don't always need it though.
                 if (in_array($filtername, array('courseid', 'coursemoduleid'))) {
-                    self::add_query_filter($displayquery, $filtername, 'select_config_display_displayquery');
+                    self::add_query_filter($displayquery, 'core', 'select_config_display_displayquery');
                 }
             }
         }

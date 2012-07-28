@@ -761,6 +761,40 @@ class test_nodes_builder extends advanced_testcase {
 
     }
 
+    /**
+     * Makes sure we have the settings attached to the nodes when we ask for them.
+     */
+    public function test_attach_config_settings_to_nodes() {
+
+        global $DB;
+
+        // Make all the test data and get a total count back.
+        $this->make_module_submissions();
+
+        // Make sure the current user is a teacher in the course.
+        $teacher = reset($this->teachers);
+        $this->setUser($teacher->id);
+
+        $filters = array();
+        $filters['courseid'] = 'nextnodefilter';
+
+        // Make a setting to see if we get the value attached.
+        $setting = new stdClass();
+        $setting->userid = $teacher->id;
+        $setting->tablename = 'course';
+        $setting->instanceid = $this->course->id;
+        $setting->groupsdisplay = 0;
+        $DB->insert_record('block_ajax_marking', $setting);
+
+        $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
+        // Should only be one.
+        $coursenode = reset($nodes);
+
+        $message = 'Expected to get the groupsdisplay setting attached to the course node, but it\'s not';
+        $this->assertEquals(0, $coursenode->groupsdisplay, $message);
+
+    }
+
 
 }
 
