@@ -110,8 +110,6 @@ if ($data && confirm_sesskey()) {
         $PAGE->requires->js_init_code($callfunction, false);
 
         close_window(1);
-    } else if ($error != 'cancel') {
-        // Close the window immediately
 
     } else if ($error != 'displayagain') {
 
@@ -139,7 +137,7 @@ $code = "
         }
     }
 
-    window.onbeforeunload = function(e) {
+    window.onbeforeunload = function() {
         // YAHOO.util.Event.addListener(window, 'beforeunload', function(args) {
 
         // Apparently no standard way to do this in YUI: http://yuilibrary.com/projects/yui3/ticket/2528059
@@ -156,10 +154,7 @@ $code = "
     // Makes sure that any cancel button on screen will close the window after removing the tree
     // highlight
     YUI().use('event', function (Y) {
-        var button = Y.one('#id_cancel');
-
-        // Subscribe to its click event with a callback function.
-        button.on('click', function (e) {
+        var buttons = Y.all('#id_cancel, #id_cancelbutton').on('click', function(e) {
 
             e.preventDefault();
 

@@ -45,7 +45,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
     /**
      * Constructor
      *
-     * @internal param object $mainobject the parent object passed in by reference
      * @return \block_ajax_marking_workshop
      */
     public function __construct() {
@@ -68,6 +67,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
     public function make_html_link($item) {
 
         global $CFG;
+
         $address = $CFG->wwwroot.'/mod/workshop/view.php?id='.$item->cmid;
         return $address;
     }
@@ -118,13 +118,17 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
                                 'column' => 'timemodified',
                                 'alias'  => 'timestamp'));
 
-        // Assumes that we want to see stuff that has not been assessed yet. Perhaps we still want
-        // this but also ones where we have not reviewed the assessments?
+        // Assumes that we want to see stuff that has not been assessed by the current user yet. Perhaps
+        // we have more than one assessor? Perhaps it's peer assessment only?
         $query->add_where(array(
-                'type' => 'AND',
-                'condition' => '(a.reviewerid != :workshopuserid
-                                   OR (a.reviewerid = :workshopuserid2
-                                       AND a.grade = -1))'));
+                               'type' => 'AND',
+                               'condition' => 'NOT EXISTS(
+                                   SELECT 1
+                                     FROM {workshop_assessments} workshop_assessments
+                                    WHERE workshop_assessments.submissionid = sub.id
+                                      AND workshop_assessments.reviewerid = :workshopuserid
+                                      AND workshop_assessments.grade != -1
+                               )'));
         $query->add_where(array(
             'type' => 'AND',
             'condition' => 'moduletable.phase < '.workshop::PHASE_CLOSED
@@ -135,7 +139,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         // Unless there are two teachers.
 
         $query->add_param('workshopuserid', $USER->id);
-        $query->add_param('workshopuserid2', $USER->id);
 
         return $query;
 
@@ -153,12 +156,23 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
      * @global $OUTPUT
      * @global $USER
      *
+     * @return string|void
      */
     public function grading_popup($params, $coursemodule) {
 
         $workshopurl = new moodle_url('/mod/workshop/view.php?id='.$coursemodule->id);
         redirect($workshopurl);
-
     }
 
+    /**
+     * This function will take the data returned by the grading popup and process it. Not always
+     * implemented as not all modules have a grading popup yet
+     *
+     * @param $data
+     * @param $params
+     * @return string
+     */
+    public function process_data($data, $params) {
+        return '';
+    }
 }

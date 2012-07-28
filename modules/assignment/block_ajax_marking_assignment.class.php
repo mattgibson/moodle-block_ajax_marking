@@ -32,7 +32,6 @@ global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/modules/assignment/block_ajax_marking_assignment_form.class.php');
 
 /**
@@ -599,6 +598,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                 /* Not in draft state */
                                 AND ( {$assignmenttypestring} != 'upload'
                                       OR ( {$assignmenttypestring} = 'upload' AND {$datastring} = 'submitted'))
+                                AND {$assignmenttypestring} != 'offline'
                                   "));
 
         // TODO only sent for marking.
@@ -613,70 +613,3 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
 }
 
-/**
- * Holds any custom filters for userid nodes that this module offers
- */
-class block_ajax_marking_assignment_userid extends block_ajax_marking_filter_base {
-
-    /**
-     * Not sure we'll ever need this, but just in case...
-     *
-     * @static
-     * @param block_ajax_marking_query_base $query
-     * @param $userid
-     */
-    public static function where_filter($query, $userid) {
-        $countwrapper = self::get_countwrapper_subquery($query);
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'sub.userid = :assignmentuseridfilteruserid');
-        $countwrapper->add_where($clause);
-        $query->add_param('assignmentuseridfilteruserid', $userid);
-    }
-
-    /**
-     * Makes user nodes for the assignment modules by grouping them and then adding in the right
-     * text to describe them.
-     *
-     * @static
-     * @param block_ajax_marking_query_base $query
-     */
-    public static function nextnodetype_filter($query) {
-
-        $countwrapper = self::get_countwrapper_subquery($query);
-
-        // Make the count be grouped by userid.
-        $conditions = array(
-            'table' => 'moduleunion',
-            'column' => 'userid',
-            'alias' => 'id');
-        $countwrapper->add_select($conditions, true);
-        $conditions = array(
-            'table' => 'countwrapperquery',
-            'column' => 'timestamp',
-            'alias' => 'tooltip');
-        $query->add_select($conditions);
-        // Need this to make the popup show properly because some assignment code shows or
-        // not depending on this flag to tell if it's in a pop-up e.g. the revert to draft
-        // button for advanced upload.
-        $conditions = array('column' => "'single'",
-                            'alias' => 'mode');
-        $query->add_select($conditions);
-
-        $conditions = array(
-            'table' => 'usertable',
-            'column' => 'firstname');
-        $query->add_select($conditions);
-        $conditions = array(
-            'table' => 'usertable',
-            'column' => 'lastname');
-        $query->add_select($conditions);
-
-        $table = array(
-            'table' => 'user',
-            'alias' => 'usertable',
-            'on' => 'usertable.id = countwrapperquery.id');
-        $query->add_from($table);
-    }
-
-}

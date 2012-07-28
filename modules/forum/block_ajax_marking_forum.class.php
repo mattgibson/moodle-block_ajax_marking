@@ -14,7 +14,6 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
  * Class file for the forum grading functions
  *
@@ -30,9 +29,7 @@ if (!defined('MOODLE_INTERNAL')) {
 }
 
 global $CFG;
-
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
 /**
@@ -52,11 +49,10 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         parent::__construct();
 
         // Must be the same as the DB modulename.
-        $this->modulename  = 'forum';
-        $this->capability  = 'mod/forum:viewhiddentimedposts';
-        $this->icon        = 'mod/forum/icon.gif';
+        $this->modulename = 'forum';
+        $this->capability = 'mod/forum:viewhiddentimedposts';
+        $this->icon = 'mod/forum/icon.gif';
     }
-
 
     /**
      * Checks to make sure that it has not been rated by anyone else.
@@ -78,7 +74,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                                       )";
         $params['forumratinguserid'] = $USER->id;
 
-        return array($notmyrating, $params);
+        return array($notmyrating,
+                     $params);
     }
 
     /**
@@ -107,43 +104,11 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     /**
      * See parent class for docs
      *
-     * @param object $submission
-     * @param int $moduleinstanceid
-     * @return string
-     */
-    protected function submission_title(&$submission, $moduleinstanceid) {
-
-        global $DB;
-
-        // We will only get to this bit repeatedly for a single forum, so we can cache this and
-        // save some queries.
-        static $iseachuser;
-
-        if (!isset($iseachuser)) {
-            $type = $DB->get_field('forum', 'type', array('id' => $moduleinstanceid));
-            $iseachuser = ($type == 'eachuser') ? true : false;
-        }
-
-        if ($iseachuser) {
-            return fullname($submission);
-        }
-
-        // Keep the $submission object clean.
-        $label = $submission->label;
-        unset($submission->label);
-
-        return $label;
-    }
-
-    /**
-     * See parent class for docs
-     *
      * @return string
      */
     protected function get_sql_userid_column() {
         return 'discussions.userid';
     }
-
 
     /**
      * Returns a HTML link allowing a student's work to be marked
@@ -190,12 +155,12 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         $discussion = $DB->get_record('forum_discussions', array('id' => $params['discussionid']),
                                       '*', MUST_EXIST);
-        $course     = $DB->get_record('course', array('id' => $discussion->course),
-                                      '*', MUST_EXIST);
-        $forum      = $DB->get_record('forum', array('id' => $discussion->forum),
-                                      '*', MUST_EXIST);
-        $cm         = get_coursemodule_from_instance('forum', $forum->id, $course->id,
-                                                     false, MUST_EXIST);
+        $course = $DB->get_record('course', array('id' => $discussion->course),
+                                  '*', MUST_EXIST);
+        $forum = $DB->get_record('forum', array('id' => $discussion->forum),
+                                 '*', MUST_EXIST);
+        $cm = get_coursemodule_from_instance('forum', $forum->id, $course->id,
+                                             false, MUST_EXIST);
         $modcontext = context_module::instance($cm->id);
 
         // Security - cmid is used to check context permissions earlier on, so it must match when
@@ -220,7 +185,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         }
 
         unset($SESSION->fromdiscussion);
-        // In case the user has used the dropdown to change from threaded to flat or something.
+        // In case the user has used the drop-down to change from threaded to flat or something.
         if (isset($params['mode'])) {
             set_user_preference('forum_displaymode', $params['mode']);
         }
@@ -270,7 +235,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $output .= html_writer::end_tag('div');
 
         return $output;
-
     }
 
     /**
@@ -279,11 +243,10 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      *
      * @param $data
      * @param $params
+     * @return string|void
      */
     public function process_data($data, $params) {
-
-        // Validate everything.
-
+        // All done via forms AJAX functions, so deliberately empty.
     }
 
     /**
@@ -294,7 +257,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      */
     public function query_factory() {
 
-        global $DB, $USER;
+        global $USER;
 
         $query = new block_ajax_marking_query_base($this);
         // This currently does a simple check for whether or not the current user has added a
@@ -303,53 +266,49 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $query->add_params($notmyratingparams);
 
         $query->add_from(array(
-                'table' => 'forum_posts',
-                'alias' => 'sub',
-        ));
+                              'table' => 'forum_posts',
+                              'alias' => 'sub',
+                         ));
 
         $query->add_from(array(
-                'table' => 'forum_discussions',
-                'alias' => 'discussions',
-                'on' => 'sub.discussion = discussions.id'
-        ));
+                              'table' => 'forum_discussions',
+                              'alias' => 'discussions',
+                              'on' => 'sub.discussion = discussions.id'
+                         ));
         $query->add_from(array(
-                'table' => $this->modulename,
-                'alias' => 'moduletable',
-                'on' => 'discussions.forum = moduletable.id'
-        ));
+                              'table' => $this->modulename,
+                              'alias' => 'moduletable',
+                              'on' => 'discussions.forum = moduletable.id'
+                         ));
         // We need the context id to check the ratings table in the teacher SQL.
         $query->add_from(array(
-                'table' => 'course_modules',
-                'alias' => 'forumcoursemodules',
-                'on' => 'moduletable.id = forumcoursemodules.instance '.
-                        'AND forumcoursemodules.module = '.$this->get_module_id()
-        ));
+                              'table' => 'course_modules',
+                              'alias' => 'forumcoursemodules',
+                              'on' => 'moduletable.id = forumcoursemodules.instance '.
+                                  'AND forumcoursemodules.module = '.$this->get_module_id()
+                         ));
         $query->add_from(array(
-                'table' => 'context',
-                'alias' => 'forumcontext',
-                'on' => 'forumcoursemodules.id = forumcontext.instanceid '.
-                        'AND forumcontext.contextlevel = '.CONTEXT_MODULE
-        ));
+                              'table' => 'context',
+                              'alias' => 'forumcontext',
+                              'on' => 'forumcoursemodules.id = forumcontext.instanceid '.
+                                  'AND forumcontext.contextlevel = '.CONTEXT_MODULE
+                         ));
         // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
         $query->add_select(array('table' => 'sub',
-                                'column' => 'modified',
-                                'alias'  => 'timestamp'));
+                                 'column' => 'modified',
+                                 'alias' => 'timestamp'));
 
         $query->add_where(array(
-                           'type' => 'AND',
-                           'condition' => 'sub.userid <> :forumuserid'));
+                               'type' => 'AND',
+                               'condition' => 'sub.userid <> :forumuserid'));
         $query->add_where(array(
-                           'type' => 'AND',
-                           'condition' => 'moduletable.assessed > 0'));
+                               'type' => 'AND',
+                               'condition' => 'moduletable.assessed > 0'));
         $query->add_where(array(
-                           'type' => 'AND',
-                           'condition' => "(
-                           {$notmyratingsql}
-                            AND ( ( ".$DB->sql_compare_text('moduletable.type')." != 'eachuser')
-                                  OR ( ".$DB->sql_compare_text('moduletable.type')." = 'eachuser'
-                                       AND sub.id = discussions.firstpost)))"));
+                               'type' => 'AND',
+                               'condition' => " {$notmyratingsql} "));
         $query->add_where(array(
                                'type' => 'AND',
                                'condition' => '( (moduletable.assesstimestart = 0) OR
@@ -362,7 +321,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $query->add_param('forumuserid', $USER->id);
 
         return $query;
-
     }
 
     /**
@@ -401,101 +359,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         }
         return $nodes;
     }
-
 }
 
-/**
- * Deals with SQL for the discussion nodes
- */
-class block_ajax_marking_forum_discussionid extends block_ajax_marking_filter_base {
 
-    /**
-     * Adds SQL for when there is a discussion node as an ancestor of the current nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query_base $query
-     * @param int $discussionid
-     */
-    public static function where_filter($query, $discussionid) {
-
-        $countwrapper = self::get_countwrapper_subquery($query);
-
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'discussion.id = :discussionidfilterdiscussionid');
-        $countwrapper->add_where($clause);
-        $query->add_param('discussionidfilterdiscussionid', $discussionid);
-    }
-
-    /**
-     * Adds SQL to construct a set of discussion nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query_base $query
-     */
-    public static function nextnodetype_filter($query) {
-
-        $countwrapper = self::get_countwrapper_subquery($query);
-        // This will be derived form the coursemodule id, but how to get it cleanly?
-        // The query will know, but not easy to get it out. Might have been prefixed.
-        // TODO pass this properly somehow.
-        $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
-        // Normal forum needs discussion title as label, participant usernames as
-        // description eachuser needs username as title and discussion subject as
-        // description.
-        if (block_ajax_marking_forum::forum_is_eachuser($coursemoduleid)) {
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'subject',
-                                    'alias' => 'description'
-                               ));
-        } else {
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'subject',
-                                    'alias' => 'label'
-                               ));
-            // TODO need a SELECT bit to get all userids of people in the discussion
-            // instead.
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'message',
-                                    'alias' => 'tooltip'
-                               ));
-        }
-
-        $query->add_from(array(
-                              'join' => 'INNER JOIN',
-                              'table' => 'forum_discussions',
-                              'alias' => 'outerdiscussions',
-                              'on' => 'countwrapperquery.id = outerdiscussions.id'
-                         ));
-
-        $query->add_from(array(
-                              'join' => 'INNER JOIN',
-                              'table' => 'forum_posts',
-                              'alias' => 'firstpost',
-                              'on' => 'firstpost.id = outerdiscussions.firstpost'
-                         ));
-
-        // We join like this because we can't put extra stuff into the UNION ALL bit
-        // unless all modules have it and this is unique to forums.
-        $countwrapper->add_from(array(
-                                     'table' => 'forum_posts',
-                                     'on' => 'moduleunion.subid = post.id',
-                                     'alias' => 'post')
-        );
-        $countwrapper->add_from(array(
-                                     'table' => 'forum_discussions',
-                                     'on' => 'discussion.id = post.discussion',
-                                     'alias' => 'discussion')
-        );
-        $countwrapper->add_select(array(
-                                       'table' => 'discussion',
-                                       'column' => 'id'), true
-        );
-
-        $query->add_orderby("timestamp ASC");
-    }
-
-}

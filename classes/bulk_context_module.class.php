@@ -41,10 +41,12 @@ defined('MOODLE_INTERNAL') || die();
 class bulk_context_module extends context_module {
 
     /**
-     * Just calls the normally protected constructor
+     * Just calls the normally protected constructor.
+     *
      * @param \stdClass $record
      */
     public function __construct($record) {
+        $uselessvariabletostopcodecheckercomplainingbecauseitdoesntcheckaccessors = '';
         parent::__construct($record);
     }
 

@@ -111,13 +111,17 @@ function block_ajax_marking_get_number_of_category_levels($reset=false) {
  * @param bool $reset
  * @return array of courses keyed by courseid
  */
-function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=false) {
+function block_ajax_marking_get_my_teacher_courses($returnsql = false, $reset = false) {
 
     // NOTE could also use subquery without union.
-    /*
-     * @var stdClass $USER
-     */
+    /* @var stdClass $USER */
     global $DB, $USER;
+
+    // If running in a unit test, we may well have different courses in the same script execution, so we want to
+    // reset every time.
+    if (defined('PHPUNIT_TEST')) {
+        $reset = true;
+    }
 
     // Cache to save DB queries.
     static $courses = '';
@@ -216,7 +220,7 @@ function block_ajax_marking_get_my_teacher_courses($returnsql=false, $reset=fals
  * @return block_ajax_marking_module_base[] array of objects keyed by modulename, each one being
  * the module plugin for that name. Returns a reference.
  */
-function &block_ajax_marking_get_module_classes($reset=false) {
+function &block_ajax_marking_get_module_classes($reset = false) {
 
     global $DB, $CFG;
 
@@ -256,7 +260,7 @@ function &block_ajax_marking_get_module_classes($reset=false) {
 
 /**
  * Splits the node into display and returndata bits. Display will only involve certain things, so we
- * can hardcode them to be shunted into where they belong. Anything else should be in returndata,
+ * can hard code them to be shunted into where they belong. Anything else should be in returndata,
  * which will vary a lot, so we use that as the default.
  *
  * @param object $node
@@ -348,57 +352,6 @@ function block_ajax_marking_form_url($params=array()) {
 }
 
 /**
- * This is not used for output, but just converts the parametrised query to one that can be
- * copy/pasted into an SQL GUI in order to debug SQL errors
- *
- * @param block_ajax_marking_query_base|string $query
- * @param array $params
- * @global stdClass $CFG
- * @return string
- */
-function block_ajax_marking_debuggable_query($query,
-                                             $params = array()) {
-
-    global $CFG;
-
-    if (!is_string($query)) {
-        $params = $query->get_params();
-        $query = $query->to_string();
-    }
-
-    // We may have a problem with params being missing. Check here (assuming the params ar in
-    // SQL_PARAMS_NAMED format And tell us the names of the offending params via an exception.
-    $pattern = '/:([\w]+)/';
-    $expectedparamcount = preg_match_all($pattern, $query, $paramnames);
-    if ($expectedparamcount) {
-        $arrayparamnames = array_keys($params);
-        $queryparamnames = $paramnames[1];
-        if ($expectedparamcount > count($params)) {
-            // Params are indexed by the name we gave, whereas the $paramnames are indexed by
-            // numeric position in $query. First array has colons at start of keys.
-            $missingparams = array_diff($queryparamnames, $arrayparamnames);
-            throw new coding_exception('Missing parameters: '.implode(', ', $missingparams));
-        } else if ($expectedparamcount < count($params)) {
-            $extraparams = array_diff($arrayparamnames, $queryparamnames);
-            throw new coding_exception('Too many parameters: '.implode(', ', $extraparams));
-        }
-    }
-
-    // Substitute all the {tablename} bits.
-    $query = preg_replace('/\{/', $CFG->prefix, $query);
-    $query = preg_replace('/}/', '', $query);
-
-    // Now put all the params in place.
-    foreach ($params as $name => $value) {
-        $pattern = '/:'.$name.'/';
-        $replacevalue = (is_numeric($value) ? $value : "'".$value."'");
-        $query = preg_replace($pattern, $replacevalue, $query);
-    }
-
-    return $query;
-}
-
-/**
  * strip_tags() leaves no spaces between what used to be different paragraphs. This (pinched
  * from a comment in the strip_tags() man page) replaces with spaces.
  *
@@ -482,3 +435,276 @@ function block_ajax_marking_get_nextnodefilter_from_params(array $params) {
     }
     return false;
 }
+
+/**
+ * In order to display the right things, we need to work out the visibility of each group for
+ * each course module. This subquery lists all groups once for each coursemodule in the
+ * user's courses, along with it's most relevant show/hide setting, i.e. a coursemodule level
+ * override if it's there, otherwise a course level setting, or if neither, the site default.
+ * This is potentially very expensive if there are hundreds of courses as it's effectively a
+ * cartesian join between the groups and coursemodules tables, so we filter using the user's
+ * courses. This may or may not impact on the query optimiser being able to cache the execution
+ * plan between users.
+ *
+ * // Query visualisation:
+ *               ______________________________________________________________
+ *               |                                                            |
+ * Course - Groups - coursemodules                                            |
+ *               |   course |  |id__ block_ajax_marking_settings - block_ajax_marking_groups
+ *               |          |            (for coursemodules)           (per coursemodule)
+ *               |          |
+ *               |          |_____ block_ajax_marking_settings --- block_ajax_marking_groups
+ *               |                       (for courses)                   (per course)
+ *               |____________________________________________________________|
+ *
+ *
+ * Temp table we get back:
+ * -------------------------------
+ * | coursemoduleid    | groupid |
+ * |-----------------------------|
+ * |        543        |    67   |
+ * |        342        |    6    |
+ *
+ * @internal param string $type We may want to know the combined visibility (coalesce) or just the
+ * visibility at either (course) or (coursemodule) level. The latter two are for getting
+ * the groups in their current settings states so config stuff can be adjusted, whereas
+ * the combined one is for retrieving unmarked work.
+ *
+ * @return array SQL and params
+ */
+function block_ajax_marking_group_visibility_subquery() {
+
+    global $DB, $USER;
+
+    // In case the subquery is used twice, this variable allows us to feed the same teacher
+    // courses in more than once because Moodle requires variables with different suffixes.
+    static $counter = 0;
+    $counter++;
+
+    $courses = block_ajax_marking_get_my_teacher_courses();
+    list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
+                                                             SQL_PARAMS_NAMED,
+                                                             "gvis_{$counter}_courses");
+
+    $default = 1;
+    $sql = <<<SQL
+
+        SELECT gvisgroups.id AS groupid,
+               gviscoursemodules.id AS coursemoduleid
+          FROM {groups} gvisgroups
+    INNER JOIN {course_modules} gviscoursemodules
+            ON gviscoursemodules.course = gvisgroups.courseid
+
+     LEFT JOIN {block_ajax_marking} gviscoursesettings
+            ON gviscoursemodules.course = gviscoursesettings.instanceid
+                AND gviscoursesettings.tablename = 'course'
+                AND gviscoursesettings.userid = :gvis{$counter}user1
+
+     LEFT JOIN {block_ajax_marking_groups} gviscoursesettingsgroups
+            ON gviscoursesettingsgroups.configid = gviscoursesettings.id
+               AND gviscoursesettingsgroups.groupid = gvisgroups.id
+
+     LEFT JOIN {block_ajax_marking} gviscoursemodulesettings
+            ON gviscoursemodules.id = gviscoursemodulesettings.instanceid
+                AND gviscoursemodulesettings.tablename = 'course_modules'
+                AND gviscoursemodulesettings.userid = :gvis{$counter}user2
+     LEFT JOIN {block_ajax_marking_groups} gviscoursemodulesettingsgroups
+            ON gviscoursemodulesettingsgroups.configid = gviscoursemodulesettings.id
+               AND gviscoursemodulesettingsgroups.groupid = gvisgroups.id
+
+         WHERE gviscoursemodules.course {$coursessql}
+           AND COALESCE(gviscoursemodulesettingsgroups.display,
+                        gviscoursesettingsgroups.display,
+                        {$default}) = 0
+SQL;
+
+    $coursesparams['gvis'.$counter.'user1'] = $USER->id;
+    $coursesparams['gvis'.$counter.'user2'] = $USER->id;
+    return array($sql, $coursesparams);
+
+}
+
+/**
+ * Helper function that defines what the SQL to hide groups that a teacher is not a member of
+ * is. This is not the same as using the block config settings - we are talking about whatever
+ * is already configured in Moodle.
+ *
+ * @static
+ * @param int $counter
+ * @global $USER
+ * @return array
+ */
+function block_ajax_marking_get_group_hide_sql($counter) {
+
+    global $USER, $DB;
+
+    $separategroups = SEPARATEGROUPS;
+
+    $params = array('teacheruserid'.$counter => $USER->id);
+
+    // If a user is an admin in their course, we should show them all stuff for all groups.
+    $oriscourseadminsql = '';
+    $allowedcourses = array();
+    $teachercourses = block_ajax_marking_get_my_teacher_courses();
+    foreach (array_keys($teachercourses) as $courseid) {
+        if (has_capability('moodle/site:accessallgroups',
+                           context_course::instance($courseid))
+        ) {
+            $allowedcourses[] = $courseid;
+        }
+    }
+    if ($allowedcourses) {
+        list($oriscourseadminsql, $oriscourseadminparams) =
+            $DB->get_in_or_equal($allowedcourses,
+                                 SQL_PARAMS_NAMED,
+                                 'groupsacess001',
+                                 false);
+        $oriscourseadminsql = ' OR group_groups.courseid '.$oriscourseadminsql;
+        $params = array_merge($params, $oriscourseadminparams);
+    }
+
+    // TODO does moving the group id stuff into a WHERE xx OR IS NULL make it faster?
+    // What things should we not show?
+    $grouphidesql = <<<SQL
+                /* Begin group hide SQL */
+
+                 /* Course forces group mode on modules and it's not permissive */
+                    (    (   (group_course.groupmodeforce = 1 AND
+                              group_course.groupmode = {$separategroups}
+                             )
+                             OR
+                             /* Modules can choose group mode and this module is not permissive */
+                            ( group_course.groupmodeforce = 0 AND
+                              group_course_modules.groupmode = {$separategroups}
+                            )
+                         )
+                          AND
+                          /* Teacher is not a group member */
+                          NOT EXISTS ( SELECT 1
+                                         FROM {groups_members} teachermemberships
+                                        WHERE teachermemberships.groupid = group_groups.id
+                                          AND teachermemberships.userid = :teacheruserid{$counter} )
+
+                          /* Course is not one where the teacher can see all groups */
+                          {$oriscourseadminsql}
+                    )
+    /* End group hide SQL */
+SQL;
+    return array($grouphidesql,
+                 $params);
+}
+
+/**
+ * This fragment needs to be used in several places as we need cross-db ways of reusing the same thing and SQL variables
+ * are implemented differently, so we just copy/paste and let the optimiser deal with it.
+ */
+function block_ajax_marking_get_countwrapper_groupid_sql() {
+    $sql = <<<SQL
+        COALESCE(membergroupquery.groupid, 0)
+SQL;
+    return $sql;
+
+}
+
+/**
+ * We have to do greatest-n-per-group to get the highest group id that's not specified as hidden by the user.
+ * This involves repeating the same SQL twice because MySQL doesn't support CTEs.
+ *
+ * This function provides the base query which shows us the highest groupid per user per coursemodule. We need to also
+ * take account of people who have no group memberships, so we need to distinguish between null results because the
+ * group is hidden and null results because there is no group.
+ */
+function block_ajax_marking_group_max_subquery() {
+
+    global $DB;
+
+    // Params need new names every time.
+    static $counter = 1;
+    $counter++;
+
+    list($visibilitysubquery, $visibilityparams) = block_ajax_marking_group_visibility_subquery();
+    $courses = block_ajax_marking_get_my_teacher_courses();
+    list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
+                                                             SQL_PARAMS_NAMED,
+                                                             "gmax_{$counter}_courses");
+
+    // This only shows people who have group memberships, so we need to say if there isn't one or not in the outer
+    // query. For this reason, this query will return all group memberships, plus whether they ought to be displayed.
+    // The outer query can then do a left join.
+    $sql = <<<SQL
+
+             /* Start max groupid query */
+
+        SELECT gmax_members{$counter}.userid,
+               gmax_groups{$counter}.id AS groupid,
+               gmax_course_modules{$counter}.id AS coursemoduleid,
+               CASE
+                   WHEN visquery{$counter}.groupid IS NULL THEN 1
+                   ELSE 0
+               END AS display
+          FROM {groups_members} gmax_members{$counter}
+    INNER JOIN {groups} gmax_groups{$counter}
+            ON gmax_groups{$counter}.id = gmax_members{$counter}.groupid
+    INNER JOIN {course_modules} gmax_course_modules{$counter}
+            ON gmax_course_modules{$counter}.course = gmax_groups{$counter}.courseid
+     LEFT JOIN ({$visibilitysubquery}) visquery{$counter}
+            ON visquery{$counter}.groupid = gmax_groups{$counter}.id
+               AND visquery{$counter}.coursemoduleid = gmax_course_modules{$counter}.id
+           /* Limit the size of the subquery for performance */
+         WHERE gmax_groups{$counter}.courseid {$coursessql}
+           AND visquery{$counter}.groupid IS NULL
+
+         /* End max groupid query */
+SQL;
+
+    return array($sql, array_merge($visibilityparams, $coursesparams));
+
+}
+
+/**
+ * We have to do greatest-n-per-group to get the highest group id that's not specified as hidden by the user.
+ * This involves repeating the same SQL twice because MySQL doesn't support CTEs.
+ *
+ * This function provides the base query which shows us all of the group members attached to their coursemodules. We can
+ * then do a left join to block_ajax_marking_group_max_subquery() to make sure there's no higher group id that's visible
+ * but whereas that has the visibility query within it, this doesn't because we want to use the possible null value
+ * as an indicator that the user is not in any group.
+ */
+function block_ajax_marking_group_members_subquery() {
+
+    global $DB;
+
+    // Params need new names every time.
+    static $counter = 1;
+    $counter++;
+
+    $courses = block_ajax_marking_get_my_teacher_courses();
+    list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
+                                                             SQL_PARAMS_NAMED,
+                                                             "gmember_{$counter}_courses");
+
+    // This only shows people who have group memberships, so we need to say if there isn't one or not in the outer
+    // query. For this reason, this query will return all group memberships, plus whether they ought to be displayed.
+    // The outer query can then do a left join.
+    $sql = <<<SQL
+
+             /* Start member query */
+
+        SELECT gmember_members{$counter}.userid,
+               gmember_groups{$counter}.id AS groupid,
+               gmember_course_modules{$counter}.id AS coursemoduleid
+          FROM {groups_members} gmember_members{$counter}
+    INNER JOIN {groups} gmember_groups{$counter}
+            ON gmember_groups{$counter}.id = gmember_members{$counter}.groupid
+    INNER JOIN {course_modules} gmember_course_modules{$counter}
+            ON gmember_course_modules{$counter}.course = gmember_groups{$counter}.courseid
+            /* Limit the size of the subquery for performance */
+         WHERE gmember_groups{$counter}.courseid {$coursessql}
+
+         /* End member query */
+SQL;
+
+    return array($sql, $coursesparams);
+}
+
+

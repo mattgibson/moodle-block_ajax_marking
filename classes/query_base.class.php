@@ -27,76 +27,21 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-/**
- * Defines methods needed by the query objects
- */
-interface block_ajax_marking_query {
+global $CFG;
 
-    /**
-     * Returns an SQL string for the SELECT part of the query after joining together all the bits
-     * of the select array.
-     *
-     * @abstract
-     * @return mixed
-     */
-    public function get_select();
-
-    /**
-     * Returns an SQL string for the FROM part of the query after joining together all the bits
-     * of the from array.
-     *
-     * @abstract
-     * @return mixed
-     */
-    public function get_from();
-
-    /**
-     * Returns an SQL string for the WHERE part of the query after joining together all the bits
-     * of the where array.
-     *
-     * @abstract
-     * @return mixed
-     */
-    public function get_where();
-
-    /**
-     * Returns an SQL string for the ORDER BY part of the query after joining together all the bits
-     * of the orderby array.
-     *
-     * @abstract
-     * @return mixed
-     */
-    public function get_orderby();
-
-    /**
-     * Returns all the params for this query, including subqueries.
-     *
-     * @abstract
-     * @return mixed
-     */
-    public function get_params();
-
-    /**
-     * Runs the query using standard Moodle DB functions and returns the result.
-     *
-     * @abstract
-     * @return mixed
-     */
-    public function execute();
-
-}
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query.interface.php');
 
 /**
  * Base class for core queries, allowing the parameters and various other filters to be added
- * dynamically
+ * dynamically.
  */
-class block_ajax_marking_query_base {
+class block_ajax_marking_query_base implements block_ajax_marking_query {
 
     /**
      * This hold arrays, with each one being a table column. Each array needs 'function', 'table',
      * 'column', 'alias', 'distinct'. Each array is keyed by its column alias or name, if there is
      * no alias. Its important that these are in the right order as the GROUP BY will be generated
-     * from them
+     * from them.
      *
      * @var array
      */
@@ -129,38 +74,14 @@ class block_ajax_marking_query_base {
     private $params = array();
 
     /**
-     * Holds the name of the useridcolumn of the submissions table. Needed as it varies across
-     * different modules
-     *
-     * @var string
-     */
-    private $useridcolumn;
-
-    /**
-     * Hold the the module type object that this query came from.
-     *
-     * @var block_ajax_marking_module_base
-     */
-    private $moduleobject;
-
-    /**
-     * Constructor
-     *
-     * @param \block_ajax_marking_module_base|bool $moduleobject
-     * @return \block_ajax_marking_query_base
-     */
-    public function __construct($moduleobject = false) {
-        $this->moduleobject = $moduleobject;
-    }
-
-    /**
      * Crunches the SELECT array into a valid SQL query string. Each has 'function', 'table',
      * 'column', 'alias', 'distinct'
      *
      * wrapper via UNION?
+     *
      * @return string SQL
      */
-    public function get_select() {
+    protected function get_select() {
 
         $selectarray = array();
 
@@ -172,7 +93,7 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Makes one array of the SELECT options into a string of SQL
+     * Makes one array of the SELECT options into a string of SQL.
      *
      * @param $select
      * @param bool $forgroupby If we are using this to make the COALESCE bit for GROUP BY, we don't
@@ -206,17 +127,6 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Some modules will need to remove part of the standard SELECT array to make the query work
-     * e.g. Forum needs to remove userid from the submissions query to make it do GROUP BY properly
-     *
-     * @param string $alias The alias or tablename that was used to key this SELECT statement to
-     * the array
-     */
-    public function remove_select($alias) {
-        unset($this->select[$alias]);
-    }
-
-    /**
      * Returns the SQL fragment for the join tables
      *
      * @throws coding_exception
@@ -232,8 +142,9 @@ class block_ajax_marking_query_base {
                 $from['join'] = 'INNER JOIN'; // Default.
             }
 
-            if ($from['table'] instanceof block_ajax_marking_query_base) { // Allow for recursion.
-                $fromstring = '('.$from['table']->to_string().')';
+            if ($from['table'] instanceof block_ajax_marking_query) { // Allow for recursion.
+                /* @define block_ajax_marking_query $from['table'] */
+                $fromstring = '('.$from['table']->get_sql().')';
 
             } else if (isset($from['subquery'])) {
 
@@ -285,11 +196,9 @@ class block_ajax_marking_query_base {
         }
         $this->validate_union_array($from['table']);
         $unionarray = array();
-        /*
-        * @var block_ajax_marking_query_base $table
-        */
+        /* @var block_ajax_marking_query_base $table */
         foreach ($from['table'] as $table) {
-            $unionarray[] = $table->to_string();
+            $unionarray[] = $table->get_sql();
         }
         $fromstring = '(';
         $fromstring .= implode("\n\n UNION ALL \n\n", $unionarray);
@@ -328,7 +237,7 @@ class block_ajax_marking_query_base {
      *
      * @return string SQL
      */
-    public function get_groupby() {
+    protected function get_groupby() {
 
         $groupby = array();
 
@@ -421,13 +330,13 @@ class block_ajax_marking_query_base {
      * @param array $column containing: 'function', 'table', 'column', 'alias', 'distinct' in any
      * order
      * @param bool $prefix Do we want this at the start, rather than the end?
-     * @param bool $replace If true, the start or end element will be replaced with the incoming
-     * one. Default: false
      * @throws coding_exception
      * @throws invalid_parameter_exception
+     * @internal param bool $replace If true, the start or end element will be replaced with the incoming
+     * one. Default: false
      * @return void
      */
-    public function add_select(array $column, $prefix = false, $replace = false) {
+    public function add_select(array $column, $prefix = false) {
 
         $requiredkeys = array('function', 'table', 'column', 'alias', 'distinct');
         $key = isset($column['alias']) ? $column['alias'] : $column['column'];
@@ -447,15 +356,9 @@ class block_ajax_marking_query_base {
         }
 
         if ($prefix) { // Put it at the start.
-            if ($replace) { // Knock off the existing one.
-                array_shift($this->select);
-            }
             // Array_unshift does not allow us to add using a specific key.
             $this->select = array($key => $column) + $this->select;
         } else {
-            if ($replace) {
-                array_pop($this->select);
-            }
             $this->select[$key] = $column;
         }
 
@@ -544,32 +447,6 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Getter for the DB module name
-     *
-     * @throws coding_exception
-     * @return string
-     */
-    public function get_modulename() {
-        if ($this->moduleobject) {
-            return $this->moduleobject->modulename;
-        }
-        throw new coding_exception('Trying to get a modulename from a query with no module');
-    }
-
-    /**
-     * Getter for the DB module name
-     *
-     * @throws coding_exception
-     * @return string
-     */
-    public function get_module_id() {
-        if ($this->moduleobject) {
-            return $this->moduleobject->get_module_id();
-        }
-        throw new coding_exception('Trying to get a module id from a query with no module');
-    }
-
-    /**
      * Adds an associative array of parameters to the query
      *
      * @param array $params
@@ -605,7 +482,7 @@ class block_ajax_marking_query_base {
         $nogroupbyfunctions = array('COALESCE');
 
         foreach ($this->select as $select) {
-            if (isset($select['function']) && !in_array($select['function'], $nogroupbyfunctions)) {
+            if (isset($select['function']) && !in_array(strtoupper($select['function']), $nogroupbyfunctions)) {
                 return true;
             }
         }
@@ -614,11 +491,12 @@ class block_ajax_marking_query_base {
 
     /**
      * Get all the bits and join them together, then return a query ready to use in
-     * $DB->get_records()
+     * $DB->get_records(). Must be public or else we cannot wrap the queries in each other as
+     * subqueries.
      *
-     * @return array query string, then params
+     * @return string
      */
-    public function to_string() {
+    public function get_sql() {
 
         // Stick it all together.
         $query = $this->get_select().
@@ -628,28 +506,26 @@ class block_ajax_marking_query_base {
                  $this->get_orderby();
 
         return $query;
+
     }
 
     /**
      * Getter function for the params. Works recursively to allow subqueries an union (arrays) of
-     * subqueries.
+     * subqueries. Must be public so we can wrap queries in other queries as subqueries.
      *
      * @return array
      */
     public function get_params() {
         $params = array();
         foreach ($this->from as $jointable) {
-            /*
-             * @var block_ajax_marking_query_base $table
-             */
             $table = $jointable['table'];
-            if ($table instanceof block_ajax_marking_query_base) {
+            if ($table instanceof block_ajax_marking_query) {
+                /* @var block_ajax_marking_query_base $table */
                 $params = $this->add_params($table->get_params(), $params);
             } else if (is_array($table)) {
+                /* @var array $table */
                 $this->validate_union_array($table);
-                /*
-                 * @var block_ajax_marking_query_base $uniontable
-                 */
+                /* @var block_ajax_marking_query_base $uniontable */
                 foreach ($table as $uniontable) {
                     $params = $this->add_params($uniontable->get_params(), $params);
                 }
@@ -662,12 +538,12 @@ class block_ajax_marking_query_base {
      * Makes sure that we have an array of query objects rather than strings or anything else
      *
      * @throws coding_exception
-     * @param $unionarray
+     * @param array $unionarray
      * @return void
      */
     private function validate_union_array($unionarray) {
         foreach ($unionarray as $table) {
-            if (!($table instanceof block_ajax_marking_query_base)) {
+            if (!($table instanceof block_ajax_marking_query)) {
                 $error = 'Array of queries for union are not all instances of '.
                          'block_ajax_marking_query_base';
                 throw new coding_exception($error);
@@ -676,54 +552,23 @@ class block_ajax_marking_query_base {
     }
 
     /**
-     * Setter for the userid column
-     *
-     * @param string $column the userid column in the submissions (sub) table
-     */
-    public function set_userid_column($column) {
-        $this->useridcolumn = $column;
-    }
-
-    /**
-     * Getter function for the associated module's capability so we can check for permissions
-     *
-     * @throws coding_exception
-     * @return string
-     */
-    public function get_capability() {
-        if ($this->moduleobject) {
-            return $this->moduleobject->get_capability();
-        }
-        throw new coding_exception('Trying to get a capability from a query with no module');
-    }
-
-    /**
-     * Runs the query and returns the result
+     * Runs the query and returns the result. Optionally return a recordset in case we are testing
+     * and expect duplicate values in the first column e.g. if it's a subquery.
      *
      * @todo check the query for completeness first e.g. all select tables are present in the joins
+     * @param bool $returnrecordset
      * @global moodle_database $DB
-     * @return array
+     * @return array|moodle_recordset
      */
-    public function execute() {
+    public function execute($returnrecordset = false) {
+
         global $DB;
-        return $DB->get_records_sql($this->to_string(), $this->get_params());
-    }
 
-    /**
-     * Sometimes we need to know if we can safely add a clause
-     *
-     * @param string$tablename
-     * @return bool
-     */
-    public function has_join_table($tablename) {
-
-        foreach ($this->from as $join) {
-            if ($join['table'] == $tablename) {
-                return true;
-            }
+        if ($returnrecordset) {
+            return $DB->get_recordset_sql($this->get_sql(), $this->get_params());
+        } else {
+            return $DB->get_records_sql($this->get_sql(), $this->get_params());
         }
-
-        return false;
     }
 
     /**
@@ -745,6 +590,53 @@ class block_ajax_marking_query_base {
             }
         }
         throw new coding_exception('Trying to retrieve a non-existent subquery: '.$queryname);
+    }
+
+    /**
+     * This is not used for output, but just converts the parametrised query to one that can be
+     * copy/pasted into an SQL GUI in order to debug SQL errors
+     *
+     * @throws coding_exception
+     * @global stdClass $CFG
+     * @return string
+     */
+    public function debuggable_query() {
+
+        global $CFG;
+
+        $params = $this->get_params();
+        $sql = $this->get_sql();
+
+        // We may have a problem with params being missing. Check here (assuming the params ar in
+        // SQL_PARAMS_NAMED format And tell us the names of the offending params via an exception.
+        $pattern = '/:([\w]+)/';
+        $expectedparamcount = preg_match_all($pattern, $sql, $paramnames);
+        if ($expectedparamcount) {
+            $arrayparamnames = array_keys($params);
+            $queryparamnames = $paramnames[1];
+            if ($expectedparamcount > count($params)) {
+                // Params are indexed by the name we gave, whereas the $paramnames are indexed by
+                // numeric position in $query. First array has colons at start of keys.
+                $missingparams = array_diff($queryparamnames, $arrayparamnames);
+                throw new coding_exception('Missing parameters: '.implode(', ', $missingparams));
+            } else if ($expectedparamcount < count($params)) {
+                $extraparams = array_diff($arrayparamnames, $queryparamnames);
+                throw new coding_exception('Too many parameters: '.implode(', ', $extraparams));
+            }
+        }
+
+        // Substitute all the {tablename} bits.
+        $sql = preg_replace('/\{/', $CFG->prefix, $sql);
+        $sql = preg_replace('/}/', '', $sql);
+
+        // Now put all the params in place.
+        foreach ($params as $name => $value) {
+            $pattern = '/:'.$name.'/';
+            $replacevalue = (is_numeric($value) ? $value : "'".$value."'");
+            $sql = preg_replace($pattern, $replacevalue, $sql);
+        }
+
+        return $sql;
     }
 
 

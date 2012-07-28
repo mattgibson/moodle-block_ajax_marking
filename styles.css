@@ -254,3 +254,13 @@ table.ygtvtable {
 #page-blocks-ajax_marking-actions-grading_popup div.box.files > .helplink {
     display: none;
 }
+/* Assign grading form has monster gap without these. */
+#page-blocks-ajax_marking-actions-grading_popup .usersummary {
+    margin-bottom: 0;
+}
+/* These buttons are not needed */
+#page-blocks-ajax_marking-actions-grading_popup #id_saveandshownext,
+#page-blocks-ajax_marking-actions-grading_popup #id_nosaveandprevious,
+#page-blocks-ajax_marking-actions-grading_popup #id_nosaveandnext {
+    display: none;
+}

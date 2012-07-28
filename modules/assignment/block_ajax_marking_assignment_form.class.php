@@ -34,12 +34,12 @@ require_once($CFG->dirroot.'/mod/assignment/lib.php');
  * Allows us to alter the form to have no 'revert to draft' button, and add an extra 'save and revert to draft'
  * button for advanced upload assignment types.
  */
-class block_ajax_marking_assignment_form extends mod_assignment_grading_form {
+class block_ajax_marking_assignment_form extends assignment_grading_form {
 
     /**
      * Adds the 'save and revert to draft' button.
      */
-    public function add_action_buttons() {
+    public function add_action_buttons($cancel = true, $submitlabel = null) {
 
         $mform =& $this->_form;
 

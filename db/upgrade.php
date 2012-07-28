@@ -141,6 +141,8 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
         // Define field groups to be dropped from block_ajax_marking.
         drop_groups_field();
 
+        $table = new xmldb_table('block_ajax_marking');
+
         $field = new xmldb_field('courseid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, null, null,
                                  '0', 'userid');
 
@@ -359,7 +361,7 @@ function add_groups_display_field() {
 
 /**
  * Alters the table to use coursemodule id instead of module name and module id. Separating due
- * to an xml probem that meant that some sites didn't upgrade cleanly and needed redoing.
+ * to an xml problem that meant that some sites didn't upgrade cleanly and needed redoing.
  *
  * @return array
  */
