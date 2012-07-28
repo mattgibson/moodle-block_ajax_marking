@@ -155,7 +155,8 @@ class block_ajax_marking_nodes_builder {
             $debugquery = $countwrapperquery->debuggable_query();
         }
 
-        // Join to the config tables so we have settings available for the nodes context menus.
+        // Join to the config tables so we have settings available for the nodes context menus and for filtering
+        // hidden ones.
         self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
         // Apply all the standard filters. These only make sense when there's unmarked work.
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
@@ -170,6 +171,9 @@ class block_ajax_marking_nodes_builder {
         }
 
         $displayquery = self::get_display_query($countwrapperquery, $filters);
+
+        // Make sure we have the config settings so that right click menus know what to show.
+        self::attach_config_settings($displayquery, $nextnodefilter);
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
@@ -912,7 +916,8 @@ SQL;
         reset($filters);
         foreach ($filters as $filtername => $filtervalue) {
 
-            if ($filtervalue === 'nextnodefilter') { // Current nodes need to be grouped by this filter.
+            // Current nodes need to be grouped by this filter.
+            if ($filtervalue == 'nextnodefilter') {
                 // This will attach an id to the query, to either be retrieved directly from the moduleunion,
                 // or added via a join of some sort.
                 self::add_query_filter($countwrapperquery, $filtername, 'attach_countwrapper', null, $modulename);
@@ -1032,13 +1037,12 @@ SQL;
                                      'alias' => 'countwrapperquery',
                                      'subquery' => true));
 
-        // Make sure we have the config settings so that right click menus know what to show.
-        self::attach_config_settings($displayquery, $nextnodefilter);
+
 
         reset($filters);
         foreach ($filters as $filtername => $filtervalue) {
 
-            if ($filtervalue === 'nextnodefilter') { // Current nodes need to be grouped by this filter.
+            if ($filtervalue == 'nextnodefilter') {
                 // This will attach an id to the query, to either be retrieved directly from the moduleunion,
                 // or added via a join of some sort.
                 self::add_query_filter($displayquery, $filtername, 'current', null, $modulename);
@@ -1086,6 +1090,8 @@ SQL;
      * Called from ajax_node_count.php and returns the counts for a specific node so we can update
      * it in the tree when groups display stuff is changed and it is not expanded.
      *
+     * We don't need a group by, just a where that's specific to the node, and a count.
+     *
      * @param array $filters
      * @return array
      * @SuppressWarnings(PHPMD.UnusedLocalVariable)
@@ -1094,22 +1100,28 @@ SQL;
 
         global $CFG;
 
+        // We need to make the same unmarked nodes query as usual, but with an extra wrapper to limit it to one node.
+
+        $filters[$filters['currentfilter']] = 'nextnodefilter';
+
         $modulequeries = self::get_module_queries_array($filters);
         if (empty($modulequeries)) {
             return array();
         }
 
-        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
-        $moduleclass = false;
-        if ($havecoursemodulefilter) {
-            $moduleclass = self::get_module_object_from_cmid($filters['coursemoduleid']);
-        }
-
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
+
+        self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
+
+        self::apply_sql_enrolled_students($countwrapperquery, $filters);
+        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
+        self::apply_sql_display_settings($countwrapperquery);
+        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
+
         $displayquery = self::get_display_query($countwrapperquery, $filters);
 
         // This will give us a query that will get the relevant node and all its siblings.
-        self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
+//        self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
 
         // Now, add the current node as a WHERE clause, so we only get that one.
         $displayquery->add_where(array('type' => 'AND',

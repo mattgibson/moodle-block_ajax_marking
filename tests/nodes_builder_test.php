@@ -61,7 +61,7 @@ class test_nodes_builder extends advanced_testcase {
     protected $submissioncount;
 
     /**
-     * Gets a blank course with users ready for each test
+     * Gets a blank course with 2 teachers and 10 students ready for each test.
      */
     protected function setUp() {
 
@@ -105,7 +105,14 @@ class test_nodes_builder extends advanced_testcase {
     }
 
     /**
-     * Makes data for all the modules.
+     * Makes data for all the modules:
+     * - one assign and 10 submissions
+     * - 4 assignments and 40 submissions
+     * - 5 forums and 500 forum posts
+     * - 1 quiz with one question and 10 answers
+     * - 1 workshop with 10 submissions
+     *
+     * Submissions are counted and stored as $this->submissioncount.
      */
     private function make_module_submissions() {
 
@@ -444,7 +451,8 @@ class test_nodes_builder extends advanced_testcase {
     }
 
     /**
-     * Makes test submission data for the assign module.
+     * Makes test submission data for the assign module. Leaves us with one assignment and a single submission
+     * for each user.
      *
      * @return int how many things to expect.
      */
@@ -481,7 +489,7 @@ class test_nodes_builder extends advanced_testcase {
     }
 
     /**
-     * Makes test submission data for the quiz module.
+     * Makes test submission data for the quiz module. One quiz, with one essay question and one answer per student.
      *
      * @return int how many things to expect.
      */
@@ -726,6 +734,30 @@ class test_nodes_builder extends advanced_testcase {
         $message = 'Display should be 1 after group was made visible at course module level';
         $this->assertEquals(1, $nodescoursehidden[$assign1->id]->groups[$group1->id]->display, $message);
         $this->assertEquals(0, $nodescoursehidden[$assign2->id]->groups[$group1->id]->display);
+
+    }
+
+    /**
+     * Makes sure we can get one node only for when the counts will have changed due to a settings tweak.
+     *
+     */
+    public function test_get_count_for_single_node() {
+
+        // Make all the test data and get a total count back.
+        $this->make_module_submissions();
+
+        // Make sure the current user is a teacher in the course.
+        $this->setUser(key($this->teachers));
+
+        $filters = array();
+        $filters['currentfilter'] = 'courseid';
+        $filters['filtervalue'] = $this->course->id;
+
+        $node = block_ajax_marking_nodes_builder::get_count_for_single_node($filters);
+
+        $message = "Wrong number of things returned as the count for a single node. Expected {$this->submissioncount} ".
+            "but got {$node['itemcount']}";
+        $this->assertEquals($this->submissioncount, $node['itemcount'], $message);
 
     }
 
