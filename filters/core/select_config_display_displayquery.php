@@ -36,7 +36,7 @@ global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/core_base.class.php');
 
 /**
- * This gets the display settings from the countwrapper so that the nodes,whatever they are have them and the user
+ * This gets the display settings from the countwrapper so that the nodes, whatever they are have them and the user
  * can alter them if necessary. The countwrapper decorators deal with how this happens, so this one takes
  * the standardised 'display field and selects it. Reused for all nodes (course, coursemodule) that need it.
  */
