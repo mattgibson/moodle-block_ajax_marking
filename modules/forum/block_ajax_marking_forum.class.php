@@ -29,8 +29,8 @@ if (!defined('MOODLE_INTERNAL')) {
 }
 
 global $CFG;
+
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
 
 /**
  * Provides functionality for grading of forum discussions
@@ -361,97 +361,4 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     }
 }
 
-/**
- * Deals with SQL for the discussion nodes
- */
-class block_ajax_marking_forum_discussionid extends block_ajax_marking_filter_base {
 
-    /**
-     * Adds SQL for when there is a discussion node as an ancestor of the current nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query_base $query
-     * @param int $discussionid
-     */
-    public static function where_filter($query, $discussionid) {
-
-        $countwrapper = self::get_countwrapper_subquery($query);
-
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'discussion.id = :discussionidfilterdiscussionid');
-        $countwrapper->add_where($clause);
-        $query->add_param('discussionidfilterdiscussionid', $discussionid);
-    }
-
-    /**
-     * Adds SQL to construct a set of discussion nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query_base $query
-     */
-    public static function nextnodetype_filter($query) {
-
-        $countwrapper = self::get_countwrapper_subquery($query);
-        // This will be derived form the coursemodule id, but how to get it cleanly?
-        // The query will know, but not easy to get it out. Might have been prefixed.
-        // TODO pass this properly somehow.
-        $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
-        // Normal forum needs discussion title as label, participant usernames as
-        // description eachuser needs username as title and discussion subject as
-        // description.
-        if (block_ajax_marking_forum::forum_is_eachuser($coursemoduleid)) {
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'subject',
-                                    'alias' => 'description'
-                               ));
-        } else {
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'subject',
-                                    'alias' => 'label'
-                               ));
-            // TODO need a SELECT bit to get all userids of people in the discussion
-            // instead.
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'message',
-                                    'alias' => 'tooltip'
-                               ));
-        }
-
-        $query->add_from(array(
-                              'join' => 'INNER JOIN',
-                              'table' => 'forum_discussions',
-                              'alias' => 'outerdiscussions',
-                              'on' => 'countwrapperquery.id = outerdiscussions.id'
-                         ));
-
-        $query->add_from(array(
-                              'join' => 'INNER JOIN',
-                              'table' => 'forum_posts',
-                              'alias' => 'firstpost',
-                              'on' => 'firstpost.id = outerdiscussions.firstpost'
-                         ));
-
-        // We join like this because we can't put extra stuff into the UNION ALL bit
-        // unless all modules have it and this is unique to forums.
-        $countwrapper->add_from(array(
-                                     'table' => 'forum_posts',
-                                     'on' => 'moduleunion.subid = post.id',
-                                     'alias' => 'post')
-        );
-        $countwrapper->add_from(array(
-                                     'table' => 'forum_discussions',
-                                     'on' => 'discussion.id = post.discussion',
-                                     'alias' => 'discussion')
-        );
-        $countwrapper->add_select(array(
-                                       'table' => 'discussion',
-                                       'column' => 'id'), true
-        );
-
-        $query->add_orderby("timestamp ASC");
-    }
-}

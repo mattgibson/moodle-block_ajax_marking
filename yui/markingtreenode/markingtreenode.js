@@ -292,13 +292,30 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_groups : function () {
 
-            if (typeof(this.data.configdata) === 'object' &&
-                typeof(this.data.configdata.groups) === 'object') {
+            if (typeof(this.data.configdata) === 'object' && typeof(this.data.configdata.groups) === 'object') {
 
-                return this.data.configdata.groups;
-            } else {
-                return [];
+                var typeofthing = Object.prototype.toString.call(this.data.configdata.groups);
+                if (typeofthing == '[object Object]') {
+                    // JSON parsing turns the groups array into an object. More convenient as an array, so
+                    // we convert.
+                    var arrayofgroups = [];
+                    for (var group in this.data.configdata.groups) {
+                        if (this.data.configdata.groups.hasOwnProperty(group)) {
+                            arrayofgroups.push(this.data.configdata.groups[group]);
+                        }
+                    }
+
+                    this.data.configdata.groups = arrayofgroups;
+                }
+
+                typeofthing = Object.prototype.toString.call(this.data.configdata.groups);
+                if (typeofthing == '[object Array]') {
+                    return this.data.configdata.groups;
+                }
+
             }
+
+            return [];
         },
 
         /**

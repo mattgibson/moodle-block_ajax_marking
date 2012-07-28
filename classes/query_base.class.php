@@ -93,7 +93,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
     }
 
     /**
-     * Makes one array of the SELECT options into a string of SQL
+     * Makes one array of the SELECT options into a string of SQL.
      *
      * @param $select
      * @param bool $forgroupby If we are using this to make the COALESCE bit for GROUP BY, we don't
@@ -142,7 +142,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
                 $from['join'] = 'INNER JOIN'; // Default.
             }
 
-            if ($from['table'] instanceof block_ajax_marking_query_base) { // Allow for recursion.
+            if ($from['table'] instanceof block_ajax_marking_query) { // Allow for recursion.
                 /* @define block_ajax_marking_query $from['table'] */
                 $fromstring = '('.$from['table']->get_sql().')';
 
@@ -330,13 +330,13 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      * @param array $column containing: 'function', 'table', 'column', 'alias', 'distinct' in any
      * order
      * @param bool $prefix Do we want this at the start, rather than the end?
-     * @param bool $replace If true, the start or end element will be replaced with the incoming
-     * one. Default: false
      * @throws coding_exception
      * @throws invalid_parameter_exception
+     * @internal param bool $replace If true, the start or end element will be replaced with the incoming
+     * one. Default: false
      * @return void
      */
-    public function add_select(array $column, $prefix = false, $replace = false) {
+    public function add_select(array $column, $prefix = false) {
 
         $requiredkeys = array('function', 'table', 'column', 'alias', 'distinct');
         $key = isset($column['alias']) ? $column['alias'] : $column['column'];
@@ -356,15 +356,9 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
         }
 
         if ($prefix) { // Put it at the start.
-            if ($replace) { // Knock off the existing one.
-                array_shift($this->select);
-            }
             // Array_unshift does not allow us to add using a specific key.
             $this->select = array($key => $column) + $this->select;
         } else {
-            if ($replace) {
-                array_pop($this->select);
-            }
             $this->select[$key] = $column;
         }
 
@@ -525,7 +519,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
         $params = array();
         foreach ($this->from as $jointable) {
             $table = $jointable['table'];
-            if ($table instanceof block_ajax_marking_query_base) {
+            if ($table instanceof block_ajax_marking_query) {
                 /* @var block_ajax_marking_query_base $table */
                 $params = $this->add_params($table->get_params(), $params);
             } else if (is_array($table)) {
@@ -549,7 +543,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     private function validate_union_array($unionarray) {
         foreach ($unionarray as $table) {
-            if (!($table instanceof block_ajax_marking_query_base)) {
+            if (!($table instanceof block_ajax_marking_query)) {
                 $error = 'Array of queries for union are not all instances of '.
                          'block_ajax_marking_query_base';
                 throw new coding_exception($error);

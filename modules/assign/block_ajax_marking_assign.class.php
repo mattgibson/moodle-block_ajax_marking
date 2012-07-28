@@ -30,7 +30,6 @@ global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/filters.class.php');
 require_once($CFG->dirroot.'/mod/assign/locallib.php');
 
 /**
@@ -269,66 +268,4 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
 
         return $query;
     }
-}
-
-/**
- * Holds any custom filters for userid nodes that this module offers
- */
-class block_ajax_marking_assign_userid extends block_ajax_marking_filter_base {
-
-    /**
-     * Not sure we'll ever need this, but just in case...
-     *
-     * @static
-     * @param block_ajax_marking_query_base $query
-     * @param $userid
-     */
-    public static function where_filter($query, $userid) {
-        $countwrapper = self::get_countwrapper_subquery($query);
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'sub.userid = :assignuseridfilteruserid');
-        $countwrapper->add_where($clause);
-        $query->add_param('assignuseridfilteruserid', $userid);
-    }
-
-    /**
-     * Makes user nodes for the assign modules by grouping them and then adding in the right
-     * text to describe them.
-     *
-     * @static
-     * @param block_ajax_marking_query_base $query
-     */
-    public static function nextnodetype_filter($query) {
-
-        $countwrapper = self::get_countwrapper_subquery($query);
-
-        // Make the count be grouped by userid.
-        $conditions = array(
-            'table' => 'moduleunion',
-            'column' => 'userid',
-            'alias' => 'id');
-        $countwrapper->add_select($conditions, true);
-        $conditions = array(
-            'table' => 'countwrapperquery',
-            'column' => 'timestamp',
-            'alias' => 'tooltip');
-        $query->add_select($conditions);
-
-        $conditions = array(
-            'table' => 'usertable',
-            'column' => 'firstname');
-        $query->add_select($conditions);
-        $conditions = array(
-            'table' => 'usertable',
-            'column' => 'lastname');
-        $query->add_select($conditions);
-
-        $table = array(
-            'table' => 'user',
-            'alias' => 'usertable',
-            'on' => 'usertable.id = countwrapperquery.id');
-        $query->add_from($table);
-    }
-
 }

@@ -92,7 +92,7 @@ class block_ajax_marking_nodes_builder {
         // Need the course to join to other filters.
         $query->add_select(array('table'  => 'moduletable',
                                  'column' => 'course'));
-        // Some filters need a coursemoduleid to join to, so we need to make it part of every query.
+        // Some filters need a coursemodule id to join to, so we need to make it part of every query.
         $query->add_from(array('table' => 'course_modules',
                                'on'    => 'course_modules.instance = moduletable.id AND
                                            course_modules.module = '.$moduleclass->get_module_id()));
@@ -130,7 +130,7 @@ class block_ajax_marking_nodes_builder {
      * class
      * @return array
      */
-    public static function unmarked_nodes($filters = array()) {
+    public static function unmarked_nodes(array $filters = array()) {
 
         global $CFG;
 
@@ -149,18 +149,28 @@ class block_ajax_marking_nodes_builder {
         }
 
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
+
+        // This is just for copying and pasting from the paused debugger into a DB GUI.
+        if ($CFG->debug == DEBUG_DEVELOPER) {
+            $debugquery = $countwrapperquery->debuggable_query();
+        }
+
+        // Join to the config tables so we have settings available for the nodes context menus and for filtering
+        // hidden ones.
+        self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
+        // Apply all the standard filters. These only make sense when there's unmarked work.
+        self::apply_sql_enrolled_students($countwrapperquery, $filters);
+        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
+        self::apply_sql_display_settings($countwrapperquery);
+        // TODO is it more efficient to have this in the moduleunions to limit the rows?
+        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
+
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
             $debugquery = $countwrapperquery->debuggable_query();
         }
 
         $displayquery = self::get_display_query($countwrapperquery, $filters);
-
-        self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
-
-        // Adds the config settings if there are any, so that we
-        // know what the current settings are for the context menu.
-        self::attach_config_settings($displayquery, $nextnodefilter);
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
@@ -278,42 +288,42 @@ class block_ajax_marking_nodes_builder {
         // set to be hidden. This is done by saying 'are there any visible at all'
         // The bit after that, talking about separate groups is to make sure users don't see any
         // of these groups unless they are members of them if separate groups is enabled.
-        $sitedefaultnogroup = 1; // what to do with users who have no group membership?
-        list($existsvisibilitysubquery, $existsparams) = block_ajax_marking_groupid::group_visibility_subquery();
-        $query->add_params($existsparams);
-        $hidden = <<<SQL
-    (
-        ( /* User has no group memberships */
-          NOT EXISTS (SELECT NULL
-                        FROM {groups_members} groups_members
-                  INNER JOIN {groups} groups
-                          ON groups_members.groupid = groups.id
-                       WHERE groups_members.userid = moduleunion.userid
-                         AND groups.courseid = moduleunion.course)
-
-                /* Settings say 'show people who have no group memberships' */
-          AND ( COALESCE(cmconfig.showorphans,
-                         courseconfig.showorphans,
-                         {$sitedefaultnogroup}) = 1 ) )
-
-        OR
-
-            /* student is in at least one group that is supposed to be shown to this teacher  */
-        ( EXISTS (SELECT NULL
-                    FROM {groups_members} groups_members
-              INNER JOIN {groups} groups
-                      ON groups_members.groupid = groups.id
-              INNER JOIN ({$existsvisibilitysubquery}) existsvisibilitysubquery
-                      ON existsvisibilitysubquery.groupid = groups.id
-                   WHERE groups_members.userid = moduleunion.userid
-                     AND existsvisibilitysubquery.cmid = moduleunion.coursemoduleid
-                     AND groups.courseid = moduleunion.course
-                     AND existsvisibilitysubquery.display = 1)
-        )
-    )
-SQL;
-        $query->add_where(array('type' => 'AND',
-                                'condition' => $hidden));
+//        $sitedefaultnogroup = 1; // what to do with users who have no group membership?
+//        list($existsvisibilitysubquery, $existsparams) = block_ajax_marking_group_visibility_subquery();
+//        $query->add_params($existsparams);
+//        $hidden = <<<SQL
+//    (
+//        ( /* User has no group memberships */
+//          NOT EXISTS (SELECT NULL
+//                        FROM {groups_members} groups_members
+//                  INNER JOIN {groups} groups
+//                          ON groups_members.groupid = groups.id
+//                       WHERE groups_members.userid = moduleunion.userid
+//                         AND groups.courseid = moduleunion.course)
+//
+//                /* Settings say 'show people who have no group memberships' */
+//          AND ( COALESCE(cmconfig.showorphans,
+//                         courseconfig.showorphans,
+//                         {$sitedefaultnogroup}) = 1 ) )
+//
+//        OR
+//
+//            /* student is in at least one group that is supposed to be shown to this teacher  */
+//        ( EXISTS (SELECT NULL
+//                    FROM {groups_members} groups_members
+//              INNER JOIN {groups} groups
+//                      ON groups_members.groupid = groups.id
+//              INNER JOIN ({$existsvisibilitysubquery}) existsvisibilitysubquery
+//                      ON existsvisibilitysubquery.groupid = groups.id
+//                   WHERE groups_members.userid = moduleunion.userid
+//                     AND existsvisibilitysubquery.cmid = moduleunion.coursemoduleid
+//                     AND groups.courseid = moduleunion.course
+//                     AND existsvisibilitysubquery.display = 1)
+//        )
+//    )
+//SQL;
+//        $query->add_where(array('type' => 'AND',
+//                                'condition' => $hidden));
 
         // We allow course settings to override the site default and activity settings to override
         // the course ones.
@@ -332,9 +342,9 @@ SQL;
      * to join to.
      *
      * @static
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      */
-    private static function attach_config_tables(block_ajax_marking_query_base $query) {
+    private static function attach_config_tables(block_ajax_marking_query $query) {
 
         global $USER;
 
@@ -362,12 +372,12 @@ SQL;
      * find a small list of contexts that a teacher cannot grade in within the courses where they
      * normally can, then do a NOT IN thing with it. Also the obvious visible = 1 stuff.
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      * @param string $coursemodulejoin What table.column to join to course_modules.id
      * @param bool $includehidden Do we want to have hidden coursemodules included? Config = yes
      * @return array The join string, where string and params array. Note, where starts with 'AND'
      */
-    private static function apply_sql_visible(block_ajax_marking_query_base $query,
+    private static function apply_sql_visible(block_ajax_marking_query $query,
                                               $coursemodulejoin = '', $includehidden = false) {
         global $DB;
 
@@ -454,11 +464,11 @@ SQL;
     /**
      * Makes sure we only get stuff for the courses this user is a teacher in
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      * @param string $coursecolumn
      * @return void
      */
-    private static function apply_sql_owncourses(block_ajax_marking_query_base $query,
+    private static function apply_sql_owncourses(block_ajax_marking_query $query,
                                                  $coursecolumn = '') {
 
         global $DB;
@@ -482,11 +492,11 @@ SQL;
      * Returns an SQL snippet that will tell us whether a student is directly enrolled in this
      * course
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      * @param array $filters So we can filter by cohortid if we need to
      * @return array The join and where strings, with params. (Where starts with 'AND)
      */
-    private static function apply_sql_enrolled_students(block_ajax_marking_query_base $query,
+    private static function apply_sql_enrolled_students(block_ajax_marking_query $query,
                                                         array $filters) {
 
         global $DB, $CFG, $USER;
@@ -671,22 +681,38 @@ SQL;
             // This will include groups that have no settings as we may want to make settings
             // for them.
             list($cmsql, $params) = $DB->get_in_or_equal($coursemoduleids, SQL_PARAMS_NAMED);
-            list($gsql, $gparams) =
-                block_ajax_marking_groupid::group_visibility_subquery('coursemodule');
             // Can't have repeating groupids in column 1 or it throws an error.
-            $concat = $DB->sql_concat('groups.id', "'-'", 'visibilitysubquery.cmid');
+            $concat = $DB->sql_concat('groups.id', "'-'", 'course_modules.id');
             $sql = <<<SQL
                  SELECT {$concat} as uniqueid,
                         groups.id,
-                        visibilitysubquery.cmid AS coursemoduleid,
+                        course_modules.id AS coursemoduleid,
                         groups.name,
-                        visibilitysubquery.display
+                        COALESCE(coursemodulesettingsgroups.display, coursesettingsgroups.display, 1) AS display
                    FROM {groups} groups
-             INNER JOIN ({$gsql}) visibilitysubquery
-                     ON visibilitysubquery.groupid = groups.id
-                    AND visibilitysubquery.cmid {$cmsql}
+             INNER JOIN {course_modules} course_modules
+                     ON course_modules.course = groups.courseid
+
+               /* Get course default if it's there */
+               /* There can only be one config setting at course level per group, so this is unique */
+              LEFT JOIN {block_ajax_marking} coursesettings
+                     ON coursesettings.tablename = 'course'
+                        AND coursesettings.instanceid = groups.courseid
+              LEFT JOIN {block_ajax_marking_groups} coursesettingsgroups
+                     ON coursesettingsgroups.groupid = groups.id
+                    AND coursesettings.id = coursesettingsgroups.configid
+
+
+               /* Get coursemodule setting if it's there */
+              LEFT JOIN {block_ajax_marking} coursemodulesettings
+                     ON coursemodulesettings.tablename = 'course_modules'
+                        AND coursemodulesettings.instanceid = course_modules.id
+              LEFT JOIN {block_ajax_marking_groups} coursemodulesettingsgroups
+                     ON coursemodulesettingsgroups.groupid = groups.id
+                    AND coursemodulesettings.id = coursemodulesettingsgroups.configid
+                    WHERE course_modules.id {$cmsql}
+
 SQL;
-            $params = array_merge($params, $gparams);
 
             $groups = $DB->get_records_sql($sql, $params);
 
@@ -694,7 +720,9 @@ SQL;
                 if (!isset($nodes[$group->coursemoduleid]->groups)) {
                     $nodes[$group->coursemoduleid]->groups = array();
                 }
-                $nodes[$group->coursemoduleid]->groups[] = $group;
+                unset($group->uniqueid);
+                $id = (int)$group->id;
+                $nodes[$group->coursemoduleid]->groups[$id] = $group;
             }
         }
 
@@ -705,16 +733,13 @@ SQL;
      * Config nodes need some stuff to be returned from the config tables so we can have settings
      * adjusted based on existing values.
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      * @param string $nextnodefilter
      * @return void
      */
-    private static function attach_config_settings(block_ajax_marking_query_base $query,
-                                                      $nextnodefilter = '') {
+    private static function attach_config_settings(block_ajax_marking_query $query,
+                                                   $nextnodefilter) {
 
-        if (!$nextnodefilter) {
-            return;
-        }
         $nodesthatneedconfigsettings = array('courseid',
                                              'coursemoduleid');
         if (!in_array($nextnodefilter, $nodesthatneedconfigsettings)) {
@@ -812,7 +837,19 @@ SQL;
                 continue;
             }
 
-            $modulequeries[$modname] = self::get_unmarked_module_query($filters, $moduleclass);
+            $query = self::get_unmarked_module_query($filters, $moduleclass);
+
+            // A very small (currently only quiz question id) number of filters need to be applied
+            // at moduleunion level.
+            if ($havecoursemodulefilter) {
+                foreach (array_keys($filters) as $filter) {
+                    if (!in_array($filter, array('courseid', 'coursemoduleid'))) { // Save a filesystem lookup.
+                        self::add_query_filter($query, $filter, 'attach_moduleunion', null, $modname);
+                    }
+                }
+            }
+
+            $modulequeries[$modname] = $query;
 
             if ($moduleid) {
                 break; // No need to carry on once we've got the only one we need.
@@ -835,38 +872,19 @@ SQL;
     private static function get_count_wrapper_query($modulequeries, $filters) {
 
         $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
+        $modulename = null;
+        if (!empty($filters['coursemoduleid']) && is_numeric($filters['coursemoduleid'])) {
+            $moduleobject = self::get_module_object_from_cmid($filters['coursemoduleid']);
+            if ($moduleobject) {
+                $modulename = $moduleobject->get_module_name();
+            }
+        }
         $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
         $makingcoursemodulenodes = ($nextnodefilter === 'coursemoduleid');
 
         $countwrapperquery = new block_ajax_marking_query_base();
         // We find out how many submissions we have here. Not DISTINCT as we are grouping by
         // nextnodefilter in the superquery.
-        $countwrapperquery->add_select(array('table' => 'moduleunion',
-                                             'column' => 'userid',
-                                             'alias' => 'itemcount',
-                                             // COUNT is a reserved word.
-                                             'function' => 'COUNT'));
-
-        // To get the three times for recent, medium and overdue pieces of work, we do three
-        // count operations here.
-        $fourdaysago = time() - BLOCK_AJAX_MARKING_FOUR_DAYS;
-        $tendaysago = time() - BLOCK_AJAX_MARKING_TEN_DAYS;
-        $recentcolumn = "CASE WHEN (moduleunion.timestamp > {$fourdaysago}) THEN 1 ELSE 0 END";
-        $countwrapperquery->add_select(array('column' => $recentcolumn,
-                                             'alias' => 'recentcount',
-                                             // COUNT is a reserved word.
-                                             'function' => 'SUM'));
-        $mediumcolumn = "CASE WHEN (moduleunion.timestamp < {$fourdaysago} AND ".
-            "moduleunion.timestamp > {$tendaysago}) THEN 1 ELSE 0 END";
-        $countwrapperquery->add_select(array('column' => $mediumcolumn,
-                                             'alias' => 'mediumcount',
-                                             // COUNT is a reserved word.
-                                             'function' => 'SUM'));
-        $overduecolumn = "CASE WHEN moduleunion.timestamp < $tendaysago THEN 1 ELSE 0 END";
-        $countwrapperquery->add_select(array('column' => $overduecolumn,
-                                             'alias' => 'overduecount',
-                                             // COUNT is a reserved word.
-                                             'function' => 'SUM'));
 
         if ($havecoursemodulefilter || $makingcoursemodulenodes) {
             // Needed to access the correct javascript so we can open the correct popup, so
@@ -886,17 +904,78 @@ SQL;
                                            'union' => true,
                                            'subquery' => true));
 
-        // Join to the config tables.
-        self::attach_config_tables($countwrapperquery);
+        // Add the counts - total, recent, medium and overdue.
+        self::add_query_filter($countwrapperquery, 'core', 'counts_countwrapper');
+        // Add the groupid so we can check the settings.
+        self::add_query_filter($countwrapperquery, 'groupid', 'attach_highest');
 
-        // Apply all the standard filters. These only make sense when there's unmarked work.
-        self::apply_sql_enrolled_students($countwrapperquery, $filters);
-        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid',
-                                'moduleunion.course');
-        self::apply_sql_display_settings($countwrapperquery);
-        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
+        // Apply the node decorators to the query, depending on what nodes are being asked for.
+        reset($filters);
+        foreach ($filters as $filtername => $filtervalue) {
+
+            // Current nodes need to be grouped by this filter.
+            if ($filtervalue == 'nextnodefilter') {
+                // This will attach an id to the query, to either be retrieved directly from the moduleunion,
+                // or added via a join of some sort.
+                self::add_query_filter($countwrapperquery, $filtername, 'attach_countwrapper', null, $modulename);
+                self::add_query_filter($countwrapperquery, $filtername, 'select_config_display_countwrapper');
+
+            } else { // The rest of the filters are all of the same sort.
+                self::add_query_filter($countwrapperquery, $filtername, 'ancestor', $filtervalue, $modulename);
+            }
+        }
 
         return $countwrapperquery;
+    }
+
+    /**
+     * Finds the file with the right filter (decorator) class in it and wraps the query object in it if possible.
+     * Might be a filter provided by a module, so we need to check in the right place first if so in order
+     * that the modules can always override any core filters. Occasionally, we use the return value to know
+     * whether related filters need to be attached.
+     *
+     * @param block_ajax_marking_query $query
+     * @param string $filterid e.g. courseid, groupid
+     * @param string $type Name of the class within the folder for that id
+     * @param int|string|null $parameter
+     * @param string|null $modulename
+     * @return bool
+     */
+    private static function add_query_filter(block_ajax_marking_query &$query,
+                                             $filterid,
+                                             $type,
+                                             $parameter = null,
+                                             $modulename = null) {
+
+        global $CFG;
+
+        $placestotry = array();
+
+        // Module specific location. Try this first. We can't be sure that a module will
+        // actually provide an override.
+        if (!empty($modulename) && $modulename !== 'nextnodefilter') {
+            $filename = $CFG->dirroot.'/blocks/ajax_marking/modules/'.$modulename.'/filters/'.
+                        $filterid.'/'.$type.'.class.php';
+            $classname = 'block_ajax_marking_'.$modulename.'_filter_'.$filterid.'_'.$type;
+            $placestotry[$filename] = $classname;
+        }
+
+        // Core filter location.
+        $filename = $CFG->dirroot.'/blocks/ajax_marking/filters/'.$filterid.'/'.$type.'.class.php';
+        $classname = 'block_ajax_marking_filter_'.$filterid.'_'.$type;
+        $placestotry[$filename] = $classname;
+
+        foreach ($placestotry as $filename => $classname) {
+            if (file_exists($filename)) {
+                require_once($filename);
+                if (class_exists($classname)) {
+                    $query = new $classname($query, $parameter);
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -916,6 +995,13 @@ SQL;
         // but we don't do this in the counting bit so as to avoid weird issues with group by on
         // Oracle.
         $displayquery = new block_ajax_marking_query_base();
+        $modulename = null;
+        if (!empty($filters['coursemoduleid']) && is_numeric($filters['coursemoduleid'])) {
+            $moduleobject = self::get_module_object_from_cmid($filters['coursemoduleid']);
+            if ($moduleobject) {
+                $modulename = $moduleobject->get_module_name();
+            }
+        }
         $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
         $displayquery->add_select(array(
                                        'table' => 'countwrapperquery',
@@ -947,6 +1033,24 @@ SQL;
                                      'table' => $countwrapperquery,
                                      'alias' => 'countwrapperquery',
                                      'subquery' => true));
+
+        reset($filters);
+        foreach ($filters as $filtername => $filtervalue) {
+
+            if ($filtervalue == 'nextnodefilter') {
+                // This will attach an id to the query, to either be retrieved directly from the moduleunion,
+                // or added via a join of some sort.
+                self::add_query_filter($displayquery, $filtername, 'current', null, $modulename);
+                // If this one needs it, we add the decorator that gets the config settings.
+                // TODO this is not a very elegant way of determining this.
+                // Currently, we use the same wrapper for the display query, no matter what the mechanism
+                // for getting the settings into the countwrapper query is, because they will just have standard
+                // aliases. We don't always need it though.
+                if (in_array($filtername, array('courseid', 'coursemoduleid'))) {
+                    self::add_query_filter($displayquery, 'core', 'select_config_display_displayquery');
+                }
+            }
+        }
 
         return $displayquery;
     }
@@ -984,6 +1088,8 @@ SQL;
      * Called from ajax_node_count.php and returns the counts for a specific node so we can update
      * it in the tree when groups display stuff is changed and it is not expanded.
      *
+     * We don't need a group by, just a where that's specific to the node, and a count.
+     *
      * @param array $filters
      * @return array
      * @SuppressWarnings(PHPMD.UnusedLocalVariable)
@@ -992,22 +1098,28 @@ SQL;
 
         global $CFG;
 
+        // We need to make the same unmarked nodes query as usual, but with an extra wrapper to limit it to one node.
+
+        $filters[$filters['currentfilter']] = 'nextnodefilter';
+
         $modulequeries = self::get_module_queries_array($filters);
         if (empty($modulequeries)) {
             return array();
         }
 
-        $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters);
-        $moduleclass = false;
-        if ($havecoursemodulefilter) {
-            $moduleclass = self::get_module_object_from_cmid($filters['coursemoduleid']);
-        }
-
         $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
+
+        self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
+
+        self::apply_sql_enrolled_students($countwrapperquery, $filters);
+        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
+        self::apply_sql_display_settings($countwrapperquery);
+        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
+
         $displayquery = self::get_display_query($countwrapperquery, $filters);
 
         // This will give us a query that will get the relevant node and all its siblings.
-        self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
+//        self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
 
         // Now, add the current node as a WHERE clause, so we only get that one.
         $displayquery->add_where(array('type' => 'AND',
