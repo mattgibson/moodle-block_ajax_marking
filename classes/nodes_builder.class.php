@@ -172,9 +172,6 @@ class block_ajax_marking_nodes_builder {
 
         $displayquery = self::get_display_query($countwrapperquery, $filters);
 
-        // Make sure we have the config settings so that right click menus know what to show.
-        self::attach_config_settings($displayquery, $nextnodefilter);
-
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
             $debugquery = $displayquery->debuggable_query();
@@ -1048,6 +1045,9 @@ SQL;
                 self::add_query_filter($displayquery, $filtername, 'current', null, $modulename);
                 // If this one needs it, we add the decorator that gets the config settings.
                 // TODO this is not a very elegant way of determining this.
+                // Currently, we use the same wrapper for the display query, no matter what the mechanism
+                // for getting the settings into the countwrapper query is, because they will just have standard
+                // aliases. We don't always need it though.
                 if (in_array($filtername, array('courseid', 'coursemoduleid'))) {
                     self::add_query_filter($displayquery, $filtername, 'select_config_display_displayquery');
                 }
