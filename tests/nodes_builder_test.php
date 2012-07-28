@@ -61,6 +61,11 @@ class test_nodes_builder extends advanced_testcase {
     protected $submissioncount;
 
     /**
+     * @var array of assign module instances made by the generator.
+     */
+    protected $assigns;
+
+    /**
      * Gets a blank course with 2 teachers and 10 students ready for each test.
      */
     protected function setUp() {
@@ -470,9 +475,9 @@ class test_nodes_builder extends advanced_testcase {
         $assignrecord->assessed = 1;
         $assignrecord->scale = 4;
         $assignrecord->course = $this->course->id;
-        $assigns[] = $assigngenerator->create_instance($assignrecord);
+        $this->assigns[] = $assigngenerator->create_instance($assignrecord);
 
-        foreach ($assigns as $assign) {
+        foreach ($this->assigns as $assign) {
             foreach ($this->students as $student) {
                 $submission = new stdClass();
                 $submission->userid = $student->id;
@@ -779,19 +784,61 @@ class test_nodes_builder extends advanced_testcase {
         $filters['courseid'] = 'nextnodefilter';
 
         // Make a setting to see if we get the value attached.
-        $setting = new stdClass();
-        $setting->userid = $teacher->id;
-        $setting->tablename = 'course';
-        $setting->instanceid = $this->course->id;
-        $setting->groupsdisplay = 0;
-        $DB->insert_record('block_ajax_marking', $setting);
+        $coursesetting = new stdClass();
+        $coursesetting->userid = $teacher->id;
+        $coursesetting->tablename = 'course';
+        $coursesetting->instanceid = $this->course->id;
+        $coursesetting->groupsdisplay = 0;
+        $DB->insert_record('block_ajax_marking', $coursesetting);
 
         $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
         // Should only be one.
         $coursenode = reset($nodes);
 
+        $this->assertObjectHasAttribute('groupsdisplay', $coursenode,
+                                        'Course node does not have a groupsdisplay field');
+        $this->assertNotNull($coursenode->groupsdisplay, 'Course groupsdisplay setting should be zero but is null.');
+
         $message = 'Expected to get the groupsdisplay setting attached to the course node, but it\'s not';
         $this->assertEquals(0, $coursenode->groupsdisplay, $message);
+
+        // Now check for coursemodules.
+        $assign = reset($this->assigns);
+
+        $filters = array();
+        $filters['courseid'] = $this->course->id;
+        $filters['coursemoduleid'] = 'nextnodefilter';
+        $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
+
+        $foundit = false;
+        foreach ($nodes as $node) {
+            if ($node->coursemoduleid == $assign->cmid) {
+                $foundit = true;
+                $this->assertObjectHasAttribute('groupsdisplay', $node, 'coursemodule node does not have a groupsdisplay field');
+                $this->assertNull($node->groupsdisplay, 'Did not get groups display as null on coursemodule node');
+            }
+        }
+        $this->assertTrue($foundit, 'Did not get coursemodule back in nodes array');
+
+        // Now override so that 0 at course level becomes 1.
+        $cmsetting = new stdClass();
+        $cmsetting->userid = $teacher->id;
+        $cmsetting->tablename = 'course_modules';
+        $cmsetting->instanceid = $assign->cmid;
+        $cmsetting->groupsdisplay = 1;
+        $DB->insert_record('block_ajax_marking', $cmsetting);
+
+        $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
+        $foundit = false;
+        foreach ($nodes as $node) {
+            if ($node->coursemoduleid == $assign->cmid) {
+                $foundit = true;
+                $this->assertObjectHasAttribute('groupsdisplay', $node,
+                                                'coursemodule node does not have a groupsdisplay field');
+                $this->assertEquals(1, $node->groupsdisplay, 'Did not get groups display as 1 on coursemodule node after override');
+            }
+        }
+        $this->assertTrue($foundit, 'Did not get coursemodule back in nodes array');
 
     }
 
