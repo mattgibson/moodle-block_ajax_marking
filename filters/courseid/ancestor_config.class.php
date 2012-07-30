@@ -33,20 +33,22 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+
 /**
  * Applies the filter needed for course nodes or their descendants
  */
-class block_ajax_marking_courseid_ancestor_config extends block_ajax_marking_filter_base {
+class block_ajax_marking_courseid_ancestor_config extends block_ajax_marking_filter_ancestor_base {
 
     /**
      * This is for when a courseid node is an ancestor of the node that has been
      * selected, so we just do a where.
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query|block_ajax_marking_query_base $query
      * @param int $courseid
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
+     * @return void
      */
-    public static function configwhere_filter(block_ajax_marking_query_base $query, $courseid) {
+    public function alter_query(block_ajax_marking_query $query, $courseid) {
 
         $conditions = array(
             'type' => 'AND',

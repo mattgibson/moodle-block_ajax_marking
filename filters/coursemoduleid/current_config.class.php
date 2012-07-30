@@ -34,12 +34,12 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/coursemoduleid/current.class.php');
 
 /**
  * Holds the filters to deal with coursemoduleid nodes.
  */
-class block_ajax_marking_filter_coursemoduleid_current_config extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_filter_coursemoduleid_current_config extends block_ajax_marking_filter_coursemoduleid_current {
 
     /**
      * Used when we are looking at the coursemodule nodes in the config tree
@@ -53,29 +53,32 @@ class block_ajax_marking_filter_coursemoduleid_current_config extends block_ajax
      */
     protected function alter_query(block_ajax_marking_query $query) {
 
+        global $USER;
 
+        // We need the same details as the main tree, but just need to tack on the settings as well.
+        $this->add_coursemodule_details($query);
 
         // We need the config settings too, if there are any.
         // TODO should be in a separate decorator.
-//        $query->add_from(array(
-//                              'join' => 'LEFT JOIN',
-//                              'table' => 'block_ajax_marking',
-//                              'alias' => 'settings',
-//                              'on' => "settings.instanceid = course_modules.id
-//                                    AND settings.tablename = 'course_modules'
-//                                    AND settings.userid = :settingsuserid"
-//                         ));
-//        $query->add_param('settingsuserid', $USER->id);
-//        $query->add_select(array(
-//                                'table' => 'settings',
-//                                'column' => 'display'));
-//        $query->add_select(array(
-//                                'table' => 'settings',
-//                                'column' => 'groupsdisplay'));
-//        $query->add_select(array(
-//                                'table' => 'settings',
-//                                'column' => 'id',
-//                                'alias' => 'settingsid'));
+        $query->add_from(array(
+                              'join' => 'LEFT JOIN',
+                              'table' => 'block_ajax_marking',
+                              'alias' => 'settings',
+                              'on' => "settings.instanceid = course_modules.id
+                                    AND settings.tablename = 'course_modules'
+                                    AND settings.userid = :settingsuserid"
+                         ));
+        $query->add_param('settingsuserid', $USER->id);
+        $query->add_select(array(
+                                'table' => 'settings',
+                                'column' => 'display'));
+        $query->add_select(array(
+                                'table' => 'settings',
+                                'column' => 'groupsdisplay'));
+        $query->add_select(array(
+                                'table' => 'settings',
+                                'column' => 'id',
+                                'alias' => 'settingsid'));
 
         // TODO get them in order of module type first?
     }

@@ -35,14 +35,14 @@ global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/coursemoduleid/current_config.class.php');
+//require_once($CFG->dirroot.'/blocks/ajax_marking/filters/coursemoduleid/current_config.class.php');
 
 /**
  * Holds the filters to group the coursemodule node together. This is complex because the joins needed
  * to get the module details have to be constructed dynamically. See superclass for details.
  */
 class block_ajax_marking_filter_coursemoduleid_current
-    extends block_ajax_marking_filter_coursemoduleid_current_config {
+    extends block_ajax_marking_filter_current_base {
 
     /**
      * Makes SQL for the text labels for the course nodes.
@@ -67,8 +67,24 @@ class block_ajax_marking_filter_coursemoduleid_current
         $query->add_select(array(
                                 'table' => 'countwrapperquery',
                                 'column' => 'modulename'));
+        $this->add_coursemodule_details($query);
+        // This will add the stuff that will show us the name of the actual module instance.
+        // We use the same stuff for both config and marking trees, but the config tree doesn't need
+        // the stuff to pull through submission counts.
+        // TODO separate counts.
 
-        // This will add the stuff that joins to the various module tables and gets the right names.
+        // This allows us to have separate decorators, but may obfuscate what's happening a bit.
+        // Code is not duplicated, though.
+    }
+
+    /**
+     * This functionality is shared by the config and normal filters. It will add the stuff that joins to the
+     * various module tables and gets the right names.
+     *
+     * @param block_ajax_marking_query $query
+     */
+    protected function add_coursemodule_details(block_ajax_marking_query $query) {
+
         $moduleclasses = block_ajax_marking_get_module_classes();
         $introcoalesce = array();
         $namecoalesce = array();
@@ -104,16 +120,7 @@ class block_ajax_marking_filter_coursemoduleid_current
                                 'alias' => 'tooltip'));
 
         $query->add_orderby('COALESCE('.implode(', ', $orderbycoalesce).') ASC');
-        // This will add the stuff that will show us the name of the actual module instance.
-        // We use the same stuff for both config and marking trees, but the config tree doesn't need
-        // the stuff to pull through submission counts.
-        // TODO separate counts.
-
-        // This allows us to have separate decorators, but may obfuscate what's happening a bit.
-        // Code is not duplicated, though.
     }
-
-
 }
 
 

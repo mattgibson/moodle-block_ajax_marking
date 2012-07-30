@@ -548,6 +548,8 @@ SQL;
 
         global $CFG;
 
+        $modulename = self::get_module_name_from_filters($filters);
+
         // The logic is that we need to filter the course modules because some of them will be
         // hidden or the user will not have access to them. Then we may or may not group them by
         // course.
@@ -557,7 +559,31 @@ SQL;
         // Now apply the filters.
         self::apply_sql_owncourses($configbasequery, 'course_modules.course');
         self::apply_sql_visible($configbasequery, '', true);
-        self::apply_filters_to_query($filters, $configbasequery, true);
+        //self::apply_filters_to_query($filters, $configbasequery, true);
+
+        // TODO put this into its own function.
+        reset($filters);
+        foreach ($filters as $filtername => $filtervalue) {
+
+            if ($filtervalue == 'nextnodefilter') {
+                // This will attach an id to the query, to either be retrieved directly from the moduleunion,
+                // or added via a join of some sort.
+                self::add_query_filter($configbasequery, $filtername, 'current_config', null, $modulename);
+                // If this one needs it, we add the decorator that gets the config settings.
+                // TODO this is not a very elegant way of determining this.
+                // Currently, we use the same wrapper for the display query, no matter what the mechanism
+                // for getting the settings into the countwrapper query is, because they will just have standard
+                // aliases. We don't always need it though.
+//                if (in_array($filtername,
+//                             array('courseid',
+//                                   'coursemoduleid'))
+//                ) {
+//                    self::add_query_filter($configbasequery, 'core', 'select_config_display_displayquery');
+//                }
+            } else {
+                self::add_query_filter($configbasequery, $filtername, 'ancestor_config', $filtervalue, $modulename);
+            }
+        }
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
@@ -995,13 +1021,7 @@ SQL;
         // but we don't do this in the counting bit so as to avoid weird issues with group by on
         // Oracle.
         $displayquery = new block_ajax_marking_query_base();
-        $modulename = null;
-        if (!empty($filters['coursemoduleid']) && is_numeric($filters['coursemoduleid'])) {
-            $moduleobject = self::get_module_object_from_cmid($filters['coursemoduleid']);
-            if ($moduleobject) {
-                $modulename = $moduleobject->get_module_name();
-            }
-        }
+        $modulename = self::get_module_name_from_filters($filters);
         $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
         $displayquery->add_select(array(
                                        'table' => 'countwrapperquery',
@@ -1053,6 +1073,26 @@ SQL;
         }
 
         return $displayquery;
+    }
+
+    /**
+     * If there is a coursemodule in the filters, get the name of the associated module so we know what class to use.
+     *
+     * @static
+     * @param $filters
+     * @return array|null|string
+     */
+    private static function get_module_name_from_filters($filters) {
+
+        $modulename = null;
+
+        if (!empty($filters['coursemoduleid']) && is_numeric($filters['coursemoduleid'])) {
+            $moduleobject = self::get_module_object_from_cmid($filters['coursemoduleid']);
+            if ($moduleobject) {
+                $modulename = $moduleobject->get_module_name();
+            }
+        }
+        return $modulename;
     }
 
     /**
