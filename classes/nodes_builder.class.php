@@ -574,12 +574,6 @@ SQL;
                 // Currently, we use the same wrapper for the display query, no matter what the mechanism
                 // for getting the settings into the countwrapper query is, because they will just have standard
                 // aliases. We don't always need it though.
-//                if (in_array($filtername,
-//                             array('courseid',
-//                                   'coursemoduleid'))
-//                ) {
-//                    self::add_query_filter($configbasequery, 'core', 'select_config_display_displayquery');
-//                }
             } else {
                 self::add_query_filter($configbasequery, $filtername, 'ancestor_config', $filtervalue, $modulename);
             }
@@ -935,6 +929,10 @@ SQL;
         // Add the groupid so we can check the settings.
         self::add_query_filter($countwrapperquery, 'groupid', 'attach_highest');
 
+        if (self::filters_need_cohort_id($filters)) {
+            self::add_query_filter($countwrapperquery, 'cohortid', 'attach_highest');
+        }
+
         // Apply the node decorators to the query, depending on what nodes are being asked for.
         reset($filters);
         foreach ($filters as $filtername => $filtervalue) {
@@ -952,6 +950,24 @@ SQL;
         }
 
         return $countwrapperquery;
+    }
+
+    /**
+     * If we need the cohort id, then it has to ba attached. This will eventually be non-optional because
+     * the user may have configured some chorts to be hidden, so we will always need to cross reference
+     * with the settings.
+     *
+     * @static
+     * @param array $filters
+     * @return bool
+     */
+    private static function filters_need_cohort_id(array $filters) {
+
+        if (array_key_exists('cohortid', $filters)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
