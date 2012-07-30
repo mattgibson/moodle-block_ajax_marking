@@ -36,9 +36,11 @@ global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
 
 /**
- * Makes the query retrieve the highest visible groupid for each submission. This takes account of the fact that
- * students can be in more than one group and those groups may or may not be hidden by the block settings. We
+ * Makes the query retrieve the highest visible cohort id for each submission. This takes account of the fact that
+ * students can be in more than one cohort and those cohorts may or may not be hidden by the block settings. We
  * always want this to be used so we can filter based on settings.
+ *
+ * @todo This doesn't work. Use greatest-n-per-group to fix it.
  */
 class block_ajax_marking_filter_cohortid_attach_highest extends block_ajax_marking_filter_attach_base {
 
