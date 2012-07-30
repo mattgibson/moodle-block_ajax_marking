@@ -282,49 +282,6 @@ class block_ajax_marking_nodes_builder {
      */
     private static function apply_sql_display_settings($query) {
 
-        // Here, we filter out the users with no group memberships, where the users without group
-        // memberships have been set to be hidden for this coursemodule.
-        // Second bit (after OR) filters out those who have group memberships, but all of them are
-        // set to be hidden. This is done by saying 'are there any visible at all'
-        // The bit after that, talking about separate groups is to make sure users don't see any
-        // of these groups unless they are members of them if separate groups is enabled.
-//        $sitedefaultnogroup = 1; // what to do with users who have no group membership?
-//        list($existsvisibilitysubquery, $existsparams) = block_ajax_marking_group_visibility_subquery();
-//        $query->add_params($existsparams);
-//        $hidden = <<<SQL
-//    (
-//        ( /* User has no group memberships */
-//          NOT EXISTS (SELECT NULL
-//                        FROM {groups_members} groups_members
-//                  INNER JOIN {groups} groups
-//                          ON groups_members.groupid = groups.id
-//                       WHERE groups_members.userid = moduleunion.userid
-//                         AND groups.courseid = moduleunion.course)
-//
-//                /* Settings say 'show people who have no group memberships' */
-//          AND ( COALESCE(cmconfig.showorphans,
-//                         courseconfig.showorphans,
-//                         {$sitedefaultnogroup}) = 1 ) )
-//
-//        OR
-//
-//            /* student is in at least one group that is supposed to be shown to this teacher  */
-//        ( EXISTS (SELECT NULL
-//                    FROM {groups_members} groups_members
-//              INNER JOIN {groups} groups
-//                      ON groups_members.groupid = groups.id
-//              INNER JOIN ({$existsvisibilitysubquery}) existsvisibilitysubquery
-//                      ON existsvisibilitysubquery.groupid = groups.id
-//                   WHERE groups_members.userid = moduleunion.userid
-//                     AND existsvisibilitysubquery.cmid = moduleunion.coursemoduleid
-//                     AND groups.courseid = moduleunion.course
-//                     AND existsvisibilitysubquery.display = 1)
-//        )
-//    )
-//SQL;
-//        $query->add_where(array('type' => 'AND',
-//                                'condition' => $hidden));
-
         // We allow course settings to override the site default and activity settings to override
         // the course ones.
         $sitedefaultactivitydisplay = 1;
@@ -559,7 +516,6 @@ SQL;
         // Now apply the filters.
         self::apply_sql_owncourses($configbasequery, 'course_modules.course');
         self::apply_sql_visible($configbasequery, '', true);
-        //self::apply_filters_to_query($filters, $configbasequery, true);
 
         // TODO put this into its own function.
         reset($filters);
@@ -1175,7 +1131,6 @@ SQL;
         $displayquery = self::get_display_query($countwrapperquery, $filters);
 
         // This will give us a query that will get the relevant node and all its siblings.
-//        self::apply_filters_to_query($filters, $displayquery, false, $moduleclass);
 
         // Now, add the current node as a WHERE clause, so we only get that one.
         $displayquery->add_where(array('type' => 'AND',
