@@ -961,7 +961,7 @@ class test_nodes_builder_base extends advanced_testcase {
         $multiplepartialgraded = new stdClass();
         $multiplepartialgraded->course = $this->course->id;
         $multiplepartialgraded->numberofmarkers = 2;
-        $multiplepartialgraded->allocationenabled = 1;
+        $multiplepartialgraded->allocationenabled = 0;
         $multiplepartialgraded = $courseworkgenerator->create_instance($multiplepartialgraded);
 
         // Now make some submissions for the allocation one. Then one allocation so we can make sure we just
@@ -1000,7 +1000,7 @@ class test_nodes_builder_base extends advanced_testcase {
 
         // This feedback ought not to matter.
         $feedback = new stdClass();
-        $feedback->assessorid = $firstteacher->id;
+        $feedback->assessorid = 67; // Using random large teacher ids so we won't have interference.
         $feedback->submissionid = $submission->id;
         $feedback = $courseworkgenerator->create_feedback($feedback);
 
@@ -1012,11 +1012,11 @@ class test_nodes_builder_base extends advanced_testcase {
         $submission = $courseworkgenerator->create_submission($submission, $multiplepartialgraded);
 
         $feedback = new stdClass();
-        $feedback->assessorid = $firstteacher->id;
+        $feedback->assessorid = 45;
         $feedback->submissionid = $submission->id;
         $feedback = $courseworkgenerator->create_feedback($feedback);
         $feedback = new stdClass();
-        $feedback->assessorid = $lastteacher->id;
+        $feedback->assessorid = 87;
         $feedback->submissionid = $submission->id;
         $feedback = $courseworkgenerator->create_feedback($feedback);
 

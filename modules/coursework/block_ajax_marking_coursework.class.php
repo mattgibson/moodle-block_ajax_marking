@@ -153,6 +153,16 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
                              OR (moduletable.allocationenabled = 1 AND coursework_allocation_pairs.id IS NOT NULL))'
         );
         $query->add_where($where);
+        $where = array(
+            'type' => 'AND',
+            'condition' => '(SELECT COUNT(countfeedbacks.id)
+                               FROM {coursework_feedbacks} countfeedbacks
+                              WHERE countfeedbacks.submissionid = sub.id
+                                AND countfeedbacks.isfinalgrade = 0
+                                AND countfeedbacks.ismoderation = 0) < moduletable.numberofmarkers
+                                '
+        );
+        $query->add_where($where);
 
         return $query;
 
