@@ -940,6 +940,12 @@ class test_nodes_builder_base extends advanced_testcase {
         /* @var mod_coursework_generator $courseworkgenerator */
         $courseworkgenerator = $generator->get_plugin_generator('mod_coursework');
 
+        $firststudent = reset($this->students);
+        $laststudent = end($this->students);
+
+        $firstteacher = reset($this->teachers);
+        $lastteacher = end($this->teachers);
+
         $singlewithallocation = new stdClass();
         $singlewithallocation->course = $this->course->id;
         $singlewithallocation->numberofmarkers = 1;
@@ -952,17 +958,17 @@ class test_nodes_builder_base extends advanced_testcase {
         $singlenoallocation->allocationenabled = 0;
         $singlenoallocation = $courseworkgenerator->create_instance($singlenoallocation);
 
-        $multipleallocation = new stdClass();
-        $multipleallocation->course = $this->course->id;
-        $multipleallocation->numberofmarkers = 2;
-        $multipleallocation->allocationenabled = 1;
-        $multipleallocation = $courseworkgenerator->create_instance($multipleallocation);
+        $multiplepartialgraded = new stdClass();
+        $multiplepartialgraded->course = $this->course->id;
+        $multiplepartialgraded->numberofmarkers = 2;
+        $multiplepartialgraded->allocationenabled = 1;
+        $multiplepartialgraded = $courseworkgenerator->create_instance($multiplepartialgraded);
 
-        // Now make two submissions for the allocation one. Then one allocation so we can make sure we just
-        // get the right one.
+        // Now make some submissions for the allocation one. Then one allocation so we can make sure we just
+        // get the right one. The others should remain hidden.
         foreach ($this->students as $student) {
             $submission = new stdClass();
-            $submission->userid = ($student->id);
+            $submission->userid = $student->id;
             $submission->courseworkid = $singlewithallocation->id;
             $submission = $courseworkgenerator->create_submission($submission, $singlewithallocation);
         }
@@ -975,7 +981,44 @@ class test_nodes_builder_base extends advanced_testcase {
         $allocation = $courseworkgenerator->create_allocation($allocation);
         $expectedcount++;
 
+        // Now try with no allocations and they should all turn up.
+        foreach ($this->students as $student) {
+            $submission = new stdClass();
+            $submission->userid = $student->id;
+            $submission->courseworkid = $singlenoallocation->id;
+            $submission = $courseworkgenerator->create_submission($submission, $singlenoallocation);
+            $expectedcount++;
+        }
 
+        // Now check that when another teacher has made a feedback, we still get it back when there is room
+        // for more feedbacks.
+        $submission = new stdClass();
+        $submission->userid = $student->id;
+        $submission->courseworkid = $multiplepartialgraded->id;
+        $submission = $courseworkgenerator->create_submission($submission, $multiplepartialgraded);
+        $expectedcount++;
+
+        // This feedback ought not to matter.
+        $feedback = new stdClass();
+        $feedback->assessorid = $firstteacher->id;
+        $feedback->submissionid = $submission->id;
+        $feedback = $courseworkgenerator->create_feedback($feedback);
+
+        // Now make one with the maximum number of feedbacks and make sure it doesn't turn up.
+        // The one we just made will be for the last student in the list.
+        $submission = new stdClass();
+        $submission->userid = $firststudent->id;
+        $submission->courseworkid = $multiplepartialgraded->id;
+        $submission = $courseworkgenerator->create_submission($submission, $multiplepartialgraded);
+
+        $feedback = new stdClass();
+        $feedback->assessorid = $firstteacher->id;
+        $feedback->submissionid = $submission->id;
+        $feedback = $courseworkgenerator->create_feedback($feedback);
+        $feedback = new stdClass();
+        $feedback->assessorid = $lastteacher->id;
+        $feedback->submissionid = $submission->id;
+        $feedback = $courseworkgenerator->create_feedback($feedback);
 
         return $expectedcount;
 
