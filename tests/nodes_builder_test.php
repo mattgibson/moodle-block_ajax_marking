@@ -964,6 +964,18 @@ class test_nodes_builder_base extends advanced_testcase {
         $multiplepartialgraded->allocationenabled = 0;
         $multiplepartialgraded = $courseworkgenerator->create_instance($multiplepartialgraded);
 
+        $singleemptyfeedback = new stdClass();
+        $singleemptyfeedback->course = $this->course->id;
+        $singleemptyfeedback->numberofmarkers = 2;
+        $singleemptyfeedback->allocationenabled = 0;
+        $singleemptyfeedback = $courseworkgenerator->create_instance($singleemptyfeedback);
+
+        $singleresubmitted = new stdClass();
+        $singleresubmitted->course = $this->course->id;
+        $singleresubmitted->numberofmarkers = 2;
+        $singleresubmitted->allocationenabled = 0;
+        $singleresubmitted = $courseworkgenerator->create_instance($singleresubmitted);
+
         // Now make some submissions for the allocation one. Then one allocation so we can make sure we just
         // get the right one. The others should remain hidden.
         foreach ($this->students as $student) {
@@ -1002,6 +1014,7 @@ class test_nodes_builder_base extends advanced_testcase {
         $feedback = new stdClass();
         $feedback->assessorid = 67; // Using random large teacher ids so we won't have interference.
         $feedback->submissionid = $submission->id;
+        $feedback->timemodified = time() + 1; // Need to be later than the submission.
         $feedback = $courseworkgenerator->create_feedback($feedback);
 
         // Now make one with the maximum number of feedbacks and make sure it doesn't turn up.
@@ -1014,14 +1027,115 @@ class test_nodes_builder_base extends advanced_testcase {
         $feedback = new stdClass();
         $feedback->assessorid = 45;
         $feedback->submissionid = $submission->id;
+        $feedback->timemodified = time() + 1; // Need to be later than the submission.
         $feedback = $courseworkgenerator->create_feedback($feedback);
         $feedback = new stdClass();
         $feedback->assessorid = 87;
         $feedback->submissionid = $submission->id;
+        $feedback->timemodified = time() + 1; // Need to be later than the submission.
         $feedback = $courseworkgenerator->create_feedback($feedback);
+
+        // Now make one with a feedback by the current user, which should still show up because the feedback
+        // has no grade or comment. We also check that ones which have been graded are missing.
+        $submission = new stdClass();
+        $submission->userid = $student->id;
+        $submission->courseworkid = $singleemptyfeedback->id;
+        $submission = $courseworkgenerator->create_submission($submission, $singleemptyfeedback);
+        $expectedcount++;
+        // Empty comment and grade - should show up.
+        $feedback = new stdClass();
+        $feedback->assessorid = $USER->id;
+        $feedback->submissionid = $submission->id;
+        $feedback->timemodified = time() + 1; // Need to be later than the submission.
+        $feedback = $courseworkgenerator->create_feedback($feedback);
+        // This one has a comment and grade, so it ought to not show up.
+        $submission = new stdClass();
+        $submission->userid = $laststudent->id;
+        $submission->courseworkid = $singleemptyfeedback->id;
+        $submission = $courseworkgenerator->create_submission($submission, $singleemptyfeedback);
+        $feedback = new stdClass();
+        $feedback->assessorid = $USER->id;
+        $feedback->grade = 65;
+        $feedback->feedbackcomment = 'some text';
+        $feedback->submissionid = $submission->id;
+        $feedback->timemodified = time() + 1; // Need to be later than the submission.
+        $feedback = $courseworkgenerator->create_feedback($feedback);
+
+        // TODO test comment OR grade.
+
+        // TODO Now make one which has been resubmitted after a previous grading to make sure it'll turn up again.
 
         return $expectedcount;
 
+    }
+
+    public function test_coursework_query_single_with_allocation() {
+
+        $generator = $this->getDataGenerator();
+        /* @var mod_coursework_generator $courseworkgenerator */
+        $courseworkgenerator = $generator->get_plugin_generator('mod_coursework');
+
+        $singlewithallocation = new stdClass();
+        $singlewithallocation->course = $this->course->id;
+        $singlewithallocation->numberofmarkers = 1;
+        $singlewithallocation->allocationenabled = 1;
+        $singlewithallocation = $courseworkgenerator->create_instance($singlewithallocation);
+
+        // Now make some submissions for the allocation one. Then one allocation so we can make sure we just
+        // get the right one. The others should remain hidden.
+        foreach ($this->students as $student) {
+            $submission = new stdClass();
+            $submission->userid = $student->id;
+            $submission->courseworkid = $singlewithallocation->id;
+            $submission = $courseworkgenerator->create_submission($submission, $singlewithallocation);
+        }
+        // The $submission variable will be left as the last one in the list. Make an allocation for just
+        // this one and expect that the others will not show up.
+        $allocation = new stdClass();
+        $allocation->assessorid = $USER->id;
+        $allocation->studentid = $submission->userid;
+        $allocation->courseworkid = $singlewithallocation->id;
+        $allocation = $courseworkgenerator->create_allocation($allocation);
+
+        $expectedcount = 1;
+
+        $actualcount = $this->get_modulequery_count('coursework');
+
+        $this->assertEquals($expectedcount, $actualcount, 'Allocations are not showing up right');
+    }
+
+    /**
+     * Counts how many items the module query gives us.
+     *
+     * @param string $modulename
+     * @throws coding_exception
+     * @return int
+     */
+    protected function get_modulequery_count($modulename) {
+        $modclasses = block_ajax_marking_get_module_classes();
+
+        if (!in_array($modulename, $modclasses)) {
+            throw new coding_exception('Missing '.$modulename.' module class');
+        }
+
+        $modclass = $modclasses[$modulename];
+
+        // Make query.
+        $query = $modclass->query_factory();
+        // We will get an error if we leave it like this as the userids in the first
+        // column are not unique.
+        $wrapper = new block_ajax_marking_query_base();
+        $wrapper->add_select(array('function' => 'COUNT',
+                                   'column' => '*',
+                                   'alias' => 'count'));
+        $wrapper->add_from(array('table' => $query,
+                                 'alias' => 'modulequery'));
+
+        // Run query. Get one stdClass with a count property.
+        $unmarkedstuff = $wrapper->execute();
+
+        // Make sure we get the right number of things back.
+        return reset($unmarkedstuff)->count;
     }
 
 

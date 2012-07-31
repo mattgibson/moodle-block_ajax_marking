@@ -113,7 +113,7 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
                      AND coursework_feedbacks.assessorid = :courseworkuserid
                      AND coursework_feedbacks.isfinalgrade = 0
                      AND coursework_feedbacks.ismoderation = 0
-                     AND coursework_feedbacks.timemodified > sub.timemodified'
+                     AND coursework_feedbacks.timemodified >= sub.timemodified'
         );
         $query->add_from($table);
         $table = array(
@@ -140,11 +140,13 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
         $query->add_select($column);
 
         // All work with no feedback record will show up.
-        // TODO empty records from abandoned grading.
         // TODO formative with no grade.
         $where = array(
             'type' => 'AND',
-            'condition' => 'coursework_feedbacks.id IS NULL');
+            'condition' => "(coursework_feedbacks.id IS NULL
+                             OR (coursework_feedbacks.grade IS NULL
+                                 AND (coursework_feedbacks.feedbackcomment = ''
+                                      OR coursework_feedbacks.feedbackcomment IS NULL)))");
         $query->add_where($where);
         // If allocations are in use, make sure we only return the ones for which there are relevant allocations.
         $where = array(
