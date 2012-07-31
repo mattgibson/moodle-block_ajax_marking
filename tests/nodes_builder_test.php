@@ -917,6 +917,70 @@ class test_nodes_builder_base extends advanced_testcase {
 
     }
 
+    /**
+     * Makes fake submission data for the coursework module so we can do the tests. There's a need to cover all
+     * possible use cases, so we need:
+     * - One with allocations enabled, one without. The one without should always show up, but the allocations one
+     *   should only be OK for when there is an allocation.
+     * - One with feedbacks from another teacher that should still show up
+     * - One with the right number of feedbacks already, which shouldn't show up
+     * - One empty feedback with no grade or comment which should show up.
+     *
+     * @return int the number of submissions to expect.
+     */
+    private function create_coursework_submission_data() {
+
+        global $USER;
+
+        $expectedcount = 0;
+
+        // Make two submissions, one with and one without allocations.
+        // Make one have single and one multiple marker.
+        $generator = $this->getDataGenerator();
+        /* @var mod_coursework_generator $courseworkgenerator */
+        $courseworkgenerator = $generator->get_plugin_generator('mod_coursework');
+
+        $singlewithallocation = new stdClass();
+        $singlewithallocation->course = $this->course->id;
+        $singlewithallocation->numberofmarkers = 1;
+        $singlewithallocation->allocationenabled = 1;
+        $singlewithallocation = $courseworkgenerator->create_instance($singlewithallocation);
+
+        $singlenoallocation = new stdClass();
+        $singlenoallocation->course = $this->course->id;
+        $singlenoallocation->numberofmarkers = 1;
+        $singlenoallocation->allocationenabled = 0;
+        $singlenoallocation = $courseworkgenerator->create_instance($singlenoallocation);
+
+        $multipleallocation = new stdClass();
+        $multipleallocation->course = $this->course->id;
+        $multipleallocation->numberofmarkers = 2;
+        $multipleallocation->allocationenabled = 1;
+        $multipleallocation = $courseworkgenerator->create_instance($multipleallocation);
+
+        // Now make two submissions for the allocation one. Then one allocation so we can make sure we just
+        // get the right one.
+        foreach ($this->students as $student) {
+            $submission = new stdClass();
+            $submission->userid = ($student->id);
+            $submission->courseworkid = $singlewithallocation->id;
+            $submission = $courseworkgenerator->create_submission($submission, $singlewithallocation);
+        }
+        // The $submission variable will be left as the last one in the list. Make an allocation for just
+        // this one and expect that the others will not show up.
+        $allocation = new stdClass();
+        $allocation->assessorid = $USER->id;
+        $allocation->studentid = $submission->userid;
+        $allocation->courseworkid = $singlewithallocation->id;
+        $allocation = $courseworkgenerator->create_allocation($allocation);
+        $expectedcount++;
+
+
+
+        return $expectedcount;
+
+    }
+
 
 }
 
