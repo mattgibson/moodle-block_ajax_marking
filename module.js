@@ -455,7 +455,7 @@ M.block_ajax_marking.callback = {
     abort : M.block_ajax_marking.ajax_timeout_handler,
     scope : M.block_ajax_marking,
     // TODO: timeouts seem not to be working all the time
-    timeout : 10000
+    timeout : 20000
 };
 
 /**
