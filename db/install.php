@@ -14,19 +14,25 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
- * Keeps track of the version number
  *
- * @package    block
- * @subpackage ajax_marking
- * @copyright  2010 Matt Gibson
+ * @package
+ * @subpackage
+ * @copyright  2012 Matt Gibson
  * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-$plugin->version = 2012081200;
-$plugin->maturity = MATURITY_BETA;
-$plugin->requires = 2012062500; // 2.3.
-$plugin->component = 'block_ajax_marking';
-$plugin->release = '2.3.1';
+defined('MOODLE_INTERNAL') || die();
+
+global $CFG;
+
+require_once($CFG->dirroot.'/blocks/ajax_marking/db/upgradelib.php');
+
+function xmldb_block_ajax_marking_install() {
+
+    // We need some indexes on core tables in order to make the query fast. These can't
+    // be defined in the XML, so we put them here.
+
+    add_index_question_attempt_steps();
+}
