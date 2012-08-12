@@ -279,7 +279,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         ));
 
         // Standard userid for joins.
-        $query->add_select(array('table' => 'quiz_attempts',
+        $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
         $query->add_select(array('table' => 'sub',
                                 'column' => 'timecreated',
