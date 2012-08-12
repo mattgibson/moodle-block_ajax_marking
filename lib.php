@@ -76,13 +76,11 @@ function block_ajax_marking_teacherrole_sql() {
  * @param bool $reset clear the cache?
  * @return int
  */
-function block_ajax_marking_get_number_of_category_levels($reset=false) {
+function block_ajax_marking_get_number_of_category_levels($reset = false) {
 
     global $DB;
 
-    /**
-     * @var stdClass $categorylevels cache this in case this is called twice during one request
-     */
+    /* @var stdClass $categorylevels cache this in case this is called twice during one request */
     static $categorylevels;
 
     if (isset($categorylevels) && !$reset) {
@@ -128,17 +126,10 @@ function block_ajax_marking_get_my_teacher_courses($returnsql = false, $reset = 
     static $query = '';
     static $params = '';
 
-    if ($returnsql && !$reset) {
-
-        if (!empty($query)) {
-            return array($query, $params);
-        }
-
-    } else {
-
-        if (!empty($courses) && !$reset) {
-            return $courses;
-        }
+    if ($returnsql && !$reset && !empty($query)) {
+        return array($query, $params);
+    } else if (!$returnsql && !empty($courses) && !$reset) {
+        return $courses;
     }
 
     list($rolesql, $roleparams) = block_ajax_marking_teacherrole_sql();
@@ -173,13 +164,13 @@ function block_ajax_marking_get_my_teacher_courses($returnsql = false, $reset = 
 
     $where =   "WHERE course.visible = 1
                   AND EXISTS (SELECT 1
-                                  FROM {context} cx
-                            INNER JOIN {role_assignments} ra
-                                    ON ra.contextid = cx.id
-                                 WHERE cx.contextlevel = ?
-                                   AND ra.userid = ?
-                                   AND ra.roleid {$rolesql}
-                                   AND (cx.instanceid = cat1.id ";
+                                FROM {context} cx
+                          INNER JOIN {role_assignments} ra
+                                  ON ra.contextid = cx.id
+                               WHERE cx.contextlevel = ?
+                                 AND ra.userid = ?
+                                 AND ra.roleid {$rolesql}
+                                 AND (cx.instanceid = cat1.id ";
 
     // Loop adding extra join tables. $categorylevels = 2 means we only need one level of
     // categories (which we already have with the first left join above), so we start from 2

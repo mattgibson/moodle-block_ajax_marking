@@ -34,5 +34,6 @@ function xmldb_block_ajax_marking_install() {
     // We need some indexes on core tables in order to make the query fast. These can't
     // be defined in the XML, so we put them here.
 
-    add_index_question_attempt_steps();
+    block_ajax_marking_add_index_question_attempt_steps();
+    block_ajax_marking_add_index_context();
 }

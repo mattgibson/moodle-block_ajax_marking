@@ -28,7 +28,7 @@
  * Removes the 'groups' field from the main settings table, so it can be made into a separate
  * join table.
  */
-function drop_groups_field() {
+function block_ajax_marking_drop_groups_field() {
 
     global $DB;
 
@@ -46,7 +46,7 @@ function drop_groups_field() {
 /**
  * Add a new field for showing whether each group should be displayed. Allows override of.
  */
-function add_display_field() {
+function block_ajax_marking_add_display_field() {
 
     global $DB;
 
@@ -65,7 +65,7 @@ function add_display_field() {
 /**
  * Add a new field for showing whether groups should be displayed.
  */
-function add_groups_display_field() {
+function block_ajax_marking_add_groups_display_field() {
 
     global $DB;
 
@@ -86,7 +86,7 @@ function add_groups_display_field() {
  *
  * @return array
  */
-function change_config_to_courseid() {
+function block_ajax_marking_change_config_to_courseid() {
 
     global $DB;
 
@@ -166,9 +166,11 @@ function change_config_to_courseid() {
 }
 
 /**
- * Adds an index that massively speeds up the query to get unmarked essay questions.
+ * Adds an index that massively speeds up the query to get unmarked essay questions. This has a major perfomance
+ * impact, taking the isolated quiz bit from 37 seconds to 1.2 seconds on a question_attempt_steps table of > 5
+ * million rows.
  */
-function add_index_question_attempt_steps() {
+function block_ajax_marking_add_index_question_attempt_steps() {
 
     global $DB;
 
@@ -183,4 +185,25 @@ function add_index_question_attempt_steps() {
         $dbman->add_index($table, $index);
     }
 
+}
+
+/**
+ * The context table may be huge and we need to find out the maximum depth so we can get teacher courses that are not
+ * at system level for admins. There are no indexes covering this, so we make one here. Not a massive gain, but it goes
+ * from 200ms to 40ms, so still worth it.
+ */
+function block_ajax_marking_add_index_context() {
+
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
+    // Define index amb_questattstep_combo to be added to question_attempt_steps.
+    $table = new xmldb_table('context');
+    $index = new xmldb_index('amb_context_combo', XMLDB_INDEX_NOTUNIQUE, array('contextlevel', 'depth'));
+
+    // Conditionally launch add index amb_questattstep_combo.
+    if (!$dbman->index_exists($table, $index)) {
+        $dbman->add_index($table, $index);
+    }
 }

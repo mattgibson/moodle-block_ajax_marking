@@ -103,7 +103,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
             // Drop the groups column on the old table.
 
             // Define field groups to be dropped from block_ajax_marking.
-            drop_groups_field();
+            block_ajax_marking_drop_groups_field();
         }
 
         upgrade_block_savepoint(true, 2010101302, 'ajax_marking');
@@ -140,7 +140,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     if ($oldversion < 2011052301) {
 
         // Define field groups to be dropped from block_ajax_marking.
-        drop_groups_field();
+        block_ajax_marking_drop_groups_field();
 
         $table = new xmldb_table('block_ajax_marking');
 
@@ -209,7 +209,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
     if ($oldversion < 2011111800) {
 
-        change_config_to_courseid();
+        block_ajax_marking_change_config_to_courseid();
 
         // Ajax_marking savepoint reached.
         upgrade_block_savepoint(true, 2011111800, 'ajax_marking');
@@ -219,7 +219,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     // Add new bits for holding groups display settings.
     if ($oldversion < 2011112300) {
 
-        add_groups_display_field();
+        block_ajax_marking_add_groups_display_field();
 
         upgrade_block_savepoint(true, 2011112300, 'ajax_marking');
 
@@ -230,7 +230,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
         // Add a new field for showing whether each group should be displayed. Allows
         // override of 'show this group' that may have been set at course level.
-        add_display_field();
+        block_ajax_marking_add_display_field();
 
         upgrade_block_savepoint(true, 2011112301, 'ajax_marking');
 
@@ -242,7 +242,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     // it.
     if ($oldversion < 2011112505) {
 
-        add_groups_display_field();
+        block_ajax_marking_add_groups_display_field();
 
         upgrade_block_savepoint(true, 2011112505, 'ajax_marking');
 
@@ -258,11 +258,11 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
                                  null, '0', 'userid');
         // Conditionally rerun the previous bit if the field it was supposed to have is missing.
         if (!$dbman->field_exists($table, $field)) {
-            change_config_to_courseid();
+            block_ajax_marking_change_config_to_courseid();
         }
 
         // Some sites missed this.
-        add_display_field();
+        block_ajax_marking_add_display_field();
 
         // Ajax_marking savepoint reached.
         upgrade_block_savepoint(true, 2011112506, 'ajax_marking');
@@ -303,8 +303,10 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
     // Add indexes to key tables.
     if ($oldversion < 2012081200) {
-        add_index_question_attempt_steps();
+        block_ajax_marking_add_index_question_attempt_steps();
     }
-
+    if ($oldversion < 2012081201) {
+        block_ajax_marking_add_index_context();
+    }
     return true;
 }
