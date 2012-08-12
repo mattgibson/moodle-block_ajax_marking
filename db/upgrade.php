@@ -27,9 +27,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// Include constants.
 global $CFG;
-require_once("{$CFG->dirroot}/blocks/ajax_marking/lib.php");
+
+require_once("{$CFG->dirroot}/blocks/ajax_marking/lib.php"); // Include constants.
+require_once("{$CFG->dirroot}/blocks/ajax_marking/db/upgradelib.php");
 
 /**
  * Standard upgrade function run every time the block's version number changes
