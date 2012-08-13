@@ -159,7 +159,7 @@ class block_ajax_marking_nodes_builder {
         // hidden ones.
         self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
         // Apply all the standard filters. These only make sense when there's unmarked work.
-        self::apply_sql_enrolled_students($countwrapperquery, $filters);
+//        self::apply_sql_enrolled_students($countwrapperquery, $filters);
         self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
         self::apply_sql_display_settings($countwrapperquery);
         // TODO is it more efficient to have this in the moduleunions to limit the rows?
@@ -189,6 +189,25 @@ class block_ajax_marking_nodes_builder {
             $moduleclass->postprocess_nodes_hook($nodes, $filters);
         }
         return $nodes;
+    }
+
+    /**
+     * So that we can make the best use of SQL JOINs to get an efficient query, we use the strategy of joining as many
+     * tables as possible to each module component of the UNION. This has the drawback that the query involves
+     * more tables, which is a pain as we may hit the limit for joined tables at some point on a site with many
+     * modules. The alternative is to keep the module subqueries as light as possible and attach these filter tables
+     * to the UNIONed result, but this results in large temporary tables in memory on large installs and prevents
+     * index usage.
+     *
+     * @param array $modulequeries
+     * @param array $filters
+     */
+    private function apply_standard_filters_to_each_module_query(array &$modulequeries, array $filters) {
+
+        foreach ($modulequeries as &$query) {
+            self::apply_sql_enrolled_students($query, $filters);
+        }
+
     }
 
     /**
@@ -462,7 +481,9 @@ class block_ajax_marking_nodes_builder {
 
         // Hide users added by plugins which are now disabled.
         if (isset($filters['cohortid']) || $nextnodefilter == 'cohortid') {
-            // We need to specify only people enrolled via a cohort.
+            // We need to specify only people enrolled via a cohort. No other enrollment methods matter as
+            // people who are part of a cohort will have been added to the course via a cohort enrolment or
+            // else they wouldn't be there.
             $enabledsql = " = 'cohort'";
         } else if ($CFG->enrol_plugins_enabled) {
             // Returns list of english names of enrolment plugins.
