@@ -314,34 +314,6 @@ class block_ajax_marking_nodes_builder {
     }
 
     /**
-     * Joins the config table to the query as courseconfig and cmconfig. Requires moduleunion alias
-     * to join to.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
-     */
-    private static function attach_config_tables(block_ajax_marking_query $query) {
-
-        global $USER;
-
-        $query->add_from(array('join' => 'LEFT JOIN',
-                               'table' => 'block_ajax_marking',
-                               'on' => "cmconfig.tablename = 'course_modules'
-                                        AND cmconfig.instanceid = moduleunion.coursemoduleid
-                                        AND cmconfig.userid = :confuserid1 ",
-                               'alias' => 'cmconfig'));
-
-        $query->add_from(array('join' => 'LEFT JOIN',
-                               'table' => 'block_ajax_marking',
-                               'on' => "courseconfig.tablename = 'course'
-                                       AND courseconfig.instanceid = moduleunion.course
-                                       AND courseconfig.userid = :confuserid2 ",
-                               'alias' => 'courseconfig'));
-        $query->add_param('confuserid1', $USER->id);
-        $query->add_param('confuserid2', $USER->id);
-    }
-
-    /**
      * All modules have a common need to hide work which has been submitted to items that are now
      * hidden. Not sure if this is relevant so much, but it's worth doing so that test data and test
      * courses don't appear. General approach is to use cached context info from user session to
@@ -724,68 +696,6 @@ SQL;
         }
 
         return $nodes;
-    }
-
-    /**
-     * Config nodes need some stuff to be returned from the config tables so we can have settings
-     * adjusted based on existing values.
-     *
-     * @param block_ajax_marking_query $query
-     * @param string $nextnodefilter
-     * @return void
-     */
-    private static function attach_config_settings(block_ajax_marking_query $query,
-                                                   $nextnodefilter) {
-
-        $nodesthatneedconfigsettings = array('courseid',
-                                             'coursemoduleid');
-        if (!in_array($nextnodefilter, $nodesthatneedconfigsettings)) {
-            return;
-        }
-
-        // The inner query joins to the config tables already for the WHERE clauses, so we
-        // make use of them to get the settings for those nodes that are not filtered out.
-        $countwrapper = $query->get_subquery('countwrapperquery');
-
-        switch ($nextnodefilter) {
-
-            // This is for the ordinary nodes. We need to work out what to request for the next node
-            // so groupsdisplay has to be sent through. Also for the config context menu to work.
-            // COALESCE is no good here as we need the actual settings, so we work out that stuff
-            // in JavaScript.
-            case 'courseid':
-
-                $countwrapper->add_select(array(
-                                         'table' => 'courseconfig',
-                                         'column' => 'display'));
-                $countwrapper->add_select(array(
-                                         'table' => 'courseconfig',
-                                         'column' => 'groupsdisplay'));
-                break;
-
-            case 'coursemoduleid':
-
-                // The inner query joins to the config tables already for the WHERE clauses, so we
-                // make use of them to get the settings for those nodes that are not filtered out.
-                $countwrapper = $query->get_subquery('countwrapperquery');
-
-                $countwrapper->add_select(array(
-                                         'table' => 'cmconfig',
-                                         'column' => 'display'));
-                $countwrapper->add_select(array(
-                                         'table' => 'cmconfig',
-                                         'column' => 'groupsdisplay'));
-                break;
-        }
-
-        // The outer query (we need one because we have to do a join between the numeric
-        // fields that can be fed into a GROUP BY and the text fields that we display) pulls
-        // through the display fields, which were sent through from the middle query using the
-        // stuff above.
-        $query->add_select(array('table' => 'countwrapperquery',
-                                 'column' => 'display'));
-        $query->add_select(array('table' => 'countwrapperquery',
-                                 'column' => 'groupsdisplay'));
     }
 
     /**
