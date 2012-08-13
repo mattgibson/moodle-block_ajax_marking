@@ -37,9 +37,14 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 class block_ajax_marking_module_query extends block_ajax_marking_query_base {
 
     /**
+     * @var block_ajax_marking_module_base
+     */
+    protected $moduleclass;
+
+    /**
      * @var string
      */
-    protected $useridcolumn = 'sub.id';
+    protected $useridcolumn = 'sub.userid';
 
     /**
      * @var string
@@ -50,6 +55,13 @@ class block_ajax_marking_module_query extends block_ajax_marking_query_base {
      * @var string
      */
     protected $coursemoduleidcolumn;
+
+    /**
+     * @param block_ajax_marking_module_base $moduleclass
+     */
+    public function __construct($moduleclass) {
+        $this->moduleclass = $moduleclass;
+    }
 
     /**
      * Returns the table.column pair to access the userid. Best not to use the alias because you can't always use
@@ -113,6 +125,15 @@ class block_ajax_marking_module_query extends block_ajax_marking_query_base {
         }
 
         $this->coursemoduleidcolumn = $coursemoduleidcolumn;
+    }
+
+    /**
+     * Tells us the name of the module that made this query e.g. 'assignment', 'forum'.
+     *
+     * @return string
+     */
+    public function get_modulename() {
+        return $this->moduleclass->get_module_name();
     }
 
 }

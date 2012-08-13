@@ -37,6 +37,7 @@ global $CFG, $PAGE;
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/unmarked_nodes_builder.class.php');
 
 block_ajax_marking_login_error();
 require_login(0, false); // Still need this to set stuff up.
@@ -56,7 +57,7 @@ foreach ($_POST as $name => $value) {
 if (isset($params['config'])) {
     $nodes = block_ajax_marking_nodes_builder_base::get_config_nodes($params);
 } else {
-    $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+    $nodes = block_ajax_marking_unmarked_nodes_builder::unmarked_nodes($params);
 }
 
 $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($params);

@@ -422,13 +422,13 @@ class block_ajax_marking_nodes_builder_base {
 
     /**
      * Returns an SQL snippet that will tell us whether a student is directly enrolled in this
-     * course
+     * course. Params need to be made specific to this module as they will be duplicated.
      *
-     * @param block_ajax_marking_query $query
-     * @param array $filters So we can filter by cohortid if we need to
-     * @return array The join and where strings, with params. (Where starts with 'AND)
+     * @param block_ajax_marking_module_query $query
+     * @param array $filters So we can filter by cohort id if we need to
+     * @return array The join and where strings, with params. (Where starts with 'AND')
      */
-    private static function apply_sql_enrolled_students(block_ajax_marking_query $query,
+    private static function apply_sql_enrolled_students(block_ajax_marking_module_query $query,
                                                         array $filters) {
 
         global $DB, $CFG, $USER;
@@ -446,12 +446,12 @@ class block_ajax_marking_nodes_builder_base {
             $plugins = explode(',', $CFG->enrol_plugins_enabled);
             list($enabledsql, $params) = $DB->get_in_or_equal($plugins,
                                                               SQL_PARAMS_NAMED,
-                                                              'enrol001');
+                                                              'enrol'.$query->get_modulename().'001');
             $query->add_params($params);
         } else {
             // No enabled enrolment plugins.
-            $enabledsql = ' = :sqlenrollednever';
-            $query->add_param('sqlenrollednever', -1);
+            $enabledsql = ' = :sqlenrollednever'.$query->get_modulename();
+            $query->add_param('sqlenrollednever'.$query->get_modulename(), -1);
         }
 
         $sql = <<<SQL
@@ -460,14 +460,14 @@ class block_ajax_marking_nodes_builder_base {
             INNER JOIN {user_enrolments} user_enrolments
                     ON user_enrolments.enrolid = enrol.id
                  WHERE enrol.enrol {$enabledsql}
-                   AND enrol.courseid = moduleunion.course
-                   AND user_enrolments.userid != :enrolcurrentuser
-                   AND user_enrolments.userid = sub.userid
+                   AND enrol.courseid = {$query->get_courseid_column()}
+                   AND user_enrolments.userid != :enrol{$query->get_modulename()}currentuser
+                   AND user_enrolments.userid = {$query->get_userid_column()}
 SQL;
 
         $query->add_where(array('type' => 'AND',
                                 'condition' => "EXISTS ({$sql})"));
-        $query->add_param('enrolcurrentuser', $USER->id, false);
+        $query->add_param('enrol'.$query->get_modulename().'currentuser', $USER->id);
     }
 
     /**

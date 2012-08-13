@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Class file for the block_ajax_marking_unmarked_nodes_query_builder class
+ * Class file for the block_ajax_marking_unmarked_nodes_builder class
  *
  * @package    block
  * @subpackage ajax_marking
@@ -33,6 +33,6 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder_base.clas
 /**
  * Builds the SQL query for getting the unmarked work, based on the filters supplied via the AJAX call.
  */
-class block_ajax_marking_unmarked_nodes_query_builder extends block_ajax_marking_nodes_builder_base {
+class block_ajax_marking_unmarked_nodes_builder extends block_ajax_marking_nodes_builder_base {
 
 }

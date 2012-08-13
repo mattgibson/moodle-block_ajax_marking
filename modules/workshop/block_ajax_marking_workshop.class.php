@@ -30,7 +30,7 @@ if (!defined('MOODLE_INTERNAL')) {
 }
 
 global $CFG;
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_query.class.php');
 require_once($CFG->dirroot.'/mod/workshop/locallib.php'); // For constants.
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
@@ -83,6 +83,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         global $USER;
 
         $query = new block_ajax_marking_module_query($this);
+        $query->set_userid_column('sub.authorid');
 
         $query->add_from(array(
                 'table' => $this->modulename,
