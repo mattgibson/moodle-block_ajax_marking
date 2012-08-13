@@ -931,7 +931,7 @@ SQL;
 
     /**
      * If we need the cohort id, then it has to ba attached. This will eventually be non-optional because
-     * the user may have configured some chorts to be hidden, so we will always need to cross reference
+     * the user may have configured some cohorts to be hidden, so we will always need to cross reference
      * with the settings.
      *
      * @static
