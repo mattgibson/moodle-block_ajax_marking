@@ -28,7 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query.interface.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 
 /**
  * So that we can have specific things added for the module queries, especially the ability to store a string
