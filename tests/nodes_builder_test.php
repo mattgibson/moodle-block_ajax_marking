@@ -33,12 +33,12 @@ require_once($CFG->dirroot.'/mod/assign/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_assign_generator.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_quiz_generator.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_workshop_generator.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder_base.class.php');
 
 /**
  * Unit test for the nodes_builder class.
  */
-class test_nodes_builder extends advanced_testcase {
+class test_nodes_builder_base extends advanced_testcase {
 
     /**
      * @var stdClass
@@ -576,7 +576,7 @@ class test_nodes_builder extends advanced_testcase {
 
         // Make a full nodes query. Doesn't work without a filter of some sort.
         $filters = array('courseid' => 'nextnodefilter');
-        $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($filters);
         // Compare result.
         $actual = reset($nodes)->itemcount;
         $message = 'Wrong number of course nodes: '.$actual.' instead of '.$this->submissioncount;
@@ -587,7 +587,7 @@ class test_nodes_builder extends advanced_testcase {
             'courseid' => $this->course->id,
             'coursemoduleid' => 'nextnodefilter'
         );
-        $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($filters);
         // Compare result.
         $actual = 0;
         foreach ($nodes as $node) {
@@ -654,7 +654,7 @@ class test_nodes_builder extends advanced_testcase {
         $nodeswithgroups[$assign2->cmid] = $node;
 
         // Test that we get the groups. All should have display = 1.
-        $class = new ReflectionClass('block_ajax_marking_nodes_builder');
+        $class = new ReflectionClass('block_ajax_marking_nodes_builder_base');
         $method = $class->getMethod('attach_groups_to_coursemodule_nodes');
         $method->setAccessible(true);
         $nodeswithgroups = $method->invokeArgs($class, array($nodeswithgroups));
@@ -758,7 +758,7 @@ class test_nodes_builder extends advanced_testcase {
         $filters['currentfilter'] = 'courseid';
         $filters['filtervalue'] = $this->course->id;
 
-        $node = block_ajax_marking_nodes_builder::get_count_for_single_node($filters);
+        $node = block_ajax_marking_nodes_builder_base::get_count_for_single_node($filters);
 
         $message = "Wrong number of things returned as the count for a single node. Expected {$this->submissioncount} ".
             "but got {$node['itemcount']}";
@@ -791,7 +791,7 @@ class test_nodes_builder extends advanced_testcase {
         $coursesetting->groupsdisplay = 0;
         $DB->insert_record('block_ajax_marking', $coursesetting);
 
-        $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($filters);
         // Should only be one.
         $coursenode = reset($nodes);
 
@@ -808,7 +808,7 @@ class test_nodes_builder extends advanced_testcase {
         $filters = array();
         $filters['courseid'] = $this->course->id;
         $filters['coursemoduleid'] = 'nextnodefilter';
-        $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($filters);
 
         $foundit = false;
         foreach ($nodes as $node) {
@@ -828,7 +828,7 @@ class test_nodes_builder extends advanced_testcase {
         $cmsetting->groupsdisplay = 1;
         $DB->insert_record('block_ajax_marking', $cmsetting);
 
-        $nodes = block_ajax_marking_nodes_builder::unmarked_nodes($filters);
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($filters);
         $foundit = false;
         foreach ($nodes as $node) {
             if ($node->coursemoduleid == $assign->cmid) {

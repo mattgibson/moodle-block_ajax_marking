@@ -28,7 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder_base.class.php');
 require_once($CFG->dirroot.'/enrol/locallib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_assign_generator.class.php');
@@ -352,7 +352,7 @@ class groupid_filters_test extends advanced_testcase {
         $this->setUser($teacher->id);
 
         // Get coutwrapper without any decorators.
-        $nodesbuilder = new ReflectionClass('block_ajax_marking_nodes_builder');
+        $nodesbuilder = new ReflectionClass('block_ajax_marking_nodes_builder_base');
 
         $moduleunionmethod = $nodesbuilder->getMethod('get_module_queries_array');
         $moduleunionmethod->setAccessible(true);

@@ -35,7 +35,7 @@ global $CFG, $PAGE;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder_base.class.php');
 
 block_ajax_marking_login_error();
 require_login(0, false);
@@ -56,7 +56,7 @@ if (!isset($params['nodeindex'])) {
     die();
 }
 
-$nodes = block_ajax_marking_nodes_builder::unmarked_nodes($params);
+$nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
 
 // Saving bandwidth by stripping out all but the counts and the ids.
 $thingswewant = array(

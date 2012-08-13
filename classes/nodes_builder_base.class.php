@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Class file for the block_ajax_marking_nodes_builder class
+ * Class file for the block_ajax_marking_nodes_builder_base class
  *
  * @package    block
  * @subpackage ajax_marking
@@ -37,6 +37,7 @@ define('BLOCK_AJAX_MARKING_FOUR_DAYS', 345600);
 define('BLOCK_AJAX_MARKING_TEN_DAYS', 864000);
 
 global $CFG;
+
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/bulk_context_module.class.php');
 
@@ -57,16 +58,16 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/bulk_context_module.cla
  * of the coursemodule. This arrangement is needed because Oracle doesn't allow text
  * fields and GROUP BY to be mixed.
  */
-class block_ajax_marking_nodes_builder {
+class block_ajax_marking_nodes_builder_base {
 
     /**
-     * This will take the parameters which were supplied by the clicked node and its ancestors and
-     * construct an SQL query to get the relevant work from the database. It can be used by the
-     * grading popups in cases where there are multiple items e.g. multiple attempts at a quiz, but
-     * it is mostly for making the queries used to get the next set of nodes.
+     * This function applies standard joins to the module query so it can filter as much as possible before we
+     * UNION the results. The more we do here, the better, as this stuff can use JOINs and therefore indexes.
+     * Stuff that's done in the outer countwrapper query will be join to the temporary table created by the UNION
+     * and therefore may not perform so well.
      *
      * @param array $filters
-     * @param block_ajax_marking_module_base $moduleclass e.g. quiz, assignment
+     * @param block_ajax_marking_module_base $moduleclass e.g. quiz, assignment to supply the module specific query.
      * @return block_ajax_marking_query_base
      */
     private static function get_unmarked_module_query(array $filters,
@@ -105,6 +106,8 @@ class block_ajax_marking_nodes_builder {
         // Need to pass this through sometimes for the javascript to know what sort of node it is.
         $query->add_select(array('column' => "'".$moduleclass->get_module_name()."'",
                                  'alias'  =>'modulename'));
+
+        self::apply_sql_enrolled_students($query, $filters);
 
         return $query;
     }
@@ -189,25 +192,6 @@ class block_ajax_marking_nodes_builder {
             $moduleclass->postprocess_nodes_hook($nodes, $filters);
         }
         return $nodes;
-    }
-
-    /**
-     * So that we can make the best use of SQL JOINs to get an efficient query, we use the strategy of joining as many
-     * tables as possible to each module component of the UNION. This has the drawback that the query involves
-     * more tables, which is a pain as we may hit the limit for joined tables at some point on a site with many
-     * modules. The alternative is to keep the module subqueries as light as possible and attach these filter tables
-     * to the UNIONed result, but this results in large temporary tables in memory on large installs and prevents
-     * index usage.
-     *
-     * @param array $modulequeries
-     * @param array $filters
-     */
-    private function apply_standard_filters_to_each_module_query(array &$modulequeries, array $filters) {
-
-        foreach ($modulequeries as &$query) {
-            self::apply_sql_enrolled_students($query, $filters);
-        }
-
     }
 
     /**
