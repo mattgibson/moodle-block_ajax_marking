@@ -73,15 +73,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
     }
 
     /**
-     * Returns the column from the workshop_submissions table that has the userid in it
-     *
-     * @return string
-     */
-    protected function get_sql_userid_column() {
-        return 'sub.authorid';
-    }
-
-    /**
      * Returns a query object with the basics all set up to get assignment stuff
      *
      * @global moodle_database $DB

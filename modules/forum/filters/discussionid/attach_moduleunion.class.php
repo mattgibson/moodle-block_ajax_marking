@@ -15,6 +15,13 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * These classes provide filters that modify the dynamic query that fetches the nodes. Depending on
+ * what node is being requested and what that node's ancestor nodes are, a different combination
+ * of filters will be applied. There is one class per type of node, and one method with the class
+ * for the type of operation. If there is a courseid node as an ancestor, we want to use the
+ * courseid::where_filter, but if we are asking for courseid nodes, we want the
+ * courseid::count_select filter.
+ *
  * @package    block
  * @subpackage ajax_marking
  * @copyright  2012 Matt Gibson
@@ -29,23 +36,29 @@ global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
 
 /**
- * Deals with SQL wrapper stuff for the discussion nodes.
+ * Attaches the questionid to the quiz element of the moduleunion query. Can only be used when quiz is the only one in
+ * use, or else it makes the union queries inconsistent.
  */
-class block_ajax_marking_forum_filter_discussionid_attach_countwrapper extends
-    block_ajax_marking_filter_attach_base {
+class block_ajax_marking_forum_filter_discussionid_attach_moduleunion extends block_ajax_marking_filter_attach_base {
 
     /**
-     * Adds SQL to construct a set of discussion nodes.
+     * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
+     * nodes.
      *
+     * @static
      * @param block_ajax_marking_query $query
      * @return mixed|void
      */
     protected function alter_query(block_ajax_marking_query $query) {
 
-        $query->add_select(array(
-                                'table' => 'moduleunion',
-                                'column' => 'discussionid',
-                                'alias' => 'id'), true
+        // Apply WHERE clause.
+        $conditions = array(
+            'table' => 'discussions',
+            'column' => 'id',
+            'alias' => 'discussionid'
         );
+        // TODO needs applying to just the quiz one.
+        $query->add_select($conditions);
+
     }
 }

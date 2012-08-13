@@ -37,7 +37,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php')
 
 /**
  * Attaches the question id to the countwrapper query. Can only be used when quiz is the only one in
- * use, or else it makes the union queries inconsistent.
+ * use, or else it makes the union queries inconsistent. Depends on having a filter attaching it to the moduleunion.
  */
 class block_ajax_marking_quiz_filter_questionid_attach_countwrapper extends
     block_ajax_marking_filter_attach_base {

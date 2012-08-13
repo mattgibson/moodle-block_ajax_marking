@@ -79,9 +79,10 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      *
      * wrapper via UNION?
      *
+     * @param bool $nocache if true, SQL_NO_CACHE will be added to the start of the query.
      * @return string SQL
      */
-    protected function get_select() {
+    protected function get_select($nocache = false) {
 
         $selectarray = array();
 
@@ -89,7 +90,12 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
             $selectarray[] = self::build_select_item($select);
         }
 
-        return 'SELECT '.implode(", \n", $selectarray).' ';
+        // For development, we don't want the cache in use - it makes it hard to debug via SQL tools etc.
+        $nocachestring = '';
+        if ($nocache) {
+            $nocachestring = ' SQL_NO_CACHE ';
+        }
+        return 'SELECT '.$nocachestring.implode(", \n", $selectarray).' ';
     }
 
     /**
@@ -494,12 +500,13 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      * $DB->get_records(). Must be public or else we cannot wrap the queries in each other as
      * subqueries.
      *
+     * @param bool $nocache if true, SQL_NO_CACHE will be set
      * @return string
      */
-    public function get_sql() {
+    public function get_sql($nocache = false) {
 
         // Stick it all together.
-        $query = $this->get_select().
+        $query = $this->get_select($nocache).
                  $this->get_from().
                  $this->get_where().
                  $this->get_groupby().
@@ -562,12 +569,14 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     public function execute($returnrecordset = false) {
 
-        global $DB;
+        global $DB, $CFG;
+
+        $nocache = $CFG->debug == DEBUG_DEVELOPER;
 
         if ($returnrecordset) {
-            return $DB->get_recordset_sql($this->get_sql(), $this->get_params());
+            return $DB->get_recordset_sql($this->get_sql($nocache), $this->get_params());
         } else {
-            return $DB->get_records_sql($this->get_sql(), $this->get_params());
+            return $DB->get_records_sql($this->get_sql($nocache), $this->get_params());
         }
     }
 

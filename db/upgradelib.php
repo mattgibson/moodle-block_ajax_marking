@@ -178,7 +178,8 @@ function block_ajax_marking_add_index_question_attempt_steps() {
 
     // Define index amb_questattstep_combo to be added to question_attempt_steps.
     $table = new xmldb_table('question_attempt_steps');
-    $index = new xmldb_index('amb_questattstep_combo', XMLDB_INDEX_NOTUNIQUE, array('state', 'questionattemptid'));
+    $index = new xmldb_index('amb_questattstep_combo', XMLDB_INDEX_NOTUNIQUE, array('state', 'questionattemptid',
+                                                                                    'userid', 'timecreated'));
 
     // Conditionally launch add index amb_questattstep_combo.
     if (!$dbman->index_exists($table, $index)) {

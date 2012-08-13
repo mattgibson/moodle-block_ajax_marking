@@ -103,16 +103,6 @@ abstract class block_ajax_marking_module_base {
     }
 
     /**
-     * This returns the column name in the submissions table that holds the userid. It varies
-     * according to module, but the default is here. Other modules can override if they need to
-     *
-     * @return string
-     */
-    protected function get_sql_userid_column() {
-        return 'sub.userid';
-    }
-
-    /**
      * Returns the name of this module as used in the DB
      *
      * @return string

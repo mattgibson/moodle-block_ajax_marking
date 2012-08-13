@@ -41,33 +41,13 @@ class block_ajax_marking_forum_filter_discussionid_current extends block_ajax_ma
      */
     protected function alter_query(block_ajax_marking_query $query) {
 
-        // This will be derived form the coursemodule id, but how to get it cleanly?
-        // The query will know, but not easy to get it out. Might have been prefixed.
-        // TODO pass this properly somehow.
-        $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
-        // Normal forum needs discussion title as label, participant usernames as
-        // description eachuser needs username as title and discussion subject as
-        // description.
-        if (block_ajax_marking_forum::forum_is_eachuser($coursemoduleid)) {
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'subject',
-                                    'alias' => 'description'
-                               ));
-        } else {
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'subject',
-                                    'alias' => 'label'
-                               ));
-            // TODO need a SELECT bit to get all userids of people in the discussion
-            // instead.
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'message',
-                                    'alias' => 'tooltip'
-                               ));
-        }
+        global $DB;
+
+        $query->add_select(array(
+                                'table' => 'firstpost',
+                                'column' => 'message',
+                                'alias' => 'tooltip'
+                           ));
 
         $query->add_from(array(
                               'join' => 'INNER JOIN',
@@ -82,6 +62,39 @@ class block_ajax_marking_forum_filter_discussionid_current extends block_ajax_ma
                               'alias' => 'firstpost',
                               'on' => 'firstpost.id = outerdiscussions.firstpost'
                          ));
+
+        // This will be derived form the coursemodule id, but how to get it cleanly?
+        // The query will know, but not easy to get it out. Might have been prefixed.
+        // TODO pass this properly somehow.
+        $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
+        // Normal forum needs discussion title as label, participant usernames as
+        // description eachuser needs username as title and discussion subject as
+        // description.
+        if (block_ajax_marking_forum::forum_is_eachuser($coursemoduleid)) {
+
+            // We want the each user forums to have the user names.
+            $query->add_select(array(
+                                    'column' => 'outerusers.firstname',
+                                    'alias' => 'firstname'
+                               ));
+            $query->add_select(array(
+                                    'column' => 'outerusers.lastname',
+                                    'alias' => 'lastname'
+                               ));
+            $query->add_from(array(
+                                  'join' => 'INNER JOIN',
+                                  'table' => 'user',
+                                  'alias' => 'outerusers',
+                                  'on' => 'firstpost.userid = outerusers.id'
+                             ));
+        } else {
+            $query->add_select(array(
+                                    'table' => 'outerdiscussions',
+                                    'column' => 'name',
+                                    'alias' => 'name'
+                               ));
+        }
+
 
         $query->add_orderby("timestamp ASC");
     }

@@ -88,16 +88,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
     }
 
     /**
-     * Returns the name of the column in the submissions table which holds the userid of the
-     * submitter
-     *
-     * @return string
-     */
-    protected function get_sql_userid_column() {
-        return 'qa.userid';
-    }
-
-    /**
      * To make up for the fact that in 2.0 there is no screen with both quiz question and feedback
      * text-entry box next to each other (the feedback bit is a separate pop-up), we have to make
      * a custom form to allow grading to happen. It is based on code from

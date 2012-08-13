@@ -102,15 +102,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     }
 
     /**
-     * See parent class for docs
-     *
-     * @return string
-     */
-    protected function get_sql_userid_column() {
-        return 'discussions.userid';
-    }
-
-    /**
      * Returns a HTML link allowing a student's work to be marked
      *
      * @param object $item a row of the database table representing one discussion post
@@ -348,8 +339,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
                     if (self::forum_is_eachuser($filters['coursemoduleid'])) {
                         $node->name = fullname($node);
-                    } else {
-                        $node->name = $node->label;
                     }
                     break;
 
