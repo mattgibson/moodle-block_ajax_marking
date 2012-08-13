@@ -506,7 +506,7 @@ class block_ajax_marking_nodes_builder {
                  WHERE enrol.enrol {$enabledsql}
                    AND enrol.courseid = moduleunion.course
                    AND user_enrolments.userid != :enrolcurrentuser
-                   AND user_enrolments.userid = moduleunion.userid
+                   AND user_enrolments.userid = sub.userid
 SQL;
 
         $query->add_where(array('type' => 'AND',

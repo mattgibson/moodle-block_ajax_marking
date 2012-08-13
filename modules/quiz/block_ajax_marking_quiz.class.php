@@ -244,7 +244,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
 
         global $DB;
 
-        $query = new block_ajax_marking_query_base($this);
+        $query = new block_ajax_marking_module_query($this);
 
         $query->add_from(array(
                 'table' => $this->modulename,
