@@ -59,20 +59,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
     }
 
     /**
-     * Makes the HTML link for the popup
-     *
-     * @param object $item that has the workshop's courseid as cmid property
-     * @return string
-     */
-    public function make_html_link($item) {
-
-        global $CFG;
-
-        $address = $CFG->wwwroot.'/mod/workshop/view.php?id='.$item->cmid;
-        return $address;
-    }
-
-    /**
      * Returns a query object with the basics all set up to get assignment stuff
      *
      * @global moodle_database $DB

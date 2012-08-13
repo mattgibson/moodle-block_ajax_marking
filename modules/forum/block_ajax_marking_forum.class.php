@@ -103,19 +103,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
     }
 
     /**
-     * Returns a HTML link allowing a student's work to be marked
-     *
-     * @param object $item a row of the database table representing one discussion post
-     *
-     * @return string
-     */
-    public function make_html_link($item) {
-        global $CFG;
-        $address = $CFG->wwwroot.'/mod/forum/view.php?id='.$item->cmid;
-        return $address;
-    }
-
-    /**
      * Makes the pop up contents for the grading interface
      *
      * @param array $params

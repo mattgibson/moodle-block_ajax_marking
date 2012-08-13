@@ -73,19 +73,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
     }
 
     /**
-     * Makes an HTML link for the pop up to allow grading of a question
-     *
-     * @param object $item containing the quiz id as ->id
-     * @return string
-     */
-    public function make_html_link($item) {
-
-        global $CFG;
-        $address = $CFG->wwwroot.'/mod/quiz/report.php?q='.$item->assessmentid.'&mode=grading';
-        return $address;
-    }
-
-    /**
      * To make up for the fact that in 2.0 there is no screen with both quiz question and feedback
      * text-entry box next to each other (the feedback bit is a separate pop-up), we have to make
      * a custom form to allow grading to happen. It is based on code from

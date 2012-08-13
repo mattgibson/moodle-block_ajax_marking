@@ -73,20 +73,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     }
 
     /**
-     * Makes a link for the pop up window so the work can be marked
-     *
-     * @param object $item a submission object
-     * @return string
-     */
-    public function make_html_link($item) {
-
-        global $CFG;
-
-        $address = $CFG->wwwroot.'/mod/assignment/submissions.php?id='.$item->coiursemoduleid;
-        return $address;
-    }
-
-    /**
      * Makes the grading interface for the pop up
      *
      * @param array $params From $_GET
