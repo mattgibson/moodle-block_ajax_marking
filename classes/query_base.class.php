@@ -614,7 +614,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
         global $CFG;
 
         $params = $this->get_params();
-        $sql = $this->get_sql();
+        $sql = $this->get_sql($CFG->debug == DEBUG_DEVELOPER);
 
         // We may have a problem with params being missing. Check here (assuming the params ar in
         // SQL_PARAMS_NAMED format And tell us the names of the offending params via an exception.
