@@ -117,7 +117,8 @@ function block_ajax_marking_get_my_teacher_courses($returnsql = false, $reset = 
 
     // If running in a unit test, we may well have different courses in the same script execution, so we want to
     // reset every time.
-    if (defined('PHPUNIT_TEST')) {
+
+    if (defined('PHPUNIT_TEST') && PHPUNIT_TEST != false) {
         $reset = true;
     }
 
