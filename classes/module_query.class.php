@@ -54,7 +54,7 @@ class block_ajax_marking_module_query extends block_ajax_marking_query_base {
     /**
      * @var string
      */
-    protected $coursemoduleidcolumn;
+    protected $coursemoduleidcolumn = 'course_modules.id';
 
     /**
      * @param block_ajax_marking_module_base $moduleclass

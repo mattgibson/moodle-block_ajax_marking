@@ -166,7 +166,7 @@ abstract class block_ajax_marking_module_base {
      * Returns a query object that has been set up to retrieve all unmarked submissions for this
      * teacher and this (subclassed) module
      *
-     * @return block_ajax_marking_query_base
+     * @return block_ajax_marking_module_query
      */
     abstract public function query_factory();
 

@@ -108,6 +108,8 @@ class block_ajax_marking_nodes_builder_base {
                                  'alias'  =>'modulename'));
 
         self::apply_sql_enrolled_students($query, $filters);
+        self::apply_sql_visible($query);
+        self::apply_sql_owncourses($query);
 
         return $query;
     }
@@ -162,11 +164,8 @@ class block_ajax_marking_nodes_builder_base {
         // hidden ones.
         self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
         // Apply all the standard filters. These only make sense when there's unmarked work.
-//        self::apply_sql_enrolled_students($countwrapperquery, $filters);
-        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
         self::apply_sql_display_settings($countwrapperquery);
         // TODO is it more efficient to have this in the moduleunions to limit the rows?
-        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
 
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
@@ -304,27 +303,23 @@ class block_ajax_marking_nodes_builder_base {
      * find a small list of contexts that a teacher cannot grade in within the courses where they
      * normally can, then do a NOT IN thing with it. Also the obvious visible = 1 stuff.
      *
-     * @param block_ajax_marking_query $query
+     * @param block_ajax_marking_module_query|block_ajax_marking_query $query
      * @param string $coursemodulejoin What table.column to join to course_modules.id
      * @param bool $includehidden Do we want to have hidden coursemodules included? Config = yes
      * @return array The join string, where string and params array. Note, where starts with 'AND'
      */
-    private static function apply_sql_visible(block_ajax_marking_query $query,
+    private static function apply_sql_visible(block_ajax_marking_module_query $query,
                                               $coursemodulejoin = '', $includehidden = false) {
         global $DB;
 
-        if ($coursemodulejoin) { // Only needed if the table is not already there.
-            $query->add_from(array(
-                    'join' => 'INNER JOIN',
-                    'table' => 'course_modules',
-                    'on' => 'course_modules.id = '.$coursemodulejoin
-            ));
-        }
         $query->add_from(array(
                 'join' => 'INNER JOIN',
                 'table' => 'course',
-                'on' => 'course.id = course_modules.course'
+                'on' => 'course.id = '.$query->get_courseid_column()
         ));
+
+        // If the user can potentially be blocked from accessing some things using permissions overrides, then we
+        // need to take this into account.
 
         $mods = block_ajax_marking_get_module_classes();
         $modids = array();
@@ -334,53 +329,61 @@ class block_ajax_marking_nodes_builder_base {
 
         // Get coursemoduleids for all items of this type in all courses as one query. Won't come
         // back empty or else we would not have gotten this far.
-        $courses = block_ajax_marking_get_my_teacher_courses();
-        // TODO Note that change to login as... in another tab may break this. Needs testing.
-        list($coursesql, $courseparams) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
-        list($modsql, $modparams) = $DB->get_in_or_equal(array_keys($modids), SQL_PARAMS_NAMED);
-        $params = array_merge($courseparams, $modparams);
-        // Get all course modules the current user could potentially access. Limit to the enabled
-        // mods.
-        $sql = "SELECT context.*
-                  FROM {context} context
-            INNER JOIN {course_modules} course_modules
-                    ON context.instanceid = course_modules.id
-                   AND context.contextlevel = ".CONTEXT_MODULE."
-                 WHERE course_modules.course {$coursesql}
-                   AND course_modules.module {$modsql}";
-        // No point caching - only one request per module per page request...
-        $contexts = $DB->get_records_sql($sql, $params);
+        if (!is_siteadmin()) {
 
-        // Use has_capability to loop through them finding out which are blocked. Unset all that we
-        // have permission to grade, leaving just those we are not allowed (smaller list). Hopefully
-        // this will never exceed 1000 (oracle hard limit on number of IN values).
-        foreach ($mods as $mod) {
-            foreach ($contexts as $key => $context) {
-                // If we don't find any capabilities for a context, it will remain and be excluded
-                // from the SQL. Hopefully this will be a small list. n.b. the list is of all
-                // course modules.
-                if (has_capability($mod->get_capability(), new bulk_context_module($context))) {
-                    unset($contexts[$key]);
+            $courses = block_ajax_marking_get_my_teacher_courses();
+            // TODO Note that change to login as... in another tab may break this. Needs testing.
+            list($coursesql, $courseparams) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
+            list($modsql, $modparams) = $DB->get_in_or_equal(array_keys($modids), SQL_PARAMS_NAMED);
+            $params = array_merge($courseparams, $modparams);
+            // Get all course modules the current user could potentially access. Limit to the enabled
+            // mods.
+            $sql = "SELECT context.*
+                      FROM {context} context
+                INNER JOIN {course_modules} course_modules
+                        ON context.instanceid = course_modules.id
+                       AND context.contextlevel = ".CONTEXT_MODULE."
+                     WHERE course_modules.course {$coursesql}
+                       AND course_modules.module {$modsql}";
+            // No point caching - only one request per module per page request...
+            $contexts = $DB->get_records_sql($sql, $params);
+
+            // Use has_capability to loop through them finding out which are blocked. Unset all that we
+            // have permission to grade, leaving just those we are not allowed (smaller list). Hopefully
+            // this will never exceed 1000 (oracle hard limit on number of IN values).
+            // TODO - very inefficient as we are checking every context even though many will be for a different mod.
+            foreach ($mods as $mod) {
+                foreach ($contexts as $key => $context) {
+                    // If we don't find any capabilities for a context, it will remain and be excluded
+                    // from the SQL. Hopefully this will be a small list. n.b. the list is of all
+                    // course modules.
+                    if (has_capability($mod->get_capability(), new bulk_context_module($context))) {
+                        unset($contexts[$key]);
+                    }
                 }
             }
-        }
-        // Return a get_in_or_equals with NOT IN if there are any, or empty strings if there aren't.
-        if (!empty($contexts)) {
-            list($contextssql, $contextsparams) = $DB->get_in_or_equal(array_keys($contexts),
-                                                                       SQL_PARAMS_NAMED,
-                                                                       'context0000',
-                                                                       false);
-            $query->add_where(array('type' => 'AND',
-                                    'condition' => "course_modules.id {$contextssql}"));
-            $query->add_params($contextsparams);
+            // Return a get_in_or_equals with NOT IN if there are any, or empty strings if there aren't.
+            if (!empty($contexts)) {
+                list($contextssql, $contextsparams) = $DB->get_in_or_equal(array_keys($contexts),
+                                                                           SQL_PARAMS_NAMED,
+                                                                           'context0000',
+                                                                           false);
+                $query->add_where(array('type' => 'AND',
+                                        'condition' => "course_modules.id {$contextssql}"));
+                $query->add_params($contextsparams);
+            }
         }
 
+        // TODO is this needed? surely we will not even get this far if the mod isn't enabled?
         // Only show enabled mods.
-        list($visiblesql, $visibleparams) = $DB->get_in_or_equal($modids, SQL_PARAMS_NAMED,
-                                                                 'visible000');
-        $query->add_where(array(
-                'type'      => 'AND',
-                'condition' => "course_modules.module {$visiblesql}"));
+//        list($visiblesql, $visibleparams) = $DB->get_in_or_equal($modids, SQL_PARAMS_NAMED,
+//                                                                 $query->get_modulename().'visible000');
+//        $query->add_where(array(
+//                               'type' => 'AND',
+//                               'condition' => "course_modules.module {$visiblesql}"));
+//
+//        $query->add_params($visibleparams);
+
         // We want the coursmeodules that are hidden to be gone form the main trees. For config,
         // We may want to show them greyed out so that settings can be sorted before they are shown
         // to students.
@@ -389,19 +392,17 @@ class block_ajax_marking_nodes_builder_base {
         }
         $query->add_where(array('type' => 'AND', 'condition' => 'course.visible = 1'));
 
-        $query->add_params($visibleparams);
-
     }
 
     /**
      * Makes sure we only get stuff for the courses this user is a teacher in
      *
-     * @param block_ajax_marking_query $query
-     * @param string $coursecolumn
+     * @param block_ajax_marking_module_query $query
      * @return void
      */
-    private static function apply_sql_owncourses(block_ajax_marking_query $query,
-                                                 $coursecolumn = '') {
+    private static function apply_sql_owncourses(block_ajax_marking_module_query $query) {
+
+        $coursecolumn = $query->get_courseid_column();
 
         global $DB;
 
@@ -411,7 +412,7 @@ class block_ajax_marking_nodes_builder_base {
 
         if ($courseids) {
             list($sql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED,
-                                                       'courseid0000');
+                                                       $query->get_modulename().'courseid0000');
 
             $query->add_where(array(
                     'type' => 'AND',
@@ -492,7 +493,7 @@ SQL;
 
         // Now apply the filters.
         self::apply_sql_owncourses($configbasequery, 'course_modules.course');
-        self::apply_sql_visible($configbasequery, '', true);
+        self::apply_sql_visible($configbasequery, true);
 
         // TODO put this into its own function.
         reset($filters);
@@ -1039,7 +1040,6 @@ SQL;
         self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
 
         self::apply_sql_enrolled_students($countwrapperquery, $filters);
-        self::apply_sql_visible($countwrapperquery, 'moduleunion.coursemoduleid', 'moduleunion.course');
         self::apply_sql_display_settings($countwrapperquery);
         self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
 
