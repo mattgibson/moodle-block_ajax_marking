@@ -423,7 +423,8 @@ class block_ajax_marking_nodes_builder_base {
 
     /**
      * Returns an SQL snippet that will tell us whether a student is directly enrolled in this
-     * course. Params need to be made specific to this module as they will be duplicated.
+     * course. Params need to be made specific to this module as they will be duplicated. This is required
+     * because sometimes, students leave and their work is left over.
      *
      * @param block_ajax_marking_module_query $query
      * @param array $filters So we can filter by cohort id if we need to
