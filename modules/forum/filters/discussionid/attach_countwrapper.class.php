@@ -26,21 +26,21 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Deals with SQL wrapper stuff for the discussion nodes.
  */
 class block_ajax_marking_forum_filter_discussionid_attach_countwrapper extends
-    block_ajax_marking_filter_attach_base {
+    block_ajax_marking_query_decorator_base {
 
     /**
      * Adds SQL to construct a set of discussion nodes.
      *
-     * @param block_ajax_marking_query $query
+     * @param block_ajax_marking_module_query $query
      * @return mixed|void
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query(block_ajax_marking_module_query $query) {
 
         $query->add_select(array(
                                 'table' => 'moduleunion',

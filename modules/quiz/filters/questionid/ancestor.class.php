@@ -33,12 +33,12 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Filters the nodes where a question is an ancestor.
  */
-class block_ajax_marking_quiz_filter_questionid_ancestor extends block_ajax_marking_filter_ancestor_base {
+class block_ajax_marking_quiz_filter_questionid_ancestor extends block_ajax_marking_query_decorator_base {
 
     /**
      * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current

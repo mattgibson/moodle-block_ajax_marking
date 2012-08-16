@@ -28,12 +28,12 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * User id ancestor filter for the assign module
  */
-class block_ajax_marking_assign_filter_userid_ancestor extends block_ajax_marking_filter_ancestor_base {
+class block_ajax_marking_assign_filter_userid_ancestor extends block_ajax_marking_query_decorator_base {
 
     /**
      * @static

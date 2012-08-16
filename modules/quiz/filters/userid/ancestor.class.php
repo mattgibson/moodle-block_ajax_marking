@@ -33,13 +33,13 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Provides a base class for all the query decorators that are going to group the nodes by some field.
  */
 class block_ajax_marking_quiz_filter_userid_ancestor extends
-    block_ajax_marking_filter_ancestor_base {
+    block_ajax_marking_query_decorator_base {
 
     /**
      * @param block_ajax_marking_query $query

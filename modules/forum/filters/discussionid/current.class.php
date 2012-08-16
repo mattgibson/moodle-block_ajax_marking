@@ -26,12 +26,12 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Deals with SQL wrapper stuff for the discussion nodes.
  */
-class block_ajax_marking_forum_filter_discussionid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_forum_filter_discussionid_current extends block_ajax_marking_query_decorator_base {
 
     /**
      * Adds SQL to construct a set of discussion nodes.

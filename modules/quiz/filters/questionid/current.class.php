@@ -28,12 +28,12 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * User id filter for the quiz module
  */
-class block_ajax_marking_quiz_filter_questionid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_quiz_filter_questionid_current extends block_ajax_marking_query_decorator_base {
 
     /**
      * Makes a set of question nodes by grouping submissions by questionid.
