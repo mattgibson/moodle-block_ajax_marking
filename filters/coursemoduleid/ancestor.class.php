@@ -34,12 +34,12 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Holds the filters to deal with coursemoduleid nodes.
  */
-class block_ajax_marking_filter_coursemoduleid_ancestor extends block_ajax_marking_filter_ancestor_base {
+class block_ajax_marking_filter_coursemoduleid_ancestor extends block_ajax_marking_query_decorator_base {
 
     /**
      * Used when there is an ancestor node representing a coursemodule.

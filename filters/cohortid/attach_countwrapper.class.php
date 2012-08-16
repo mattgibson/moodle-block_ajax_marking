@@ -33,18 +33,18 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Sets the cohort id as the column that gets counts made for each one.
  */
-class block_ajax_marking_filter_cohortid_attach_countwrapper extends block_ajax_marking_filter_attach_base {
+class block_ajax_marking_filter_cohortid_attach_countwrapper extends block_ajax_marking_query_decorator_base {
 
     /**
      * @param block_ajax_marking_query $query
      * @return void
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query(block_ajax_marking_module_query $query) {
 
         $conditions = array(
             'table' => 'cohort',

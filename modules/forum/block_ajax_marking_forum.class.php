@@ -238,7 +238,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
         global $USER;
 
-        $query = new block_ajax_marking_module_query($this);
+        $query = new block_ajax_marking_query_base($this);
         // This currently does a simple check for whether or not the current user has added a
         // rating or not. No scope for another teacher to do all the marking, or some of it.
         list($notmyratingsql, $notmyratingparams) = $this->get_teacher_sql();

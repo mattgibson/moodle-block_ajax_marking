@@ -33,12 +33,12 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Applies the filter needed for course nodes or their descendants
  */
-class block_ajax_marking_filter_groupid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_filter_groupid_current extends block_ajax_marking_query_decorator_base {
 
     /**
      * Applies the filter needed for course nodes or their descendants

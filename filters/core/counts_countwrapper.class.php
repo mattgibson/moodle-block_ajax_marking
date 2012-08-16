@@ -33,13 +33,13 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/core_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * This decorator attaches the config tables for course and coursemodule so display decisions can be made
  * based ont heir settings.
  */
-class block_ajax_marking_filter_core_counts_countwrapper extends block_ajax_marking_filter_core_base {
+class block_ajax_marking_filter_core_counts_countwrapper extends block_ajax_marking_query_decorator_base {
 
     /**
      * @param block_ajax_marking_query $query
@@ -55,6 +55,7 @@ class block_ajax_marking_filter_core_counts_countwrapper extends block_ajax_mark
      */
     protected function alter_query() {
 
+        // TODO this needs to be sub.id so we can count two things for one student.
         $this->wrappedquery->add_select(array('table' => 'moduleunion',
                                              'column' => 'userid',
                                              'alias' => 'itemcount',

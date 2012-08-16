@@ -221,7 +221,7 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
 
         global $DB, $USER;
 
-        $query = new block_ajax_marking_module_query($this);
+        $query = new block_ajax_marking_query_base($this);
 
         $query->add_from(array(
                               'table' => 'assign',

@@ -28,22 +28,22 @@ if (!defined('MOODLE_INTERNAL')) {
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Attaches the user id to the query so it can be used.
  */
-class block_ajax_marking_filter_userid_attach_countwrapper extends block_ajax_marking_filter_attach_base {
+class block_ajax_marking_filter_userid_attach_countwrapper extends block_ajax_marking_query_decorator_base {
 
     /**
      * Makes user nodes for the assignment modules by grouping them and then adding in the right
      * text to describe them.
      *
      * @static
-     * @param block_ajax_marking_query $query
+     * @param block_ajax_marking_module_query $query
      * @return void
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query(block_ajax_marking_module_query $query) {
 
         // Make the count be grouped by user id.
         $conditions = array(

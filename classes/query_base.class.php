@@ -38,6 +38,11 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query.interface.php');
 class block_ajax_marking_query_base implements block_ajax_marking_query {
 
     /**
+     * @var string
+     */
+    protected $columns = array();
+
+    /**
      * This hold arrays, with each one being a table column. Each array needs 'function', 'table',
      * 'column', 'alias', 'distinct'. Each array is keyed by its column alias or name, if there is
      * no alias. Its important that these are in the right order as the GROUP BY will be generated
@@ -72,6 +77,18 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      * @var array
      */
     private $params = array();
+
+    /**
+     * @var string Name used to refer to this query if it is a subquery.
+     */
+    protected $subqueryname;
+
+    /**
+     * @param block_ajax_marking_module_base $moduleclass
+     */
+    public function __construct($moduleclass = null) {
+        $this->moduleclass = $moduleclass;
+    }
 
     /**
      * Crunches the SELECT array into a valid SQL query string. Each has 'function', 'table',
@@ -646,6 +663,89 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
         }
 
         return $sql;
+    }
+
+    /**
+     * If this is a subquery, we need to be able to have decorators do things like SELECT nameofsubquery.column
+     * for different subqueries, all of which will have the same column name. This returns it, which needs to
+     * have been set somehow.
+     *
+     * @return string
+     */
+    public function get_subquery_name() {
+        return $this->subqueryname;
+    }
+
+    /**
+     * Sets the name of this subquery so that we can refer to it from decorators when they attach stuff.
+     *
+     * @param string $name
+     */
+    public function set_subquery_name($name) {
+        $this->subqueryname = $name;
+    }
+
+    /**
+     * Returns the SQL fragment of tablealias.column which has previously been stored. Exception if we ask for
+     * one that's not there.
+     *
+     * @param string $columnname
+     * @return string
+     * @throws coding_exception
+     */
+    public function get_column($columnname) {
+        if (in_array($columnname, $this->columns)) {
+            return $this->columns[$columnname];
+        }
+
+        throw new coding_exception("Looking for a non-existent {$columnname} column");
+    }
+
+    /**
+     * Stores the name of a column that we have just added to the dynamic query so that other decorators can get to
+     * it later.
+     *
+     * @param string $columnname
+     * @param string $sql
+     * @throws coding_exception
+     */
+    public function set_column($columnname, $sql) {
+
+        if (in_array($columnname, $this->columns)) {
+            $message = "Trying to add a {$columnname} column, but it's already been stored as ".
+                $this->columns[$columnname];
+            throw new coding_exception($message);
+        }
+        $this->columns[$columnname] = $sql;
+
+    }
+
+    /**
+     * If there is a moduleclass, return the name of it.
+     *
+     * @return string
+     * @throws coding_exception
+     */
+    public function get_module_name() {
+        if (!($this->moduleclass instanceof block_ajax_marking_module_base)) {
+            throw new coding_exception('Asking for module name without any module attached to the query');
+        }
+
+        return $this->moduleclass->get_module_name();
+    }
+
+    /**
+     * If there is a moduleclass, return the id of that module. Used to attache coursemodule by instance and moduleid.
+     *
+     * @return string
+     * @throws coding_exception
+     */
+    public function get_module_id() {
+        if (!($this->moduleclass instanceof block_ajax_marking_module_base)) {
+            throw new coding_exception('Asking for module name without any module attached to the query');
+        }
+
+        return $this->moduleclass->get_module_id();
     }
 
 

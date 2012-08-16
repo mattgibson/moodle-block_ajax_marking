@@ -33,7 +33,7 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/core_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * This gets the display settings from the countwrapper so that the nodes, whatever they are have them and the user
@@ -41,7 +41,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/filters/core_base.class.php');
  * the standardised 'display field and selects it. Reused for all nodes (course, coursemodule) that need it.
  */
 class block_ajax_marking_filter_core_select_config_display_displayquery
-    extends block_ajax_marking_filter_core_base {
+    extends block_ajax_marking_query_decorator_base {
 
     /**
      * @param block_ajax_marking_query $query

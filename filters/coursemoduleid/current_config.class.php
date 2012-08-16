@@ -33,7 +33,6 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/coursemoduleid/current.class.php');
 
 /**

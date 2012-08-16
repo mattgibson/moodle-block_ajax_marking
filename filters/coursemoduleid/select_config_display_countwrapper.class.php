@@ -33,14 +33,14 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/core_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * This joins the countwrapper to the join config tables so that each coursemodule node can have the current
  * config settings fo the right click context menu to display them.
  */
 class block_ajax_marking_filter_coursemoduleid_select_config_display_countwrapper
-    extends block_ajax_marking_filter_core_base {
+    extends block_ajax_marking_query_decorator_base {
 
     /**
      * @param block_ajax_marking_query $query

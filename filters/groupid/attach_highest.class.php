@@ -33,14 +33,14 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Makes the query retrieve the highest visible groupid for each submission. This takes account of the fact that
  * students can be in more than one group and those groups may or may not be hidden by the block settings. We
  * always want this to be used so we can filter based on settings.
  */
-class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_marking_filter_attach_base {
+class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_marking_query_decorator_base {
 
     /**
      * This will add a groupid to each of the submissions coming out of the moduleunion. This means getting
@@ -48,10 +48,10 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
      * once when students are in two groups, so we need to do it like this. It's a greatest-n-per-group
      * problem, solved with the classic left-join approach.
      *
-     * @param block_ajax_marking_query $query
+     * @param block_ajax_marking_module_query $query
      * @return void
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query(block_ajax_marking_module_query $query) {
 
         list($maxquery, $maxparams) = block_ajax_marking_group_max_subquery();
         list($memberquery, $memberparams) = block_ajax_marking_group_members_subquery();
@@ -62,8 +62,8 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
         $table = array(
             'join' => 'LEFT JOIN',
             'table' => $memberquery,
-            'on' => 'membergroupquery.userid = moduleunion.userid
-                     AND membergroupquery.coursemoduleid = moduleunion.coursemoduleid',
+            'on' => 'membergroupquery.userid = '.$query->get_userid_column().
+                     ' AND membergroupquery.coursemoduleid = '.$query->get_coursemoduleid_column(),
             'alias' => 'membergroupquery',
             'subquery' => true);
         $query->add_from($table);

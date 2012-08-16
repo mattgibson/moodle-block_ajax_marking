@@ -41,7 +41,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query.interface.php');
  * by using $this and then not getting any of the decorator stuff, all of the wrappers are being given all
  * of the template functions
  */
-abstract class block_ajax_marking_filter_base implements block_ajax_marking_query {
+abstract class block_ajax_marking_query_decorator_base implements block_ajax_marking_query {
 
     /**
      * @var block_ajax_marking_query The wrapped object that this decorator operates on.
@@ -49,12 +49,19 @@ abstract class block_ajax_marking_filter_base implements block_ajax_marking_quer
     protected $wrappedquery;
 
     /**
+     * @var mixed optional e.g. course id
+     */
+    protected $parameter;
+
+    /**
      * Constructor assigns the wrapped object ot the member variable.
      *
      * @param block_ajax_marking_query $query
+     * @param bool $parameter
      */
-    public function __construct(block_ajax_marking_query $query) {
+    public function __construct(block_ajax_marking_query $query, $parameter = false) {
         $this->wrappedquery = $query;
+        $this->parameter = $parameter;
     }
 
     /**
@@ -118,6 +125,7 @@ abstract class block_ajax_marking_filter_base implements block_ajax_marking_quer
      *
      * @abstract
      * @param bool $returnrecordset
+     * @return array|\moodle_recordset
      */
     public function execute($returnrecordset = false) {
         return $this->wrappedquery->execute($returnrecordset);
@@ -155,4 +163,43 @@ abstract class block_ajax_marking_filter_base implements block_ajax_marking_quer
         return $this->wrappedquery->debuggable_query();
     }
 
+    /**
+     * If this is a subquery, we need to be able to have decorators do things like SELECT nameofsubquery.column
+     * for different subqueries, all of which will have the same column name. This returns it, which needs to
+     * have been set somehow.
+     *
+     * @return string
+     */
+    public function get_subquery_name() {
+        return $this->wrappedquery->get_subquery_name();
+    }
+
+    /**
+     * Returns the SQL of a column that was previously stored. Allows decorators to attach stuff to different queries
+     * that have the same stuff from different tables or aliases.
+     *
+     * @param string $columnname
+     * @return mixed
+     */
+    public function get_column($columnname) {
+        return $this->wrappedquery->get_column($columnname);
+    }
+
+    /**
+     * Gets the name of whatever module may be there.
+     *
+     * @return string
+     */
+    public function get_module_name() {
+        return $this->wrappedquery->get_module_name();
+    }
+
+    /**
+     * Gets the DB id of the associated module from the module table.
+     *
+     * @return int
+     */
+    public function get_module_id() {
+        return $this->wrappedquery->get_module_id();
+    }
 }

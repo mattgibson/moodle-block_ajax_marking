@@ -34,15 +34,14 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
-//require_once($CFG->dirroot.'/blocks/ajax_marking/filters/coursemoduleid/current_config.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Holds the filters to group the coursemodule node together. This is complex because the joins needed
  * to get the module details have to be constructed dynamically. See superclass for details.
  */
 class block_ajax_marking_filter_coursemoduleid_current
-    extends block_ajax_marking_filter_current_base {
+    extends block_ajax_marking_query_decorator_base {
 
     /**
      * Makes SQL for the text labels for the course nodes.

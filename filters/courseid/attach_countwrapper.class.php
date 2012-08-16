@@ -33,20 +33,20 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Makes the countwrapper query retrieve the courseid from the inner moduleunion query.
  */
-class block_ajax_marking_filter_courseid_attach_countwrapper extends block_ajax_marking_filter_attach_base {
+class block_ajax_marking_filter_courseid_attach_countwrapper extends block_ajax_marking_query_decorator_base {
 
     /**
      * This will change the query so that it does whatever this decorator is supposed to do.
      *
-     * @param block_ajax_marking_query $query
+     * @param block_ajax_marking_module_query $query
      * @return void
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query(block_ajax_marking_module_query $query) {
         $select = array(
             'table' => 'moduleunion',
             'column' => 'course',

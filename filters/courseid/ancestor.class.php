@@ -33,12 +33,12 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Applies the filter needed for course nodes or their descendants
  */
-class block_ajax_marking_filter_courseid_ancestor extends block_ajax_marking_filter_ancestor_base {
+class block_ajax_marking_filter_courseid_ancestor extends block_ajax_marking_query_decorator_base {
 
     /**
      * This is for when a courseid node is an ancestor of the node that has been

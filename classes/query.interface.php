@@ -117,4 +117,36 @@ interface block_ajax_marking_query {
      * @return string
      */
     public function debuggable_query();
+
+    /**
+     * If this is a subquery, we need to be able to have decorators do things like SELECT nameofsubquery.column
+     * for different subqueries, all of which will have the same column name. This returns it, which needs to
+     * have been set somehow.
+     *
+     * @abstract
+     * @return string
+     */
+    public function get_subquery_name();
+
+    /**
+     * Returns the SQL of a column that was previously stored. Allows decorators to attach stuff to different queries
+     * that have the same stuff from different tables or aliases.
+     *
+     * @abstract
+     * @param string $columnname
+     * @return mixed
+     */
+    public function get_column($columnname);
+
+    /**
+     * @abstract
+     * @return string
+     */
+    public function get_module_name();
+
+    /**
+     * @abstract
+     * @return int
+     */
+    public function get_module_id();
 }
