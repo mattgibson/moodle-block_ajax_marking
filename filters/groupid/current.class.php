@@ -42,32 +42,30 @@ class block_ajax_marking_filter_groupid_current extends block_ajax_marking_query
 
     /**
      * Applies the filter needed for course nodes or their descendants
-     *
-     * @param block_ajax_marking_query $query
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
         // This is for the displayquery when we are making course nodes.
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'LEFT JOIN',
                               // Group id 0 will not match anything.
                               'table' => 'groups',
                               'on' => 'countwrapperquery.id = groups.id'
                          ));
         // We may get a load of people in no group.
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'function' => 'COALESCE',
                                 'table' => array('groups' => 'name',
                                                  get_string('notingroup', 'block_ajax_marking')),
                                 'alias' => 'name'));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'function' => 'COALESCE',
                                 'table' => array('groups' => 'description',
                                                  get_string('notingroupdescription',
                                                             'block_ajax_marking')),
                                 'alias' => 'tooltip'));
 
-        $query->add_orderby("COALESCE(groups.name, '".get_string('notingroup',
+        $this->wrappedquery->add_orderby("COALESCE(groups.name, '".get_string('notingroup',
                                                                  'block_ajax_marking')."') ASC");
     }
 

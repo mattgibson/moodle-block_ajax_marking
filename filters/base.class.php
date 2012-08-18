@@ -62,6 +62,20 @@ abstract class block_ajax_marking_query_decorator_base implements block_ajax_mar
     public function __construct(block_ajax_marking_query $query, $parameter = false) {
         $this->wrappedquery = $query;
         $this->parameter = $parameter;
+        $this->alter_query();
+    }
+
+    /**
+     * Getter that throws an exception if the parameter is missing.
+     *
+     * @return bool|mixed
+     * @throws coding_exception
+     */
+    protected function get_parameter() {
+        if (!isset($this->parameter)) {
+            throw new coding_exception('Trying to get a parameter, but there isn\'t one.');
+        }
+        return $this->parameter;
     }
 
     /**
@@ -202,4 +216,12 @@ abstract class block_ajax_marking_query_decorator_base implements block_ajax_mar
     public function get_module_id() {
         return $this->wrappedquery->get_module_id();
     }
+
+    /**
+     * Does the actual work of the decorator.
+     *
+     * @abstract
+     * @return mixed
+     */
+    abstract protected function alter_query();
 }

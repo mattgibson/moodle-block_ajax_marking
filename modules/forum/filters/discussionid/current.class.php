@@ -35,28 +35,23 @@ class block_ajax_marking_forum_filter_discussionid_current extends block_ajax_ma
 
     /**
      * Adds SQL to construct a set of discussion nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
-        global $DB;
-
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'firstpost',
                                 'column' => 'message',
                                 'alias' => 'tooltip'
                            ));
 
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'INNER JOIN',
                               'table' => 'forum_discussions',
                               'alias' => 'outerdiscussions',
                               'on' => 'countwrapperquery.id = outerdiscussions.id'
                          ));
 
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'INNER JOIN',
                               'table' => 'forum_posts',
                               'alias' => 'firstpost',
@@ -65,7 +60,7 @@ class block_ajax_marking_forum_filter_discussionid_current extends block_ajax_ma
 
         // This will be derived form the coursemodule id, but how to get it cleanly?
         // The query will know, but not easy to get it out. Might have been prefixed.
-        // TODO pass this properly somehow.
+        // TODO pass this properly somehow. Might be possible to get it from the parameter.
         $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
         // Normal forum needs discussion title as label, participant usernames as
         // description eachuser needs username as title and discussion subject as
@@ -73,29 +68,28 @@ class block_ajax_marking_forum_filter_discussionid_current extends block_ajax_ma
         if (block_ajax_marking_forum::forum_is_eachuser($coursemoduleid)) {
 
             // We want the each user forums to have the user names.
-            $query->add_select(array(
+            $this->wrappedquery->add_select(array(
                                     'column' => 'outerusers.firstname',
                                     'alias' => 'firstname'
                                ));
-            $query->add_select(array(
+            $this->wrappedquery->add_select(array(
                                     'column' => 'outerusers.lastname',
                                     'alias' => 'lastname'
                                ));
-            $query->add_from(array(
+            $this->wrappedquery->add_from(array(
                                   'join' => 'INNER JOIN',
                                   'table' => 'user',
                                   'alias' => 'outerusers',
                                   'on' => 'firstpost.userid = outerusers.id'
                              ));
         } else {
-            $query->add_select(array(
+            $this->wrappedquery->add_select(array(
                                     'table' => 'outerdiscussions',
                                     'column' => 'name',
                                     'alias' => 'name'
                                ));
         }
 
-
-        $query->add_orderby("timestamp ASC");
+        $this->wrappedquery->add_orderby("timestamp ASC");
     }
 }

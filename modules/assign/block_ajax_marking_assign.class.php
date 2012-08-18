@@ -28,7 +28,7 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_query.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 require_once($CFG->dirroot.'/mod/assign/locallib.php');
 
@@ -227,6 +227,7 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
                               'table' => 'assign',
                               'alias' => 'moduletable',
                          ));
+        $query->set_column('courseid', 'moduletable.course');
 
         $query->add_from(array(
                               'join' => 'INNER JOIN',
@@ -248,6 +249,8 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
         // Standard user id for joins.
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
+        $query->set_column('userid', 'sub.userid');
+
         $query->add_select(array('table' => 'sub',
                                  'column' => 'timemodified',
                                  'alias' => 'timestamp'));

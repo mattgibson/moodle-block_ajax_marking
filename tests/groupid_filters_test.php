@@ -383,7 +383,7 @@ class groupid_filters_test extends advanced_testcase {
         $countwrapper = new block_ajax_marking_filter_groupid_attach_countwrapper($countwrapper);
         // Add a select or two so we can see if the groupid is there.
         $countwrapper->add_select(array(
-                                       'table' => 'membergroupquery',
+                                       'table' => 'moduleunion',
                                        'column' => 'groupid'
                                   ));
         $countwrapper->add_select(array(

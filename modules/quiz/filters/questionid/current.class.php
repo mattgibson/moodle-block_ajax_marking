@@ -37,30 +37,27 @@ class block_ajax_marking_quiz_filter_questionid_current extends block_ajax_marki
 
     /**
      * Makes a set of question nodes by grouping submissions by questionid.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
         // Outer bit to get display name.
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'INNER JOIN',
                               'table' => 'question',
                               'on' => 'question.id = countwrapperquery.id'));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'question',
                                 'column' => 'name'));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'question',
                                 'column' => 'questiontext',
                                 'alias' => 'tooltip'));
 
         // This is only needed to add the right callback function.
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'column' => "'quiz'",
                                 'alias' => 'modulename'));
 
-        $query->add_orderby("question.name ASC");
+        $this->wrappedquery->add_orderby("question.name ASC");
     }
 }

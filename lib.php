@@ -591,9 +591,14 @@ SQL;
  * are implemented differently, so we just copy/paste and let the optimiser deal with it.
  */
 function block_ajax_marking_get_countwrapper_groupid_sql() {
+
+    // If the groups have been attached to the countwrapper, we use this.
     $sql = <<<SQL
         COALESCE(membergroupquery.groupid, 0)
 SQL;
+    // If the groups have been attached to the moduleunions, we use this.
+    $sql = ' moduleunion.groupid ';
+
     return $sql;
 
 }

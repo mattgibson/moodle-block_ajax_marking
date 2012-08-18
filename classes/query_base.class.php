@@ -694,7 +694,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      * @throws coding_exception
      */
     public function get_column($columnname) {
-        if (in_array($columnname, $this->columns)) {
+        if (array_key_exists($columnname, $this->columns)) {
             return $this->columns[$columnname];
         }
 
@@ -711,7 +711,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     public function set_column($columnname, $sql) {
 
-        if (in_array($columnname, $this->columns)) {
+        if (array_key_exists($columnname, $this->columns)) {
             $message = "Trying to add a {$columnname} column, but it's already been stored as ".
                 $this->columns[$columnname];
             throw new coding_exception($message);

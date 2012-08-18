@@ -84,12 +84,14 @@ class block_ajax_marking_nodes_builder_base {
                     'alias' => 'moduletable',
             ));
         } else {
-            $query = $moduleclass->query_factory($confignodes);
+            $query = $moduleclass->query_factory();
         }
 
         $query->add_select(array('table'  => 'course_modules',
                                  'column' => 'id',
                                  'alias'  =>'coursemoduleid'));
+        $query->set_column('coursemoduleid', 'course_modules.id');
+
         // Need the course to join to other filters.
         $query->add_select(array('table'  => 'moduletable',
                                  'column' => 'course'));
@@ -112,6 +114,7 @@ class block_ajax_marking_nodes_builder_base {
         self::apply_sql_owncourses($query);
 
         self::add_query_filter($query, 'groupid', 'attach_highest');
+        self::add_query_filter($query, 'groupid', 'attach_moduleunion');
 
         return $query;
     }
@@ -416,11 +419,11 @@ class block_ajax_marking_nodes_builder_base {
      * course. Params need to be made specific to this module as they will be duplicated. This is required
      * because sometimes, students leave and their work is left over.
      *
-     * @param block_ajax_marking_query_base $query
+     * @param block_ajax_marking_query $query
      * @param array $filters So we can filter by cohort id if we need to
      * @return array The join and where strings, with params. (Where starts with 'AND')
      */
-    private static function apply_sql_enrolled_students(block_ajax_marking_query_base $query,
+    private static function apply_sql_enrolled_students(block_ajax_marking_query $query,
                                                         array $filters) {
 
         global $DB, $CFG, $USER;
@@ -766,6 +769,10 @@ SQL;
         $makingcoursemodulenodes = ($nextnodefilter === 'coursemoduleid');
 
         $countwrapperquery = new block_ajax_marking_query_base();
+        $countwrapperquery->set_column('courseid', 'moduleunion.course');
+        $countwrapperquery->set_column('coursemoduleid', 'moduleunion.coursemoduleid');
+        $countwrapperquery->set_column('userid', 'moduleunion.userid');
+
         // We find out how many submissions we have here. Not DISTINCT as we are grouping by
         // nextnodefilter in the superquery.
 
@@ -1014,41 +1021,17 @@ SQL;
      */
     public static function get_count_for_single_node($filters) {
 
-        global $CFG;
-
-        // We need to make the same unmarked nodes query as usual, but with an extra wrapper to limit it to one node.
-
+        // New approach...
+        // Re-do the filters so that whatever the current filter is, it gets used to group the nodes again.
+        // e.g. click on a course and nextnodefilter will normally be the next level down, but we are going to ask
+        // for a course grouping whilst also having courseid = 2 so course is used for both current and ancestor
+        // decorators.
         $filters[$filters['currentfilter']] = 'nextnodefilter';
 
-        $modulequeries = self::get_module_queries_array($filters);
-        if (empty($modulequeries)) {
-            return array();
-        }
+        // Get nodes using unmarked nodes function.
+        $nodes = self::unmarked_nodes($filters);
 
-        $countwrapperquery = self::get_count_wrapper_query($modulequeries, $filters);
-
-        self::add_query_filter($countwrapperquery, 'core', 'attach_config_tables_countwrapper');
-
-        self::apply_sql_enrolled_students($countwrapperquery, $filters);
-        self::apply_sql_display_settings($countwrapperquery);
-        self::apply_sql_owncourses($countwrapperquery, 'moduleunion.course');
-
-        $displayquery = self::get_display_query($countwrapperquery, $filters);
-
-        // This will give us a query that will get the relevant node and all its siblings.
-
-        // Now, add the current node as a WHERE clause, so we only get that one.
-        $displayquery->add_where(array('type' => 'AND',
-                                       'condition' => 'countwrapperquery.id = :filtervalue '));
-        $displayquery->add_param('filtervalue', $filters['filtervalue']);
-
-        // This is just for copying and pasting from the paused debugger into a DB GUI.
-        if ($CFG->debug == DEBUG_DEVELOPER) {
-            $debugquery = $displayquery->debuggable_query();
-        }
-
-        $nodes = $displayquery->execute();
-
+        // Pop the only one off the end.
         $node = array_pop($nodes); // Single node object.
         return array('recentcount'  => $node->recentcount,
                      'mediumcount'  => $node->mediumcount,

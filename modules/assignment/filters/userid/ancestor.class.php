@@ -42,16 +42,12 @@ class block_ajax_marking_assignment_filter_userid_ancestor extends block_ajax_ma
 
     /**
      * Not sure we'll ever need this, but just in case...
-     *
-     * @static
-     * @param block_ajax_marking_query $query
-     * @param int $userid
      */
-    public function alter_query(block_ajax_marking_query $query, $userid) {
+    public function alter_query() {
         $clause = array(
             'type' => 'AND',
             'condition' => 'sub.userid = :assignmentuseridfilteruserid');
-        $query->add_where($clause);
-        $query->add_param('assignmentuseridfilteruserid', $userid);
+        $this->wrappedquery->add_where($clause);
+        $this->wrappedquery->add_param('assignmentuseridfilteruserid', $this->get_parameter());
     }
 }

@@ -36,37 +36,20 @@ global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
- * Makes the query retrieve the highest visible cohort id for each submission. This takes account of the fact that
- * students can be in more than one cohort and those cohorts may or may not be hidden by the block settings. We
- * always want this to be used so we can filter based on settings.
- *
- * @todo This doesn't work. Use greatest-n-per-group to fix it.
+ * Attaches the question id to the countwrapper query. Can only be used when quiz is the only one in
+ * use, or else it makes the union queries inconsistent. Depends on having a filter attaching it to the moduleunion.
  */
-class block_ajax_marking_filter_cohortid_attach_highest extends block_ajax_marking_query_decorator_base {
+class block_ajax_marking_filter_groupid_attach_moduleunion extends
+    block_ajax_marking_query_decorator_base {
 
     /**
-     * This will join the cohorts tables so tht the id can be added to the query in some way.
-     *
-     * @todo doesn't deal with a user being in more than one cohort yet.
-     * @return void
+     * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
+     * nodes.
      */
     protected function alter_query() {
 
-        // We need to join the userid to the cohort, if there is one.
-        // TODO when is there not one?
-        // Add join to cohort_members.
-        $table = array(
-            'join' => 'INNER JOIN',
-            'table' => 'cohort_members',
-            'on' => 'cohort_members.userid = moduleunion.userid'
-        );
-        $this->wrappedquery->add_from($table);
-        $table = array(
-            'join' => 'INNER JOIN',
-            'table' => 'cohort',
-            'on' => 'cohort_members.cohortid = cohort.id'
-        );
-        $this->wrappedquery->add_from($table);
-
+        $this->wrappedquery->add_select(array(
+                                             'column' => 'COALESCE(membergroupquery.groupid, 0)',
+                                             'alias' => 'groupid'));
     }
 }

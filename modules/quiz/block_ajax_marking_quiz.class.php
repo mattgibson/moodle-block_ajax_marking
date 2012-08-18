@@ -30,7 +30,7 @@ if (!defined('MOODLE_INTERNAL')) {
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_query.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
 // We only need this file for the constants. Doing this so that we don't have problems including
@@ -235,6 +235,8 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 'table' => $this->modulename,
                 'alias' => 'moduletable',
         ));
+        $query->set_column('courseid', 'moduletable.course');
+
         $query->add_from(array(
                 'table' => 'quiz_attempts',
                 'on'    => 'moduletable.id = quiz_attempts.quiz'
@@ -256,6 +258,8 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
+        $query->set_column('userid', 'sub.userid');
+
         $query->add_select(array('table' => 'sub',
                                 'column' => 'timecreated',
                                 'alias'  => 'timestamp'));

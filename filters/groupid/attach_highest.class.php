@@ -48,10 +48,11 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
      * once when students are in two groups, so we need to do it like this. It's a greatest-n-per-group
      * problem, solved with the classic left-join approach.
      *
-     * @param block_ajax_marking_module_query $query
      * @return void
      */
-    protected function alter_query(block_ajax_marking_module_query $query) {
+    protected function alter_query() {
+
+        $query = $this->wrappedquery;
 
         list($maxquery, $maxparams) = block_ajax_marking_group_max_subquery();
         list($memberquery, $memberparams) = block_ajax_marking_group_members_subquery();
@@ -62,8 +63,8 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
         $table = array(
             'join' => 'LEFT JOIN',
             'table' => $memberquery,
-            'on' => 'membergroupquery.userid = '.$query->get_userid_column().
-                     ' AND membergroupquery.coursemoduleid = '.$query->get_coursemoduleid_column(),
+            'on' => 'membergroupquery.userid = '.$query->get_column('userid').
+                     ' AND membergroupquery.coursemoduleid = '.$query->get_column('coursemoduleid'),
             'alias' => 'membergroupquery',
             'subquery' => true);
         $query->add_from($table);

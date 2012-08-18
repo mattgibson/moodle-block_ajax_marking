@@ -45,14 +45,10 @@ class block_ajax_marking_quiz_filter_questionid_attach_countwrapper extends
     /**
      * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
      * nodes.
-     *
-     * @static
-     * @param block_ajax_marking_module_query $query
-     * @return mixed|void
      */
-    protected function alter_query(block_ajax_marking_module_query $query) {
+    protected function alter_query() {
 
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'moduleunion',
                                 'column' => 'questionid',
                                 'alias' => 'id'));

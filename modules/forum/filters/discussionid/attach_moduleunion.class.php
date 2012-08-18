@@ -44,12 +44,8 @@ class block_ajax_marking_forum_filter_discussionid_attach_moduleunion extends bl
     /**
      * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
      * nodes.
-     *
-     * @static
-     * @param block_ajax_marking_module_query $query
-     * @return mixed|void
      */
-    protected function alter_query(block_ajax_marking_module_query $query) {
+    protected function alter_query() {
 
         // Apply WHERE clause.
         $conditions = array(
@@ -58,7 +54,7 @@ class block_ajax_marking_forum_filter_discussionid_attach_moduleunion extends bl
             'alias' => 'discussionid'
         );
         // TODO needs applying to just the quiz one.
-        $query->add_select($conditions);
+        $this->wrappedquery->add_select($conditions);
 
     }
 }

@@ -59,14 +59,14 @@ class block_ajax_marking_filter_core_attach_config_tables_countwrapper extends b
         $this->wrappedquery->add_from(array('join' => 'LEFT JOIN',
                                'table' => 'block_ajax_marking',
                                'on' => "cmconfig.tablename = 'course_modules'
-                                        AND cmconfig.instanceid = moduleunion.coursemoduleid
+                                        AND cmconfig.instanceid = {$this->wrappedquery->get_column('coursemoduleid')}
                                         AND cmconfig.userid = :confuserid1 ",
                                'alias' => 'cmconfig'));
 
         $this->wrappedquery->add_from(array('join' => 'LEFT JOIN',
                                'table' => 'block_ajax_marking',
                                'on' => "courseconfig.tablename = 'course'
-                                       AND courseconfig.instanceid = moduleunion.course
+                                       AND courseconfig.instanceid = {$this->wrappedquery->get_column('courseid')}
                                        AND courseconfig.userid = :confuserid2 ",
                                'alias' => 'courseconfig'));
         $this->wrappedquery->add_param('confuserid1', $USER->id);

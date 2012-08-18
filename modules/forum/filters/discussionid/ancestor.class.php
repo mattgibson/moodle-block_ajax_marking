@@ -35,18 +35,14 @@ class block_ajax_marking_forum_filter_discussionid_ancestor extends block_ajax_m
 
     /**
      * Adds SQL for when there is a discussion node as an ancestor of the current nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
-     * @param int $discussionid
      */
-    protected function alter_query(block_ajax_marking_query $query, $discussionid) {
+    protected function alter_query() {
 
         $clause = array(
             'type' => 'AND',
             'condition' => 'discussion.id = :discussionidfilterdiscussionid');
-        $query->add_where($clause);
-        $query->add_param('discussionidfilterdiscussionid', $discussionid);
+        $this->wrappedquery->add_where($clause);
+        $this->wrappedquery->add_param('discussionidfilterdiscussionid', $this->get_parameter());
     }
 
 }

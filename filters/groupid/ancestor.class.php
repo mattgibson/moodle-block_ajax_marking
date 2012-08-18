@@ -43,19 +43,17 @@ class block_ajax_marking_filter_groupid_ancestor extends block_ajax_marking_quer
 
     /**
      * Used when there is an ancestor node representing a coursemodule.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
-     * @param int|string $groupid
-     * @return void
      */
-    protected function alter_query(block_ajax_marking_query $query, $groupid) {
+    protected function alter_query() {
+
+        static $counter = 0; // We will get duplicates if we use this on modulequerues.
+        $counter++;
 
         $conditions = array(
             'type' => 'AND',
-            'condition' => block_ajax_marking_get_countwrapper_groupid_sql().' = :groupid');
-        $query->add_where($conditions);
-        $query->add_param('groupid', $groupid);
+            'condition' => block_ajax_marking_get_countwrapper_groupid_sql().' = :groupid'.$counter);
+        $this->wrappedquery->add_where($conditions);
+        $this->wrappedquery->add_param('groupid'.$counter, $this->get_parameter());
     }
 
 }

@@ -38,19 +38,15 @@ class block_ajax_marking_filter_userid_attach_countwrapper extends block_ajax_ma
     /**
      * Makes user nodes for the assignment modules by grouping them and then adding in the right
      * text to describe them.
-     *
-     * @static
-     * @param block_ajax_marking_module_query $query
-     * @return void
      */
-    protected function alter_query(block_ajax_marking_module_query $query) {
+    protected function alter_query() {
 
         // Make the count be grouped by user id.
         $conditions = array(
             'table' => 'moduleunion',
             'column' => 'userid',
             'alias' => 'id');
-        $query->add_select($conditions, true);
+        $this->wrappedquery->add_select($conditions, true);
 
     }
 }

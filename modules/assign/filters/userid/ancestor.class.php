@@ -36,16 +36,13 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 class block_ajax_marking_assign_filter_userid_ancestor extends block_ajax_marking_query_decorator_base {
 
     /**
-     * @static
-     * @param block_ajax_marking_query $query
-     * @param $userid
      */
-    protected function alter_query(block_ajax_marking_query $query, $userid) {
+    protected function alter_query() {
 
         $clause = array(
             'type' => 'AND',
             'condition' => 'sub.userid = :assignuseridfilteruserid');
-        $query->add_where($clause);
-        $query->add_param('assignuseridfilteruserid', $userid);
+        $this->wrappedquery->add_where($clause);
+        $this->wrappedquery->add_param('assignuseridfilteruserid', $this->get_parameter());
     }
 }

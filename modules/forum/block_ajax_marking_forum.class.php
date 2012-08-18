@@ -30,7 +30,7 @@ if (!defined('MOODLE_INTERNAL')) {
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_query.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
 /**
@@ -259,6 +259,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                               'alias' => 'moduletable',
                               'on' => 'discussions.forum = moduletable.id'
                          ));
+        $query->set_column('courseid', 'moduletable.course');
+
         // We need the context id to check the ratings table in the teacher SQL.
         $query->add_from(array(
                               'table' => 'course_modules',
@@ -275,6 +277,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
+        $query->set_column('userid', 'sub.userid');
+
         $query->add_select(array('table' => 'sub',
                                  'column' => 'modified',
                                  'alias' => 'timestamp'));

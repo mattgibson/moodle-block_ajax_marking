@@ -43,17 +43,13 @@ class block_ajax_marking_quiz_filter_questionid_ancestor extends block_ajax_mark
     /**
      * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
      * nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
-     * @param int $questionid
      */
-    protected function alter_query(block_ajax_marking_query $query, $questionid) {
+    protected function alter_query() {
 
         $clause = array(
             'type' => 'AND',
             'condition' => 'moduleunion.questionid = :quizfilterquestionidancestor');
-        $query->add_where($clause);
-        $query->add_param('quizfilterquestionidancestor', $questionid);
+        $this->wrappedquery->add_where($clause);
+        $this->wrappedquery->add_param('quizfilterquestionidancestor', $this->get_parameter());
     }
 }

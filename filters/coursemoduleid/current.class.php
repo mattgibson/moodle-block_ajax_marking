@@ -45,28 +45,25 @@ class block_ajax_marking_filter_coursemoduleid_current
 
     /**
      * Makes SQL for the text labels for the course nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
         // Same order as the super query will need them. Prefixed so we will have it as the
         // first column for the GROUP BY.
 
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'INNER JOIN',
                               'table' => 'course_modules',
                               'on' => 'course_modules.id = countwrapperquery.id'));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'course_modules',
                                 'column' => 'id',
                                 'alias' => 'coursemoduleid'));
         // The javascript needs this for styling.
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'countwrapperquery',
                                 'column' => 'modulename'));
-        $this->add_coursemodule_details($query);
+        $this->add_coursemodule_details($this->wrappedquery);
         // This will add the stuff that will show us the name of the actual module instance.
         // We use the same stuff for both config and marking trees, but the config tree doesn't need
         // the stuff to pull through submission counts.

@@ -38,26 +38,23 @@ class block_ajax_marking_quiz_filter_userid_current extends block_ajax_marking_q
     /**
      * Makes a bunch of user nodes by grouping quiz submissions by the user id. The grouping is
      * automatic, but the text labels for the nodes are specified here.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'countwrapperquery',
                                 'column' => 'timestamp',
                                 'alias' => 'tooltip')
         );
 
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'usertable',
                                 'column' => 'firstname'));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'usertable',
                                 'column' => 'lastname'));
 
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'INNER JOIN',
                               'table' => 'user',
                               'alias' => 'usertable',
@@ -65,7 +62,7 @@ class block_ajax_marking_quiz_filter_userid_current extends block_ajax_marking_q
                          ));
 
         // This is only needed to add the right callback function.
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'column' => "'quiz'",
                                 'alias' => 'modulename'
                            ));

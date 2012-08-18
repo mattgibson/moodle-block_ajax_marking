@@ -42,15 +42,12 @@ class block_ajax_marking_filter_courseid_attach_countwrapper extends block_ajax_
 
     /**
      * This will change the query so that it does whatever this decorator is supposed to do.
-     *
-     * @param block_ajax_marking_module_query $query
-     * @return void
      */
-    protected function alter_query(block_ajax_marking_module_query $query) {
+    protected function alter_query() {
         $select = array(
             'table' => 'moduleunion',
             'column' => 'course',
             'alias' => 'id');
-        $query->add_select($select, true);
+        $this->wrappedquery->add_select($select, true);
     }
 }

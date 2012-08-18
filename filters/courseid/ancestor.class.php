@@ -43,17 +43,14 @@ class block_ajax_marking_filter_courseid_ancestor extends block_ajax_marking_que
     /**
      * This is for when a courseid node is an ancestor of the node that has been
      * selected, so we just do a where.
-     *
-     * @param block_ajax_marking_query $query
-     * @param int $courseid
      */
-    protected function alter_query(block_ajax_marking_query $query, $courseid) {
+    protected function alter_query() {
 
         $conditions = array(
             'type' => 'AND',
             'condition' => 'moduleunion.course = :courseidancestorcourseid');
-        $query->add_where($conditions);
-        $query->add_param('courseidancestorcourseid', $courseid);
+        $this->wrappedquery->add_where($conditions);
+        $this->wrappedquery->add_param('courseidancestorcourseid', $this->get_parameter());
     }
 
 

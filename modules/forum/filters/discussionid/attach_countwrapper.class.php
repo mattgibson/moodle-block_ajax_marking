@@ -36,13 +36,10 @@ class block_ajax_marking_forum_filter_discussionid_attach_countwrapper extends
 
     /**
      * Adds SQL to construct a set of discussion nodes.
-     *
-     * @param block_ajax_marking_module_query $query
-     * @return mixed|void
      */
-    protected function alter_query(block_ajax_marking_module_query $query) {
+    protected function alter_query() {
 
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'moduleunion',
                                 'column' => 'discussionid',
                                 'alias' => 'id'), true

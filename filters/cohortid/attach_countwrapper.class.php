@@ -41,14 +41,13 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 class block_ajax_marking_filter_cohortid_attach_countwrapper extends block_ajax_marking_query_decorator_base {
 
     /**
-     * @param block_ajax_marking_query $query
      * @return void
      */
-    protected function alter_query(block_ajax_marking_module_query $query) {
+    protected function alter_query() {
 
         $conditions = array(
             'table' => 'cohort',
             'column' => 'id');
-        $query->add_select($conditions);
+        $this->wrappedquery->add_select($conditions);
     }
 }
