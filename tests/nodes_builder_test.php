@@ -126,7 +126,7 @@ class test_nodes_builder_base extends advanced_testcase {
         // Assignment module is disabled in the PHPUnit DB, so we need to re-enable it.
         $DB->set_field('modules', 'visible', 1, array('name' => 'assignment'));
 
-        $classes = block_ajax_marking_get_module_classes();
+        $classes = block_ajax_marking_get_module_classes(true);
 
         foreach ($classes as $modclass) {
 
