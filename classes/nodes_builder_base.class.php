@@ -867,7 +867,7 @@ SQL;
         if (!empty($modulename) && $modulename !== 'nextnodefilter') {
             $filename = $CFG->dirroot.'/blocks/ajax_marking/modules/'.$modulename.'/filters/'.
                         $filterid.'/'.$type.'.class.php';
-            $classname = 'block_ajax_marking_'.$modulename.'_query_decorator_'.$filterid.'_'.$type;
+            $classname = 'block_ajax_marking_'.$modulename.'_filter_'.$filterid.'_'.$type;
             $placestotry[$filename] = $classname;
         }
 

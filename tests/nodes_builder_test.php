@@ -743,6 +743,30 @@ class test_nodes_builder_base extends advanced_testcase {
     }
 
     /**
+     * In case we want to get a coursemodule or something, we may need to know what the id of a module is.
+     *
+     * @param string $modulename
+     * @return int
+     */
+    protected function get_module_id($modulename) {
+
+        global $DB;
+
+        static $cachedids = array();
+
+        if (array_key_exists($modulename, $cachedids)) {
+            return $cachedids[$modulename];
+        }
+
+        $moduleid = $DB->get_field('modules', 'id', array('name' => $modulename));
+
+        $cachedids[$modulename] = $moduleid;
+
+        return $moduleid;
+
+    }
+
+    /**
      * Makes sure we can get one node only for when the counts will have changed due to a settings tweak.
      *
      */
@@ -763,6 +787,51 @@ class test_nodes_builder_base extends advanced_testcase {
         $message = "Wrong number of things returned as the count for a single node. Expected {$this->submissioncount} ".
             "but got {$node['itemcount']}";
         $this->assertEquals($this->submissioncount, $node['itemcount'], $message);
+
+    }
+
+    /**
+     * Make nodes for quiz questions to make sure they're there.
+     */
+    public function test_quiz_question_nodes_work() {
+
+        global $DB;
+
+        $this->make_module_submissions();
+        $this->setUser(key($this->teachers));
+
+        // Quiz.
+        $quizmoduleid = $this->get_module_id('quiz');
+        $quizcoursemodules = $DB->get_records('course_modules', array('module' => $quizmoduleid));
+        $quizone = reset($quizcoursemodules);
+
+        $filters = array();
+        $filters['coursemoduleid'] = $quizone->id;
+        $filters['questionid'] = 'nextnodefilter'; // We know at least one question was made in an empty DB.
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($filters);
+        $this->assertInternalType('array', $nodes);
+    }
+
+    /**
+     * Make sure we get some nodes back for assignment submissions rather than an error.
+     */
+    public function test_assignment_userid_nodes_work() {
+
+        global $DB;
+
+        $this->make_module_submissions();
+        $this->setUser(key($this->teachers));
+
+        // Assignment.
+        $assignmentmoduleid = $this->get_module_id('assignment');
+        $assignmentcoursemodules = $DB->get_records('course_modules', array('module' => $assignmentmoduleid));
+        $assignmentone = reset($assignmentcoursemodules);
+        $filters = array();
+        $filters['coursemoduleid'] = $assignmentone->id;
+        $filters['userid'] = 'nextnodefilter';
+
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($filters);
+        $this->assertInternalType('array', $nodes);
 
     }
 
