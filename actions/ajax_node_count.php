@@ -71,4 +71,7 @@ $nodecounts = block_ajax_marking_nodes_builder_base::get_count_for_single_node($
 
 $data = array('counts' => $nodecounts,
               'nodeindex' => $params['nodeindex']);
+if ($CFG->debug == DEBUG_DEVELOPER) {
+    $data['sqlquery'] = block_ajax_marking_nodes_builder_base::get_last_query();
+}
 echo json_encode($data);

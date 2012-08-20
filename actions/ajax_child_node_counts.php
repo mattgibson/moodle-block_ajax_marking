@@ -79,4 +79,7 @@ foreach ($nodes as &$node) {
 $nodes = array_values($nodes);
 $data = array('childnodecounts' => $nodes,
               'nodeindex' => $params['nodeindex']);
+if ($CFG->debug == DEBUG_DEVELOPER) {
+    $data['sqlquery'] = block_ajax_marking_nodes_builder_base::get_last_query();
+}
 echo json_encode($data);

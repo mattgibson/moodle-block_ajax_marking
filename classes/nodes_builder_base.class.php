@@ -61,6 +61,14 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/bulk_context_module.cla
 class block_ajax_marking_nodes_builder_base {
 
     /**
+     * This holds the debug version of the last SQL query to run. If developer debug is on, we send it with the
+     * AJAX response to make it easier to check the query against the DB without using Xdebug etc.
+     *
+     * @var string
+     */
+    protected static $lastquery;
+
+    /**
      * This function applies standard joins to the module query so it can filter as much as possible before we
      * UNION the results. The more we do here, the better, as this stuff can use JOINs and therefore indexes.
      * Stuff that's done in the outer countwrapper query will be join to the temporary table created by the UNION
@@ -182,6 +190,7 @@ class block_ajax_marking_nodes_builder_base {
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
             $debugquery = $displayquery->debuggable_query();
+            self::set_last_query($displayquery);
         }
 
         $nodes = $displayquery->execute();
@@ -510,6 +519,7 @@ SQL;
         // This is just for copying and pasting from the paused debugger into a DB GUI.
         if ($CFG->debug == DEBUG_DEVELOPER) {
             $debugquery = $configbasequery->debuggable_query();
+            self::set_last_query($configbasequery);
         }
 
         $nodes = $configbasequery->execute();
@@ -1037,6 +1047,27 @@ SQL;
                      'mediumcount'  => $node->mediumcount,
                      'overduecount' => $node->overduecount,
                      'itemcount'    => $node->itemcount);
+    }
+
+    /**
+     * Stores a debuggable SQL query that's ready to be copy/pasted into an SQL GUI.
+     *
+     * @static
+     * @param block_ajax_marking_query $query
+     */
+    protected static function set_last_query(block_ajax_marking_query $query) {
+        self::$lastquery = $query->debuggable_query();
+    }
+
+    /**
+     * Returns the debug version of the last SQL query to be run by this class so we can get access to it e.g. to
+     * send it back via AJAX if developer debug is on.
+     *
+     * @static
+     * @return string
+     */
+    public static function get_last_query() {
+        return self::$lastquery;
     }
 
 }
