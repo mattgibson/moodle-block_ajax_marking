@@ -632,7 +632,7 @@ M.block_ajax_marking.initialise = function () {
 
             'content' : '<div id="coursessheader" class="treetabheader">'+
                                     '<div id="coursesrefresh" class="refreshbutton"></div>'+
-                                    '<div id="coursessql" class="refreshbutton"></div>'+
+                                    '<div id="coursesquery" class="refreshbutton"></div>'+
                                     '<div id="coursesstatus" class="statusdiv">'+
                                         M.str.block_ajax_marking.totaltomark+
                                         ' <span id="coursescount" class="countspan"></span>'+
@@ -665,18 +665,15 @@ M.block_ajax_marking.initialise = function () {
 
         if (M.cfg.debug) {
             var buttondata = {
-                label : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon"'+
-                    ' alt="'+M.str.block_ajax_marking.refresh+'" />',
-                id : 'coursesrefresh_button',
-                title : M.str.block_ajax_marking.refresh,
-                onclick : {fn : function () {
-                    YAHOO.util.Dom.setStyle('block_ajax_marking_error',
-                                            'display',
-                                            'none');
-                    coursestab.displaywidget.initialise();
+                "label" : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/query.png" class="queryicon"'+
+                    ' alt="'+M.str.block_ajax_marking.query+'" />',
+                "id" : 'coursesquery_button',
+                "title" : M.str.block_ajax_marking.query,
+                "onclick" : {"fn" : function () {
+                    // Code to copy to clipboard??
                 }},
-                container : 'coursesrefresh'};
-            coursestab.refreshbutton = new YAHOO.widget.Button(buttondata);
+                container : 'coursesquery'};
+            coursestab.querybutton = new YAHOO.widget.Button(buttondata);
         }
 
         // Cohorts tab
