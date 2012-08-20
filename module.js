@@ -222,6 +222,10 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
             index = ajaxresponsearray.nodeindex;
         }
 
+        if (ajaxresponsearray.sqlquery) {
+            currenttab.sqlquery = ajaxresponsearray.sqlquery;
+        }
+
         // If we have a neatly structured Moodle error, we want to display it
         if (ajaxresponsearray.hasOwnProperty('error')) {
 
@@ -628,6 +632,7 @@ M.block_ajax_marking.initialise = function () {
 
             'content' : '<div id="coursessheader" class="treetabheader">'+
                                     '<div id="coursesrefresh" class="refreshbutton"></div>'+
+                                    '<div id="coursessql" class="refreshbutton"></div>'+
                                     '<div id="coursesstatus" class="statusdiv">'+
                                         M.str.block_ajax_marking.totaltomark+
                                         ' <span id="coursescount" class="countspan"></span>'+
@@ -657,6 +662,22 @@ M.block_ajax_marking.initialise = function () {
                 coursestab.displaywidget.initialise();
             }},
             container : 'coursesrefresh'});
+
+        if (M.cfg.debug) {
+            var buttondata = {
+                label : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon"'+
+                    ' alt="'+M.str.block_ajax_marking.refresh+'" />',
+                id : 'coursesrefresh_button',
+                title : M.str.block_ajax_marking.refresh,
+                onclick : {fn : function () {
+                    YAHOO.util.Dom.setStyle('block_ajax_marking_error',
+                                            'display',
+                                            'none');
+                    coursestab.displaywidget.initialise();
+                }},
+                container : 'coursesrefresh'};
+            coursestab.refreshbutton = new YAHOO.widget.Button(buttondata);
+        }
 
         // Cohorts tab
         var cohortstabconfig = {
