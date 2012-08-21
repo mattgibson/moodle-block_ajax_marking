@@ -54,58 +54,106 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
 
         $query = $this->wrappedquery;
 
-        list($maxquery, $maxparams) = block_ajax_marking_group_max_subquery();
-        list($memberquery, $memberparams) = block_ajax_marking_group_members_subquery();
         list($visibilitysubquery, $visibilityparams) = block_ajax_marking_group_visibility_subquery();
 
-        // We need to join to groups members to see if there are any memberships at all (in which case
-        // we use the highest visible id if there is one), or 0 if there are no memberships at all.
-        $table = array(
-            'join' => 'LEFT JOIN',
-            'table' => $memberquery,
-            'on' => 'membergroupquery.userid = '.$query->get_column('userid').
-                     ' AND membergroupquery.coursemoduleid = '.$query->get_column('coursemoduleid'),
-            'alias' => 'membergroupquery',
-            'subquery' => true);
-        $query->add_from($table);
-        $query->add_params($memberparams);
 
-        // To make sure it's the highest visible one, we use this subquery as a greatest-n-per-group thing.
-        $table = array(
-            'join' => 'LEFT JOIN',
-            'table' => $maxquery,
-            'on' => 'membergroupquery.userid = maxgroupquery.userid
-                     AND membergroupquery.coursemoduleid = maxgroupquery.coursemoduleid
-                     AND maxgroupquery.groupid > membergroupquery.groupid',
-            'alias' => 'maxgroupquery',
-            'subquery' => true);
-        $query->add_from($table);
-        $query->add_params($maxparams);
+        $query->add_from(
+            array(
+                 'join' => 'LEFT JOIN',
+                 'table' => 'groups_members',
+                 'alias' => 'gmember_members',
+                 'on' => 'gmember_members.userid = '.$query->get_column('userid')
+            ));
+        $query->add_from(
+            array(
+                 'join' => 'LEFT JOIN',
+                 'table' => 'groups',
+                 'alias' => 'gmember_groups',
+                 'on' => 'gmember_groups.id = gmember_members.groupid'.
+                       ' AND gmember_groups.courseid = '.$query->get_column('courseid')
+            )
+        );
+        $query->add_from(
+            array(
+                 'join' => 'LEFT JOIN',
+                 'table' => 'groups_members',
+                 'alias' => 'gmax_members',
+                 'on' => 'gmax_members.userid = '.$query->get_column('userid').
+                          ' AND gmax_members.groupid > gmember_members.groupid'
+            ));
+        $query->add_from(
+            array(
+                 'join' => 'LEFT JOIN',
+                 'table' => 'groups',
+                 'alias' => 'gmax_groups',
+                 'on' => 'gmax_groups.id = gmax_members.groupid '.
+                       ' AND gmax_groups.courseid = '.$query->get_column('courseid')
+            )
+        );
+        $query->add_where(
+            array(
+                 'type' => 'AND',
+                 'condition' => 'gmax_members.id IS NULL'
+            )
+        );
+        // Due to using two tables for the left joins, we need to make sure they either match or are both null.
+        $query->add_where(
+            array(
+                 'type' => 'AND',
+                 'condition' => '((gmax_groups.id = gmax_members.groupid)
+                                  OR (gmax_groups.id IS NULL AND gmax_members.groupid IS NULL))'
+            )
+        );
+        $query->add_where(
+            array(
+                 'type' => 'AND',
+                 'condition' => '((gmember_groups.id = gmember_members.groupid)
+                                  OR (gmember_groups.id IS NULL AND gmember_members.groupid IS NULL))'
+            )
+        );
 
-        // We join only if the group id is larger, then specify that it must be null. This means that
-        // the membergroupquery group id will be the largest available.
-        $query->add_where(array(
-                           'type' => 'AND',
-                           'condition' => 'maxgroupquery.groupid IS NULL'
-                      ));
+        $memberquery = "
+            /* Joins directly to the rest of the stuff from the module union row. Would get the membership if there */
+            /* was only one with no settings. */
+     LEFT JOIN {groups_members} gmember_members
+            ON gmember_members.userid = {$query->get_column('userid')}
+     LEFT JOIN {groups} gmember_groups
+            ON gmember_groups.id = gmember_members.groupid
+            AND gmember_groups.courseid = {$query->get_column('courseid')}
 
-        // Make sure it's not hidden. We want to know if there are people with no group, compared to a group that
-        // is hidden, so the aim is to get a null group id if there are no memberships by left joining, then
-        // hide that null row if the settings for group id 0 say so.
-        $table = array(
-            'join' => 'LEFT JOIN',
-            'table' => $visibilitysubquery,
-            'on' => '(membervisibilityquery.groupid = membergroupquery.groupid OR
-                      (membervisibilityquery.groupid = 0 AND membergroupquery.groupid IS NULL))
-                     AND membervisibilityquery.coursemoduleid = membergroupquery.coursemoduleid',
-            'alias' => 'membervisibilityquery',
-            'subquery' => true);
-        $query->add_from($table);
-        $query->add_params($visibilityparams);
-        $query->add_where(array(
-            'type' => 'AND',
-            'condition' => 'membervisibilityquery.coursemoduleid IS NULL'
-        ));
+        /* This is the greatest n per group join which makes sure there are no other group memberships with lower ids.*/
+        /* i.e. it gets one group membership if there are two. */
+
+       LEFT JOIN {groups_members} gmax_members
+              ON gmax_members.userid = gmax_members.userid
+             AND gmax_members.groupid > gmember_members.groupid
+       LEFT JOIN {groups} gmax_groups
+              ON gmax_groups.id = gmax_members.groupid
+              AND gmax_groups.courseid = {$query->get_column('courseid')}
+           WHERE gmax_members.id IS NULL
+
+        ";
+
+//        $maxquery = "
+//        SELECT gmax_members.userid,
+//               gmax_groups.id AS groupid,
+//               gmax_course_modules.id AS coursemoduleid,
+//               CASE
+//                   WHEN visquery.groupid IS NULL THEN 1
+//                   ELSE 0
+//               END AS display
+//
+//    INNER JOIN {course_modules} gmax_course_modules
+//            ON gmax_course_modules.course = gmax_groups.courseid
+//     LEFT JOIN ({$visibilitysubquery}) visquery
+//            ON visquery.groupid = gmax_groups.id
+//               AND visquery.coursemoduleid = gmax_course_modules.id
+//           /* Limit the size of the subquery for performance */
+//         WHERE visquery.groupid IS NULL
+//
+//        ";
+
+
 
     }
 }

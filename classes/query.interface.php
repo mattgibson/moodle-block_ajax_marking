@@ -31,12 +31,31 @@ defined('MOODLE_INTERNAL') || die();
 interface block_ajax_marking_query {
 
     /**
-     * Adds a new select clause, which may include aggregate functions etc.
+     * Adds a column to the select. Needs a table, column, function (optional). If 'function' is
+     * COALESCE, 'table' is an array of 'table' => 'column' pairs, which can include defaults as
+     * strings or integers, which are added as they are, with no key specified.
      *
-     * @abstract
-     * @param array $column
-     * @param bool $prefix
-     * @return
+     * This one is complex.
+     *
+     * Issues:
+     * - may need DISTINCT in there, possibly inside a count.
+     * - Need to extract the column aliases for use in the GROUP BY later
+     *
+     * One column array can have:
+     * - table
+     * - column
+     * - alias
+     * - function e.g. COUNT
+     * - distinct (bool)
+     *
+     * @param array $column containing: 'function', 'table', 'column', 'alias', 'distinct' in any
+     * order
+     * @param bool $prefix Do we want this at the start, rather than the end?
+     * @throws coding_exception
+     * @throws invalid_parameter_exception
+     * @internal param bool $replace If true, the start or end element will be replaced with the incoming
+     * one. Default: false
+     * @return void
      */
     public function add_select(array $column, $prefix = false);
 

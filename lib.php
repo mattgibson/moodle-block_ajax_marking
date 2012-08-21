@@ -596,6 +596,7 @@ function block_ajax_marking_get_countwrapper_groupid_sql() {
     $sql = <<<SQL
         COALESCE(membergroupquery.groupid, 0)
 SQL;
+    $sql = 'gmember_members.groupid';
 
     return $sql;
 
