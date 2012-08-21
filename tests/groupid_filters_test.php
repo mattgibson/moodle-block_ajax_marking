@@ -351,7 +351,7 @@ class groupid_filters_test extends advanced_testcase {
         // A basic query should now return all four submissions.
         $this->setUser($teacher->id);
 
-        // Get coutwrapper without any decorators.
+        // Get countwrapper without any special decorators.
         $nodesbuilder = new ReflectionClass('block_ajax_marking_nodes_builder_base');
 
         $moduleunionmethod = $nodesbuilder->getMethod('get_module_queries_array');
@@ -365,26 +365,10 @@ class groupid_filters_test extends advanced_testcase {
 
         $totalnumberofsubmissions = 4;
 
-        // Check that the raw countwrapper gets what we need.
-        $sql = $countwrapper->debuggable_query();
-        $recordset = $DB->get_recordset_sql($countwrapper->get_sql(), $countwrapper->get_params());
-
-        // Count: should be 4. No other 'group by' filters, so just one record with an itemcount for all submissions.
-        $pregroupscount = 0;
-        $row = $recordset->current();
-        $pregroupscount += $row->itemcount;
-
-        $this->assertEquals($totalnumberofsubmissions,
-                            $pregroupscount,
-                            'Query not working before we even get to the groups decorator');
-
-        // OK - query works. now get the basic group ids that we expect.
-        // Wrap countwrapper in group id decorator.
-        $countwrapper = new block_ajax_marking_filter_groupid_attach_countwrapper($countwrapper);
         // Add a select or two so we can see if the groupid is there.
         $countwrapper->add_select(array(
-                                       'table' => 'moduleunion',
-                                       'column' => 'groupid'
+                                       'column' => block_ajax_marking_get_countwrapper_groupid_sql(),
+                                       'alias' => 'groupid'
                                   ));
         $countwrapper->add_select(array(
                                        'table' => 'moduleunion',
