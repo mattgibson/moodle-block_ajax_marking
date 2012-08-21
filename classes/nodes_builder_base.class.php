@@ -800,7 +800,7 @@ SQL;
         }
 
         // Add the groupid stuff. This is expensive, so we don't add this to each module query. It also
-        // uses a lot of tables, so if we dulicated it a lot of times, there's a risk of hitting the table
+        // uses a lot of tables, so if we duplicated it a lot of times, there's a risk of hitting the table
         // join limit.
         self::add_query_filter($countwrapperquery, 'groupid', 'attach_highest');
 
