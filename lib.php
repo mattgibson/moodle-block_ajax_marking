@@ -438,7 +438,7 @@ function block_ajax_marking_get_nextnodefilter_from_params(array $params) {
  * courses. This may or may not impact on the query optimiser being able to cache the execution
  * plan between users.
  *
- * // Query visualisation:
+ * Query visualisation:
  *               ______________________________________________________________
  *               |                                                            |
  * Course - Groups - coursemodules                                            |
@@ -596,8 +596,6 @@ function block_ajax_marking_get_countwrapper_groupid_sql() {
     $sql = <<<SQL
         COALESCE(membergroupquery.groupid, 0)
 SQL;
-    // If the groups have been attached to the moduleunions, we use this.
-    $sql = ' moduleunion.groupid ';
 
     return $sql;
 

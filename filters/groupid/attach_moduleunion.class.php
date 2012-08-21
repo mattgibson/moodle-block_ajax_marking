@@ -48,6 +48,8 @@ class block_ajax_marking_filter_groupid_attach_moduleunion extends
      */
     protected function alter_query() {
 
+        return;
+
         $this->wrappedquery->add_select(array(
                                              'column' => 'COALESCE(membergroupquery.groupid, 0)',
                                              'alias' => 'groupid'));

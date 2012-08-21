@@ -113,9 +113,6 @@ class block_ajax_marking_nodes_builder_base {
         self::apply_sql_visible($query);
         self::apply_sql_owncourses($query);
 
-        self::add_query_filter($query, 'groupid', 'attach_highest');
-        self::add_query_filter($query, 'groupid', 'attach_moduleunion');
-
         return $query;
     }
 
@@ -801,6 +798,12 @@ SQL;
         if (self::filters_need_cohort_id($filters)) {
             self::add_query_filter($countwrapperquery, 'cohortid', 'attach_highest');
         }
+
+        // Add the groupid stuff. This is expensive, so we don't add this to each module query. It also
+        // uses a lot of tables, so if we dulicated it a lot of times, there's a risk of hitting the table
+        // join limit.
+        self::add_query_filter($countwrapperquery, 'groupid', 'attach_highest');
+//        self::add_query_filter($countwrapperquery, 'groupid', 'attach_countwrapper');
 
         // Apply the node decorators to the query, depending on what nodes are being asked for.
         reset($filters);
