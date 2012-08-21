@@ -803,7 +803,6 @@ SQL;
         // uses a lot of tables, so if we dulicated it a lot of times, there's a risk of hitting the table
         // join limit.
         self::add_query_filter($countwrapperquery, 'groupid', 'attach_highest');
-//        self::add_query_filter($countwrapperquery, 'groupid', 'attach_countwrapper');
 
         // Apply the node decorators to the query, depending on what nodes are being asked for.
         reset($filters);
