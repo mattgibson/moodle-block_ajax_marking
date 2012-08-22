@@ -473,10 +473,10 @@ function block_ajax_marking_group_visibility_subquery() {
     static $counter = 0;
     $counter++;
 
-    $courses = block_ajax_marking_get_my_teacher_courses();
-    list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
-                                                             SQL_PARAMS_NAMED,
-                                                             "gvis_{$counter}_courses");
+//    $courses = block_ajax_marking_get_my_teacher_courses();
+//    list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
+//                                                             SQL_PARAMS_NAMED,
+//                                                             "gvis_{$counter}_courses");
 
     $default = 1;
     $sql = <<<SQL
@@ -504,8 +504,7 @@ function block_ajax_marking_group_visibility_subquery() {
             ON gviscoursemodulesettingsgroups.configid = gviscoursemodulesettings.id
                AND gviscoursemodulesettingsgroups.groupid = gvisgroups.id
 
-         WHERE gviscoursemodules.course {$coursessql}
-           AND COALESCE(gviscoursemodulesettingsgroups.display,
+         WHERE COALESCE(gviscoursemodulesettingsgroups.display,
                         gviscoursesettingsgroups.display,
                         {$default}) = 0
 SQL;

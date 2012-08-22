@@ -55,6 +55,7 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
         $query = $this->wrappedquery;
 
         list($visibilitysubquery, $visibilityparams) = block_ajax_marking_group_visibility_subquery();
+        list($gmaxvisibilitysubquery, $gmaxvisibilityparams) = block_ajax_marking_group_visibility_subquery();
 
 
         $query->add_from(
@@ -90,20 +91,8 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                        ' AND gmax_groups.courseid = '.$query->get_column('courseid')
             )
         );
-        $query->add_where(
-            array(
-                 'type' => 'AND',
-                 'condition' => 'gmax_members.id IS NULL'
-            )
-        );
+
         // Due to using two tables for the left joins, we need to make sure they either match or are both null.
-        $query->add_where(
-            array(
-                 'type' => 'AND',
-                 'condition' => '((gmax_groups.id = gmax_members.groupid)
-                                  OR (gmax_groups.id IS NULL AND gmax_members.groupid IS NULL))'
-            )
-        );
         $query->add_where(
             array(
                  'type' => 'AND',
@@ -111,6 +100,38 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                                   OR (gmember_groups.id IS NULL AND gmember_members.groupid IS NULL))'
             )
         );
+        $query->add_where(
+            array(
+                 'type' => 'AND',
+                 'condition' => '(gmax_members.groupid IS NULL OR gvismax.groupid IS NOT NULL)'
+            )
+        );
+
+        $query->add_from(
+            array(
+            'join' => 'LEFT JOIN',
+            'table' => $visibilitysubquery,
+            'subquery' => true,
+            'alias' => 'gvis',
+            'on' => 'gvis.groupid = gmember_groups.id
+                    AND gvis.coursemoduleid = '.$query->get_column('coursemoduleid')
+        ));
+        $query->add_params($visibilityparams);
+        $query->add_from(
+            array(
+                 'join' => 'LEFT JOIN',
+                 'table' => $gmaxvisibilitysubquery,
+                 'subquery' => true,
+                 'alias' => 'gvismax',
+                 'on' => 'gvismax.groupid = gmax_groups.id
+                    AND gvismax.coursemoduleid = '.$query->get_column('coursemoduleid')
+            ));
+        $query->add_params($gmaxvisibilityparams);
+        $query->add_where(
+            array(
+                 'type' => 'AND',
+                 'condition' => 'gvis.groupid IS NULL'
+            ));
 
         $memberquery = "
             /* Joins directly to the rest of the stuff from the module union row. Would get the membership if there */

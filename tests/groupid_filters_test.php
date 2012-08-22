@@ -419,7 +419,8 @@ class groupid_filters_test extends advanced_testcase {
         $newgroupsetting->id = $DB->insert_record('block_ajax_marking_groups', $newgroupsetting);
 
         $results = $countwrapper->execute();
-        $message = 'Hiding at coursemodule level has hidden the user instead of used the other available groupid';
+        $message = "Hiding at coursemodule level has hidden user {$student1a->id} instead of used the ".
+            "other available groupid ({$group1a->id})";
         $this->assertArrayHasKey($student1a->id, $results, $message);
         $message = 'Hiding a group at coursemodule level didn\'t work as it ought to have made the student '.
                 'in multiple groups who previously had a high id have a low id.';
