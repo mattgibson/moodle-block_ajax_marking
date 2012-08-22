@@ -57,7 +57,7 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
         list($visibilitysubquery, $visibilityparams) = block_ajax_marking_group_visibility_subquery();
         list($gmaxvisibilitysubquery, $gmaxvisibilityparams) = block_ajax_marking_group_visibility_subquery();
 
-
+        // These three table get us a group id that's not hidden based on the user's group memberships.
         $query->add_from(
             array(
                  'join' => 'LEFT JOIN',
@@ -74,6 +74,23 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                        ' AND gmember_groups.courseid = '.$query->get_column('courseid')
             )
         );
+        // This subquery has all the group-coursemoudule combinations that he user has configured as hidden via
+        // the block settings. We want this to be null as any value shows that the user has chosen it to be hidden.
+        $query->add_from(
+            array(
+                 'join' => 'LEFT JOIN',
+                 'table' => $visibilitysubquery,
+                 'subquery' => true,
+                 'alias' => 'gvis',
+                 'on' => 'gvis.groupid = gmember_groups.id
+                    AND gvis.coursemoduleid = '.$query->get_column('coursemoduleid')
+            ));
+        $query->add_params($visibilityparams);
+
+        // These three tables are used to make sure that if we have multiple group memberships, we won't have a problem
+        // because the highest of the available group ids will be chosen. This is a greatest-n-per-group solution.
+        // By joining only to tables with a higher group id, then specifying that the joined table must be null,
+        // we only get the maximum.
         $query->add_from(
             array(
                  'join' => 'LEFT JOIN',
@@ -91,8 +108,21 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                        ' AND gmax_groups.courseid = '.$query->get_column('courseid')
             )
         );
+        $query->add_from(
+            array(
+                 'join' => 'LEFT JOIN',
+                 'table' => $gmaxvisibilitysubquery,
+                 'subquery' => true,
+                 'alias' => 'gvismax',
+                 'on' => 'gvismax.groupid = gmax_groups.id
+                    AND gvismax.coursemoduleid = '.$query->get_column('coursemoduleid')
+            ));
+        $query->add_params($gmaxvisibilityparams);
 
-        // Due to using two tables for the left joins, we need to make sure they either match or are both null.
+        // Due to using two tables for the left joins, we need to make sure they either match or are both null. Because
+        // we may have two groups and because we may wish to ignore one of them, we specify that we cannot
+        // have mixed nulls and groupids for the first set of tables that we are reading from, but the second, we
+        // either want nothing, or we allow.
         $query->add_where(
             array(
                  'type' => 'AND',
@@ -107,26 +137,6 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
             )
         );
 
-        $query->add_from(
-            array(
-            'join' => 'LEFT JOIN',
-            'table' => $visibilitysubquery,
-            'subquery' => true,
-            'alias' => 'gvis',
-            'on' => 'gvis.groupid = gmember_groups.id
-                    AND gvis.coursemoduleid = '.$query->get_column('coursemoduleid')
-        ));
-        $query->add_params($visibilityparams);
-        $query->add_from(
-            array(
-                 'join' => 'LEFT JOIN',
-                 'table' => $gmaxvisibilitysubquery,
-                 'subquery' => true,
-                 'alias' => 'gvismax',
-                 'on' => 'gvismax.groupid = gmax_groups.id
-                    AND gvismax.coursemoduleid = '.$query->get_column('coursemoduleid')
-            ));
-        $query->add_params($gmaxvisibilityparams);
         $query->add_where(
             array(
                  'type' => 'AND',

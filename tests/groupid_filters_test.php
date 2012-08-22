@@ -289,6 +289,10 @@ class groupid_filters_test extends advanced_testcase {
         $group4b = new stdClass();
         $group4b->courseid = $courseb->id;
         $group4b = $generator->create_group($group4b);
+        // Extra one.
+        $group5a = new stdClass();
+        $group5a->courseid = $coursea->id;
+        $group5a = $generator->create_group($group5a);
 
         // Make the students into group members.
         // To test all angles:
@@ -378,6 +382,7 @@ class groupid_filters_test extends advanced_testcase {
                                        'table' => 'moduleunion',
                                        'column' => 'coursemoduleid'
                                   ));
+
         // For debugging. Stop here and copy this to see what's in the query.
         $wrappedquery = $countwrapper->debuggable_query();
 
@@ -386,7 +391,7 @@ class groupid_filters_test extends advanced_testcase {
         // Sanity check: we should still get the whole lot before messing with anything.
         $this->assertEquals($totalnumberofsubmissions,
                             count($results),
-                            'Groups decorator has broken the query before any settings changed');
+                            'Total count is wrong before any settings changed');
 
         // Make sure we have the right groups - should be the highest groupid available if they are in more than one
         // group, or the one group id if they are in one group.
@@ -405,7 +410,7 @@ class groupid_filters_test extends advanced_testcase {
         $message = 'Student 4b should have zero for a groupid due to being in no group, but doesn\'t';
         $this->assertEquals(0, $results[$student4b->id]->groupid, $message);
 
-        // Hide a group2a at coursemoduleid level.
+        // Hide a group2a at coursemoduleid level, expecting it to make the other group membership get used.
         $newsetting = new stdClass();
         $newsetting->userid = $teacher->id;
         $newsetting->tablename = 'course_modules';
@@ -424,6 +429,33 @@ class groupid_filters_test extends advanced_testcase {
         $this->assertArrayHasKey($student1a->id, $results, $message);
         $message = 'Hiding a group at coursemodule level didn\'t work as it ought to have made the student '.
                 'in multiple groups who previously had a high id have a low id.';
+        $this->assertEquals($group1a->id, $results[$student1a->id]->groupid, $message);
+
+        // Now, add another group to make sure we still get just one entry for that student.
+        $groupmembership = new stdclass();
+        $groupmembership->groupid = $group5a->id;
+        $groupmembership->userid = $student1a->id;
+        $groupmembership->timeadded = time();
+        $DB->insert_record('groups_members', $groupmembership);
+        $results = $countwrapper->execute();
+        $message = "Ading user {$student1a->id} to a third group ({$group5a->id}) that ought to have made that".
+            "group's id appear didn't work";
+        $this->assertEquals($group5a->id, $results[$student1a->id]->groupid, $message);
+        $this->assertEquals($totalnumberofsubmissions,
+                            count($results),
+                            'Adding a new group membership caused too many items to turn up');
+
+        // No hide that new group and make sure things go back to how they were.
+        $hidegroup5 = new stdClass();
+        $hidegroup5->configid = $newsetting->id;
+        $hidegroup5->groupid = $group5a->id;
+        $hidegroup5->display = 0;
+        $hidegroup5->id = $DB->insert_record('block_ajax_marking_groups', $hidegroup5);
+        $results = $countwrapper->execute();
+        $message = "Hiding group {$group5a->id} at coursemodule level has led to the wrong item count";
+        $this->assertEquals($totalnumberofsubmissions, count($results), $message);
+        $message = "Two hidden groups should leave student {$student1a->id} with group {$group1a->id} but it ".
+            "has {$results[$student1a->id]->groupid} instead";
         $this->assertEquals($group1a->id, $results[$student1a->id]->groupid, $message);
 
         // Now hide the only group a student is in and verify that we have that student hidden.
