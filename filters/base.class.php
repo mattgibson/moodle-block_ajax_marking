@@ -200,6 +200,17 @@ abstract class block_ajax_marking_query_decorator_base implements block_ajax_mar
     }
 
     /**
+     * Saves the SQL used to get a particular column, which other filters may need.
+     *
+     * @abstract
+     * @param string $columnname
+     * @param string $sql
+     */
+    public function set_column($columnname, $sql) {
+         $this->wrappedquery->set_column($columnname, $sql);
+    }
+
+    /**
      * Gets the name of whatever module may be there.
      *
      * @return string

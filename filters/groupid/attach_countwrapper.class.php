@@ -46,7 +46,7 @@ class block_ajax_marking_filter_groupid_attach_countwrapper extends block_ajax_m
     protected function alter_query() {
 
         $this->wrappedquery->add_select(array(
-                                'column' => block_ajax_marking_get_countwrapper_groupid_sql(),
+                                'column' => $this->wrappedquery->get_column('groupid'),
                                 'alias' => 'id'
                            ));
     }

@@ -113,6 +113,8 @@ class block_ajax_marking_nodes_builder_base {
         self::apply_sql_visible($query);
         self::apply_sql_owncourses($query);
 
+//        self::add_query_filter($query, 'groupid', 'attach_highest');
+
         return $query;
     }
 

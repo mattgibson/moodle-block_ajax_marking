@@ -82,41 +82,11 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                  'table' => $visibilitysubquery,
                  'subquery' => true,
                  'alias' => 'gvis',
-                 'on' => 'gvis.groupid = gmember_groups.id
+                 'on' => '(gvis.groupid = gmember_groups.id OR (gvis.groupid = 0 AND gmember_groups.id IS NULL))
                     AND gvis.coursemoduleid = '.$query->get_column('coursemoduleid')
             ));
         $query->add_params($visibilityparams);
 
-        // These three tables are used to make sure that if we have multiple group memberships, we won't have a problem
-        // because the highest of the available group ids will be chosen. This is a greatest-n-per-group solution.
-        // By joining only to tables with a higher group id, then specifying that the joined table must be null,
-        // we only get the maximum.
-//        $query->add_from(
-//            array(
-//                 'join' => 'LEFT JOIN',
-//                 'table' => 'groups_members',
-//                 'alias' => 'gmax_members',
-//                 'on' => 'gmax_members.userid = '.$query->get_column('userid').
-//                          ' AND gmax_members.groupid > gmember_members.groupid'
-//            ));
-//        $query->add_from(
-//            array(
-//                 'join' => 'LEFT JOIN',
-//                 'table' => 'groups',
-//                 'alias' => 'gmax_groups',
-//                 'on' => 'gmax_groups.id = gmax_members.groupid '.
-//                       ' AND gmax_groups.courseid = '.$query->get_column('courseid')
-//            )
-//        );
-//        $query->add_from(
-//            array(
-//                 'join' => 'LEFT JOIN',
-//                 'table' => $gmaxvisibilitysubquery,
-//                 'subquery' => true,
-//                 'alias' => 'gvismax',
-//                 'on' => 'gvismax.groupid = gmax_groups.id
-//                    AND gvismax.coursemoduleid = '.$query->get_column('coursemoduleid')
-//            ));
         $query->add_params($gmaxvisibilityparams);
 
         // Due to using two tables for the left joins, we need to make sure they either match or are both null. Because
@@ -130,13 +100,6 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                                   OR (gmember_groups.id IS NULL AND gmember_members.groupid IS NULL))'
             )
         );
-//        $query->add_where(
-//            array(
-//                 'type' => 'AND',
-//                 'condition' => '(gmax_members.groupid IS NULL OR gvismax.groupid IS NOT NULL)'
-//            )
-//        );
-//
         $query->add_where(
             array(
                  'type' => 'AND',
@@ -164,48 +127,21 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                  )"
             ));
 
-        $memberquery = "
-            /* Joins directly to the rest of the stuff from the module union row. Would get the membership if there */
-            /* was only one with no settings. */
-     LEFT JOIN {groups_members} gmember_members
-            ON gmember_members.userid = {$query->get_column('userid')}
-     LEFT JOIN {groups} gmember_groups
-            ON gmember_groups.id = gmember_members.groupid
-            AND gmember_groups.courseid = {$query->get_column('courseid')}
-
-        /* This is the greatest n per group join which makes sure there are no other group memberships with lower ids.*/
-        /* i.e. it gets one group membership if there are two. */
-
-       LEFT JOIN {groups_members} gmax_members
-              ON gmax_members.userid = gmax_members.userid
-             AND gmax_members.groupid > gmember_members.groupid
-       LEFT JOIN {groups} gmax_groups
-              ON gmax_groups.id = gmax_members.groupid
-              AND gmax_groups.courseid = {$query->get_column('courseid')}
-           WHERE gmax_members.id IS NULL
-
+        $sqltogettothegroupid = "
+            CASE
+                WHEN EXISTS (SELECT 1
+                              FROM {groups_members} gcheck_members
+                        INNER JOIN {groups} gcheck_groups
+                                ON gcheck_groups.id = gcheck_members.groupid)
+                             WHERE gcheck_members.userid {$query->get_column('userid')}
+                               AND gcheck_groups.course = {$query->get_column('courseid')})
+                    THEN gmember_members.groupid
+                ELSE 0
+            END AS groupid
         ";
+        $query->set_column('groupid', $sqltogettothegroupid);
 
-//        $maxquery = "
-//        SELECT gmax_members.userid,
-//               gmax_groups.id AS groupid,
-//               gmax_course_modules.id AS coursemoduleid,
-//               CASE
-//                   WHEN visquery.groupid IS NULL THEN 1
-//                   ELSE 0
-//               END AS display
-//
-//    INNER JOIN {course_modules} gmax_course_modules
-//            ON gmax_course_modules.course = gmax_groups.courseid
-//     LEFT JOIN ({$visibilitysubquery}) visquery
-//            ON visquery.groupid = gmax_groups.id
-//               AND visquery.coursemoduleid = gmax_course_modules.id
-//           /* Limit the size of the subquery for performance */
-//         WHERE visquery.groupid IS NULL
-//
-//        ";
-
-
+        // TODO show or hide any that have no group membership based on settings
 
     }
 }

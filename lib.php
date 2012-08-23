@@ -466,17 +466,12 @@ function block_ajax_marking_get_nextnodefilter_from_params(array $params) {
  */
 function block_ajax_marking_group_visibility_subquery() {
 
-    global $DB, $USER;
+    global $USER;
 
     // In case the subquery is used twice, this variable allows us to feed the same teacher
     // courses in more than once because Moodle requires variables with different suffixes.
     static $counter = 0;
     $counter++;
-
-//    $courses = block_ajax_marking_get_my_teacher_courses();
-//    list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
-//                                                             SQL_PARAMS_NAMED,
-//                                                             "gvis_{$counter}_courses");
 
     $default = 1;
     $sql = <<<SQL

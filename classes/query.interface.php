@@ -158,6 +158,15 @@ interface block_ajax_marking_query {
     public function get_column($columnname);
 
     /**
+     * Saves the SQL used to get a particular column, which other filters may need.
+     *
+     * @abstract
+     * @param string $columnname
+     * @param string $sql
+     */
+    public function set_column($columnname, $sql);
+
+    /**
      * @abstract
      * @return string
      */
