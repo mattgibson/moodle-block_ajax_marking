@@ -141,7 +141,5 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
         ";
         $query->set_column('groupid', $sqltogettothegroupid);
 
-        // TODO show or hide any that have no group membership based on settings
-
     }
 }
