@@ -91,32 +91,32 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
         // because the highest of the available group ids will be chosen. This is a greatest-n-per-group solution.
         // By joining only to tables with a higher group id, then specifying that the joined table must be null,
         // we only get the maximum.
-        $query->add_from(
-            array(
-                 'join' => 'LEFT JOIN',
-                 'table' => 'groups_members',
-                 'alias' => 'gmax_members',
-                 'on' => 'gmax_members.userid = '.$query->get_column('userid').
-                          ' AND gmax_members.groupid > gmember_members.groupid'
-            ));
-        $query->add_from(
-            array(
-                 'join' => 'LEFT JOIN',
-                 'table' => 'groups',
-                 'alias' => 'gmax_groups',
-                 'on' => 'gmax_groups.id = gmax_members.groupid '.
-                       ' AND gmax_groups.courseid = '.$query->get_column('courseid')
-            )
-        );
-        $query->add_from(
-            array(
-                 'join' => 'LEFT JOIN',
-                 'table' => $gmaxvisibilitysubquery,
-                 'subquery' => true,
-                 'alias' => 'gvismax',
-                 'on' => 'gvismax.groupid = gmax_groups.id
-                    AND gvismax.coursemoduleid = '.$query->get_column('coursemoduleid')
-            ));
+//        $query->add_from(
+//            array(
+//                 'join' => 'LEFT JOIN',
+//                 'table' => 'groups_members',
+//                 'alias' => 'gmax_members',
+//                 'on' => 'gmax_members.userid = '.$query->get_column('userid').
+//                          ' AND gmax_members.groupid > gmember_members.groupid'
+//            ));
+//        $query->add_from(
+//            array(
+//                 'join' => 'LEFT JOIN',
+//                 'table' => 'groups',
+//                 'alias' => 'gmax_groups',
+//                 'on' => 'gmax_groups.id = gmax_members.groupid '.
+//                       ' AND gmax_groups.courseid = '.$query->get_column('courseid')
+//            )
+//        );
+//        $query->add_from(
+//            array(
+//                 'join' => 'LEFT JOIN',
+//                 'table' => $gmaxvisibilitysubquery,
+//                 'subquery' => true,
+//                 'alias' => 'gvismax',
+//                 'on' => 'gvismax.groupid = gmax_groups.id
+//                    AND gvismax.coursemoduleid = '.$query->get_column('coursemoduleid')
+//            ));
         $query->add_params($gmaxvisibilityparams);
 
         // Due to using two tables for the left joins, we need to make sure they either match or are both null. Because
@@ -130,17 +130,38 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                                   OR (gmember_groups.id IS NULL AND gmember_members.groupid IS NULL))'
             )
         );
-        $query->add_where(
-            array(
-                 'type' => 'AND',
-                 'condition' => '(gmax_members.groupid IS NULL OR gvismax.groupid IS NOT NULL)'
-            )
-        );
-
+//        $query->add_where(
+//            array(
+//                 'type' => 'AND',
+//                 'condition' => '(gmax_members.groupid IS NULL OR gvismax.groupid IS NOT NULL)'
+//            )
+//        );
+//
         $query->add_where(
             array(
                  'type' => 'AND',
                  'condition' => 'gvis.groupid IS NULL'
+            ));
+
+        // LEFT JOIN with all three tables failed because the join needs to happen if the groupid is greater but only
+        // if the group visibility table says the group is visible. It's not possible to reference a where condition
+        // like that in a join, so NOT EXISTS is here instead. The optimiser ought to be able to short circuit it.
+        $query->add_where(
+            array(
+                 'type' => 'AND',
+                 'condition' => "NOT EXISTS (
+                                    SELECT 1
+                                      FROM {groups_members} gmax_members
+                                INNER JOIN {groups} gmax_groups
+                                        ON gmax_groups.id = gmax_members.groupid
+                                     WHERE NOT EXISTS (SELECT 1
+                                                         FROM ($gmaxvisibilitysubquery) gmax_vis
+                                                        WHERE gmax_vis.groupid = gmax_groups.id
+                                                          AND gmax_vis.coursemoduleid = {$query->get_column('coursemoduleid')})
+                                       AND gmax_members.userid = {$query->get_column('userid')}
+                                       AND gmax_groups.courseid = {$query->get_column('courseid')}
+                                       AND gmax_members.groupid > gmember_members.groupid
+                 )"
             ));
 
         $memberquery = "
