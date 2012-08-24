@@ -52,6 +52,8 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
      */
     protected function alter_query() {
 
+        global $DB;
+
         $query = $this->wrappedquery;
 
         list($visibilitysubquery, $visibilityparams) = block_ajax_marking_group_visibility_subquery();
@@ -65,13 +67,24 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                  'alias' => 'gmember_members',
                  'on' => 'gmember_members.userid = '.$query->get_column('userid')
             ));
+        // Limit to user's courses for performance.
+        $extrajoin = '';
+        if (!block_ajax_marking_admin_see_all()) {
+            $courses = block_ajax_marking_get_my_teacher_courses();
+            list($gmembercoursesql, $gmembercourseparams) =
+                $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
+
+            $query->add_params($gmembercourseparams);
+            $extrajoin =  ' AND gmember_groups.courseid '.$gmembercoursesql;
+        }
         $query->add_from(
             array(
                  'join' => 'LEFT JOIN',
                  'table' => 'groups',
                  'alias' => 'gmember_groups',
                  'on' => 'gmember_groups.id = gmember_members.groupid'.
-                       ' AND gmember_groups.courseid = '.$query->get_column('courseid')
+                       ' AND gmember_groups.courseid = '.$query->get_column('courseid').$extrajoin
+
             )
         );
         // This subquery has all the group-coursemoudule combinations that he user has configured as hidden via
@@ -109,6 +122,14 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
         // LEFT JOIN with all three tables failed because the join needs to happen if the groupid is greater but only
         // if the group visibility table says the group is visible. It's not possible to reference a where condition
         // like that in a join, so NOT EXISTS is here instead. The optimiser ought to be able to short circuit it.
+        $gmaxcoursesql = '';
+        $gmaxcourseparams = array();
+        if (!block_ajax_marking_admin_see_all()) {
+            $courses = block_ajax_marking_get_my_teacher_courses();
+            list($gmaxcoursesql, $gmaxcourseparams) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
+            $gmaxcoursesql = ' AND gmax_groups.courseid '.$gmaxcoursesql;
+        }
+        $query->add_params($gmaxcourseparams);
         $query->add_where(
             array(
                  'type' => 'AND',
@@ -124,6 +145,7 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                                        AND gmax_members.userid = {$query->get_column('userid')}
                                        AND gmax_groups.courseid = {$query->get_column('courseid')}
                                        AND gmax_members.groupid > gmember_members.groupid
+                                       {$gmaxcoursesql}
                  )"
             ));
 

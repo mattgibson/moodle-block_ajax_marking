@@ -577,6 +577,9 @@ class test_nodes_builder_base extends advanced_testcase {
         // Make a full nodes query. Doesn't work without a filter of some sort.
         $filters = array('courseid' => 'nextnodefilter');
         $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($filters);
+
+        $this->assertNotEmpty($nodes, 'No nodes returned at all');
+
         // Compare result.
         $actual = reset($nodes)->itemcount;
         $message = 'Wrong number of course nodes: '.$actual.' instead of '.$this->submissioncount;
@@ -861,6 +864,9 @@ class test_nodes_builder_base extends advanced_testcase {
         $DB->insert_record('block_ajax_marking', $coursesetting);
 
         $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($filters);
+
+        $this->assertNotEmpty($nodes, 'No nodes returned at all');
+
         // Should only be one.
         $coursenode = reset($nodes);
 

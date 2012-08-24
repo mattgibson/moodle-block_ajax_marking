@@ -466,7 +466,7 @@ function block_ajax_marking_get_nextnodefilter_from_params(array $params) {
  */
 function block_ajax_marking_group_visibility_subquery() {
 
-    global $USER;
+    global $USER, $DB;
 
     // In case the subquery is used twice, this variable allows us to feed the same teacher
     // courses in more than once because Moodle requires variables with different suffixes.
@@ -504,9 +504,16 @@ function block_ajax_marking_group_visibility_subquery() {
                         {$default}) = 0
 SQL;
 
-    $coursesparams['gvis'.$counter.'user1'] = $USER->id;
-    $coursesparams['gvis'.$counter.'user2'] = $USER->id;
-    return array($sql, $coursesparams);
+    // Limit to user's courses if we can to make it faster.
+    if (!block_ajax_marking_admin_see_all()) {
+        $courses = block_ajax_marking_get_my_teacher_courses();
+        list($gmaxcoursesql, $gmaxcourseparams) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
+        $sql .= ' AND gvisgroups.courseid '.$gmaxcoursesql;
+    }
+
+    $gmaxcourseparams['gvis'.$counter.'user1'] = $USER->id;
+    $gmaxcourseparams['gvis'.$counter.'user2'] = $USER->id;
+    return array($sql, $gmaxcourseparams);
 
 }
 
@@ -703,7 +710,7 @@ SQL;
  * @param array $filters
  * @return bool
  */
-function block_ajax_marking_admin_see_all(array $filters) {
+function block_ajax_marking_admin_see_all(array $filters = array()) {
 
     if (!empty($filters['adminseeall'])) {
         return true;
