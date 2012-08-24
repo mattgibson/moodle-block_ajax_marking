@@ -476,43 +476,40 @@ function block_ajax_marking_group_visibility_subquery() {
     $default = 1;
     $sql = <<<SQL
 
-        SELECT gvisgroups.id AS groupid,
-               gviscoursemodules.id AS coursemoduleid
-          FROM {groups} gvisgroups
-    INNER JOIN {course_modules} gviscoursemodules
-            ON gviscoursemodules.course = gvisgroups.courseid
-
-     LEFT JOIN {block_ajax_marking} gviscoursesettings
-            ON gviscoursemodules.course = gviscoursesettings.instanceid
-                AND gviscoursesettings.tablename = 'course'
-                AND gviscoursesettings.userid = :gvis{$counter}user1
-
-     LEFT JOIN {block_ajax_marking_groups} gviscoursesettingsgroups
-            ON gviscoursesettingsgroups.configid = gviscoursesettings.id
-               AND gviscoursesettingsgroups.groupid = gvisgroups.id
-
-     LEFT JOIN {block_ajax_marking} gviscoursemodulesettings
-            ON gviscoursemodules.id = gviscoursemodulesettings.instanceid
-                AND gviscoursemodulesettings.tablename = 'course_modules'
-                AND gviscoursemodulesettings.userid = :gvis{$counter}user2
-     LEFT JOIN {block_ajax_marking_groups} gviscoursemodulesettingsgroups
+        SELECT gviscoursemodulesettingsgroups.groupid,
+               gviscoursemodulesettings.instanceid AS coursemoduleid
+          FROM {block_ajax_marking} gviscoursemodulesettings
+    INNER JOIN {block_ajax_marking_groups} gviscoursemodulesettingsgroups
             ON gviscoursemodulesettingsgroups.configid = gviscoursemodulesettings.id
-               AND gviscoursemodulesettingsgroups.groupid = gvisgroups.id
+         WHERE gviscoursemodulesettingsgroups.display = 0
+           AND gviscoursemodulesettings.userid = :gvis{$counter}user2
+           AND gviscoursemodulesettings.tablename = 'course_modules'
 
-         WHERE COALESCE(gviscoursemodulesettingsgroups.display,
-                        gviscoursesettingsgroups.display,
-                        {$default}) = 0
+         UNION
+
+        SELECT gviscoursesettingsgroups.groupid,
+               gviscoursemodules.id AS coursemoduleid
+          FROM {course_modules} gviscoursemodules
+    INNER JOIN {block_ajax_marking} gviscoursesettings
+            ON gviscoursemodules.course = gviscoursesettings.instanceid
+           AND gviscoursesettings.tablename = 'course'
+           AND gviscoursesettings.userid = :gvis{$counter}user1
+    INNER JOIN {block_ajax_marking_groups} gviscoursesettingsgroups
+            ON gviscoursesettingsgroups.configid = gviscoursesettings.id
+           AND gviscoursesettingsgroups.display = 0
+           WHERE NOT EXISTS (SELECT 1
+                               FROM {block_ajax_marking} checknosettings
+                         INNER JOIN {block_ajax_marking_groups} checknogroups
+                                 ON checknogroups.configid = checknosettings.id
+                              WHERE checknosettings.instanceid = gviscoursemodules.id
+                                AND checknosettings.tablename = 'course_modules'
+                                AND checknosettings.userid = :gvis{$counter}user3
+                                AND checknogroups.display IS NOT NULL)
 SQL;
-
-    // Limit to user's courses if we can to make it faster.
-    if (!block_ajax_marking_admin_see_all()) {
-        $courses = block_ajax_marking_get_my_teacher_courses();
-        list($gmaxcoursesql, $gmaxcourseparams) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
-        $sql .= ' AND gvisgroups.courseid '.$gmaxcoursesql;
-    }
 
     $gmaxcourseparams['gvis'.$counter.'user1'] = $USER->id;
     $gmaxcourseparams['gvis'.$counter.'user2'] = $USER->id;
+    $gmaxcourseparams['gvis'.$counter.'user3'] = $USER->id;
     return array($sql, $gmaxcourseparams);
 
 }
