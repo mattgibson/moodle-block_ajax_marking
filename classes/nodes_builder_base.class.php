@@ -40,6 +40,7 @@ global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/bulk_context_module.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 
 /**
  * This is to build a query based on the parameters passed in from the client. Without parameters,
@@ -111,7 +112,10 @@ class block_ajax_marking_nodes_builder_base {
 
         self::apply_sql_enrolled_students($query, $filters);
         self::apply_sql_visible($query);
-        self::apply_sql_owncourses($query);
+
+        if (!block_ajax_marking_admin_see_all($filters)) {
+            self::apply_sql_owncourses($query);
+        }
 
 //        self::add_query_filter($query, 'groupid', 'attach_highest');
 
@@ -394,21 +398,20 @@ class block_ajax_marking_nodes_builder_base {
      */
     private static function apply_sql_owncourses(block_ajax_marking_query $query) {
 
-        $coursecolumn = $query->get_column('courseid');
-
         global $DB;
 
+        $coursecolumn = $query->get_column('courseid');
         $courses = block_ajax_marking_get_my_teacher_courses();
-
         $courseids = array_keys($courses);
 
         if ($courseids) {
             list($sql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED,
                                                        $query->get_module_name().'courseid0000');
 
-            $query->add_where(array(
-                    'type' => 'AND',
-                    'condition' => $coursecolumn.' '.$sql));
+            $query->add_where(
+                array(
+                     'type' => 'AND',
+                     'condition' => $coursecolumn.' '.$sql));
             $query->add_params($params);
         }
     }

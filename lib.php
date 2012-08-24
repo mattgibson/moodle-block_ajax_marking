@@ -697,4 +697,18 @@ SQL;
     return array($sql, $coursesparams);
 }
 
+/**
+ * Tells us whether the user has chosen to see all the courses on the site.
+ *
+ * @param array $filters
+ * @return bool
+ */
+function block_ajax_marking_admin_see_all(array $filters) {
+
+    if (!empty($filters['adminseeall'])) {
+        return true;
+    }
+    return false;
+}
+
 

@@ -235,4 +235,28 @@ abstract class block_ajax_marking_query_decorator_base implements block_ajax_mar
      * @return mixed
      */
     abstract protected function alter_query();
+
+    /**
+     * Sets the course limit status so that we know whether this query needs to have all appropriate tables limited
+     * to courses that the user has access to. This makes the whole thing much faster for normal users. Only admins
+     * who want to see all courses at once need this off.
+     *
+     * @abstract
+     * @param bool $on
+     */
+    public function set_course_limit_status($on = true) {
+        $this->wrappedquery->set_course_limit_status($on);
+    }
+
+    /**
+     * Tells us whether to apply the limit code that makes all the join tables have a WHERE courseid IN(x, y, z).
+     * When on a very large site, this can be make a huge difference to performance. Only admins who want to
+     * view everything need to have it turned off.
+     *
+     * @abstract
+     * @return bool
+     */
+    public function get_course_limit_status() {
+        return $this->wrappedquery->get_course_limit_status();
+    }
 }
