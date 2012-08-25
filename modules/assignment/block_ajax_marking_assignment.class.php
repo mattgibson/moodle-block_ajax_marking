@@ -570,7 +570,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // Second bit of first bit: has been resubmitted
         // Third bit: if it's advanced upload, only care about the first bit if 'send for marking'
         // was clicked.
-        $commentemptysql = $DB->sql_isempty('sub', 'submissioncomment', false, true);
+        $commentemptysql = $DB->sql_isempty('sub', 'sub.submissioncomment', false, true);
         $assignmenttypestring = $DB->sql_compare_text('moduletable.assignmenttype');
         $datastring = $DB->sql_compare_text('sub.data2');
         // Resubmit seems not to be used for upload types.
