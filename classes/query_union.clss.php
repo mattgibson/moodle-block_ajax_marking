@@ -156,7 +156,7 @@ class block_ajax_marking_query_union extends block_ajax_marking_query_base {
             $sql[] = $query->get_sql();
         }
 
-        return implode(' UNION ALL ', $sql);
+        return implode($this->unionstring, $sql);
     }
 
     /**
