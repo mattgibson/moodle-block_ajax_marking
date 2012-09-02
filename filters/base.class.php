@@ -178,17 +178,6 @@ abstract class block_ajax_marking_query_decorator_base implements block_ajax_mar
     }
 
     /**
-     * If this is a subquery, we need to be able to have decorators do things like SELECT nameofsubquery.column
-     * for different subqueries, all of which will have the same column name. This returns it, which needs to
-     * have been set somehow.
-     *
-     * @return string
-     */
-    public function get_subquery_name() {
-        return $this->wrappedquery->get_subquery_name();
-    }
-
-    /**
      * Returns the SQL of a column that was previously stored. Allows decorators to attach stuff to different queries
      * that have the same stuff from different tables or aliases.
      *
