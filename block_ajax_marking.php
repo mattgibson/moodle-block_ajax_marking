@@ -96,8 +96,8 @@ class block_ajax_marking extends block_base {
         require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 
         $courses = block_ajax_marking_get_my_teacher_courses();
-
-        if (count($courses) > 0) { // Grading permissions exist in at least one course, so display.
+        // Grading permissions exist in at least one course, so display.
+        if (count($courses) > 0 || block_ajax_marking_admin_see_all()) {
 
             $this->content = new stdClass();
 

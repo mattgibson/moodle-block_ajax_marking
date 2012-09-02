@@ -264,15 +264,11 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                 'column' => 'timecreated',
                                 'alias'  => 'timestamp'));
 
-        $query->add_where(array('type' => 'AND',
-                                'condition' => 'quiz_attempts.timefinish > 0'));
-        $query->add_where(array('type' => 'AND',
-                                'condition' => 'quiz_attempts.preview = 0'));
+        $query->add_where('quiz_attempts.timefinish > 0');
+        $query->add_where('quiz_attempts.preview = 0');
         $comparesql = $DB->sql_compare_text('question_attempts.behaviour')." = 'manualgraded'";
-        $query->add_where(array('type' => 'AND',
-                                'condition' => $comparesql));
-        $query->add_where(array('type' => 'AND',
-                                'condition' => "sub.state = '".question_state::$needsgrading."' "));
+        $query->add_where($comparesql);
+        $query->add_where("sub.state = '".question_state::$needsgrading."' ");
 
         // We want to get a list of graded states so we can retrieve all questions that don't have
         // one.
@@ -291,9 +287,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                  FROM {question_attempt_steps} st
                                 WHERE st.state {$gradedsql}
                                   AND st.questionattemptid = question_attempts.id)";
-        $query->add_where(array('type' => 'AND',
-                                'condition' => $subsql));
-        $query->add_params($gradedparams);
+        $query->add_where($subsql, $gradedparams);
         return $query;
     }
 

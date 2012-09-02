@@ -97,11 +97,12 @@ abstract class block_ajax_marking_query_decorator_base implements block_ajax_mar
     }
 
     /**
-     * @param array $clause
+     * @param array $params
+     * @param string $sql Always added using AND
      * @return string|void
      */
-    public function add_where(array $clause) {
-        $this->wrappedquery->add_where($clause);
+    public function add_where($sql, $params = array()) {
+        $this->wrappedquery->add_where($sql, $params);
     }
 
     /**
@@ -118,10 +119,9 @@ abstract class block_ajax_marking_query_decorator_base implements block_ajax_mar
      *
      * @abstract
      * @param array $params
-     * @param bool $arraytoaddto
      */
-    public function add_params(array $params, $arraytoaddto = false) {
-        $this->wrappedquery->add_params($params, $arraytoaddto);
+    public function add_params(array $params) {
+        $this->wrappedquery->add_params($params);
     }
 
     /**
@@ -247,5 +247,16 @@ abstract class block_ajax_marking_query_decorator_base implements block_ajax_mar
      */
     public function get_course_limit_status() {
         return $this->wrappedquery->get_course_limit_status();
+    }
+
+    /**
+     * Slightly awkward way of making sure we can add bits and pieces of SQL to unioned queries without
+     * duplicating param names. If we just use the query_union class to add the same fragment to all of the bits,
+     * @todo use an array iterator of all the queries or something instead.
+     *
+     * @return mixed
+     */
+    public function get_number_of_unioned_subqueries() {
+        return $this->wrappedquery->get_number_of_unioned_subqueries();
     }
 }

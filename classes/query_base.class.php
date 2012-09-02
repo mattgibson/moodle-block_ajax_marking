@@ -89,6 +89,12 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
     protected $courselimitstatus;
 
     /**
+     * @var block_ajax_marking_module_base|null Reference to the module object with all the data about the
+     * relevant module.
+     */
+    protected $moduleclass;
+
+    /**
      * @param block_ajax_marking_module_base $moduleclass
      */
     public function __construct($moduleclass = null) {
@@ -241,18 +247,8 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     protected function get_where() {
 
-        // The first clause should not have AND at the start.
-        $first = true;
-
-        $wherearray = array();
-
-        foreach ($this->where as $clause) {
-            $wherearray[] = ($first ? '' : $clause['type']).' '.$clause['condition'];
-            $first = false;
-        }
-
-        if ($wherearray) {
-            return "\n\n WHERE ".implode(" \n", $wherearray).' ';
+        if (!empty($this->where)) {
+            return "\n\n WHERE ".implode("\n AND ", $this->where).' ';
         } else {
             return '';
         }
@@ -429,20 +425,16 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      * - what if it's a nested thing e.g. AND ( X AND Y )
      * - what if it's a subquery e.g. EXISTS ()
      *
-     * @param array $clause containing 'type' e.g. 'AND' & 'condition' which is something that can
-     * be added to other things using AND
+     * @param string $sql Always added using AND
+     * @param array $params
      * @throws coding_exception
      * @return void
      */
-    public function add_where(array $clause) {
+    public function add_where($sql, $params = array()) {
 
-        $requiredkeys = array('type', 'condition');
+        $this->where[] = $sql;
 
-        if (is_array($clause) && (array_diff(array_keys($clause), $requiredkeys) === array())) {
-            $this->where[] = $clause;
-        } else {
-            throw new coding_exception('Wrong array items specified for new WHERE clause');
-        }
+        $this->add_params($params);
     }
 
     /**
@@ -478,23 +470,22 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      * Adds an associative array of parameters to the query
      *
      * @param array $params
-     * @param bool|array $arraytoaddto
      * @throws coding_exception
-     * @return bool|array
+     * @return void
      */
-    public function add_params(array $params, $arraytoaddto = false) {
+    public function add_params(array $params) {
+
+        if (empty($params)) {
+            return;
+        }
 
         $dupes = array_intersect(array_keys($params), array_keys($this->params));
         if ($dupes) {
             throw new coding_exception('Duplicate keys when adding query params',
                                        implode(', ', $dupes));
         }
-        if ($arraytoaddto === false) {
-            $this->params = array_merge($this->params, $params);
-            return true;
-        } else {
-            return array_merge($params, $arraytoaddto);
-        }
+
+        $this->params = array_merge($this->params, $params);
     }
 
     /**
@@ -550,13 +541,13 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
             $table = $jointable['table'];
             if ($table instanceof block_ajax_marking_query) {
                 /* @var block_ajax_marking_query_base $table */
-                $params = $this->add_params($table->get_params(), $params);
+                $params = array_merge($params, $table->get_params());
             } else if (is_array($table)) {
                 /* @var array $table */
                 $this->validate_union_array($table);
                 /* @var block_ajax_marking_query_base $uniontable */
                 foreach ($table as $uniontable) {
-                    $params = $this->add_params($uniontable->get_params(), $params);
+                    $params = array_merge($params, $uniontable->get_params());
                 }
             }
         }
@@ -775,6 +766,17 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     public function get_course_limit_status() {
         return $this->courselimitstatus;
+    }
+
+    /**
+     * Slightly awkward way of making sure we can add bits and pieces of SQL to unioned queries without
+     * duplicating param names. If we just use the query_union class to add the same fragment to all of the bits,
+     * @todo use an array iterator of all the queries or something instead.
+     *
+     * @return mixed
+     */
+    public function get_number_of_unioned_subqueries() {
+        return 1;
     }
 }
 

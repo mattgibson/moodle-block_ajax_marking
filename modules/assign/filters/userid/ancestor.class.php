@@ -39,10 +39,7 @@ class block_ajax_marking_assign_filter_userid_ancestor extends block_ajax_markin
      */
     protected function alter_query() {
 
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'sub.userid = :assignuseridfilteruserid');
-        $this->wrappedquery->add_where($clause);
-        $this->wrappedquery->add_param('assignuseridfilteruserid', $this->get_parameter());
+        $sql = 'sub.userid = :assignuseridfilteruserid';
+        $this->wrappedquery->add_where($sql, array('assignuseridfilteruserid' => $this->get_parameter()));
     }
 }

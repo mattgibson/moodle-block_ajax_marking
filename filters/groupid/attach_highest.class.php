@@ -57,7 +57,6 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
         $query = $this->wrappedquery;
 
         list($visibilitysubquery, $visibilityparams) = block_ajax_marking_group_visibility_subquery();
-        list($gmaxvisibilitysubquery, $gmaxvisibilityparams) = block_ajax_marking_group_visibility_subquery();
 
         // These three table get us a group id that's not hidden based on the user's group memberships.
         $query->add_from(
@@ -100,24 +99,13 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
             ));
         $query->add_params($visibilityparams);
 
-        $query->add_params($gmaxvisibilityparams);
-
         // Due to using two tables for the left joins, we need to make sure they either match or are both null. Because
         // we may have two groups and because we may wish to ignore one of them, we specify that we cannot
         // have mixed nulls and groupids for the first set of tables that we are reading from, but the second, we
         // either want nothing, or we allow.
-        $query->add_where(
-            array(
-                 'type' => 'AND',
-                 'condition' => '((gmember_groups.id = gmember_members.groupid)
-                                  OR (gmember_groups.id IS NULL AND gmember_members.groupid IS NULL))'
-            )
-        );
-        $query->add_where(
-            array(
-                 'type' => 'AND',
-                 'condition' => 'gvis.groupid IS NULL'
-            ));
+        $query->add_where('((gmember_groups.id = gmember_members.groupid)
+                                  OR (gmember_groups.id IS NULL AND gmember_members.groupid IS NULL))');
+        $query->add_where('gvis.groupid IS NULL');
 
         // LEFT JOIN with all three tables failed because the join needs to happen if the groupid is greater but only
         // if the group visibility table says the group is visible. It's not possible to reference a where condition
@@ -129,11 +117,8 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
             list($gmaxcoursesql, $gmaxcourseparams) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
             $gmaxcoursesql = ' AND gmax_groups.courseid '.$gmaxcoursesql;
         }
-        $query->add_params($gmaxcourseparams);
-        $query->add_where(
-            array(
-                 'type' => 'AND',
-                 'condition' => "NOT EXISTS (
+        list($gmaxvisibilitysubquery, $gmaxvisibilityparams) = block_ajax_marking_group_visibility_subquery();
+        $query->add_where("NOT EXISTS (
                                     SELECT 1
                                       FROM {groups_members} gmax_members
                                 INNER JOIN {groups} gmax_groups
@@ -146,8 +131,8 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                                        AND gmax_groups.courseid = {$query->get_column('courseid')}
                                        AND gmax_members.groupid > gmember_members.groupid
                                        {$gmaxcoursesql}
-                 )"
-            ));
+                 )", array_merge($gmaxcourseparams, $gmaxvisibilityparams)
+            );
 
         $sqltogettothegroupid = "
             CASE

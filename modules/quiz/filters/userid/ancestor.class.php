@@ -45,11 +45,8 @@ class block_ajax_marking_quiz_filter_userid_ancestor extends
      */
     protected function alter_query() {
         // Applies if users are not the final nodes.
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'quiz_attempts.userid = :quizuseridfilterancestor');
-        $this->wrappedquery->add_where($clause);
-        $this->wrappedquery->add_param('quizuseridfilterancestor', $this->get_parameter());
+        $sql = 'quiz_attempts.userid = :quizuseridfilterancestor';
+        $this->wrappedquery->add_where($sql, array('quizuseridfilterancestor' => $this->get_parameter()));
     }
 }
 

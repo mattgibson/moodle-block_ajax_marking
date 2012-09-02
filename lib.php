@@ -702,12 +702,16 @@ SQL;
 }
 
 /**
- * Tells us whether the user has chosen to see all the courses on the site.
+ * Tells us whether the user has chosen to see all the courses on the site. To debug the query for a very large site,
+ * tell this to return true, which will take away all the filtering to make sure a user only sees stuff from their
+ * own courses.
  *
  * @param array $filters
  * @return bool
  */
 function block_ajax_marking_admin_see_all(array $filters = array()) {
+
+    return true;
 
     if (!empty($filters['adminseeall'])) {
         return true;

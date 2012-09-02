@@ -99,19 +99,14 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
 
         // Assumes that we want to see stuff that has not been assessed by the current user yet. Perhaps
         // we have more than one assessor? Perhaps it's peer assessment only?
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => 'NOT EXISTS(
+        $query->add_where('NOT EXISTS(
                                    SELECT 1
                                      FROM {workshop_assessments} workshop_assessments
                                     WHERE workshop_assessments.submissionid = sub.id
                                       AND workshop_assessments.reviewerid = :workshopuserid
                                       AND workshop_assessments.grade != -1
-                               )'));
-        $query->add_where(array(
-            'type' => 'AND',
-            'condition' => 'moduletable.phase < '.workshop::PHASE_CLOSED
-            ));
+                               )');
+        $query->add_where('moduletable.phase < '.workshop::PHASE_CLOSED);
 
         // Do we want to only see stuff when the workshop has been put into a later phase?
         // If it has, a teacher will have done this manually and will know about the grading work.

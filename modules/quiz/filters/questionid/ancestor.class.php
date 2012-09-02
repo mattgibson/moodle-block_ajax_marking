@@ -46,10 +46,7 @@ class block_ajax_marking_quiz_filter_questionid_ancestor extends block_ajax_mark
      */
     protected function alter_query() {
 
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'moduleunion.questionid = :quizfilterquestionidancestor');
-        $this->wrappedquery->add_where($clause);
-        $this->wrappedquery->add_param('quizfilterquestionidancestor', $this->get_parameter());
+        $sql = 'moduleunion.questionid = :quizfilterquestionidancestor';
+        $this->wrappedquery->add_where($sql, array('quizfilterquestionidancestor'=> $this->get_parameter()));
     }
 }

@@ -72,9 +72,11 @@ interface block_ajax_marking_query {
      * Adds a condition to the WHERE part of the query. Needs 'type' and 'condition' in the array.
      *
      * @abstract
-     * @param array $clause
+     * @param string $sql
+     * @param array $params
+     * @return
      */
-    public function add_where(array $clause);
+    public function add_where($sql, $params = array());
 
     /**
      * Adds a clause to the ORDER BY part of the query after joining together all the bits
@@ -91,9 +93,8 @@ interface block_ajax_marking_query {
      *
      * @abstract
      * @param array $params
-     * @param bool $arraytoaddto
      */
-    public function add_params(array $params, $arraytoaddto = false);
+    public function add_params(array $params);
 
     /**
      * Adds one item to the params array. Always use SQL_PARAMS_NAMED.
@@ -187,4 +188,14 @@ interface block_ajax_marking_query {
      * @return bool
      */
     public function get_course_limit_status();
+
+    /**
+     * Slightly awkward way of making sure we can add bits and pieces of SQL to unioned queries without
+     * duplicating param names. If we just use the query_union class to add the same fragment to all of the bits,
+     * @todo use an array iterator of all the queries or something instead.
+     *
+     * @abstract
+     * @return mixed
+     */
+    public function get_number_of_unioned_subqueries();
 }

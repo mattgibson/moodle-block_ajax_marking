@@ -242,7 +242,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         // This currently does a simple check for whether or not the current user has added a
         // rating or not. No scope for another teacher to do all the marking, or some of it.
         list($notmyratingsql, $notmyratingparams) = $this->get_teacher_sql();
-        $query->add_params($notmyratingparams);
 
         $query->add_from(array(
                               'table' => 'forum_posts',
@@ -283,25 +282,13 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                                  'column' => 'modified',
                                  'alias' => 'timestamp'));
 
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => 'sub.userid <> :forumuserid'));
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => 'moduletable.assessed > 0'));
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => " {$notmyratingsql} "));
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => '( (moduletable.assesstimestart = 0) OR
-                                                 (sub.created >= moduletable.assesstimestart) ) '));
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => '( (moduletable.assesstimefinish = 0) OR
-                                                 (sub.created <= moduletable.assesstimefinish) )'));
-
-        $query->add_param('forumuserid', $USER->id);
+        $query->add_where('sub.userid <> :forumuserid', array('forumuserid' => $USER->id));
+        $query->add_where('moduletable.assessed > 0');
+        $query->add_where(" {$notmyratingsql} ", $notmyratingparams);
+        $query->add_where('( (moduletable.assesstimestart = 0) OR
+                                                 (sub.created >= moduletable.assesstimestart) ) ');
+        $query->add_where('( (moduletable.assesstimefinish = 0) OR
+                                                 (sub.created <= moduletable.assesstimefinish) )');
 
         return $query;
     }

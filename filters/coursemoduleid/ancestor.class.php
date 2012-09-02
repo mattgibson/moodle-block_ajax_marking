@@ -45,12 +45,8 @@ class block_ajax_marking_filter_coursemoduleid_ancestor extends block_ajax_marki
      * Used when there is an ancestor node representing a coursemodule.
      */
     protected function alter_query() {
-        $conditions = array(
-            'type' => 'AND',
-            'condition' => 'moduleunion.coursemoduleid = :coursemoduleidfiltercmid');
-        $this->wrappedquery->add_where($conditions);
-        $this->wrappedquery->add_param('coursemoduleidfiltercmid', $this->get_parameter());
+        $sql = 'moduleunion.coursemoduleid = :coursemoduleidfiltercmid';
+        $this->wrappedquery->add_where($sql, array('coursemoduleidfiltercmid' => $this->get_parameter()));
     }
-
 }
 

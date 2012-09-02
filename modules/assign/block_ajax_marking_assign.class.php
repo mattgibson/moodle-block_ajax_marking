@@ -256,13 +256,8 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
                                  'alias' => 'timestamp'));
 
         $statustext = $DB->sql_compare_text('sub.status');
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => $statustext." = '".ASSIGN_SUBMISSION_STATUS_SUBMITTED."'"));
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => 'assign_grades.grade IS NULL'
-                          ));
+        $query->add_where($statustext." = '".ASSIGN_SUBMISSION_STATUS_SUBMITTED."'");
+        $query->add_where('assign_grades.grade IS NULL');
 
         // First bit: not graded
         // Second bit of first bit: has been resubmitted

@@ -48,11 +48,8 @@ class block_ajax_marking_filter_cohortid_ancestor extends block_ajax_marking_que
      */
     protected function alter_query() {
 
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'cohort.id = :cohortidfiltercohortid');
-        $this->wrappedquery->add_where($clause);
-        $this->wrappedquery->add_param('cohortidfiltercohortid', $this->get_parameter());
+        $param = array('cohortidfiltercohortid' => $this->get_parameter());
+        $this->wrappedquery->add_where('cohort.id = :cohortidfiltercohortid', $param);
     }
 
 

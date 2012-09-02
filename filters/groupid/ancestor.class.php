@@ -46,15 +46,12 @@ class block_ajax_marking_filter_groupid_ancestor extends block_ajax_marking_quer
      */
     protected function alter_query() {
 
-        static $counter = 0; // We will get duplicates if we use this on modulequerues.
+        // TODO use the union query object to handle this.
+        static $counter = 0; // We will get duplicates if we use this on modulequeries.
         $counter++;
 
-        $conditions = array(
-            'type' => 'AND',
-            'condition' => block_ajax_marking_get_countwrapper_groupid_sql().' = :groupid'.$counter);
-        $this->wrappedquery->add_where($conditions);
-        $this->wrappedquery->add_param('groupid'.$counter, $this->get_parameter());
+        $sql = block_ajax_marking_get_countwrapper_groupid_sql().' = :groupid'.$counter;
+        $this->wrappedquery->add_where($sql, array('groupid'.$counter => $this->get_parameter()));
     }
-
 }
 

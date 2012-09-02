@@ -38,11 +38,7 @@ class block_ajax_marking_forum_filter_discussionid_ancestor extends block_ajax_m
      */
     protected function alter_query() {
 
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'discussion.id = :discussionidfilterdiscussionid');
-        $this->wrappedquery->add_where($clause);
-        $this->wrappedquery->add_param('discussionidfilterdiscussionid', $this->get_parameter());
+        $sql = 'discussion.id = :discussionidfilterdiscussionid';
+        $this->wrappedquery->add_where($sql, array('discussionidfilterdiscussionid' => $this->get_parameter()));
     }
-
 }

@@ -293,13 +293,9 @@ class block_ajax_marking_nodes_builder_base {
         // We allow course settings to override the site default and activity settings to override
         // the course ones.
         $sitedefaultactivitydisplay = 1;
-        $query->add_where(array(
-                'type' => 'AND',
-                'condition' => "COALESCE(cmconfig.display,
+        $query->add_where("COALESCE(cmconfig.display,
                                          courseconfig.display,
-                                         {$sitedefaultactivitydisplay}) = 1")
-        );
-
+                                         {$sitedefaultactivitydisplay}) = 1");
     }
 
     /**
@@ -372,9 +368,7 @@ class block_ajax_marking_nodes_builder_base {
                                                                            SQL_PARAMS_NAMED,
                                                                            'context0000',
                                                                            false);
-                $query->add_where(array('type' => 'AND',
-                                        'condition' => "course_modules.id {$contextssql}"));
-                $query->add_params($contextsparams);
+                $query->add_where("course_modules.id {$contextssql}", $contextsparams);
             }
         }
 
@@ -382,9 +376,9 @@ class block_ajax_marking_nodes_builder_base {
         // We may want to show them greyed out so that settings can be sorted before they are shown
         // to students.
         if (!$includehidden) {
-            $query->add_where(array('type' => 'AND', 'condition' => 'course_modules.visible = 1'));
+            $query->add_where('course_modules.visible = 1');
         }
-        $query->add_where(array('type' => 'AND', 'condition' => 'course.visible = 1'));
+        $query->add_where('course.visible = 1');
 
     }
 
@@ -406,11 +400,7 @@ class block_ajax_marking_nodes_builder_base {
             list($sql, $params) = $DB->get_in_or_equal($courseids, SQL_PARAMS_NAMED,
                                                        $query->get_module_name().'courseid0000');
 
-            $query->add_where(
-                array(
-                     'type' => 'AND',
-                     'condition' => $coursecolumn.' '.$sql));
-            $query->add_params($params);
+            $query->add_where($coursecolumn.' '.$sql, $params);
         }
     }
 
@@ -436,17 +426,17 @@ class block_ajax_marking_nodes_builder_base {
             // people who are part of a cohort will have been added to the course via a cohort enrolment or
             // else they wouldn't be there.
             $enabledsql = " = 'cohort'";
+            $params = array();
         } else if ($CFG->enrol_plugins_enabled) {
             // Returns list of english names of enrolment plugins.
             $plugins = explode(',', $CFG->enrol_plugins_enabled);
             list($enabledsql, $params) = $DB->get_in_or_equal($plugins,
                                                               SQL_PARAMS_NAMED,
                                                               'enrol'.$query->get_module_name().'001');
-            $query->add_params($params);
         } else {
             // No enabled enrolment plugins.
             $enabledsql = ' = :sqlenrollednever'.$query->get_module_name();
-            $query->add_param('sqlenrollednever'.$query->get_module_name(), -1);
+            $params = array('sqlenrollednever'.$query->get_module_name() => -1);
         }
 
         $sql = <<<SQL
@@ -460,9 +450,8 @@ class block_ajax_marking_nodes_builder_base {
                    AND user_enrolments.userid = {$query->get_column('userid')}
 SQL;
 
-        $query->add_where(array('type' => 'AND',
-                                'condition' => "EXISTS ({$sql})"));
-        $query->add_param('enrol'.$query->get_module_name().'currentuser', $USER->id);
+        $params['enrol'.$query->get_module_name().'currentuser'] = $USER->id;
+        $query->add_where("EXISTS ({$sql})", $params);
     }
 
     /**

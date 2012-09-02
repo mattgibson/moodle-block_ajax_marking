@@ -94,15 +94,32 @@ class block_ajax_marking_query_union extends block_ajax_marking_query_base {
     }
 
     /**
-     * Adds a condition to the WHERE part of the query. Needs 'type' and 'condition' in the array.
+     * Adds a condition to the WHERE part of the query. Needs 'type' and 'condition' in the array. To add the same
+     * thing to all the queries, we need to rename the params so we don't have collisions.
      *
-     * @param array $clause
+     * @param string $sql
+     * @param array $params
      * @throws coding_exception
      * @return void
      */
-    public function add_where(array $clause) {
+    public function add_where($sql, $params = array()) {
+
+        $counter = 0;
+
         foreach ($this->queries as $query) {
-            $query->add_where($clause);
+
+            $newclause = $sql;
+            $newparams = array();
+
+            foreach ($params as $originalname => $param) {
+                $newname = $originalname.$counter;
+                // Now substitute the old name in the SQL for the new one so they match.
+                $newclause = str_replace($originalname, $newname, $newclause);
+                $newparams[$newname] = $param;
+                $counter++;
+            }
+
+            $query->add_where($newclause, $newparams);
         }
     }
 
@@ -120,7 +137,9 @@ class block_ajax_marking_query_union extends block_ajax_marking_query_base {
     }
 
     /**
-     * Adds an array of params.
+     * Adds an array of params. Problem here because when we add e.g. the same where filter to all the unions, we need
+     * to make sure that we don;t duplicate the param names. We could add a prefix, but then we need to have the same
+     * prefix stuck into the SQL. Using question mark params is too complex.
      *
      * @param array $params
      * @param bool $arraytoaddto
@@ -156,7 +175,7 @@ class block_ajax_marking_query_union extends block_ajax_marking_query_base {
             $sql[] = $query->get_sql();
         }
 
-        return implode($this->unionstring, $sql);
+        return implode(' '.$this->unionstring.' ', $sql);
     }
 
     /**
@@ -176,30 +195,6 @@ class block_ajax_marking_query_union extends block_ajax_marking_query_base {
     }
 
     /**
-     * Returns the SQL of a column that was previously stored. Allows decorators to attach stuff to different queries
-     * that have the same stuff from different tables or aliases.
-     *
-     * @param string $columnname
-     * @throws coding_exception
-     * @return mixed
-     */
-    public function get_column($columnname) {
-        throw new coding_exception('Trying to get column from union query');
-    }
-
-    /**
-     * Saves the SQL used to get a particular column, which other filters may need.
-     *
-     * @param string $columnname
-     * @param string $sql
-     * @throws coding_exception
-     * @return void
-     */
-    public function set_column($columnname, $sql) {
-        throw new coding_exception('Trying to set column from union query');
-    }
-
-    /**
      * Only makes sense if we have all the union queries as instances of the same module.
      *
      * @throws coding_exception
@@ -207,7 +202,9 @@ class block_ajax_marking_query_union extends block_ajax_marking_query_base {
      */
     public function get_module_name() {
 
-        if (count($this->queries) == 1) {
+        if (!empty($this->moduleclass) && $this->moduleclass instanceof block_ajax_marking_module_base) {
+            return $this->moduleclass->get_module_name();
+        } else if (count($this->queries) == 1) {
             /* @var block_ajax_marking_query $onlyquery */
             $onlyquery = reset($this->queries);
             return $onlyquery->get_module_name();
@@ -224,7 +221,9 @@ class block_ajax_marking_query_union extends block_ajax_marking_query_base {
      */
     public function get_module_id() {
 
-        if (count($this->queries) == 1) {
+        if (!empty($this->moduleclass) && $this->moduleclass instanceof block_ajax_marking_module_base) {
+            return $this->moduleclass->get_module_id();
+        } else if (count($this->queries) == 1) {
             /* @var block_ajax_marking_query $onlyquery */
             $onlyquery = reset($this->queries);
             return $onlyquery->get_module_id();
@@ -288,6 +287,17 @@ class block_ajax_marking_query_union extends block_ajax_marking_query_base {
         } else {
             throw new coding_exception('Not allowed this as a union string: '.$string);
         }
+    }
+
+    /**
+     * Slightly awkward way of making sure we can add bits and pieces of SQL to unioned queries without
+     * duplicating param names. If we just use the query_union class to add the same fragment to all of the bits,
+     * @todo use an array iterator of all the queries or something instead.
+     *
+     * @return mixed
+     */
+    public function get_number_of_unioned_subqueries() {
+        return count($this->queries);
     }
 
 }
