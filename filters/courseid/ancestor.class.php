@@ -45,7 +45,7 @@ class block_ajax_marking_filter_courseid_ancestor extends block_ajax_marking_que
      * selected, so we just do a where.
      */
     protected function alter_query() {
-        $sql = 'moduleunion.course = :courseidancestorcourseid';
+        $sql = $this->wrappedquery->get_column('courseid').' = :courseidancestorcourseid';
         $param = array('courseidancestorcourseid' => $this->get_parameter());
         $this->wrappedquery->add_where($sql, $param);
     }

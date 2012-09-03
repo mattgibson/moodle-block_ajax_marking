@@ -81,10 +81,13 @@ class block_ajax_marking_filter_coursemoduleid_current
      */
     protected function add_coursemodule_details(block_ajax_marking_query $query) {
 
+        global $DB;
+
         $moduleclasses = block_ajax_marking_get_module_classes();
         $introcoalesce = array();
         $namecoalesce = array();
         $orderbycoalesce = array();
+        $moduleids = array();
         foreach ($moduleclasses as $moduleclass) {
             $moduletablename = $moduleclass->get_module_name();
             $query->add_from(array(
@@ -99,6 +102,7 @@ class block_ajax_marking_filter_coursemoduleid_current
             $namecoalesce[$moduletablename] = 'name';
             $introcoalesce[$moduletablename] = 'intro';
             $orderbycoalesce[$moduletablename] = $moduletablename.'.name';
+            $moduleids[] = $moduleclass->get_module_id();
         }
         $query->add_select(array(
                                 'table' => 'course_modules',
@@ -114,6 +118,8 @@ class block_ajax_marking_filter_coursemoduleid_current
                                 'function' => 'COALESCE',
                                 'column' => 'intro',
                                 'alias' => 'tooltip'));
+        list($idssql, $idsparams) = $DB->get_in_or_equal($moduleids, SQL_PARAMS_NAMED);
+        $query->add_where('course_modules.module '.$idssql, $idsparams);
 
         $query->add_orderby('COALESCE('.implode(', ', $orderbycoalesce).') ASC');
     }

@@ -711,7 +711,7 @@ SQL;
  */
 function block_ajax_marking_admin_see_all(array $filters = array()) {
 
-    // return true;
+//     return true;
 
     if (!empty($filters['adminseeall'])) {
         return true;

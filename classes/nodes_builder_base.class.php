@@ -473,9 +473,11 @@ SQL;
         // course.
         $configbasequery = new block_ajax_marking_query_base();
         $configbasequery->add_from(array('table' => 'course_modules'));
+        $configbasequery->set_column('coursemoduleid', 'course_modules.id');
+        $configbasequery->set_column('courseid', 'course_modules.course');
 
         // Now apply the filters.
-        self::apply_sql_owncourses($configbasequery, 'course_modules.course');
+        self::apply_sql_owncourses($configbasequery);
         self::apply_sql_visible($configbasequery, true);
 
         // TODO put this into its own function.
@@ -492,7 +494,7 @@ SQL;
                 // for getting the settings into the countwrapper query is, because they will just have standard
                 // aliases. We don't always need it though.
             } else {
-                self::add_query_filter($configbasequery, $filtername, 'ancestor_config', $filtervalue, $modulename);
+                self::add_query_filter($configbasequery, $filtername, 'ancestor', $filtervalue, $modulename);
             }
         }
 

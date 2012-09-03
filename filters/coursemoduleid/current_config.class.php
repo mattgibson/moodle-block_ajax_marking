@@ -61,7 +61,7 @@ class block_ajax_marking_filter_coursemoduleid_current_config extends block_ajax
                               'join' => 'LEFT JOIN',
                               'table' => 'block_ajax_marking',
                               'alias' => 'settings',
-                              'on' => "settings.instanceid = course_modules.id
+                              'on' => "settings.instanceid = {$this->wrappedquery->get_column('coursemoduleid')}
                                     AND settings.tablename = 'course_modules'
                                     AND settings.userid = :settingsuserid"
                          ));
@@ -76,6 +76,21 @@ class block_ajax_marking_filter_coursemoduleid_current_config extends block_ajax
                                 'table' => 'settings',
                                 'column' => 'id',
                                 'alias' => 'settingsid'));
+
+        $this->wrappedquery->add_from(
+            array(
+                 'join' => 'INNER JOIN',
+                 'table' => 'modules',
+                 'on' => 'modules.id = course_modules.module'
+            )
+        );
+
+        // The javascript needs this for styling.
+        $this->wrappedquery->add_select(
+            array(
+                 'table' => 'modules',
+                 'column' => 'name',
+                 'alias' => 'modulename'));
 
         // TODO get them in order of module type first?
     }
