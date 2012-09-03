@@ -112,8 +112,7 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
         // like that in a join, so NOT EXISTS is here instead. The optimiser ought to be able to short circuit it.
         $gmaxcoursesql = '';
         $gmaxcourseparams = array();
-        if (!block_ajax_marking_admin_see_all()) {
-            $courses = block_ajax_marking_get_my_teacher_courses();
+        if (!block_ajax_marking_admin_see_all() && !empty($courses)) {
             list($gmaxcoursesql, $gmaxcourseparams) = $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
             $gmaxcoursesql = ' AND gmax_groups.courseid '.$gmaxcoursesql;
         }
