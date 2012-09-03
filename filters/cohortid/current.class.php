@@ -51,7 +51,7 @@ class block_ajax_marking_filter_cohortid_current extends block_ajax_marking_quer
             'table' => 'cohort',
             'on' => 'countwrapperquery.id = cohort.id'
         );
-        $this->wrappedquery->add_select($table);
+        $this->wrappedquery->add_from($table);
         $conditions = array(
             'table' => 'cohort',
             'column' => 'name');
