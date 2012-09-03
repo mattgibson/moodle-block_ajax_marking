@@ -68,8 +68,8 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
             ));
         // Limit to user's courses for performance.
         $extrajoin = '';
-        if (!block_ajax_marking_admin_see_all()) {
-            $courses = block_ajax_marking_get_my_teacher_courses();
+        $courses = block_ajax_marking_get_my_teacher_courses();
+        if (!block_ajax_marking_admin_see_all() && !empty($courses)) {
             list($gmembercoursesql, $gmembercourseparams) =
                 $DB->get_in_or_equal(array_keys($courses), SQL_PARAMS_NAMED);
 
