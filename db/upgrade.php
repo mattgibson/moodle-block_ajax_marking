@@ -311,5 +311,11 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     if ($oldversion < 2012090503) {
         block_ajax_marking_add_index_enrol();
     }
+    if ($oldversion < 2012090504) {
+        block_ajax_marking_add_index_groups_settings();
+    }
+    if ($oldversion < 2012090505) {
+        block_ajax_marking_add_index_groups_members();
+    }
     return true;
 }
