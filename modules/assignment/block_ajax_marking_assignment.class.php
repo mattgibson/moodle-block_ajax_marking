@@ -632,7 +632,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $joinedquery = new block_ajax_marking_query_union($this);
         $joinedquery->add_query($nevermarkedquery);
         $joinedquery->add_query($resubmittedquery);
-        $joinedquery->set_union_string('UNION');
 
         $joinedquery->set_column('courseid', 'moduletable.course');
         $joinedquery->set_column('userid', 'sub.userid');
