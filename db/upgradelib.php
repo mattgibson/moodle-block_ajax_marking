@@ -270,3 +270,24 @@ function block_ajax_marking_add_index_groups_members() {
         $dbman->add_index($table, $index);
     }
 }
+
+/**
+ * This allows fast lookups of groups settings using a covering index.
+ */
+function block_ajax_marking_add_index_settings() {
+
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
+    // Define index amb_enrol_combo to be added to enrol.
+    $table = new xmldb_table('block_ajax_marking');
+    $index = new xmldb_index('amb_settings_combo', XMLDB_INDEX_UNIQUE, array('userid',
+                                                                             'tablename',
+                                                                             'instanceid'));
+
+    // Conditionally launch add index amb_enrol_combo.
+    if (!$dbman->index_exists($table, $index)) {
+        $dbman->add_index($table, $index);
+    }
+}

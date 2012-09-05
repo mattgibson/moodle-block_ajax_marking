@@ -39,8 +39,4 @@ function xmldb_block_ajax_marking_install() {
     block_ajax_marking_add_index_enrol();
     block_ajax_marking_add_index_groups_members();
 
-    // May not need this as we have control over indexes in XML.
-    block_ajax_marking_add_index_groups_settings();
-
-
 }
