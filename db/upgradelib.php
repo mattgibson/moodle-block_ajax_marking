@@ -208,3 +208,25 @@ function block_ajax_marking_add_index_context() {
         $dbman->add_index($table, $index);
     }
 }
+
+/**
+ * The enrol table needs an index that covers all the fields used in the join and where for the lookups
+ * of whether students are enrolled. As this is a NOT EXISTS, which is run against every potential unmarked row,
+ * it must be fast, so this coupled with one of the existing core indexes on user_enrolments allows the index to
+ * be used exclusively.
+ */
+function block_ajax_marking_add_index_enrol() {
+
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
+    // Define index amb_questattstep_combo to be added to question_attempt_steps.
+    $table = new xmldb_table('enrol');
+    $index = new xmldb_index('amb_enrol_combo', XMLDB_INDEX_NOTUNIQUE, array('courseid', 'id', 'enrol'));
+
+    // Conditionally launch add index amb_questattstep_combo.
+    if (!$dbman->index_exists($table, $index)) {
+        $dbman->add_index($table, $index);
+    }
+}

@@ -308,5 +308,8 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     if ($oldversion < 2012081201) {
         block_ajax_marking_add_index_context();
     }
+    if ($oldversion < 2012090500) {
+        block_ajax_marking_add_index_enrol();
+    }
     return true;
 }
