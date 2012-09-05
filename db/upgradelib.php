@@ -221,11 +221,11 @@ function block_ajax_marking_add_index_enrol() {
 
     $dbman = $DB->get_manager();
 
-    // Define index amb_questattstep_combo to be added to question_attempt_steps.
+    // Define index amb_enrol_combo to be added to enrol.
     $table = new xmldb_table('enrol');
-    $index = new xmldb_index('amb_enrol_combo', XMLDB_INDEX_NOTUNIQUE, array('courseid', 'id', 'enrol'));
+    $index = new xmldb_index('amb_enrol_combo', XMLDB_INDEX_NOTUNIQUE, array('courseid', 'enrol', 'id'));
 
-    // Conditionally launch add index amb_questattstep_combo.
+    // Conditionally launch add index amb_enrol_combo.
     if (!$dbman->index_exists($table, $index)) {
         $dbman->add_index($table, $index);
     }
