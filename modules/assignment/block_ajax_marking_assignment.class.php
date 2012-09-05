@@ -547,52 +547,14 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         global $DB;
 
-        $nevermarkedquery = new block_ajax_marking_query_base($this);
+        $query = new block_ajax_marking_query_base($this);
 
-        $nevermarkedquery->add_from(array(
-                'table' => 'assignment',
-                'alias' => 'moduletable',
-        ));
-
-        $nevermarkedquery->add_from(array(
-                'join' => 'INNER JOIN',
-                'table' => 'assignment_submissions',
-                'alias' => 'sub',
-                'on' => 'sub.assignment = moduletable.id'
-        ));
-
-        // Standard userid for joins.
-        $nevermarkedquery->add_select(array('table' => 'sub',
-                                 'column' => 'userid'));
-
-        $nevermarkedquery->add_select(array('table' => 'sub',
-                                'column' => 'timemodified',
-                                'alias' => 'timestamp'));
-
-        // First bit: not graded
-        // Second bit of first bit: has been resubmitted
-        // Third bit: if it's advanced upload, only care about the first bit if 'send for marking'
-        // was clicked.
-        $commentemptysql = $DB->sql_isempty('sub', 'sub.submissioncomment', false, true);
-        $assignmenttypestring = $DB->sql_compare_text('moduletable.assignmenttype');
-        $datastring = $DB->sql_compare_text('sub.data2');
-        // Resubmit seems not to be used for upload types.
-        $nevermarkedquery->add_where(" (sub.grade = -1 AND {$commentemptysql}) /* Never marked */
-
-                                /* Not in draft state */
-                                AND ( {$assignmenttypestring} != 'upload'
-                                      OR ( {$assignmenttypestring} = 'upload' AND {$datastring} = 'submitted'))
-                                AND {$assignmenttypestring} != 'offline'
-                                  ");
-
-        $resubmittedquery = new block_ajax_marking_query_base($this);
-
-        $resubmittedquery->add_from(array(
+        $query->add_from(array(
                               'table' => 'assignment',
                               'alias' => 'moduletable',
                          ));
 
-        $resubmittedquery->add_from(array(
+        $query->add_from(array(
                               'join' => 'INNER JOIN',
                               'table' => 'assignment_submissions',
                               'alias' => 'sub',
@@ -600,10 +562,9 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                          ));
 
         // Standard userid for joins.
-        $resubmittedquery->add_select(array('table' => 'sub',
+        $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
-
-        $resubmittedquery->add_select(array('table' => 'sub',
+        $query->add_select(array('table' => 'sub',
                                  'column' => 'timemodified',
                                  'alias' => 'timestamp'));
 
@@ -611,30 +572,25 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // Second bit of first bit: has been resubmitted
         // Third bit: if it's advanced upload, only care about the first bit if 'send for marking'
         // was clicked.
-        $commentemptysql = $DB->sql_isempty('sub', 'sub.submissioncomment', false, true);
+        $commentstring = $DB->sql_compare_text('sub.submissioncomment');
         $assignmenttypestring = $DB->sql_compare_text('moduletable.assignmenttype');
         $datastring = $DB->sql_compare_text('sub.data2');
         // Resubmit seems not to be used for upload types.
-        $resubmittedquery->add_where("
+        $query->add_where(array('type' => 'AND',
+                                'condition' =>
+                                "( (sub.grade = -1 AND {$commentstring} = '') /* Never marked */
+                                    OR
                                     ( (  moduletable.resubmit = 1
                                          OR ({$assignmenttypestring} = 'upload' AND moduletable.var4 = 1)
                                        ) /* Resubmit allowed */
                                        AND (sub.timemodified > sub.timemarked) /* Resubmit happened */
                                     )
-
+                                )
                                 /* Not in draft state */
                                 AND ( {$assignmenttypestring} != 'upload'
                                       OR ( {$assignmenttypestring} = 'upload' AND {$datastring} = 'submitted'))
                                 AND {$assignmenttypestring} != 'offline'
-                                  ");
-
-        // Now join the two together and return it.
-        $joinedquery = new block_ajax_marking_query_union($this);
-        $joinedquery->add_query($nevermarkedquery);
-        $joinedquery->add_query($resubmittedquery);
-
-        $joinedquery->set_column('courseid', 'moduletable.course');
-        $joinedquery->set_column('userid', 'sub.userid');
+                                  "));
 
         // TODO only sent for marking.
 
@@ -642,7 +598,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // is clicked, timemarked will be set to time(), but actually, grade and comment may
         // still be empty.
 
-        return $joinedquery;
+        return $query;
     }
 
 
