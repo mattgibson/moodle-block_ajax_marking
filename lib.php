@@ -76,13 +76,11 @@ function block_ajax_marking_teacherrole_sql() {
  * @param bool $reset clear the cache?
  * @return int
  */
-function block_ajax_marking_get_number_of_category_levels($reset=false) {
+function block_ajax_marking_get_number_of_category_levels($reset = false) {
 
     global $DB;
 
-    /**
-     * @var stdClass $categorylevels cache this in case this is called twice during one request
-     */
+    /* @var stdClass $categorylevels cache this in case this is called twice during one request */
     static $categorylevels;
 
     if (isset($categorylevels) && !$reset) {
@@ -119,7 +117,8 @@ function block_ajax_marking_get_my_teacher_courses($returnsql = false, $reset = 
 
     // If running in a unit test, we may well have different courses in the same script execution, so we want to
     // reset every time.
-    if (defined('PHPUNIT_TEST')) {
+
+    if (defined('PHPUNIT_TEST') && PHPUNIT_TEST != false) {
         $reset = true;
     }
 
@@ -128,17 +127,10 @@ function block_ajax_marking_get_my_teacher_courses($returnsql = false, $reset = 
     static $query = '';
     static $params = '';
 
-    if ($returnsql && !$reset) {
-
-        if (!empty($query)) {
-            return array($query, $params);
-        }
-
-    } else {
-
-        if (!empty($courses) && !$reset) {
-            return $courses;
-        }
+    if ($returnsql && !$reset && !empty($query)) {
+        return array($query, $params);
+    } else if (!$returnsql && !empty($courses) && !$reset) {
+        return $courses;
     }
 
     list($rolesql, $roleparams) = block_ajax_marking_teacherrole_sql();
@@ -173,13 +165,13 @@ function block_ajax_marking_get_my_teacher_courses($returnsql = false, $reset = 
 
     $where =   "WHERE course.visible = 1
                   AND EXISTS (SELECT 1
-                                  FROM {context} cx
-                            INNER JOIN {role_assignments} ra
-                                    ON ra.contextid = cx.id
-                                 WHERE cx.contextlevel = ?
-                                   AND ra.userid = ?
-                                   AND ra.roleid {$rolesql}
-                                   AND (cx.instanceid = cat1.id ";
+                                FROM {context} cx
+                          INNER JOIN {role_assignments} ra
+                                  ON ra.contextid = cx.id
+                               WHERE cx.contextlevel = ?
+                                 AND ra.userid = ?
+                                 AND ra.roleid {$rolesql}
+                                 AND (cx.instanceid = cat1.id ";
 
     // Loop adding extra join tables. $categorylevels = 2 means we only need one level of
     // categories (which we already have with the first left join above), so we start from 2
@@ -446,7 +438,7 @@ function block_ajax_marking_get_nextnodefilter_from_params(array $params) {
  * courses. This may or may not impact on the query optimiser being able to cache the execution
  * plan between users.
  *
- * // Query visualisation:
+ * Query visualisation:
  *               ______________________________________________________________
  *               |                                                            |
  * Course - Groups - coursemodules                                            |
@@ -474,53 +466,51 @@ function block_ajax_marking_get_nextnodefilter_from_params(array $params) {
  */
 function block_ajax_marking_group_visibility_subquery() {
 
-    global $DB, $USER;
+    global $USER, $DB;
 
     // In case the subquery is used twice, this variable allows us to feed the same teacher
     // courses in more than once because Moodle requires variables with different suffixes.
     static $counter = 0;
     $counter++;
 
-    $courses = block_ajax_marking_get_my_teacher_courses();
-    list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
-                                                             SQL_PARAMS_NAMED,
-                                                             "gvis_{$counter}_courses");
-
     $default = 1;
     $sql = <<<SQL
 
-        SELECT gvisgroups.id AS groupid,
-               gviscoursemodules.id AS coursemoduleid
-          FROM {groups} gvisgroups
-    INNER JOIN {course_modules} gviscoursemodules
-            ON gviscoursemodules.course = gvisgroups.courseid
-
-     LEFT JOIN {block_ajax_marking} gviscoursesettings
-            ON gviscoursemodules.course = gviscoursesettings.instanceid
-                AND gviscoursesettings.tablename = 'course'
-                AND gviscoursesettings.userid = :gvis{$counter}user1
-
-     LEFT JOIN {block_ajax_marking_groups} gviscoursesettingsgroups
-            ON gviscoursesettingsgroups.configid = gviscoursesettings.id
-               AND gviscoursesettingsgroups.groupid = gvisgroups.id
-
-     LEFT JOIN {block_ajax_marking} gviscoursemodulesettings
-            ON gviscoursemodules.id = gviscoursemodulesettings.instanceid
-                AND gviscoursemodulesettings.tablename = 'course_modules'
-                AND gviscoursemodulesettings.userid = :gvis{$counter}user2
-     LEFT JOIN {block_ajax_marking_groups} gviscoursemodulesettingsgroups
+        SELECT gviscoursemodulesettingsgroups.groupid,
+               gviscoursemodulesettings.instanceid AS coursemoduleid
+          FROM {block_ajax_marking} gviscoursemodulesettings
+    INNER JOIN {block_ajax_marking_groups} gviscoursemodulesettingsgroups
             ON gviscoursemodulesettingsgroups.configid = gviscoursemodulesettings.id
-               AND gviscoursemodulesettingsgroups.groupid = gvisgroups.id
+         WHERE gviscoursemodulesettingsgroups.display = 0
+           AND gviscoursemodulesettings.userid = :gvis{$counter}user2
+           AND gviscoursemodulesettings.tablename = 'course_modules'
 
-         WHERE gviscoursemodules.course {$coursessql}
-           AND COALESCE(gviscoursemodulesettingsgroups.display,
-                        gviscoursesettingsgroups.display,
-                        {$default}) = 0
+         UNION
+
+        SELECT gviscoursesettingsgroups.groupid,
+               gviscoursemodules.id AS coursemoduleid
+          FROM {course_modules} gviscoursemodules
+    INNER JOIN {block_ajax_marking} gviscoursesettings
+            ON gviscoursemodules.course = gviscoursesettings.instanceid
+           AND gviscoursesettings.tablename = 'course'
+           AND gviscoursesettings.userid = :gvis{$counter}user1
+    INNER JOIN {block_ajax_marking_groups} gviscoursesettingsgroups
+            ON gviscoursesettingsgroups.configid = gviscoursesettings.id
+           AND gviscoursesettingsgroups.display = 0
+           WHERE NOT EXISTS (SELECT 1
+                               FROM {block_ajax_marking} checknosettings
+                         INNER JOIN {block_ajax_marking_groups} checknogroups
+                                 ON checknogroups.configid = checknosettings.id
+                              WHERE checknosettings.instanceid = gviscoursemodules.id
+                                AND checknosettings.tablename = 'course_modules'
+                                AND checknosettings.userid = :gvis{$counter}user3
+                                AND checknogroups.display IS NOT NULL)
 SQL;
 
-    $coursesparams['gvis'.$counter.'user1'] = $USER->id;
-    $coursesparams['gvis'.$counter.'user2'] = $USER->id;
-    return array($sql, $coursesparams);
+    $gmaxcourseparams['gvis'.$counter.'user1'] = $USER->id;
+    $gmaxcourseparams['gvis'.$counter.'user2'] = $USER->id;
+    $gmaxcourseparams['gvis'.$counter.'user3'] = $USER->id;
+    return array($sql, $gmaxcourseparams);
 
 }
 
@@ -599,9 +589,13 @@ SQL;
  * are implemented differently, so we just copy/paste and let the optimiser deal with it.
  */
 function block_ajax_marking_get_countwrapper_groupid_sql() {
+
+    // If the groups have been attached to the countwrapper, we use this.
     $sql = <<<SQL
         COALESCE(membergroupquery.groupid, 0)
 SQL;
+    $sql = 'gmember_members.groupid';
+
     return $sql;
 
 }
@@ -705,6 +699,22 @@ function block_ajax_marking_group_members_subquery() {
 SQL;
 
     return array($sql, $coursesparams);
+}
+
+/**
+ * Tells us whether the user has chosen to see all the courses on the site. To debug the query for a very large site,
+ * tell this to return true, which will take away all the filtering to make sure a user only sees stuff from their
+ * own courses.
+ *
+ * @param array $filters
+ * @return bool
+ */
+function block_ajax_marking_admin_see_all(array $filters = array()) {
+
+    if (!empty($filters['adminseeall'])) {
+        return true;
+    }
+    return false;
 }
 
 

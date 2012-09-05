@@ -34,40 +34,36 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
-//require_once($CFG->dirroot.'/blocks/ajax_marking/filters/coursemoduleid/current_config.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Holds the filters to group the coursemodule node together. This is complex because the joins needed
  * to get the module details have to be constructed dynamically. See superclass for details.
  */
 class block_ajax_marking_filter_coursemoduleid_current
-    extends block_ajax_marking_filter_current_base {
+    extends block_ajax_marking_query_decorator_base {
 
     /**
      * Makes SQL for the text labels for the course nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
         // Same order as the super query will need them. Prefixed so we will have it as the
         // first column for the GROUP BY.
 
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'INNER JOIN',
                               'table' => 'course_modules',
                               'on' => 'course_modules.id = countwrapperquery.id'));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'course_modules',
                                 'column' => 'id',
                                 'alias' => 'coursemoduleid'));
         // The javascript needs this for styling.
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'countwrapperquery',
                                 'column' => 'modulename'));
-        $this->add_coursemodule_details($query);
+        $this->add_coursemodule_details($this->wrappedquery);
         // This will add the stuff that will show us the name of the actual module instance.
         // We use the same stuff for both config and marking trees, but the config tree doesn't need
         // the stuff to pull through submission counts.
@@ -85,10 +81,13 @@ class block_ajax_marking_filter_coursemoduleid_current
      */
     protected function add_coursemodule_details(block_ajax_marking_query $query) {
 
+        global $DB;
+
         $moduleclasses = block_ajax_marking_get_module_classes();
         $introcoalesce = array();
         $namecoalesce = array();
         $orderbycoalesce = array();
+        $moduleids = array();
         foreach ($moduleclasses as $moduleclass) {
             $moduletablename = $moduleclass->get_module_name();
             $query->add_from(array(
@@ -103,6 +102,7 @@ class block_ajax_marking_filter_coursemoduleid_current
             $namecoalesce[$moduletablename] = 'name';
             $introcoalesce[$moduletablename] = 'intro';
             $orderbycoalesce[$moduletablename] = $moduletablename.'.name';
+            $moduleids[] = $moduleclass->get_module_id();
         }
         $query->add_select(array(
                                 'table' => 'course_modules',
@@ -118,6 +118,8 @@ class block_ajax_marking_filter_coursemoduleid_current
                                 'function' => 'COALESCE',
                                 'column' => 'intro',
                                 'alias' => 'tooltip'));
+        list($idssql, $idsparams) = $DB->get_in_or_equal($moduleids, SQL_PARAMS_NAMED);
+        $query->add_where('course_modules.module '.$idssql, $idsparams);
 
         $query->add_orderby('COALESCE('.implode(', ', $orderbycoalesce).') ASC');
     }

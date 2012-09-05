@@ -33,20 +33,17 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Applies the filter needed for course nodes or their descendants
  */
-class block_ajax_marking_filter_cohortid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_filter_cohortid_current extends block_ajax_marking_query_decorator_base {
 
     /**
      * Applies the filter needed for course nodes or their descendants
-     *
-     * @param block_ajax_marking_query $query
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
         // What do we need for the nodes?
         $table = array(
@@ -54,17 +51,17 @@ class block_ajax_marking_filter_cohortid_current extends block_ajax_marking_filt
             'table' => 'cohort',
             'on' => 'countwrapperquery.id = cohort.id'
         );
-        $query->add_from($table);
+        $this->wrappedquery->add_from($table);
         $conditions = array(
             'table' => 'cohort',
             'column' => 'name');
-        $query->add_select($conditions);
+        $this->wrappedquery->add_select($conditions);
         $conditions = array(
             'table' => 'cohort',
             'column' => 'description');
-        $query->add_select($conditions);
+        $this->wrappedquery->add_select($conditions);
 
-        $query->add_orderby('cohort.name ASC');
+        $this->wrappedquery->add_orderby('cohort.name ASC');
     }
 
 

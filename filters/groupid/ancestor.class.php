@@ -34,29 +34,24 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Holds the filters to deal with coursemoduleid nodes.
  */
-class block_ajax_marking_filter_groupid_ancestor extends block_ajax_marking_filter_ancestor_base {
+class block_ajax_marking_filter_groupid_ancestor extends block_ajax_marking_query_decorator_base {
 
     /**
      * Used when there is an ancestor node representing a coursemodule.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
-     * @param int|string $groupid
-     * @return void
      */
-    protected function alter_query(block_ajax_marking_query $query, $groupid) {
+    protected function alter_query() {
 
-        $conditions = array(
-            'type' => 'AND',
-            'condition' => block_ajax_marking_get_countwrapper_groupid_sql().' = :groupid');
-        $query->add_where($conditions);
-        $query->add_param('groupid', $groupid);
+        // TODO use the union query object to handle this.
+        static $counter = 0; // We will get duplicates if we use this on modulequeries.
+        $counter++;
+
+        $sql = block_ajax_marking_get_countwrapper_groupid_sql().' = :groupid'.$counter;
+        $this->wrappedquery->add_where($sql, array('groupid'.$counter => $this->get_parameter()));
     }
-
 }
 

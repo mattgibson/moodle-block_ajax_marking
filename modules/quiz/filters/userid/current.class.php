@@ -28,36 +28,33 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * User id filter for the quiz module
  */
-class block_ajax_marking_quiz_filter_userid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_quiz_filter_userid_current extends block_ajax_marking_query_decorator_base {
 
     /**
      * Makes a bunch of user nodes by grouping quiz submissions by the user id. The grouping is
      * automatic, but the text labels for the nodes are specified here.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'countwrapperquery',
                                 'column' => 'timestamp',
                                 'alias' => 'tooltip')
         );
 
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'usertable',
                                 'column' => 'firstname'));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'usertable',
                                 'column' => 'lastname'));
 
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'INNER JOIN',
                               'table' => 'user',
                               'alias' => 'usertable',
@@ -65,7 +62,7 @@ class block_ajax_marking_quiz_filter_userid_current extends block_ajax_marking_f
                          ));
 
         // This is only needed to add the right callback function.
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'column' => "'quiz'",
                                 'alias' => 'modulename'
                            ));

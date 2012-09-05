@@ -27,9 +27,10 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-// Include constants.
 global $CFG;
-require_once("{$CFG->dirroot}/blocks/ajax_marking/lib.php");
+
+require_once("{$CFG->dirroot}/blocks/ajax_marking/lib.php"); // Include constants.
+require_once("{$CFG->dirroot}/blocks/ajax_marking/db/upgradelib.php");
 
 /**
  * Standard upgrade function run every time the block's version number changes
@@ -102,7 +103,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
             // Drop the groups column on the old table.
 
             // Define field groups to be dropped from block_ajax_marking.
-            drop_groups_field();
+            block_ajax_marking_drop_groups_field();
         }
 
         upgrade_block_savepoint(true, 2010101302, 'ajax_marking');
@@ -139,7 +140,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     if ($oldversion < 2011052301) {
 
         // Define field groups to be dropped from block_ajax_marking.
-        drop_groups_field();
+        block_ajax_marking_drop_groups_field();
 
         $table = new xmldb_table('block_ajax_marking');
 
@@ -208,7 +209,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
     if ($oldversion < 2011111800) {
 
-        change_config_to_courseid();
+        block_ajax_marking_change_config_to_courseid();
 
         // Ajax_marking savepoint reached.
         upgrade_block_savepoint(true, 2011111800, 'ajax_marking');
@@ -218,7 +219,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     // Add new bits for holding groups display settings.
     if ($oldversion < 2011112300) {
 
-        add_groups_display_field();
+        block_ajax_marking_add_groups_display_field();
 
         upgrade_block_savepoint(true, 2011112300, 'ajax_marking');
 
@@ -229,7 +230,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
 
         // Add a new field for showing whether each group should be displayed. Allows
         // override of 'show this group' that may have been set at course level.
-        add_display_field();
+        block_ajax_marking_add_display_field();
 
         upgrade_block_savepoint(true, 2011112301, 'ajax_marking');
 
@@ -241,7 +242,7 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     // it.
     if ($oldversion < 2011112505) {
 
-        add_groups_display_field();
+        block_ajax_marking_add_groups_display_field();
 
         upgrade_block_savepoint(true, 2011112505, 'ajax_marking');
 
@@ -257,11 +258,11 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
                                  null, '0', 'userid');
         // Conditionally rerun the previous bit if the field it was supposed to have is missing.
         if (!$dbman->field_exists($table, $field)) {
-            change_config_to_courseid();
+            block_ajax_marking_change_config_to_courseid();
         }
 
         // Some sites missed this.
-        add_display_field();
+        block_ajax_marking_add_display_field();
 
         // Ajax_marking savepoint reached.
         upgrade_block_savepoint(true, 2011112506, 'ajax_marking');
@@ -300,147 +301,12 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
         upgrade_block_savepoint(true, 2012020200, 'ajax_marking');
     }
 
+    // Add indexes to key tables.
+    if ($oldversion < 2012081200) {
+        block_ajax_marking_add_index_question_attempt_steps();
+    }
+    if ($oldversion < 2012081201) {
+        block_ajax_marking_add_index_context();
+    }
     return true;
-}
-
-/**
- * Removes the 'groups' field from the main settings table, so it can be made into a separate
- * join table.
- */
-function drop_groups_field() {
-
-    global $DB;
-
-    $dbman = $DB->get_manager();
-
-    $table = new xmldb_table('block_ajax_marking');
-    $field = new xmldb_field('groups');
-
-    // Launch drop field groups.
-    if ($dbman->field_exists($table, $field)) {
-        $dbman->drop_field($table, $field);
-    }
-}
-
-/**
- * Add a new field for showing whether each group should be displayed. Allows override of.
- */
-function add_display_field() {
-
-    global $DB;
-
-    $dbman = $DB->get_manager();
-
-    // Show this group that may have been set at course level.
-    $table = new xmldb_table('block_ajax_marking_groups');
-    $field = new xmldb_field('display', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, null,
-                             null, '0', 'groupid');
-    // Conditionally launch add field.
-    if (!$dbman->field_exists($table, $field)) {
-        $dbman->add_field($table, $field);
-    }
-}
-
-/**
- * Add a new field for showing whether groups should be displayed.
- */
-function add_groups_display_field() {
-
-    global $DB;
-
-    $dbman = $DB->get_manager();
-
-    $table = new xmldb_table('block_ajax_marking');
-    $field = new xmldb_field('groupsdisplay', XMLDB_TYPE_INTEGER, '1', XMLDB_UNSIGNED, null,
-                             null, '0', 'display');
-    // Conditionally launch add field.
-    if (!$dbman->field_exists($table, $field)) {
-        $dbman->add_field($table, $field);
-    }
-}
-
-/**
- * Alters the table to use coursemodule id instead of module name and module id. Separating due
- * to an xml problem that meant that some sites didn't upgrade cleanly and needed redoing.
- *
- * @return array
- */
-function change_config_to_courseid() {
-
-    global $DB;
-
-    $dbman = $DB->get_manager();
-
-    $existingrecords = $DB->get_records('block_ajax_marking');
-
-    // Make the old columns go away.
-
-    // Define field courseid to be dropped from block_ajax_marking.
-    $table = new xmldb_table('block_ajax_marking');
-
-    $fieldstodrop = array(
-        'courseid',
-        'coursemoduleid',
-        'assessmenttype',
-        'assessmentid'
-    );
-
-    foreach ($fieldstodrop as $fieldtodrop) {
-        $field = new xmldb_field($fieldtodrop);
-        // Conditionally launch drop field.
-        if ($dbman->field_exists($table, $field)) {
-            $dbman->drop_field($table, $field);
-        }
-    }
-
-    // Add a new field for holding general ids from various tables.
-    $field = new xmldb_field('instanceid', XMLDB_TYPE_INTEGER, '10', XMLDB_UNSIGNED, null,
-                             null, '0', 'userid');
-    // Conditionally launch add field.
-    if (!$dbman->field_exists($table, $field)) {
-        $dbman->add_field($table, $field);
-    }
-
-    // Add a new field for holding the table name.
-    $field = new xmldb_field('tablename', XMLDB_TYPE_CHAR, '40', null, null, null,
-                             null, 'instanceid');
-    // Conditionally launch add field.
-    if (!$dbman->field_exists($table, $field)) {
-        $dbman->add_field($table, $field);
-    }
-
-    // Remove old data in the wrong format.
-    $sql = "TRUNCATE TABLE {block_ajax_marking}";
-    $DB->execute($sql);
-
-    // Put the old data back.
-    $modids = $DB->get_records('modules', array(), '', 'name, id');
-    foreach ($existingrecords as $record) {
-        $oldid = $record->id;
-        unset($record->id);
-        if (!empty($record->courseid)) {
-            $record->instanceid = $record->courseid;
-            $record->tablename = 'course';
-        } else if (!empty($record->coursemoduleid)) {
-            $record->instanceid = $record->coursemoduleid;
-            $record->tablename = 'course_modules';
-        } else {
-            // Previous upgrade failed somehow.
-            $cmid = $DB->get_field('course_modules',
-                                   'id',
-                                   array('module' => $modids[$record->assessmenttype]->id,
-                                         'instance' => $record->assessmentid));
-            $record->tablename = 'course_modules';
-            $record->instanceid = $cmid;
-        }
-
-        $newid = $DB->insert_record('block_ajax_marking', $record);
-        $sql = "UPDATE {block_ajax_marking_groups}
-                       SET configid = :newid
-                     WHERE configid = :oldid ";
-        $DB->execute($sql,
-                     array('oldid' => $oldid,
-                           'newid' => $newid));
-    }
-
 }

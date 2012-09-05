@@ -33,29 +33,28 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
- * Applies the filter needed for course nodes or their descendants
+ * Attaches the questionid to the quiz element of the moduleunion query. Can only be used when quiz is the only one in
+ * use, or else it makes the union queries inconsistent.
  */
-class block_ajax_marking_courseid_ancestor_config extends block_ajax_marking_filter_ancestor_base {
+class block_ajax_marking_forum_filter_discussionid_attach_moduleunion extends block_ajax_marking_query_decorator_base {
 
     /**
-     * This is for when a courseid node is an ancestor of the node that has been
-     * selected, so we just do a where.
-     *
-     * @param block_ajax_marking_query|block_ajax_marking_query_base $query
-     * @param int $courseid
-     * @return void
+     * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
+     * nodes.
      */
-    public function alter_query(block_ajax_marking_query $query, $courseid) {
+    protected function alter_query() {
 
+        // Apply WHERE clause.
         $conditions = array(
-            'type' => 'AND',
-            'condition' => 'course_modules.course = :courseidfiltercourseid');
-        $query->add_where($conditions);
-        $query->add_param('courseidfiltercourseid', $courseid);
+            'table' => 'discussions',
+            'column' => 'id',
+            'alias' => 'discussionid'
+        );
+        // TODO needs applying to just the quiz one.
+        $this->wrappedquery->add_select($conditions);
+
     }
-
-
 }

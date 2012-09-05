@@ -33,28 +33,23 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Applies the filter needed for course nodes or their descendants
  */
-class block_ajax_marking_filter_cohortid_ancestor extends block_ajax_marking_filter_ancestor_base {
+class block_ajax_marking_filter_cohortid_ancestor extends block_ajax_marking_query_decorator_base {
 
     /**
      * This is for when a courseid node is an ancestor of the node that has been
      * selected, so we just do a where.
      *
-     * @param block_ajax_marking_query $query
-     * @param int|string $cohortid
      * @return void
      */
-    protected function alter_query(block_ajax_marking_query $query, $cohortid) {
+    protected function alter_query() {
 
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'cohort.id = :cohortidfiltercohortid');
-        $query->add_where($clause);
-        $query->add_param('cohortidfiltercohortid', $cohortid);
+        $param = array('cohortidfiltercohortid' => $this->get_parameter());
+        $this->wrappedquery->add_where('cohort.id = :cohortidfiltercohortid', $param);
     }
 
 

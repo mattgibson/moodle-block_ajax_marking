@@ -33,25 +33,20 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Provides a base class for all the query decorators that are going to group the nodes by some field.
  */
 class block_ajax_marking_quiz_filter_userid_ancestor extends
-    block_ajax_marking_filter_ancestor_base {
+    block_ajax_marking_query_decorator_base {
 
     /**
-     * @param block_ajax_marking_query $query
-     * @param int|string $userid
      */
-    protected function alter_query(block_ajax_marking_query $query, $userid) {
+    protected function alter_query() {
         // Applies if users are not the final nodes.
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'quiz_attempts.userid = :quizuseridfilterancestor');
-        $query->add_where($clause);
-        $query->add_param('quizuseridfilterancestor', $userid);
+        $sql = 'quiz_attempts.userid = :quizuseridfilterancestor';
+        $this->wrappedquery->add_where($sql, array('quizuseridfilterancestor' => $this->get_parameter()));
     }
 }
 

@@ -38,6 +38,11 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query.interface.php');
 class block_ajax_marking_query_base implements block_ajax_marking_query {
 
     /**
+     * @var string
+     */
+    protected $columns = array();
+
+    /**
      * This hold arrays, with each one being a table column. Each array needs 'function', 'table',
      * 'column', 'alias', 'distinct'. Each array is keyed by its column alias or name, if there is
      * no alias. Its important that these are in the right order as the GROUP BY will be generated
@@ -74,14 +79,38 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
     private $params = array();
 
     /**
+     * @var string Name used to refer to this query if it is a subquery.
+     */
+    protected $subqueryname;
+
+    /**
+     * @var bool Do we want to add WHERE courseid IN (x, y, z) to tall tables that can take it to improve performance?
+     */
+    protected $courselimitstatus;
+
+    /**
+     * @var block_ajax_marking_module_base|null Reference to the module object with all the data about the
+     * relevant module.
+     */
+    protected $moduleclass;
+
+    /**
+     * @param block_ajax_marking_module_base $moduleclass
+     */
+    public function __construct($moduleclass = null) {
+        $this->moduleclass = $moduleclass;
+    }
+
+    /**
      * Crunches the SELECT array into a valid SQL query string. Each has 'function', 'table',
      * 'column', 'alias', 'distinct'
      *
      * wrapper via UNION?
      *
+     * @param bool $nocache if true, SQL_NO_CACHE will be added to the start of the query.
      * @return string SQL
      */
-    protected function get_select() {
+    protected function get_select($nocache = false) {
 
         $selectarray = array();
 
@@ -89,7 +118,12 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
             $selectarray[] = self::build_select_item($select);
         }
 
-        return 'SELECT '.implode(", \n", $selectarray).' ';
+        // For development, we don't want the cache in use - it makes it hard to debug via SQL tools etc.
+        $nocachestring = '';
+        if ($nocache) {
+            $nocachestring = ' SQL_NO_CACHE ';
+        }
+        return 'SELECT '.$nocachestring.implode(", \n", $selectarray).' ';
     }
 
     /**
@@ -213,18 +247,8 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     protected function get_where() {
 
-        // The first clause should not have AND at the start.
-        $first = true;
-
-        $wherearray = array();
-
-        foreach ($this->where as $clause) {
-            $wherearray[] = ($first ? '' : $clause['type']).' '.$clause['condition'];
-            $first = false;
-        }
-
-        if ($wherearray) {
-            return "\n\n WHERE ".implode(" \n", $wherearray).' ';
+        if (!empty($this->where)) {
+            return "\n\n WHERE ".implode("\n AND ", $this->where).' ';
         } else {
             return '';
         }
@@ -401,20 +425,16 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      * - what if it's a nested thing e.g. AND ( X AND Y )
      * - what if it's a subquery e.g. EXISTS ()
      *
-     * @param array $clause containing 'type' e.g. 'AND' & 'condition' which is something that can
-     * be added to other things using AND
+     * @param string $sql Always added using AND
+     * @param array $params
      * @throws coding_exception
      * @return void
      */
-    public function add_where(array $clause) {
+    public function add_where($sql, $params = array()) {
 
-        $requiredkeys = array('type', 'condition');
+        $this->where[] = $sql;
 
-        if (is_array($clause) && (array_diff(array_keys($clause), $requiredkeys) === array())) {
-            $this->where[] = $clause;
-        } else {
-            throw new coding_exception('Wrong array items specified for new WHERE clause');
-        }
+        $this->add_params($params);
     }
 
     /**
@@ -450,23 +470,22 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      * Adds an associative array of parameters to the query
      *
      * @param array $params
-     * @param bool|array $arraytoaddto
      * @throws coding_exception
-     * @return bool|array
+     * @return void
      */
-    public function add_params(array $params, $arraytoaddto = false) {
+    public function add_params(array $params) {
+
+        if (empty($params)) {
+            return;
+        }
 
         $dupes = array_intersect(array_keys($params), array_keys($this->params));
         if ($dupes) {
             throw new coding_exception('Duplicate keys when adding query params',
                                        implode(', ', $dupes));
         }
-        if ($arraytoaddto === false) {
-            $this->params = array_merge($this->params, $params);
-            return true;
-        } else {
-            return array_merge($params, $arraytoaddto);
-        }
+
+        $this->params = array_merge($this->params, $params);
     }
 
     /**
@@ -494,12 +513,13 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      * $DB->get_records(). Must be public or else we cannot wrap the queries in each other as
      * subqueries.
      *
+     * @param bool $nocache if true, SQL_NO_CACHE will be set
      * @return string
      */
-    public function get_sql() {
+    public function get_sql($nocache = false) {
 
         // Stick it all together.
-        $query = $this->get_select().
+        $query = $this->get_select($nocache).
                  $this->get_from().
                  $this->get_where().
                  $this->get_groupby().
@@ -521,13 +541,13 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
             $table = $jointable['table'];
             if ($table instanceof block_ajax_marking_query) {
                 /* @var block_ajax_marking_query_base $table */
-                $params = $this->add_params($table->get_params(), $params);
+                $params = array_merge($params, $table->get_params());
             } else if (is_array($table)) {
                 /* @var array $table */
                 $this->validate_union_array($table);
                 /* @var block_ajax_marking_query_base $uniontable */
                 foreach ($table as $uniontable) {
-                    $params = $this->add_params($uniontable->get_params(), $params);
+                    $params = array_merge($params, $uniontable->get_params());
                 }
             }
         }
@@ -562,12 +582,14 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     public function execute($returnrecordset = false) {
 
-        global $DB;
+        global $DB, $CFG;
+
+        $nocache = $CFG->debug == DEBUG_DEVELOPER;
 
         if ($returnrecordset) {
-            return $DB->get_recordset_sql($this->get_sql(), $this->get_params());
+            return $DB->get_recordset_sql($this->get_sql($nocache), $this->get_params());
         } else {
-            return $DB->get_records_sql($this->get_sql(), $this->get_params());
+            return $DB->get_records_sql($this->get_sql($nocache), $this->get_params());
         }
     }
 
@@ -605,7 +627,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
         global $CFG;
 
         $params = $this->get_params();
-        $sql = $this->get_sql();
+        $sql = $this->get_sql($CFG->debug == DEBUG_DEVELOPER);
 
         // We may have a problem with params being missing. Check here (assuming the params ar in
         // SQL_PARAMS_NAMED format And tell us the names of the offending params via an exception.
@@ -639,6 +661,123 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
         return $sql;
     }
 
+    /**
+     * If this is a subquery, we need to be able to have decorators do things like SELECT nameofsubquery.column
+     * for different subqueries, all of which will have the same column name. This returns it, which needs to
+     * have been set somehow.
+     *
+     * @return string
+     */
+    public function get_subquery_name() {
+        return $this->subqueryname;
+    }
 
+    /**
+     * Sets the name of this subquery so that we can refer to it from decorators when they attach stuff.
+     *
+     * @param string $name
+     */
+    public function set_subquery_name($name) {
+        $this->subqueryname = $name;
+    }
+
+    /**
+     * Returns the SQL fragment of tablealias.column which has previously been stored. Exception if we ask for
+     * one that's not there.
+     *
+     * @param string $columnname
+     * @return string
+     * @throws coding_exception
+     */
+    public function get_column($columnname) {
+        if (array_key_exists($columnname, $this->columns)) {
+            return $this->columns[$columnname];
+        }
+
+        throw new coding_exception("Looking for a non-existent {$columnname} column");
+    }
+
+    /**
+     * Stores the name of a column that we have just added to the dynamic query so that other decorators can get to
+     * it later.
+     *
+     * @param string $columnname
+     * @param string $sql
+     * @throws coding_exception
+     */
+    public function set_column($columnname, $sql) {
+
+        if (array_key_exists($columnname, $this->columns)) {
+            $message = "Trying to add a {$columnname} column, but it's already been stored as ".
+                $this->columns[$columnname];
+            throw new coding_exception($message);
+        }
+        $this->columns[$columnname] = $sql;
+
+    }
+
+    /**
+     * If there is a moduleclass, return the name of it.
+     *
+     * @return string
+     * @throws coding_exception
+     */
+    public function get_module_name() {
+        if (!($this->moduleclass instanceof block_ajax_marking_module_base)) {
+            return '';
+            // throw new coding_exception('Asking for module name without any module attached to the query');
+        }
+
+        return $this->moduleclass->get_module_name();
+    }
+
+    /**
+     * If there is a moduleclass, return the id of that module. Used to attache coursemodule by instance and moduleid.
+     *
+     * @return string
+     * @throws coding_exception
+     */
+    public function get_module_id() {
+        if (!($this->moduleclass instanceof block_ajax_marking_module_base)) {
+            throw new coding_exception('Asking for module name without any module attached to the query');
+        }
+
+        return $this->moduleclass->get_module_id();
+    }
+
+    /**
+     * Sets the course limit status so that we know whether this query needs to have all appropriate tables limited
+     * to courses that the user has access to. This makes the whole thing much faster for normal users. Only admins
+     * who want to see all courses at once need this off.
+     *
+     * @abstract
+     * @param bool $on
+     */
+    public function set_course_limit_status($on = true) {
+        $this->courselimitstatus = $on;
+    }
+
+    /**
+     * Tells us whether to apply the limit code that makes all the join tables have a WHERE courseid IN(x, y, z).
+     * When on a very large site, this can be make a huge difference to performance. Only admins who want to
+     * view everything need to have it turned off.
+     *
+     * @abstract
+     * @return bool
+     */
+    public function get_course_limit_status() {
+        return $this->courselimitstatus;
+    }
+
+    /**
+     * Slightly awkward way of making sure we can add bits and pieces of SQL to unioned queries without
+     * duplicating param names. If we just use the query_union class to add the same fragment to all of the bits,
+     * @todo use an array iterator of all the queries or something instead.
+     *
+     * @return mixed
+     */
+    public function get_number_of_unioned_subqueries() {
+        return 1;
+    }
 }
 

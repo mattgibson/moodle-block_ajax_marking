@@ -26,37 +26,23 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Deals with SQL wrapper stuff for the discussion nodes.
  */
 class block_ajax_marking_forum_filter_discussionid_attach_countwrapper extends
-    block_ajax_marking_filter_attach_base {
+    block_ajax_marking_query_decorator_base {
 
     /**
      * Adds SQL to construct a set of discussion nodes.
-     *
-     * @param block_ajax_marking_query $query
-     * @return mixed|void
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
-        // We join like this because we can't put extra stuff into the UNION ALL bit
-        // unless all modules have it and this is unique to forums.
-        $query->add_from(array(
-                              'table' => 'forum_posts',
-                              'on' => 'moduleunion.subid = post.id',
-                              'alias' => 'post')
-        );
-        $query->add_from(array(
-                              'table' => 'forum_discussions',
-                              'on' => 'discussion.id = post.discussion',
-                              'alias' => 'discussion')
-        );
-        $query->add_select(array(
-                                'table' => 'discussion',
-                                'column' => 'id'), true
+        $this->wrappedquery->add_select(array(
+                                'table' => 'moduleunion',
+                                'column' => 'discussionid',
+                                'alias' => 'id'), true
         );
     }
 }

@@ -41,7 +41,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query.interface.php');
  * by using $this and then not getting any of the decorator stuff, all of the wrappers are being given all
  * of the template functions
  */
-abstract class block_ajax_marking_filter_base implements block_ajax_marking_query {
+abstract class block_ajax_marking_query_decorator_base implements block_ajax_marking_query {
 
     /**
      * @var block_ajax_marking_query The wrapped object that this decorator operates on.
@@ -49,12 +49,33 @@ abstract class block_ajax_marking_filter_base implements block_ajax_marking_quer
     protected $wrappedquery;
 
     /**
+     * @var mixed optional e.g. course id
+     */
+    protected $parameter;
+
+    /**
      * Constructor assigns the wrapped object ot the member variable.
      *
      * @param block_ajax_marking_query $query
+     * @param bool $parameter
      */
-    public function __construct(block_ajax_marking_query $query) {
+    public function __construct(block_ajax_marking_query $query, $parameter = false) {
         $this->wrappedquery = $query;
+        $this->parameter = $parameter;
+        $this->alter_query();
+    }
+
+    /**
+     * Getter that throws an exception if the parameter is missing.
+     *
+     * @return bool|mixed
+     * @throws coding_exception
+     */
+    protected function get_parameter() {
+        if (!isset($this->parameter)) {
+            throw new coding_exception('Trying to get a parameter, but there isn\'t one.');
+        }
+        return $this->parameter;
     }
 
     /**
@@ -76,11 +97,12 @@ abstract class block_ajax_marking_filter_base implements block_ajax_marking_quer
     }
 
     /**
-     * @param array $clause
+     * @param array $params
+     * @param string $sql Always added using AND
      * @return string|void
      */
-    public function add_where(array $clause) {
-        $this->wrappedquery->add_where($clause);
+    public function add_where($sql, $params = array()) {
+        $this->wrappedquery->add_where($sql, $params);
     }
 
     /**
@@ -97,10 +119,9 @@ abstract class block_ajax_marking_filter_base implements block_ajax_marking_quer
      *
      * @abstract
      * @param array $params
-     * @param bool $arraytoaddto
      */
-    public function add_params(array $params, $arraytoaddto = false) {
-        $this->wrappedquery->add_params($params, $arraytoaddto);
+    public function add_params(array $params) {
+        $this->wrappedquery->add_params($params);
     }
 
     /**
@@ -118,6 +139,7 @@ abstract class block_ajax_marking_filter_base implements block_ajax_marking_quer
      *
      * @abstract
      * @param bool $returnrecordset
+     * @return array|\moodle_recordset
      */
     public function execute($returnrecordset = false) {
         return $this->wrappedquery->execute($returnrecordset);
@@ -155,4 +177,86 @@ abstract class block_ajax_marking_filter_base implements block_ajax_marking_quer
         return $this->wrappedquery->debuggable_query();
     }
 
+    /**
+     * Returns the SQL of a column that was previously stored. Allows decorators to attach stuff to different queries
+     * that have the same stuff from different tables or aliases.
+     *
+     * @param string $columnname
+     * @return mixed
+     */
+    public function get_column($columnname) {
+        return $this->wrappedquery->get_column($columnname);
+    }
+
+    /**
+     * Saves the SQL used to get a particular column, which other filters may need.
+     *
+     * @abstract
+     * @param string $columnname
+     * @param string $sql
+     */
+    public function set_column($columnname, $sql) {
+         $this->wrappedquery->set_column($columnname, $sql);
+    }
+
+    /**
+     * Gets the name of whatever module may be there.
+     *
+     * @return string
+     */
+    public function get_module_name() {
+        return $this->wrappedquery->get_module_name();
+    }
+
+    /**
+     * Gets the DB id of the associated module from the module table.
+     *
+     * @return int
+     */
+    public function get_module_id() {
+        return $this->wrappedquery->get_module_id();
+    }
+
+    /**
+     * Does the actual work of the decorator.
+     *
+     * @abstract
+     * @return mixed
+     */
+    abstract protected function alter_query();
+
+    /**
+     * Sets the course limit status so that we know whether this query needs to have all appropriate tables limited
+     * to courses that the user has access to. This makes the whole thing much faster for normal users. Only admins
+     * who want to see all courses at once need this off.
+     *
+     * @abstract
+     * @param bool $on
+     */
+    public function set_course_limit_status($on = true) {
+        $this->wrappedquery->set_course_limit_status($on);
+    }
+
+    /**
+     * Tells us whether to apply the limit code that makes all the join tables have a WHERE courseid IN(x, y, z).
+     * When on a very large site, this can be make a huge difference to performance. Only admins who want to
+     * view everything need to have it turned off.
+     *
+     * @abstract
+     * @return bool
+     */
+    public function get_course_limit_status() {
+        return $this->wrappedquery->get_course_limit_status();
+    }
+
+    /**
+     * Slightly awkward way of making sure we can add bits and pieces of SQL to unioned queries without
+     * duplicating param names. If we just use the query_union class to add the same fragment to all of the bits,
+     * @todo use an array iterator of all the queries or something instead.
+     *
+     * @return mixed
+     */
+    public function get_number_of_unioned_subqueries() {
+        return $this->wrappedquery->get_number_of_unioned_subqueries();
+    }
 }

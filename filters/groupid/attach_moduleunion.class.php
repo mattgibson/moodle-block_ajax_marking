@@ -36,21 +36,22 @@ global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
- * Generic base for core decorator classes that alter the query.
+ * Attaches the question id to the countwrapper query. Can only be used when quiz is the only one in
+ * use, or else it makes the union queries inconsistent. Depends on having a filter attaching it to the moduleunion.
  */
-abstract class block_ajax_marking_filter_core_base extends block_ajax_marking_filter_base {
+class block_ajax_marking_filter_groupid_attach_moduleunion extends
+    block_ajax_marking_query_decorator_base {
 
     /**
-     * @param block_ajax_marking_query $query
+     * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
+     * nodes.
      */
-    public function __construct(block_ajax_marking_query $query) {
-        parent::__construct($query);
-        $this->alter_query();
+    protected function alter_query() {
+
+        return;
+
+        $this->wrappedquery->add_select(array(
+                                             'column' => 'COALESCE(membergroupquery.groupid, 0)',
+                                             'alias' => 'groupid'));
     }
-
-    /**
-     * @abstract
-     * @return mixed
-     */
-    abstract protected function alter_query();
 }

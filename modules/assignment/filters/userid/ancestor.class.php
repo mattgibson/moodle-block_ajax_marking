@@ -33,25 +33,18 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Holds any custom filters for userid nodes that this module offers
  */
-class block_ajax_marking_assignment_filter_userid_ancestor extends block_ajax_marking_filter_ancestor_base {
+class block_ajax_marking_assignment_filter_userid_ancestor extends block_ajax_marking_query_decorator_base {
 
     /**
      * Not sure we'll ever need this, but just in case...
-     *
-     * @static
-     * @param block_ajax_marking_query $query
-     * @param int $userid
      */
-    public function alter_query(block_ajax_marking_query $query, $userid) {
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'sub.userid = :assignmentuseridfilteruserid');
-        $query->add_where($clause);
-        $query->add_param('assignmentuseridfilteruserid', $userid);
+    public function alter_query() {
+        $sql = 'sub.userid = :assignmentuseridfilteruserid';
+        $this->wrappedquery->add_where($sql, array('assignmentuseridfilteruserid' => $this->get_parameter()));
     }
 }
