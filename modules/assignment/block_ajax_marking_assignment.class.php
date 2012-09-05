@@ -553,6 +553,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                               'table' => 'assignment',
                               'alias' => 'moduletable',
                          ));
+        $query->set_column('courseid', 'moduletable.course');
 
         $query->add_from(array(
                               'join' => 'INNER JOIN',
@@ -560,6 +561,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                               'alias' => 'sub',
                               'on' => 'sub.assignment = moduletable.id'
                          ));
+        $query->set_column('userid', 'sub.userid');
 
         // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
@@ -576,9 +578,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $assignmenttypestring = $DB->sql_compare_text('moduletable.assignmenttype');
         $datastring = $DB->sql_compare_text('sub.data2');
         // Resubmit seems not to be used for upload types.
-        $query->add_where(array('type' => 'AND',
-                                'condition' =>
-                                "( (sub.grade = -1 AND {$commentstring} = '') /* Never marked */
+        $query->add_where("( (sub.grade = -1 AND {$commentstring} = '') /* Never marked */
                                     OR
                                     ( (  moduletable.resubmit = 1
                                          OR ({$assignmenttypestring} = 'upload' AND moduletable.var4 = 1)
@@ -590,9 +590,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                 AND ( {$assignmenttypestring} != 'upload'
                                       OR ( {$assignmenttypestring} = 'upload' AND {$datastring} = 'submitted'))
                                 AND {$assignmenttypestring} != 'offline'
-                                  "));
-
-        // TODO only sent for marking.
+                                  ");
 
         // Advanced upload: data2 will be 'submitted' and grade will be -1, but if 'save changes'
         // is clicked, timemarked will be set to time(), but actually, grade and comment may
