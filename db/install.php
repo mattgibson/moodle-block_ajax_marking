@@ -36,4 +36,5 @@ function xmldb_block_ajax_marking_install() {
 
     block_ajax_marking_add_index_question_attempt_steps();
     block_ajax_marking_add_index_context();
+    block_ajax_marking_add_index_enrol();
 }
