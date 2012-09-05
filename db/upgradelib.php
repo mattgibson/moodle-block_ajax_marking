@@ -208,3 +208,86 @@ function block_ajax_marking_add_index_context() {
         $dbman->add_index($table, $index);
     }
 }
+
+/**
+ * The enrol table needs an index that covers all the fields used in the join and where for the lookups
+ * of whether students are enrolled. As this is a NOT EXISTS, which is run against every potential unmarked row,
+ * it must be fast, so this coupled with one of the existing core indexes on user_enrolments allows the index to
+ * be used exclusively.
+ */
+function block_ajax_marking_add_index_enrol() {
+
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
+    // Define index amb_enrol_combo to be added to enrol.
+    $table = new xmldb_table('enrol');
+    $index = new xmldb_index('amb_enrol_combo', XMLDB_INDEX_NOTUNIQUE, array('courseid', 'enrol', 'id'));
+
+    // Conditionally launch add index amb_enrol_combo.
+    if (!$dbman->index_exists($table, $index)) {
+        $dbman->add_index($table, $index);
+    }
+}
+
+/**
+ * This allows fast lookups of groups settings using a covering index.
+ */
+function block_ajax_marking_add_index_groups_settings() {
+
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
+    // Define index amb_enrol_combo to be added to enrol.
+    $table = new xmldb_table('block_ajax_marking_groups');
+    $index = new xmldb_index('amb_groups_settings_combo', XMLDB_INDEX_UNIQUE, array('configid',
+                                                                             'groupid',
+                                                                             'display'));
+
+    // Conditionally launch add index amb_enrol_combo.
+    if (!$dbman->index_exists($table, $index)) {
+        $dbman->add_index($table, $index);
+    }
+}
+
+/**
+ * This allows fast lookups of groups settings using a covering index.
+ */
+function block_ajax_marking_add_index_groups_members() {
+
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
+    // Define index amb_enrol_combo to be added to enrol.
+    $table = new xmldb_table('groups_members');
+    $index = new xmldb_index('amb_groups_members_combo', XMLDB_INDEX_UNIQUE, array('userid', 'groupid'));
+
+    // Conditionally launch add index amb_enrol_combo.
+    if (!$dbman->index_exists($table, $index)) {
+        $dbman->add_index($table, $index);
+    }
+}
+
+/**
+ * This allows fast lookups of groups settings using a covering index.
+ */
+function block_ajax_marking_add_index_settings() {
+
+    global $DB;
+
+    $dbman = $DB->get_manager();
+
+    // Define index amb_enrol_combo to be added to enrol.
+    $table = new xmldb_table('block_ajax_marking');
+    $index = new xmldb_index('amb_settings_combo', XMLDB_INDEX_UNIQUE, array('userid',
+                                                                             'tablename',
+                                                                             'instanceid'));
+
+    // Conditionally launch add index amb_enrol_combo.
+    if (!$dbman->index_exists($table, $index)) {
+        $dbman->add_index($table, $index);
+    }
+}

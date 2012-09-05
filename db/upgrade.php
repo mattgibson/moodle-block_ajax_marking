@@ -308,5 +308,41 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     if ($oldversion < 2012081201) {
         block_ajax_marking_add_index_context();
     }
+    if ($oldversion < 2012090503) {
+        block_ajax_marking_add_index_enrol();
+    }
+    if ($oldversion < 2012090504) {
+        block_ajax_marking_add_index_groups_settings();
+    }
+    if ($oldversion < 2012090505) {
+        block_ajax_marking_add_index_groups_members();
+    }
+    if ($oldversion < 2012090506) {
+        block_ajax_marking_add_index_settings();
+    }
+    if ($oldversion < 2012090507) {
+
+        // Old key not needed as the new one extends it.
+
+        // Define key useridkey (foreign) to be dropped form block_ajax_marking.
+        $table = new xmldb_table('block_ajax_marking');
+        $key = new xmldb_key('useridkey', XMLDB_KEY_FOREIGN, array('userid'), 'user', array('id'));
+        // Launch drop key useridkey.
+        $dbman->drop_key($table, $key);
+
+        $table = new xmldb_table('block_ajax_marking_groups');
+
+        $key = new xmldb_key('configid-id', XMLDB_KEY_FOREIGN, array('configid'), 'block_ajax_marking', array('id'));
+        // Launch drop key configid-id.
+        $dbman->drop_key($table, $key);
+
+        $key = new xmldb_key('groupid-id', XMLDB_KEY_FOREIGN, array('groupid'), 'groups', array('id'));
+        // Launch drop key groupid-id.
+        $dbman->drop_key($table, $key);
+
+        // Ajax_marking savepoint reached.
+        upgrade_block_savepoint(true, 2012090507, 'ajax_marking');
+
+    }
     return true;
 }
