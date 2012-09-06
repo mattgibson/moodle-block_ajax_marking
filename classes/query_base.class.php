@@ -725,7 +725,6 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
     public function get_module_name() {
         if (!($this->moduleclass instanceof block_ajax_marking_module_base)) {
             return '';
-            // throw new coding_exception('Asking for module name without any module attached to the query');
         }
 
         return $this->moduleclass->get_module_name();

@@ -288,24 +288,6 @@ class highest_groupid_test extends advanced_testcase {
                  'alias' => 'gvis_groupid'
             ));
 
-//        $this->query->add_select(
-//            array(
-//                 'table' => 'gmax_members',
-//                 'column' => 'groupid',
-//                 'alias' => 'gmax_members_groupid'
-//            ));
-//        $this->query->add_select(
-//            array(
-//                 'table' => 'gmax_groups',
-//                 'column' => 'id',
-//                 'alias' => 'gmax_groupss_id'
-//            ));
-//        $this->query->add_select(
-//            array(
-//                 'table' => 'gvismax',
-//                 'column' => 'groupid',
-//                 'alias' => 'gvismax_groupid'
-//            ));
     }
 
     /**
