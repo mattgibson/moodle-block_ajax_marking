@@ -302,27 +302,16 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
     }
 
     // Add indexes to key tables.
-    if ($oldversion < 2012081200) {
-        block_ajax_marking_add_index_question_attempt_steps();
-    }
-    if ($oldversion < 2012081201) {
-        block_ajax_marking_add_index_context();
-    }
-    if ($oldversion < 2012090503) {
-        block_ajax_marking_add_index_enrol();
-    }
-    if ($oldversion < 2012090504) {
-        block_ajax_marking_add_index_groups_settings();
-    }
-    if ($oldversion < 2012090505) {
-        block_ajax_marking_add_index_groups_members();
-    }
-    if ($oldversion < 2012090506) {
-        block_ajax_marking_add_index_settings();
-    }
-    if ($oldversion < 2012090507) {
+    if ($oldversion < 2012081207) {
 
-        // Old key not needed as the new one extends it.
+        block_ajax_marking_add_index_question_attempt_steps();
+        block_ajax_marking_add_index_context();
+        block_ajax_marking_add_index_enrol();
+        block_ajax_marking_add_index_groups_settings();
+        block_ajax_marking_add_index_groups_members();
+        block_ajax_marking_add_index_settings();
+
+        // Old keys not needed as the new ones extends them.
 
         // Define key useridkey (foreign) to be dropped form block_ajax_marking.
         $table = new xmldb_table('block_ajax_marking');
@@ -344,5 +333,6 @@ function xmldb_block_ajax_marking_upgrade($oldversion = 0) {
         upgrade_block_savepoint(true, 2012090507, 'ajax_marking');
 
     }
+
     return true;
 }
