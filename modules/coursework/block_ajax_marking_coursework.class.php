@@ -87,7 +87,7 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
      */
     public function query_factory() {
 
-        global $DB, $USER;
+        global $USER;
 
         $query = new block_ajax_marking_query_base($this);
 
@@ -96,6 +96,8 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
             'alias' => 'moduletable',
         );
         $query->add_from($table);
+        $query->set_column('courseid', 'moduletable.course');
+
         $table = array(
             'join' => 'INNER JOIN',
             'table' => 'coursework_submissions',
@@ -103,6 +105,8 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
             'on' => 'sub.courseworkid = moduletable.id'
         );
         $query->add_from($table);
+        $query->set_column('userid', 'sub.userid');
+
         // LEFT JOIN, rather than NOT EXISTS because we may have an empty feedback saved, which
         // will create a grade record, but with a null grade. These should still count as ungraded.
         // What if it was reverted, then resubmitted? We still want these to show up for remarking.
@@ -141,29 +145,21 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
 
         // All work with no feedback record will show up.
         // TODO formative with no grade.
-        $where = array(
-            'type' => 'AND',
-            'condition' => "(coursework_feedbacks.id IS NULL
+        $where =  "(coursework_feedbacks.id IS NULL
                              OR (coursework_feedbacks.grade IS NULL
                                  AND (coursework_feedbacks.feedbackcomment = ''
-                                      OR coursework_feedbacks.feedbackcomment IS NULL)))");
+                                      OR coursework_feedbacks.feedbackcomment IS NULL)))";
         $query->add_where($where);
         // If allocations are in use, make sure we only return the ones for which there are relevant allocations.
-        $where = array(
-            'type' => 'AND',
-            'condition' => '(moduletable.allocationenabled = 0
-                             OR (moduletable.allocationenabled = 1 AND coursework_allocation_pairs.id IS NOT NULL))'
-        );
+        $where = '(moduletable.allocationenabled = 0
+                             OR (moduletable.allocationenabled = 1 AND coursework_allocation_pairs.id IS NOT NULL))';
         $query->add_where($where);
-        $where = array(
-            'type' => 'AND',
-            'condition' => '(SELECT COUNT(countfeedbacks.id)
+        $where = '(SELECT COUNT(countfeedbacks.id)
                                FROM {coursework_feedbacks} countfeedbacks
                               WHERE countfeedbacks.submissionid = sub.id
                                 AND countfeedbacks.isfinalgrade = 0
                                 AND countfeedbacks.ismoderation = 0) < moduletable.numberofmarkers
-                                '
-        );
+                                ';
         $query->add_where($where);
 
         return $query;
