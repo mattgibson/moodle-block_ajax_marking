@@ -26,23 +26,23 @@
  */
 
 YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
+    "use strict";
 
     /**
      * Name of this module as used by YUI.
      * @type {String}
      */
-    var MARKINGTREENODENAME = 'markingtreenode';
+    var MARKINGTREENODENAME = 'markingtreenode',
+        MARKINGTREENODE = function () {
 
-    var MARKINGTREENODE = function () {
+            // Prevents IDE complaining abut undefined vars.
+            this.data = {};
+            this.data.returndata = {};
+            this.data.displaydata = {};
+            this.data.configdata = {};
 
-        // Prevents IDE complaining abut undefined vars.
-        this.data = {};
-        this.data.returndata = {};
-        this.data.displaydata = {};
-        this.data.configdata = {};
-
-        MARKINGTREENODE.superclass.constructor.apply(this, arguments);
-    };
+            MARKINGTREENODE.superclass.constructor.apply(this, arguments);
+        };
 
     /**
      * @class M.block_ajax_marking.markingtreenode
@@ -57,9 +57,9 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
         get_count : function (type) {
 
             if (type && typeof this.data.displaydata[type+'count'] !== 'undefined') {
-                return parseInt(this.data.displaydata[type+'count']);
+                return parseInt(this.data.displaydata[type+'count'], 10);
             } else if (typeof this.data.displaydata.itemcount !== 'undefined') {
-                return parseInt(this.data.displaydata.itemcount);
+                return parseInt(this.data.displaydata.itemcount, 10);
             } else {
                 return false;
             }
@@ -75,7 +75,8 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
 
             var setting,
                 errormessage,
-                groups;
+                groups,
+                group;
 
             switch (settingtype) {
 
@@ -90,19 +91,19 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
 
                     if (typeof(groupid) === 'undefined' || groupid === false) {
                         errormessage = 'Trying to get a group setting without specifying groupid';
-                        M.block_ajax_marking.show_error(errormessage);
+                        M.block_ajax_marking.show_error(errormessage, false);
                     }
 
                     groups = this.get_groups();
-                    if (typeof(groups) !== 'undefined') {
-                        var group = M.block_ajax_marking.get_group_by_id(groups, groupid);
+                    if (typeof(groups) === 'undefined') {
+                        setting = null;
+                    } else {
+                        group = M.block_ajax_marking.get_group_by_id(groups, groupid);
                         if (group === null) {
                             setting = null;
                         } else {
                             setting = group.display;
                         }
-                    } else {
-                        setting = null;
                     }
                     break;
 
@@ -183,17 +184,17 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                     case 'group':
                         if (typeof(groupid) === 'undefined' || groupid === false) {
                             errormessage = 'Trying to get a group setting without specifying groupid';
-                            M.block_ajax_marking.show_error(errormessage);
+                            M.block_ajax_marking.show_error(errormessage, false);
                         }
                         defaultsetting = this.parent.get_config_setting('group', groupid);
                         break;
 
                     case 'display':
-                        defaultsetting = this.parent.get_config_setting('display');
+                        defaultsetting = this.parent.get_config_setting('display', false);
                         break;
 
                     case 'groupsdisplay':
-                        defaultsetting = this.parent.get_config_setting('groupsdisplay');
+                        defaultsetting = this.parent.get_config_setting('groupsdisplay', false);
                         break;
                 }
             }
@@ -221,10 +222,10 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          * @return {string} name of the module
          */
         get_modulename : function () {
-            if (typeof(this.data.displaydata.modulename) !== 'undefined') {
-                return this.data.displaydata.modulename;
-            } else {
+            if (typeof(this.data.displaydata.modulename) === 'undefined') {
                 return false;
+            } else {
+                return this.data.displaydata.modulename;
             }
         },
 
@@ -277,10 +278,15 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_popup_stuff : function () {
 
-            var popupstuff = [];
+            var popupstuff = [],
+                thing;
 
-            for (var thing in this.data.popupstuff) {
-                popupstuff.push(thing+'='+this.data.popupstuff[thing]);
+            for (thing in this.data.popupstuff) {
+
+                if (this.data.popupstuff.hasOwnProperty(thing)) {
+                    popupstuff.push(thing+'='+this.data.popupstuff[thing]);
+                }
+
             }
             return popupstuff;
         },
@@ -292,14 +298,17 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_groups : function () {
 
+            var arrayofgroups = [],
+                group,
+                typeofthing = Object.prototype.toString.call(this.data.configdata.groups);
+
+
             if (typeof(this.data.configdata) === 'object' && typeof(this.data.configdata.groups) === 'object') {
 
-                var typeofthing = Object.prototype.toString.call(this.data.configdata.groups);
-                if (typeofthing == '[object Object]') {
+                if (typeofthing === '[object Object]') {
                     // JSON parsing turns the groups array into an object. More convenient as an array, so
                     // we convert.
-                    var arrayofgroups = [];
-                    for (var group in this.data.configdata.groups) {
+                    for (group in this.data.configdata.groups) {
                         if (this.data.configdata.groups.hasOwnProperty(group)) {
                             arrayofgroups.push(this.data.configdata.groups[group]);
                         }
@@ -309,7 +318,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                 }
 
                 typeofthing = Object.prototype.toString.call(this.data.configdata.groups);
-                if (typeofthing == '[object Array]') {
+                if (typeofthing === '[object Array]') {
                     return this.data.configdata.groups;
                 }
 
@@ -323,6 +332,10 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         set_config_setting : function (settingtype, newsetting) {
 
+            var i,
+                childnodes = this.children;
+
+
             // Allows for lazily not passing a value in.
             if (typeof(newsetting) === 'undefined') {
                 newsetting = null;
@@ -330,13 +343,12 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
 
             this.data.configdata[settingtype] = newsetting;
             // Groupsdisplay will alter the type of nodes we should see next.
-            if (settingtype == 'groupsdisplay') {
+            if (settingtype === 'groupsdisplay') {
                 this.set_nextnodefilter(this.tree.nextnodetype(this));
             }
 
             // All children now need to be set to 'inherit'.
-            var childnodes = this.children;
-            for (var i = 0; i < childnodes.length; i++) {
+            for (i = 0; i < childnodes.length; i += 1) {
                 childnodes[i].set_config_setting(settingtype, null, true);
             }
 
@@ -346,13 +358,16 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          * Helper function to update the display setting stored in a node of the tree, so that the tree
          * stores the settings as the database currently has them.
          *
-         * @param {YAHOO.widget.Node} groupid
+         * @param {int} groupid
          * @param {int|Null} newsetting 1 or 0 or null
          */
         set_group_setting : function (groupid, newsetting) {
 
             var groups,
-                group;
+                group,
+                childnodes = this.children,
+                i;
+
 
             // Allows for lazily not passing a value in.
             if (typeof(newsetting) === 'undefined') {
@@ -361,11 +376,10 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
 
             groups = this.get_groups();
             group = M.block_ajax_marking.get_group_by_id(groups, groupid);
+
             if (group) { // Some child nodes are groups or users.
                 group.display = newsetting;
-
-                var childnodes = this.children;
-                for (var i = 0; i < childnodes.length; i++) {
+                for (i = 0; i < childnodes.length; i += 1) {
                     childnodes[i].set_group_setting(groupid, null, true);
                 }
             }
@@ -377,10 +391,10 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_nextnodefilter : function () {
 
-            if (typeof(this.data.returndata.nextnodefilter) !== 'undefined') {
-                return this.data.returndata.nextnodefilter;
-            } else {
+            if (typeof(this.data.returndata.nextnodefilter) === 'undefined') {
                 return false;
+            } else {
+                return this.data.returndata.nextnodefilter;
             }
         },
 
@@ -389,10 +403,10 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          * Oldest = urgency
          */
         get_time : function () {
-            if (typeof(this.data.displaydata.timestamp) !== 'undefined') {
-                return parseInt(this.data.displaydata.timestamp, 10);
-            } else {
+            if (typeof(this.data.displaydata.timestamp) === 'undefined') {
                 return false;
+            } else {
+                return parseInt(this.data.displaydata.timestamp, 10);
             }
         },
 
@@ -446,7 +460,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                 fourdays = 345600,
                 tendays = 864000,
                 seconds,
-            // Current unix time.
+                // Current unix time.
                 currenttime = Math.round((new Date()).getTime() / onethousandmilliseconds);
 
             if (this.get_time() === false) {
@@ -485,21 +499,21 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
             if (componentcounts.recent) {
                 countarray.push('<span id="recent'+this.index+'" class="recent">'+
                                     componentcounts.recent+'</span>');
-                suffix = componentcounts.recent == 1 ? 'item' : 'items';
+                suffix = componentcounts.recent === 1 ? 'item' : 'items';
                 titlearray.push(componentcounts.recent+' '+
                                     M.str.block_ajax_marking['recent'+suffix]);
             }
             if (componentcounts.medium) {
                 countarray.push('<span id="medium'+this.index+'" class="medium">'+
                                     componentcounts.medium+'</span>');
-                suffix = componentcounts.medium == 1 ? 'item' : 'items';
+                suffix = componentcounts.medium === 1 ? 'item' : 'items';
                 titlearray.push(componentcounts.medium+' '+
                                     M.str.block_ajax_marking['medium'+suffix]);
             }
             if (componentcounts.overdue) {
                 countarray.push('<span id="overdue'+this.index+'" class="overdue">'+
                                     componentcounts.overdue+'</span>');
-                suffix = componentcounts.overdue == 1 ? 'item' : 'items';
+                suffix = componentcounts.overdue === 1 ? 'item' : 'items';
                 titlearray.push(componentcounts.overdue+' '+
                                     M.str.block_ajax_marking['overdue'+suffix]);
             }
@@ -514,14 +528,14 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
         getContentHtml : function () {
 
             var html,
-                countbits;
+                countbits,
+                icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
 
-            if (this.get_count()) {
+            if (this.get_count(false)) {
 
                 countbits = this.make_triple_count();
-                html = '';
 
-                var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
+                html = '';
 
                 if (icon) {
                     icon.className += ' nodeicon';
@@ -555,9 +569,9 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_component_counts : function () {
             return {
-                recent : parseInt(this.data.displaydata.recentcount),
-                medium : parseInt(this.data.displaydata.mediumcount),
-                overdue : parseInt(this.data.displaydata.overduecount)}
+                recent : parseInt(this.data.displaydata.recentcount, 10),
+                medium : parseInt(this.data.displaydata.mediumcount, 10),
+                overdue : parseInt(this.data.displaydata.overduecount, 10)};
         },
 
         /**
@@ -574,11 +588,13 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                 mediumcount = 0,
                 overduecount = 0,
                 itemcount = 0,
-                numberofchildren = this.children.length;
+                numberofchildren = this.children.length,
+                i,
+                haschanged = false;
 
             // Loop over children, counting to get new totals.
             if (numberofchildren) {
-                for (var i = 0; i < numberofchildren; i++) {
+                for (i = 0; i < numberofchildren; i += 1) {
 
                     componentcounts = this.children[i].get_component_counts();
 
@@ -588,7 +604,6 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                 }
 
                 // Add those totals to the config for this node.
-                var haschanged = false;
                 if (recentcount !== this.get_count('recent')) {
                     haschanged = true;
                     this.set_count(recentcount, 'recent');
@@ -624,11 +639,12 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_icon_style : function () {
 
-            var iconstyle;
+            var iconstyle,
+                currentfilter = this.get_current_filter_name();
+
 
             // TODO what about extra ones like question?
             // TODO make sure this is called from refresh().
-            var currentfilter = this.get_current_filter_name();
             currentfilter = currentfilter.substr(0, currentfilter.length-2); // Remove 'id' from end.
             if (currentfilter === 'coursemodule') {
                 iconstyle = this.get_modulename();
@@ -644,8 +660,8 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_tooltip : function () {
 
-            var tooltipexists = typeof(this.data.displaydata.tooltip) !== 'undefined';
-            var tooltip = (tooltipexists) ? this.data.displaydata.tooltip : '';
+            var tooltipexists = typeof(this.data.displaydata.tooltip) !== 'undefined',
+                tooltip = (tooltipexists) ? this.data.displaydata.tooltip : '';
 
             return this.data.displaydata.name+': '+tooltip;
         },
@@ -656,16 +672,18 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_child_node_by_filter_id : function (filtername, filtervalue) {
 
-            for (var i = 0; i < this.children.length; i++) {
+            var i,
+                currentfiltervalue;
 
-                if (this.children[i].get_current_filter_name() !== filtername) {
-                    continue;
+            for (i = 0; i < this.children.length; i += 1) {
+
+                currentfiltervalue = parseInt(this.children[i].get_current_filter_value(), 10);
+
+                if ((this.children[i].get_current_filter_name() === filtername) &&
+                    (currentfiltervalue === parseInt(filtervalue, 10))) {
+
+                    return this.children[i];
                 }
-                var currentfiltervalue = parseInt(this.children[i].get_current_filter_value());
-                if (currentfiltervalue !== parseInt(filtervalue)) {
-                    continue;
-                }
-                return this.children[i];
             }
 
             return false;

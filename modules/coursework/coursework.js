@@ -25,6 +25,9 @@
  */
 
 // Possibly getting to this point before the main block js file is included.
+if (typeof(M) === 'undefined') {
+    var M = {};
+}
 if (typeof(M.block_ajax_marking) === 'undefined') {
     M.block_ajax_marking = {};
 }
@@ -32,7 +35,8 @@ if (typeof(M.block_ajax_marking) === 'undefined') {
 /**
  * Specifies the size of the popup.
  */
-M.block_ajax_marking.assign = (function() {
+M.block_ajax_marking.coursework = (function() {
+    "use strict";
 
     return {
         pop_up_arguments : function() {

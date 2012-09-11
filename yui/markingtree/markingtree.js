@@ -24,18 +24,18 @@
  */
 
 YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
+    "use strict";
 
     /**
      * Name of this module as used by YUI.
      * @type {String}
      */
-    var MARKINGTREENAME = 'markingtree';
-
-    var MARKINGTREE = function () {
-        MARKINGTREE.superclass.constructor.apply(this, arguments);
-        this.singleNodeHighlight = true;
-        this.subscribe('clickEvent', this.clickhandler);
-    };
+    var MARKINGTREENAME = 'markingtree',
+        MARKINGTREE = function () {
+            MARKINGTREE.superclass.constructor.apply(this, arguments);
+            this.singleNodeHighlight = true;
+            this.subscribe('clickEvent', this.clickhandler);
+        };
 
     /**
      * @class M.block_ajax_marking.markingtree
@@ -62,7 +62,8 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
                 nodedata,
                 islastnode,
                 numberofnodes = nodesarray.length,
-                parentnode;
+                parentnode,
+                i;
 
             if (nodeindex) {
                 parentnode = this.getNodeByProperty('index', nodeindex)
@@ -74,7 +75,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             this.removeChildren(parentnode);
 
             // Cycle through the array and make the nodes.
-            for (var i = 0; i < numberofnodes; i++) {
+            for (i = 0; i < numberofnodes; i++) {
 
                 nodedata = nodesarray[i];
 
@@ -196,13 +197,15 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
          * @return void
          */
         recalculate_total_count : function () {
-            var count = 0;
-            this.totalcount = 0;
-            var children = this.getRoot().children;
-            var childrenlength = children.length;
+            var count = 0,
+                children = this.getRoot().children,
+                childrenlength = children.length,
+                i;
 
-            for (var i = 0; i < childrenlength; i++) {
-                count = children[i].get_count();
+            this.totalcount = 0;
+
+            for (i = 0; i < childrenlength; i++) {
+                count = children[i].get_count(false);
                 if (count) {
                     this.totalcount += count;
                 }
@@ -226,8 +229,9 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
          * @return void
          */
         remove_node : function (nodeuniqueid) {
-            var nodetoremove = this.getNodeByProperty('index', nodeuniqueid);
-            var parentnode = nodetoremove.parent;
+            var nodetoremove = this.getNodeByProperty('index', nodeuniqueid),
+                parentnode = nodetoremove.parent;
+
             this.hide_context_menu_before_node_removal(nodetoremove);
             this.removeNode(nodetoremove, true); // don't refresh yet because the counts will be wrong
             parentnode.recalculate_counts();
@@ -244,14 +248,14 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             var currenttab = M.block_ajax_marking.get_current_tab();
             if (currenttab.contextmenu &&
                 currenttab.contextmenu.clickednode &&
-                currenttab.contextmenu.clickednode == nodebeingremoved) {
+                currenttab.contextmenu.clickednode === nodebeingremoved) {
 
                 currenttab.contextmenu.hide();
             }
         },
 
         /**
-         * Empty function so that different tree subtypes can overrride. Used to initialise any
+         * Empty function so that different tree subtypes can override. Used to initialise any
          * stuff that appears as part of the nodes e.g. groups dropdowns in the config tree.
          */
         add_groups_buttons : function () {
@@ -317,9 +321,10 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
                 nextnodefilter = node.get_nextnodefilter(),
                 recent = 0,
                 medium = 0,
-                overdue = 0;
+                overdue = 0,
+                i;
 
-            for (var i = 0; i < arrayofnodes.length; i++) {
+            for (i = 0; i < arrayofnodes.length; i++) {
 
                 childnodedata = arrayofnodes[i];
                 childnode = node.get_child_node_by_filter_id(nextnodefilter,
@@ -383,8 +388,14 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             /**
              * @var M.block_ajax_marking.markingtreenode
              */
-            var node = oArgs.node;
-            var mbam = window.M.block_ajax_marking;
+            var node = oArgs.node,
+                mbam = window.M.block_ajax_marking,
+                popupurl = window.M.cfg.wwwroot+'/blocks/ajax_marking/actions/grading_popup.php?',
+                // Get window size, etc
+                modulejavascript = mbam[node.get_modulename()],
+                popupargs = modulejavascript.pop_up_arguments(node),
+                nodefilters = node.get_filters(true),
+                popupstuff = node.get_popup_stuff();
 
             // we only need to do anything if the clicked node is one of
             // the final ones with no children to fetch.
@@ -395,16 +406,9 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             // Keep track of what we clicked so the user won't wonder what's in the pop up
             node.toggleHighlight();
 
-            // Get window size, etc
-            var popupurl = window.M.cfg.wwwroot+'/blocks/ajax_marking/actions/grading_popup.php?';
-            var modulejavascript = mbam[node.get_modulename()];
-            var popupargs = modulejavascript.pop_up_arguments(node);
-
-            var nodefilters = node.get_filters(true);
             nodefilters.push('node='+node.index);
             // Add any extra stuff e.g. assignments always need mode=single to make optional_param() stuff
             // work internally in assignment classes.
-            var popupstuff = node.get_popup_stuff();
             nodefilters = nodefilters.concat(popupstuff);
             popupurl += nodefilters.join('&');
 

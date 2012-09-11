@@ -62,9 +62,170 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
      * @param object $coursemodule The coursemodule object that the user has been authenticated
      * against
      * @param bool $data
+     * @throws moodle_exception
      * @return string
      */
     public function grading_popup($params, $coursemodule, $data = false) {
+
+        global $CFG, $USER, $DB, $PAGE, $SITE, $OUTPUT;
+
+        require_once($CFG->dirroot.'/lib/adminlib.php');
+        require_once($CFG->dirroot.'/lib/formslib.php');
+        require_once($CFG->dirroot.'/local/ulcc_form_library/ulcc_form.class.php');
+        require_once($CFG->dirroot.'/mod/coursework/renderer.php');
+        require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework.class.php');
+        require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework_submission.class.php');
+
+        $submissionid = optional_param('submissionid', 0, PARAM_INT);
+        $cmid = required_param('cmid', PARAM_INT);
+        $isfinalgrade = optional_param('isfinalgrade', 0, PARAM_INT);
+        $feedbackid = optional_param('feedbackid', 0, PARAM_INT);
+
+        // This param should only be present if the form has been submitted.
+        $formsubmitted = optional_param('_qf__form_entry_mform', 0, PARAM_INT);
+
+        $course_module = get_coursemodule_from_id('coursework', $cmid, 0, false, MUST_EXIST);
+        $course = $DB->get_record('course', array('id' => $course_module->course), '*', MUST_EXIST);
+        require_login($course, false, $course_module);
+
+        $coursework = new coursework($course_module->instance);
+        $submission = new coursework_submission($coursework, $submissionid);
+
+        $teacherfeedback = false;
+        if ($feedbackid) {
+            $teacherfeedback = new coursework_feedback($feedbackid, $submission);
+        }
+
+        $assessor_id = $USER->id;
+        if ($teacherfeedback) {
+            $assessor_id = $teacherfeedback->assessorid;
+        }
+
+        $feedbackformid = $coursework->formid;
+
+        // TODO shift into custom data and set via somewhere else.
+        $coursework->submissionid = $submissionid;
+        $coursework->cmid = $cmid;
+
+        $urlparams = compact('cmid', 'submissionid', 'feedbackid', 'isfinalgrade');
+        $PAGE->set_url('/mod/coursework/actions/feedback.php', $urlparams);
+
+        $uf = new ulcc_form('mod', 'coursework');
+
+        $gradingstring = get_string('gradingfor', 'coursework',
+                                    $submission->get_username());
+
+        if (!$coursework->formid) {
+
+            $urlattributes = array('moodlepluginname' => 'coursework',
+                                   'moodleplugintype' => 'mod',
+                                   'context_id' => $PAGE->context->id,
+                                   'cm_id' => $course_module->id);
+            $needformurl = new moodle_url('/local/ulcc_form_library/actions/view_forms.php', $urlattributes);
+            redirect($needformurl, get_string('needsfeedbackform', 'coursework'));
+        }
+
+        $html = '';
+
+        // We only want this section to display if the form has not been submitted.
+        if (empty($formsubmitted)) {
+
+            $html .= $OUTPUT->heading($gradingstring);
+            $assessor = $DB->get_record('user', array('id' => $assessor_id));
+            $html .= html_writer::tag('p', get_string('assessor', 'coursework').' '.fullname($assessor));
+            $html .= html_writer::tag('p', get_string('gradingoutof', 'coursework', round($coursework->grade)));
+
+            // In case we have an editor come along, we want to show that this has happened.
+            if (!empty($teacherfeedback)) { // May not have been marked yet.
+                if ($submissionid && !empty($teacherfeedback->lasteditedbyuser)) {
+                    $editor = $DB->get_record('user', array('id' => $teacherfeedback->lasteditedbyuser));
+                } else {
+                    $editor = $assessor;
+                }
+                $details = new stdClass();
+                $details->name = fullname($editor);
+                $details->time = userdate($teacherfeedback->timemodified);
+                $html .= html_writer::tag('p', get_string('lastedited', 'coursework', $details));
+            }
+
+            $files = $submission->get_submission_files();
+            $files_string = count($files) > 1 ? 'submissionfiles' : 'submissionfile';
+
+            $html .= html_writer::start_tag('h1');
+            $html .= get_string($files_string, 'coursework');
+            $html .= html_writer::end_tag('h1');
+
+            $output = $PAGE->get_renderer('mod_coursework');
+            $html .= $output->render($files);
+        }
+
+        // Any url params that need to be present to display the page should be added to page url.
+        $pageurl = $PAGE->url->out(false);
+
+        // This is the module view page this will be the page that the user is returned to if they press
+        // cancel or they make a submission.
+        $viewurl = $CFG->wwwroot.'/mod/coursework/view.php?id='.$cmid;
+
+        $editentry_id = null;
+        if ($teacherfeedback) {
+            $editentry_id = $teacherfeedback->entry_id;
+        }
+
+        // The entry id will be provided if the form has been submitted. False if not.
+        ob_start();
+        $entry_id = $uf->display_form($feedbackformid, $pageurl, $viewurl, $editentry_id);
+        $html .= ob_get_contents();
+        ob_end_clean();
+
+        // This is an indication that the page has been submitted.
+        if (!empty($entry_id)) {
+
+            // If we are editing a feedback, it should already be present so we will only be updating the timestamps.
+            if (!$teacherfeedback) {
+                $teacherfeedback = new coursework_feedback(false, $submission);
+                $teacherfeedback->submissionid = $submissionid;
+                $teacherfeedback->assessorid = $assessor_id;
+                $teacherfeedback->isfinalgrade = $isfinalgrade;
+
+                // Slim possibility that this page has been accessed by someone going back after making a
+                // new entry, in which case they will trigger a new insert and bork the system. Sanity check here...
+                $params = array(
+                    'isfinalgrade' => $isfinalgrade,
+                    'submissionid' => $submissionid,
+                    'assessorid' => $assessor_id
+                );
+                if ($DB->record_exists('coursework_feedbacks', $params)) {
+                    // Problem. Assume we had someone go back when they shouldn't.
+                    throw new moodle_exception('Trying to create a new feedback where one already exists!');
+                }
+            }
+
+            // Possible that we have a converted moderator feedback that previously had no entry id.
+            $teacherfeedback->entry_id = $entry_id;
+
+            // If we are editing a feedback then check if the entry has a grade in it using the feedback entry id.
+            $grades = $uf->get_form_element_value($teacherfeedback->entry_id, 'form_element_plugin_modgrade', false);
+            if ($grades) {
+                $teacherfeedback->grade = array_pop($grades);
+            }
+            $gradecomments =
+                $uf->get_form_element_value($teacherfeedback->entry_id, 'form_element_plugin_comment_editor', false);
+            if ($gradecomments) {
+                $teacherfeedback->feedbackcomment = array_pop($gradecomments);
+            }
+
+            $teacherfeedback->lasteditedbyuser = $USER->id;
+
+            $teacherfeedback->save();
+
+            // If this is a single grader coursework, then this is going to be the final and only feedback.
+            // Recalculate moderation set now that we have a new grade, which may determine who gets moderated.
+            if (!$coursework->has_multiple_markers()) {
+                $coursework->grade_changed_event();
+            }
+
+            redirect($viewurl, get_string('changessaved'), 1);
+        }
 
     }
 
