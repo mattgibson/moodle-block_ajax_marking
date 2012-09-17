@@ -232,10 +232,6 @@ function &block_ajax_marking_get_module_classes($reset = false) {
 
     foreach ($enabledmods as $enabledmod) {
 
-        if ($enabledmod === 'journal') { // Just until it's fixed.
-            continue;
-        }
-
         $file = "{$CFG->dirroot}/blocks/ajax_marking/modules/{$enabledmod}/".
                 "block_ajax_marking_{$enabledmod}.class.php";
 

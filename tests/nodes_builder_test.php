@@ -1071,6 +1071,8 @@ class test_nodes_builder_base extends advanced_testcase {
 
     public function test_coursework_query_single_with_allocation() {
 
+        global $USER;
+
         $generator = $this->getDataGenerator();
         /* @var mod_coursework_generator $courseworkgenerator */
         $courseworkgenerator = $generator->get_plugin_generator('mod_coursework');
@@ -1083,6 +1085,7 @@ class test_nodes_builder_base extends advanced_testcase {
 
         // Now make some submissions for the allocation one. Then one allocation so we can make sure we just
         // get the right one. The others should remain hidden.
+        $submission = new stdClass();
         foreach ($this->students as $student) {
             $submission = new stdClass();
             $submission->userid = $student->id;
@@ -1114,7 +1117,7 @@ class test_nodes_builder_base extends advanced_testcase {
     protected function get_modulequery_count($modulename) {
         $modclasses = block_ajax_marking_get_module_classes();
 
-        if (!in_array($modulename, $modclasses)) {
+        if (!array_key_exists($modulename, $modclasses)) {
             throw new coding_exception('Missing '.$modulename.' module class');
         }
 
