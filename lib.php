@@ -293,10 +293,15 @@ function block_ajax_marking_format_node(&$node, $nextnodefilter) {
     $ignorednames = array('displaydata', 'returndata', 'popupstuff', 'configdata');
 
     // Loop through the rest of the object's properties moving them to the returndata bit.
-    foreach ($node as $varname => $value) {
+    foreach ($node as $varname => &$value) {
 
         if (in_array($varname, $ignorednames)) {
             continue;
+        }
+
+        // Cast string numbers to integers so we can use strict comparison in javascript.
+        if (is_numeric($value)) {
+            $value = (int)$value;
         }
 
         if ($varname == 'tooltip') {

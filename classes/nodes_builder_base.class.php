@@ -588,10 +588,17 @@ SQL;
             $groups = $DB->get_records_sql($sql, $params);
 
             foreach ($groups as $group) {
+
+                // Cast to integers so we can do strict type checking in javascript.
+                $group->id = (int)$group->id;
+                $group->courseid = (int)$group->courseid;
+                $group->display = (int)$group->display;
+
                 if (!isset($nodes[$group->courseid]->groups)) {
                     $nodes[$group->courseid]->groups = array();
                 }
-                $nodes[$group->courseid]->groups[] = $group;
+
+                $nodes[$group->courseid]->groups[$group->id] = $group;
             }
         }
 
@@ -664,12 +671,18 @@ SQL;
             $groups = $DB->get_records_sql($sql, $params);
 
             foreach ($groups as $group) {
+
+                unset($group->uniqueid);
+                // Cast to integers so we can do strict type checking in javascript.
+                $group->id = (int)$group->id;
+                $group->coursemoduleid = (int)$group->coursemoduleid;
+                $group->display = (int)$group->display;
+
                 if (!isset($nodes[$group->coursemoduleid]->groups)) {
                     $nodes[$group->coursemoduleid]->groups = array();
                 }
-                unset($group->uniqueid);
-                $id = (int)$group->id;
-                $nodes[$group->coursemoduleid]->groups[$id] = $group;
+
+                $nodes[$group->coursemoduleid]->groups[$group->id] = $group;
             }
         }
 

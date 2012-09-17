@@ -207,4 +207,11 @@ $response->configsave = array('menuitemindex'  => $menuitemindex,
                               'menugroupindex' => $menugroupindex,
                               'nodeindex'      => $nodeindex);
 
+// Cast to int for javascript strict type comparisons.
+foreach ($response->configsave as &$value) {
+    if (is_numeric($value)) {
+        $value = (int)$value;
+    }
+}
+
 echo json_encode($response);
