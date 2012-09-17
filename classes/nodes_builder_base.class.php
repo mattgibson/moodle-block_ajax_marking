@@ -602,6 +602,7 @@ SQL;
      * Adds an array of groups to each node for coursemodules.
      *
      * @param array $nodes
+     * @throws coding_exception
      * @return mixed
      */
     private static function attach_groups_to_coursemodule_nodes($nodes) {
