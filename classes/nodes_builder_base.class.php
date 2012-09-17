@@ -611,6 +611,9 @@ SQL;
         $coursemoduleids = array();
         foreach ($nodes as $node) {
             if (isset($node->coursemoduleid)) {
+                if (in_array($node->coursemoduleid, $coursemoduleids)) {
+                    throw new coding_exception('Duplicate coursemoduleids: '.$node->coursemoduleid);
+                }
                 $coursemoduleids[] = $node->coursemoduleid;
             }
         }
