@@ -606,7 +606,7 @@ SQL;
      */
     private static function attach_groups_to_coursemodule_nodes($nodes) {
 
-        global $DB;
+        global $DB, $USER;
 
         $coursemoduleids = array();
         foreach ($nodes as $node) {
@@ -640,6 +640,7 @@ SQL;
               LEFT JOIN {block_ajax_marking} coursesettings
                      ON coursesettings.tablename = 'course'
                         AND coursesettings.instanceid = groups.courseid
+                        AND coursesettings.userid = :courseuserid
               LEFT JOIN {block_ajax_marking_groups} coursesettingsgroups
                      ON coursesettingsgroups.groupid = groups.id
                     AND coursesettings.id = coursesettingsgroups.configid
@@ -649,12 +650,15 @@ SQL;
               LEFT JOIN {block_ajax_marking} coursemodulesettings
                      ON coursemodulesettings.tablename = 'course_modules'
                         AND coursemodulesettings.instanceid = course_modules.id
+                        AND coursemodulesettings.userid = :coursemoduleuserid
               LEFT JOIN {block_ajax_marking_groups} coursemodulesettingsgroups
                      ON coursemodulesettingsgroups.groupid = groups.id
                     AND coursemodulesettings.id = coursemodulesettingsgroups.configid
                     WHERE course_modules.id {$cmsql}
 
 SQL;
+            $params['coursemoduleuserid'] = $USER->id;
+            $params['courseuserid'] = $USER->id;
 
             $groups = $DB->get_records_sql($sql, $params);
 
