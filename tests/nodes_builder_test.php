@@ -118,10 +118,14 @@ class test_nodes_builder_base extends advanced_testcase {
      * - 1 workshop with 10 submissions
      *
      * Submissions are counted and stored as $this->submissioncount.
+     *
+     * @param array $modstoinclude the modules to mke submissions for. Default: all.
      */
-    private function make_module_submissions() {
+    private function make_module_submissions($modstoinclude = array()) {
 
         global $DB;
+
+        $submissioncount = 0;
 
         // Assignment module is disabled in the PHPUnit DB, so we need to re-enable it.
         $DB->set_field('modules', 'visible', 1, array('name' => 'assignment'));
@@ -132,6 +136,10 @@ class test_nodes_builder_base extends advanced_testcase {
 
             $modname = $modclass->get_module_name();
 
+            if (!empty($modstoinclude) && !in_array($modname, $modstoinclude)) {
+                continue;
+            }
+
             // We need some submissions, but these are different for every module.
             // Without a standardised way of doing this, we will use methods in this class to do
             // the job until a better way emerges.
@@ -139,10 +147,13 @@ class test_nodes_builder_base extends advanced_testcase {
             if (method_exists($this, $createdatamethod)) {
                 // Let the modules decide what number of things should be expected. Some are more
                 // complex than others.
-                $this->$createdatamethod();
+                $count = $this->$createdatamethod();
+                $submissioncount += $count;
 
             }
         }
+
+        return $submissioncount;
     }
 
     /**
@@ -196,13 +207,6 @@ class test_nodes_builder_base extends advanced_testcase {
 
             // Make sure we get the right number of things back.
             $this->assertEquals($expectedcount, reset($unmarkedstuff)->count);
-
-            // Now make sure we have the right columns for the SQL UNION ALL.
-            // We will get duplicate user ids causing problems in the first column if we
-            // use standard DB functions.
-            $records = $query->execute(true);
-
-            $firstrow = $records->current();
 
         }
     }
@@ -389,13 +393,13 @@ class test_nodes_builder_base extends advanced_testcase {
         $student->id = 3;
 
         // Make forums
-        /* @var phpunit_module_generator $forumgenerator */
+        /* @var mod_forum_generator $forumgenerator */
         $forumgenerator = $this->getDataGenerator()->get_plugin_generator('mod_forum');
-        $forums = array();
         $forumrecord = new stdClass();
         $forumrecord->assessed = 1;
         $forumrecord->scale = 4;
         $forumrecord->course = $this->course->id;
+
         $forumtypes = array(
             'single',
             'eachuser',
@@ -405,15 +409,23 @@ class test_nodes_builder_base extends advanced_testcase {
         );
         foreach ($forumtypes as $type) {
             $forumrecord->type = $type;
-            $forums[] = $forumgenerator->create_instance($forumrecord);
-        }
+            if (isset($forumrecord->id)) {
+                unset($forumrecord->id);
+            }
 
-        // Make posts and discussions.
-        foreach ($forums as $forum) {
+            // Single post forums make a discussion and first post. Needs to be by student.
+            $this->setUser($student->id);
+            $forum = $forumgenerator->create_instance($forumrecord);
+            $this->setAdminUser();
 
-            // Make discussion. Make sure each student makes one (in case we violate
+            if ($type == 'single') { // Generator will have made a related discussion.
+                $submissioncount++;
+            }
+                // Make discussion. Make sure each student makes one (in case we violate
             // eachuser constraints).
+            reset($this->students); // Reset counter due to nested loops.
             foreach ($this->students as $student) {
+
                 $discussion = new stdClass();
                 $discussion->course = $this->course->id;
                 $discussion->forum = $forum->id;
@@ -421,8 +433,24 @@ class test_nodes_builder_base extends advanced_testcase {
                 $discussion->timemodified = strtotime('1 hour ago');
                 $discussion->id = $DB->insert_record('forum_discussions', $discussion);
 
-                // Make some reply posts.
-                foreach ($this->students as $replystudent) { // TODO does this mess up the pointer?
+                $firstpost = new stdClass();
+                $firstpost->discussion = $discussion->id;
+                $firstpost->parent = 0;
+                $firstpost->created = time();
+                $firstpost->userid = $student->id;
+                $firstpost->modified = time();
+                $firstpost->subject = 'First post subject';
+                $firstpost->message = 'First post message';
+                $firstpost->id = $DB->insert_record('forum_posts', $firstpost);
+
+                $discussion->firstpost = $firstpost->id;
+                $DB->update_record('forum_discussions', $discussion);
+                $submissioncount++;
+
+                // Make some reply posts. Need to copy the array so we can have the pointer in two places at once.
+                $tempstudents = $this->students;
+                reset($tempstudents);
+                foreach ($tempstudents as $replystudent) {
                     if ($replystudent->id == $student->id) {
                         // Eachuser won't like this.
                         continue;
@@ -430,7 +458,7 @@ class test_nodes_builder_base extends advanced_testcase {
 
                     $post = new stdclass();
                     $post->discussion = $discussion->id;
-                    $post->parent = 0; // All direct replies to the first post for simplicity.
+                    $post->parent = $firstpost->id; // All direct replies to the first post for simplicity.
                     $post->userid = $replystudent->id;
                     $post->created = time();
                     $post->modified = time();
@@ -438,14 +466,8 @@ class test_nodes_builder_base extends advanced_testcase {
                     $post->message = 'blah';
 
                     $post->id = $DB->insert_record('forum_posts', $post);
-
-                    // TODO is this still relevant?
                     $submissioncount++;
 
-                    if (empty($discussion->firstpost)) {
-                        $discussion->firstpost = $post->id;
-                        $DB->update_record('forum_discussions', $discussion);
-                    }
                 }
             }
         }
@@ -994,6 +1016,7 @@ class test_nodes_builder_base extends advanced_testcase {
         $expectedcount++;
 
         // Now try with no allocations and they should all turn up.
+        reset($this->students);
         foreach ($this->students as $student) {
             $submission = new stdClass();
             $submission->userid = $student->id;
@@ -1064,6 +1087,8 @@ class test_nodes_builder_base extends advanced_testcase {
         // TODO test comment OR grade.
 
         // TODO Now make one which has been resubmitted after a previous grading to make sure it'll turn up again.
+
+        $this->submissioncount += $expectedcount;
 
         return $expectedcount;
 
@@ -1139,6 +1164,35 @@ class test_nodes_builder_base extends advanced_testcase {
 
         // Make sure we get the right number of things back.
         return reset($unmarkedstuff)->count;
+    }
+
+    /**
+     * We need to find out if each individual module works or not. This loops over them testing that we get
+     * something back.
+     */
+    public function test_individual_modules() {
+        // Make all the test data and get a total count back.
+        // Make sure the current user is a teacher in the course.
+
+        $moduleclasses = block_ajax_marking_get_module_classes();
+
+        foreach ($moduleclasses as $moduleclass) {
+
+            // Make the test data for just this module.
+            $modname = $moduleclass->get_module_name();
+            $this->setAdminUser();
+            $expected = $this->make_module_submissions(array($modname));
+            $this->setUser(key($this->teachers));
+
+            // Make a query for just that module.
+            $countindb = $this->get_modulequery_count($modname);
+
+            // Make sure we get the right number of things back.
+            $message = 'Found '.$countindb.' things for '.$modname.' instead of '.$expected;
+            $this->assertEquals($expected, $countindb, $message);
+
+        }
+
     }
 
 
