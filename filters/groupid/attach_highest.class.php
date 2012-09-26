@@ -138,12 +138,12 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                 WHEN EXISTS (SELECT 1
                               FROM {groups_members} gcheck_members
                         INNER JOIN {groups} gcheck_groups
-                                ON gcheck_groups.id = gcheck_members.groupid)
-                             WHERE gcheck_members.userid {$query->get_column('userid')}
-                               AND gcheck_groups.course = {$query->get_column('courseid')})
+                                ON gcheck_groups.id = gcheck_members.groupid
+                             WHERE gcheck_members.userid = {$query->get_column('userid')}
+                               AND gcheck_groups.courseid = {$query->get_column('courseid')})
                     THEN gmember_members.groupid
                 ELSE 0
-            END AS groupid
+            END
         ";
         $query->set_column('groupid', $sqltogettothegroupid);
 
