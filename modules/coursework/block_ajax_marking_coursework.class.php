@@ -30,12 +30,18 @@ global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
+require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework_submission.class.php');
 
 /**
  * Extension to the block_ajax_marking_module_base class which adds the parts that deal
  * with the assign module.
  */
 class block_ajax_marking_coursework extends block_ajax_marking_module_base {
+
+    /**
+     * @var ulcc_form
+     */
+    private $ulccform;
 
     /**
      * Constructor. Needs to be duplicated in all modules, so best put in parent. PHP4 issue though.
@@ -67,7 +73,7 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
      */
     public function grading_popup($params, $coursemodule, $data = false) {
 
-        global $CFG, $USER, $DB, $PAGE, $SITE, $OUTPUT;
+        global $CFG, $DB, $USER, $OUTPUT, $PAGE;
 
         require_once($CFG->dirroot.'/lib/adminlib.php');
         require_once($CFG->dirroot.'/lib/formslib.php');
@@ -76,46 +82,54 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
         require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework.class.php');
         require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework_submission.class.php');
 
-        $submissionid = optional_param('submissionid', 0, PARAM_INT);
-        $cmid = required_param('cmid', PARAM_INT);
-        $isfinalgrade = optional_param('isfinalgrade', 0, PARAM_INT);
-        $feedbackid = optional_param('feedbackid', 0, PARAM_INT);
-
-        // This param should only be present if the form has been submitted.
-        $formsubmitted = optional_param('_qf__form_entry_mform', 0, PARAM_INT);
+        $cmid = $params['coursemoduleid'];
+        $assessorid = $USER->id;
+        // This will come from the form when it's submitted.
+        $currentpage = optional_param('current_page', 1, PARAM_INT);
 
         $course_module = get_coursemodule_from_id('coursework', $cmid, 0, false, MUST_EXIST);
-        $course = $DB->get_record('course', array('id' => $course_module->course), '*', MUST_EXIST);
-        require_login($course, false, $course_module);
+        $params = array(
+            'courseworkid' => $course_module->instance,
+            'userid' => $params['userid']
+        );
+        $submissionid = $DB->get_field('coursework_submissions', 'id', $params);
 
         $coursework = new coursework($course_module->instance);
         $submission = new coursework_submission($coursework, $submissionid);
 
-        $teacherfeedback = false;
-        if ($feedbackid) {
-            $teacherfeedback = new coursework_feedback($feedbackid, $submission);
-        }
+        // Need to get any pre-existing feedback in case this is a resubmit.
+        // TODO is this going to work for an admin wanting to mark on behalf of someone else?
 
-        $assessor_id = $USER->id;
-        if ($teacherfeedback) {
-            $assessor_id = $teacherfeedback->assessorid;
-        }
-
-        $feedbackformid = $coursework->formid;
+        $teacherfeedback = $this->get_submission_assessor_feedback($submissionid, $assessorid);
 
         // TODO shift into custom data and set via somewhere else.
         $coursework->submissionid = $submissionid;
         $coursework->cmid = $cmid;
 
-        $urlparams = compact('cmid', 'submissionid', 'feedbackid', 'isfinalgrade');
-        $PAGE->set_url('/mod/coursework/actions/feedback.php', $urlparams);
+        // This is the module view page this will be the page that the user is returned to if they press
+        // cancel or they make a submission.
+        $viewurl = $CFG->wwwroot.'/mod/coursework/view.php?id='.$cmid;
 
-        $uf = new ulcc_form('mod', 'coursework');
+        $editentry_id = null;
+        if ($teacherfeedback) {
+            $editentry_id = $teacherfeedback->entry_id;
+        }
+
+        if (!isset($this->ulccform)) { // Allows us to reuse the form after pages have been saved and altered.
+
+            $this->ulccform = new ulcc_form('mod',
+                                            'coursework',
+                                            $coursework->formid,
+                                            $editentry_id,
+                                            $PAGE->url->out(false),
+                                            $viewurl,
+                                            $currentpage);
+        }
 
         $gradingstring = get_string('gradingfor', 'coursework',
                                     $submission->get_username());
 
-        if (!$coursework->formid) {
+        if (!$coursework->formid) { // No form, so we have to get them to make or choose one.
 
             $urlattributes = array('moodlepluginname' => 'coursework',
                                    'moodleplugintype' => 'mod',
@@ -128,71 +142,101 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
         $html = '';
 
         // We only want this section to display if the form has not been submitted.
-        if (empty($formsubmitted)) {
 
-            $html .= $OUTPUT->heading($gradingstring);
-            $assessor = $DB->get_record('user', array('id' => $assessor_id));
-            $html .= html_writer::tag('p', get_string('assessor', 'coursework').' '.fullname($assessor));
-            $html .= html_writer::tag('p', get_string('gradingoutof', 'coursework', round($coursework->grade)));
+        $html .= $OUTPUT->heading($gradingstring);
+        $assessor = $DB->get_record('user', array('id' => $assessorid));
+        $html .= html_writer::tag('p', get_string('assessor', 'coursework').' '.fullname($assessor));
+        $html .= html_writer::tag('p', get_string('gradingoutof', 'coursework', round($coursework->grade)));
 
-            // In case we have an editor come along, we want to show that this has happened.
-            if (!empty($teacherfeedback)) { // May not have been marked yet.
-                if ($submissionid && !empty($teacherfeedback->lasteditedbyuser)) {
-                    $editor = $DB->get_record('user', array('id' => $teacherfeedback->lasteditedbyuser));
-                } else {
-                    $editor = $assessor;
-                }
-                $details = new stdClass();
-                $details->name = fullname($editor);
-                $details->time = userdate($teacherfeedback->timemodified);
-                $html .= html_writer::tag('p', get_string('lastedited', 'coursework', $details));
+        // In case we have an editor come along, we want to show that this has happened.
+        if (!empty($teacherfeedback)) { // May not have been marked yet.
+            if ($submissionid && !empty($teacherfeedback->lasteditedbyuser)) {
+                $editor = $DB->get_record('user', array('id' => $teacherfeedback->lasteditedbyuser));
+            } else {
+                $editor = $assessor;
             }
-
-            $files = $submission->get_submission_files();
-            $files_string = count($files) > 1 ? 'submissionfiles' : 'submissionfile';
-
-            $html .= html_writer::start_tag('h1');
-            $html .= get_string($files_string, 'coursework');
-            $html .= html_writer::end_tag('h1');
-
-            $output = $PAGE->get_renderer('mod_coursework');
-            $html .= $output->render($files);
+            $details = new stdClass();
+            $details->name = fullname($editor);
+            $details->time = userdate($teacherfeedback->timemodified);
+            $html .= html_writer::tag('p', get_string('lastedited', 'coursework', $details));
         }
 
-        // Any url params that need to be present to display the page should be added to page url.
-        $pageurl = $PAGE->url->out(false);
+        $files = $submission->get_submission_files();
+        $files_string = count($files) > 1 ? 'submissionfiles' : 'submissionfile';
 
-        // This is the module view page this will be the page that the user is returned to if they press
-        // cancel or they make a submission.
-        $viewurl = $CFG->wwwroot.'/mod/coursework/view.php?id='.$cmid;
+        $html .= html_writer::start_tag('h1');
+        $html .= get_string($files_string, 'coursework');
+        $html .= html_writer::end_tag('h1');
 
-        $editentry_id = null;
-        if ($teacherfeedback) {
-            $editentry_id = $teacherfeedback->entry_id;
-        }
+        $output = $PAGE->get_renderer('mod_coursework');
+        $html .= $output->render($files);
 
-        // The entry id will be provided if the form has been submitted. False if not.
         ob_start();
-        $entry_id = $uf->display_form($feedbackformid, $pageurl, $viewurl, $editentry_id);
+        // Will already have happened if page has changed, but not on first display.
+        $this->ulccform->try_to_save_whole_form_and_get_entry_id();
+
+        $this->ulccform->display_form();
         $html .= ob_get_contents();
         ob_end_clean();
 
-        // This is an indication that the page has been submitted.
+        return $html;
+
+    }
+
+    /**
+     * Process and save the data from the feedback form.
+     *
+     * @param object $data from the feedback form
+     * @param array $params
+     * @throws moodle_exception
+     * @return string
+     */
+    public function process_data($data, $params) {
+
+        global $USER, $PAGE, $DB;
+
+        $assessorid = $USER->id;
+        $formid = $data->form_id;
+        $currentpage = $data->current_page;
+        $course_module = get_coursemodule_from_id('coursework', $params['coursemoduleid'], 0, false, MUST_EXIST);
+        $coursework = new coursework($course_module->instance);
+
+        $params = array(
+            'courseworkid' => $course_module->instance,
+            'userid' => $params['userid']
+        );
+        $submissionid = $DB->get_field('coursework_submissions', 'id', $params);
+        $submission = new coursework_submission($coursework, $submissionid);
+
+        $this->ulccform = new ulcc_form('mod',
+                                        'coursework',
+                                        $formid,
+                                        0,
+                                        $PAGE->url->out(false),
+                                        '',
+                                        $currentpage);
+
+        // The entry id will be provided if the form has been submitted. False if not.
+        $entry_id = $this->ulccform->try_to_save_whole_form_and_get_entry_id();
+
+        // This is an indication that the whole form has been submitted, not just one page of it.
         if (!empty($entry_id)) {
+
+            $teacherfeedback = $this->get_submission_assessor_feedback($submissionid, $assessorid);
 
             // If we are editing a feedback, it should already be present so we will only be updating the timestamps.
             if (!$teacherfeedback) {
                 $teacherfeedback = new coursework_feedback(false, $submission);
                 $teacherfeedback->submissionid = $submissionid;
-                $teacherfeedback->assessorid = $assessor_id;
-                $teacherfeedback->isfinalgrade = $isfinalgrade;
+                $teacherfeedback->assessorid = $assessorid;
+                $teacherfeedback->isfinalgrade = 0;
 
-                // Slim possibility that this page has been accessed by someone going back after making a
-                // new entry, in which case they will trigger a new insert and bork the system. Sanity check here...
+                // Slim possibility that this page has been accessed by someone going back after making a new entry,
+                // in which case they will trigger a new insert and bork the system. Sanity check here...
                 $params = array(
-                    'isfinalgrade' => $isfinalgrade,
+                    'isfinalgrade' => 0,
                     'submissionid' => $submissionid,
-                    'assessorid' => $assessor_id
+                    'assessorid' => $assessorid
                 );
                 if ($DB->record_exists('coursework_feedbacks', $params)) {
                     // Problem. Assume we had someone go back when they shouldn't.
@@ -204,12 +248,12 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
             $teacherfeedback->entry_id = $entry_id;
 
             // If we are editing a feedback then check if the entry has a grade in it using the feedback entry id.
-            $grades = $uf->get_form_element_value($teacherfeedback->entry_id, 'form_element_plugin_modgrade', false);
+            $grades = $this->ulccform->get_form_element_value($teacherfeedback->entry_id, 'form_element_plugin_modgrade', false);
             if ($grades) {
                 $teacherfeedback->grade = array_pop($grades);
             }
             $gradecomments =
-                $uf->get_form_element_value($teacherfeedback->entry_id, 'form_element_plugin_comment_editor', false);
+                $this->ulccform->get_form_element_value($teacherfeedback->entry_id, 'form_element_plugin_comment_editor', false);
             if ($gradecomments) {
                 $teacherfeedback->feedbackcomment = array_pop($gradecomments);
             }
@@ -224,19 +268,12 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
                 $coursework->grade_changed_event();
             }
 
-            redirect($viewurl, get_string('changessaved'), 1);
+            return '';
+
         }
 
-    }
-
-    /**
-     * Process and save the data from the feedback form.
-     *
-     * @param object $data from the feedback form
-     * @param array $params
-     * @return string
-     */
-    public function process_data($data, $params) {
+        // Multi page forms.
+        return 'Display another page';
 
     }
 
@@ -325,5 +362,22 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
 
         return $query;
 
+    }
+
+    /**
+     * @param int $submissionid
+     * @param int $assessorid
+     * @return mixed
+     */
+    private function get_submission_assessor_feedback($submissionid, $assessorid) {
+
+        global $DB;
+
+        $params = array(
+            'submissionid' => $submissionid,
+            'assessorid' => $assessorid
+        );
+
+        return $DB->get_record('coursework_feedbacks', $params);
     }
 }
