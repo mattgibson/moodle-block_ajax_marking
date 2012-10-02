@@ -311,7 +311,7 @@ class groupid_filters_test extends advanced_testcase {
      */
     public function test_group_max_subquery() {
 
-        global $USER, $DB;
+        global $DB;
 
         // Make a coursemodule, group, etc.
         $this->set_up_for_group_subqueries();
@@ -323,11 +323,44 @@ class groupid_filters_test extends advanced_testcase {
         // User1 is in group1 and there are two coursemodules. Should be 2 entries.
         $results = $this->get_visibility_array_results($query, $params);
 
-        $this->assertEquals(2, count($results));
+        $message = 'Wrong number of items visible before starting the group max subquery test';
+        $this->assertEquals(2, count($results), $message);
         // TODO is it the right group?
 
         // Hide one coursemodule and we ought to get one.
-        // Hide a group2a at coursemoduleid level.
+        // Hide a group1 at coursemoduleid level.
+        $cmgroupsetting = $this->hide_group_1_at_coursemodule_level();
+
+        $results = $this->get_visibility_array_results($query, $params);
+        $message = 'Hiding a group at coursemodule level didn\'t hide the item';
+        $this->assertEquals(1, count($results), $message);
+
+        // Now hide at course level and we ought to get nothing.
+        $this->hide_group_1_at_course_level();
+
+        $results = $this->get_visibility_array_results($query, $params);
+        $message = 'Hiding a group at course level didn\'t hide the coursemodule items';
+        $this->assertEquals(0, count($results), $message);
+
+        // Now override at coursemodule level so we ought to have one only again.
+        $cmgroupsetting->display = 1;
+        $cmgroupsetting->id = $DB->insert_record('block_ajax_marking_groups', $cmgroupsetting);
+
+        $results = $this->get_visibility_array_results($query, $params);
+        $this->assertEquals(1, count($results));
+
+    }
+
+    /**
+     * Makes a single coursemodule level default setting, then a group setting for group 1 that
+     * hides it.
+     *
+     * @return stdClass
+     */
+    public function hide_group_1_at_coursemodule_level() {
+
+        global $USER, $DB;
+
         $cmsetting = new stdClass();
         $cmsetting->userid = $USER->id;
         $cmsetting->tablename = 'course_modules';
@@ -339,11 +372,17 @@ class groupid_filters_test extends advanced_testcase {
         $cmgroupsetting->groupid = $this->group1->id;
         $cmgroupsetting->display = 0;
         $cmgroupsetting->id = $DB->insert_record('block_ajax_marking_groups', $cmgroupsetting);
+        return $cmgroupsetting;
+    }
 
-        $results = $this->get_visibility_array_results($query, $params);
-        $this->assertEquals(1, count($results));
+    /**
+     * Makes a single defaule setting for a course, then a group setting for group 1 with
+     * display = 0.
+     */
+    public function hide_group_1_at_course_level() {
 
-        // Now hide at course level and we ought to get nothing.
+        global $USER, $DB;
+
         $coursesetting = new stdClass();
         $coursesetting->userid = $USER->id;
         $coursesetting->tablename = 'course';
@@ -354,18 +393,8 @@ class groupid_filters_test extends advanced_testcase {
         $coursegroupsetting->configid = $coursesetting->id;
         $coursegroupsetting->groupid = $this->group1->id;
         $coursegroupsetting->display = 0;
-        $coursegroupsetting->id = $DB->insert_record('block_ajax_marking_groups', $coursegroupsetting);
-
-        $results = $this->get_visibility_array_results($query, $params);
-        $this->assertEquals(0, count($results));
-
-        // Now override at coursemodule level so we ought to have one only.
-        $cmgroupsetting->display = 1;
-        $cmgroupsetting->id = $DB->insert_record('block_ajax_marking_groups', $cmgroupsetting);
-
-        $results = $this->get_visibility_array_results($query, $params);
-        $this->assertEquals(0, count($results));
-
+        $coursegroupsetting->id =
+            $DB->insert_record('block_ajax_marking_groups', $coursegroupsetting);
     }
 
     /**
