@@ -236,13 +236,16 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             if (isset($processedattempts[$id])) {
                 continue;
             }
-            $processedattempts[$id] = quiz_attempt::create($id);
+            /* @var quiz_attempt $quiz_attempt */
+            $quiz_attempt = quiz_attempt::create($id);
             $transaction = $DB->start_delegated_transaction();
-            $processedattempts[$id]->process_all_actions(time());
+            $quiz_attempt->process_all_actions(time());
             $transaction->allow_commit();
+
+            $processedattempts[$id] = $quiz_attempt;
         }
 
-        return true;
+        return '';
     }
 
     /**
