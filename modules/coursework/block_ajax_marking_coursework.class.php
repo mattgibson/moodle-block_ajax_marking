@@ -31,6 +31,12 @@ global $CFG;
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework_submission.class.php');
+require_once($CFG->dirroot.'/lib/adminlib.php');
+require_once($CFG->dirroot.'/lib/formslib.php');
+require_once($CFG->dirroot.'/local/ulcc_form_library/ulcc_form.class.php');
+require_once($CFG->dirroot.'/mod/coursework/renderer.php');
+require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework.class.php');
+require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework_submission.class.php');
 
 /**
  * Extension to the block_ajax_marking_module_base class which adds the parts that deal
@@ -74,13 +80,6 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
     public function grading_popup($params, $coursemodule, $data = false) {
 
         global $CFG, $DB, $USER, $OUTPUT, $PAGE;
-
-        require_once($CFG->dirroot.'/lib/adminlib.php');
-        require_once($CFG->dirroot.'/lib/formslib.php');
-        require_once($CFG->dirroot.'/local/ulcc_form_library/ulcc_form.class.php');
-        require_once($CFG->dirroot.'/mod/coursework/renderer.php');
-        require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework.class.php');
-        require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework_submission.class.php');
 
         $cmid = $params['coursemoduleid'];
         $assessorid = $USER->id;
@@ -135,7 +134,8 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
                                    'moodleplugintype' => 'mod',
                                    'context_id' => $PAGE->context->id,
                                    'cm_id' => $course_module->id);
-            $needformurl = new moodle_url('/local/ulcc_form_library/actions/view_forms.php', $urlattributes);
+            $needformurl =
+                new moodle_url('/local/ulcc_form_library/actions/view_forms.php', $urlattributes);
             redirect($needformurl, get_string('needsfeedbackform', 'coursework'));
         }
 
@@ -145,13 +145,17 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
 
         $html .= $OUTPUT->heading($gradingstring);
         $assessor = $DB->get_record('user', array('id' => $assessorid));
-        $html .= html_writer::tag('p', get_string('assessor', 'coursework').' '.fullname($assessor));
-        $html .= html_writer::tag('p', get_string('gradingoutof', 'coursework', round($coursework->grade)));
+        $html .= html_writer::tag('p',
+                                  get_string('assessor', 'coursework').' '.fullname($assessor));
+        $html .= html_writer::tag('p',
+                                  get_string('gradingoutof', 'coursework',
+                                             round($coursework->grade)));
 
         // In case we have an editor come along, we want to show that this has happened.
         if (!empty($teacherfeedback)) { // May not have been marked yet.
             if ($submissionid && !empty($teacherfeedback->lasteditedbyuser)) {
-                $editor = $DB->get_record('user', array('id' => $teacherfeedback->lasteditedbyuser));
+                $editor =
+                    $DB->get_record('user', array('id' => $teacherfeedback->lasteditedbyuser));
             } else {
                 $editor = $assessor;
             }
@@ -180,7 +184,6 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
         ob_end_clean();
 
         return $html;
-
     }
 
     /**
@@ -198,7 +201,8 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
         $assessorid = $USER->id;
         $formid = $data->form_id;
         $currentpage = $data->current_page;
-        $course_module = get_coursemodule_from_id('coursework', $params['coursemoduleid'], 0, false, MUST_EXIST);
+        $course_module =
+            get_coursemodule_from_id('coursework', $params['coursemoduleid'], 0, false, MUST_EXIST);
         $coursework = new coursework($course_module->instance);
 
         $params = array(
@@ -248,12 +252,16 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
             $teacherfeedback->entry_id = $entry_id;
 
             // If we are editing a feedback then check if the entry has a grade in it using the feedback entry id.
-            $grades = $this->ulccform->get_form_element_value($teacherfeedback->entry_id, 'form_element_plugin_modgrade', false);
+            $grades = $this->ulccform->get_form_element_value($teacherfeedback->entry_id,
+                                                              'form_element_plugin_modgrade',
+                                                              false);
             if ($grades) {
                 $teacherfeedback->grade = array_pop($grades);
             }
             $gradecomments =
-                $this->ulccform->get_form_element_value($teacherfeedback->entry_id, 'form_element_plugin_comment_editor', false);
+                $this->ulccform->get_form_element_value($teacherfeedback->entry_id,
+                                                        'form_element_plugin_comment_editor',
+                                                        false);
             if ($gradecomments) {
                 $teacherfeedback->feedbackcomment = array_pop($gradecomments);
             }
@@ -269,12 +277,10 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
             }
 
             return '';
-
         }
 
         // Multi page forms.
         return 'Display another page';
-
     }
 
     /**
@@ -343,7 +349,7 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
 
         // All work with no feedback record will show up.
         // TODO formative with no grade.
-        $where =  "(coursework_feedbacks.id IS NULL
+        $where = "(coursework_feedbacks.id IS NULL
                              OR (coursework_feedbacks.grade IS NULL
                                  AND (coursework_feedbacks.feedbackcomment = ''
                                       OR coursework_feedbacks.feedbackcomment IS NULL)))";
@@ -361,7 +367,6 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
         $query->add_where($where);
 
         return $query;
-
     }
 
     /**
