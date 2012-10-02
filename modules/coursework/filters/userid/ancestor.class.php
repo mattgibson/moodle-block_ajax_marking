@@ -1,4 +1,4 @@
-<?PHP
+<?php
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -14,42 +14,37 @@
 // You should have received a copy of the GNU General Public License
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
-
 /**
- * Saves data sent back via AJAX from the block config or grading interfaces
+ * Class file for the quiz userid filter functions
  *
  * @package    block
  * @subpackage ajax_marking
- * @copyright  2011 Matt Gibson
+ * @copyright  2008 Matt Gibson
  * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-if (!defined('AJAX_SCRIPT')) {
-    define('AJAX_SCRIPT', true);
-}
+defined('MOODLE_INTERNAL') || die();
 
-require_once(dirname(__FILE__).'/../../../config.php');
 global $CFG;
-require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 
-block_ajax_marking_login_error();
-require_login(0, false);
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
-// Target = what function is going to be doing the save operation. Either a core thing for
-// config stuff, or a module name.
-$target = required_param('target', PARAM_ALPHA);
+/**
+ * User id ancestor filter for the assign module
+ */
+class block_ajax_marking_coursework_filter_userid_ancestor extends block_ajax_marking_query_decorator_base {
 
-// Work out where to send it for processing.
-switch ($target) {
+    /**
+     * @static
+     * @return mixed|void
+     */
+    protected function alter_query() {
 
-    case 'config_save':
-        break;
-
-    default:
-        $modules = block_ajax_marking_get_module_classes();
-        $modules[$target]->ajax_save();
-        break;
+        $clause = array(
+            'type' => 'AND',
+            'condition' => 'sub.userid = :assignuseridfilteruserid');
+        $this->wrappedquery->add_where($clause);
+        $this->wrappedquery->add_param('assignuseridfilteruserid', $this->parameter);
+    }
 }
-
-// Send it.

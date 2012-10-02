@@ -78,5 +78,5 @@ foreach ($nodes as &$node) {
 // with strings for keys are automatically sent as objects.
 $nodes = array_values($nodes);
 $data = array('childnodecounts' => $nodes,
-              'nodeindex' => $params['nodeindex']);
+              'nodeindex' => (int)$params['nodeindex']); // Cast to int for javascript strict type comparisons.
 echo json_encode($data);

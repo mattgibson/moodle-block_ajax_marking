@@ -118,10 +118,14 @@ class test_nodes_builder_base extends advanced_testcase {
      * - 1 workshop with 10 submissions
      *
      * Submissions are counted and stored as $this->submissioncount.
+     *
+     * @param array $modstoinclude the modules to mke submissions for. Default: all.
      */
-    private function make_module_submissions() {
+    private function make_module_submissions($modstoinclude = array()) {
 
         global $DB;
+
+        $submissioncount = 0;
 
         // Assignment module is disabled in the PHPUnit DB, so we need to re-enable it.
         $DB->set_field('modules', 'visible', 1, array('name' => 'assignment'));
@@ -132,6 +136,10 @@ class test_nodes_builder_base extends advanced_testcase {
 
             $modname = $modclass->get_module_name();
 
+            if (!empty($modstoinclude) && !in_array($modname, $modstoinclude)) {
+                continue;
+            }
+
             // We need some submissions, but these are different for every module.
             // Without a standardised way of doing this, we will use methods in this class to do
             // the job until a better way emerges.
@@ -139,10 +147,13 @@ class test_nodes_builder_base extends advanced_testcase {
             if (method_exists($this, $createdatamethod)) {
                 // Let the modules decide what number of things should be expected. Some are more
                 // complex than others.
-                $this->$createdatamethod();
+                $count = $this->$createdatamethod();
+                $submissioncount += $count;
 
             }
         }
+
+        return $submissioncount;
     }
 
     /**
@@ -196,13 +207,6 @@ class test_nodes_builder_base extends advanced_testcase {
 
             // Make sure we get the right number of things back.
             $this->assertEquals($expectedcount, reset($unmarkedstuff)->count);
-
-            // Now make sure we have the right columns for the SQL UNION ALL.
-            // We will get duplicate user ids causing problems in the first column if we
-            // use standard DB functions.
-            $records = $query->execute(true);
-
-            $firstrow = $records->current();
 
         }
     }
@@ -389,13 +393,13 @@ class test_nodes_builder_base extends advanced_testcase {
         $student->id = 3;
 
         // Make forums
-        /* @var phpunit_module_generator $forumgenerator */
+        /* @var mod_forum_generator $forumgenerator */
         $forumgenerator = $this->getDataGenerator()->get_plugin_generator('mod_forum');
-        $forums = array();
         $forumrecord = new stdClass();
         $forumrecord->assessed = 1;
         $forumrecord->scale = 4;
         $forumrecord->course = $this->course->id;
+
         $forumtypes = array(
             'single',
             'eachuser',
@@ -405,15 +409,23 @@ class test_nodes_builder_base extends advanced_testcase {
         );
         foreach ($forumtypes as $type) {
             $forumrecord->type = $type;
-            $forums[] = $forumgenerator->create_instance($forumrecord);
-        }
+            if (isset($forumrecord->id)) {
+                unset($forumrecord->id);
+            }
 
-        // Make posts and discussions.
-        foreach ($forums as $forum) {
+            // Single post forums make a discussion and first post. Needs to be by student.
+            $this->setUser($student->id);
+            $forum = $forumgenerator->create_instance($forumrecord);
+            $this->setAdminUser();
 
-            // Make discussion. Make sure each student makes one (in case we violate
+            if ($type == 'single') { // Generator will have made a related discussion.
+                $submissioncount++;
+            }
+                // Make discussion. Make sure each student makes one (in case we violate
             // eachuser constraints).
+            reset($this->students); // Reset counter due to nested loops.
             foreach ($this->students as $student) {
+
                 $discussion = new stdClass();
                 $discussion->course = $this->course->id;
                 $discussion->forum = $forum->id;
@@ -421,8 +433,24 @@ class test_nodes_builder_base extends advanced_testcase {
                 $discussion->timemodified = strtotime('1 hour ago');
                 $discussion->id = $DB->insert_record('forum_discussions', $discussion);
 
-                // Make some reply posts.
-                foreach ($this->students as $replystudent) { // TODO does this mess up the pointer?
+                $firstpost = new stdClass();
+                $firstpost->discussion = $discussion->id;
+                $firstpost->parent = 0;
+                $firstpost->created = time();
+                $firstpost->userid = $student->id;
+                $firstpost->modified = time();
+                $firstpost->subject = 'First post subject';
+                $firstpost->message = 'First post message';
+                $firstpost->id = $DB->insert_record('forum_posts', $firstpost);
+
+                $discussion->firstpost = $firstpost->id;
+                $DB->update_record('forum_discussions', $discussion);
+                $submissioncount++;
+
+                // Make some reply posts. Need to copy the array so we can have the pointer in two places at once.
+                $tempstudents = $this->students;
+                reset($tempstudents);
+                foreach ($tempstudents as $replystudent) {
                     if ($replystudent->id == $student->id) {
                         // Eachuser won't like this.
                         continue;
@@ -430,7 +458,7 @@ class test_nodes_builder_base extends advanced_testcase {
 
                     $post = new stdclass();
                     $post->discussion = $discussion->id;
-                    $post->parent = 0; // All direct replies to the first post for simplicity.
+                    $post->parent = $firstpost->id; // All direct replies to the first post for simplicity.
                     $post->userid = $replystudent->id;
                     $post->created = time();
                     $post->modified = time();
@@ -438,14 +466,8 @@ class test_nodes_builder_base extends advanced_testcase {
                     $post->message = 'blah';
 
                     $post->id = $DB->insert_record('forum_posts', $post);
-
-                    // TODO is this still relevant?
                     $submissioncount++;
 
-                    if (empty($discussion->firstpost)) {
-                        $discussion->firstpost = $post->id;
-                        $DB->update_record('forum_discussions', $discussion);
-                    }
                 }
             }
         }
@@ -914,6 +936,262 @@ class test_nodes_builder_base extends advanced_testcase {
             }
         }
         $this->assertTrue($foundit, 'Did not get coursemodule back in nodes array');
+
+    }
+
+    /**
+     * Makes fake submission data for the coursework module so we can do the tests. There's a need to cover all
+     * possible use cases, so we need:
+     * - One with allocations enabled, one without. The one without should always show up, but the allocations one
+     *   should only be OK for when there is an allocation.
+     * - One with feedbacks from another teacher that should still show up
+     * - One with the right number of feedbacks already, which shouldn't show up
+     * - One empty feedback with no grade or comment which should show up.
+     *
+     * @return int the number of submissions to expect.
+     */
+    private function create_coursework_submission_data() {
+
+        global $USER;
+
+        $expectedcount = 0;
+
+        // Make two submissions, one with and one without allocations.
+        // Make one have single and one multiple marker.
+        $generator = $this->getDataGenerator();
+        /* @var mod_coursework_generator $courseworkgenerator */
+        $courseworkgenerator = $generator->get_plugin_generator('mod_coursework');
+
+        $firststudent = reset($this->students);
+        $laststudent = end($this->students);
+
+        $firstteacher = reset($this->teachers);
+        $lastteacher = end($this->teachers);
+
+        $singlewithallocation = new stdClass();
+        $singlewithallocation->course = $this->course->id;
+        $singlewithallocation->numberofmarkers = 1;
+        $singlewithallocation->allocationenabled = 1;
+        $singlewithallocation = $courseworkgenerator->create_instance($singlewithallocation);
+
+        $singlenoallocation = new stdClass();
+        $singlenoallocation->course = $this->course->id;
+        $singlenoallocation->numberofmarkers = 1;
+        $singlenoallocation->allocationenabled = 0;
+        $singlenoallocation = $courseworkgenerator->create_instance($singlenoallocation);
+
+        $multiplepartialgraded = new stdClass();
+        $multiplepartialgraded->course = $this->course->id;
+        $multiplepartialgraded->numberofmarkers = 2;
+        $multiplepartialgraded->allocationenabled = 0;
+        $multiplepartialgraded = $courseworkgenerator->create_instance($multiplepartialgraded);
+
+        $singleemptyfeedback = new stdClass();
+        $singleemptyfeedback->course = $this->course->id;
+        $singleemptyfeedback->numberofmarkers = 2;
+        $singleemptyfeedback->allocationenabled = 0;
+        $singleemptyfeedback = $courseworkgenerator->create_instance($singleemptyfeedback);
+
+        $singleresubmitted = new stdClass();
+        $singleresubmitted->course = $this->course->id;
+        $singleresubmitted->numberofmarkers = 2;
+        $singleresubmitted->allocationenabled = 0;
+        $singleresubmitted = $courseworkgenerator->create_instance($singleresubmitted);
+
+        // Now make some submissions for the allocation one. Then one allocation so we can make sure we just
+        // get the right one. The others should remain hidden.
+        foreach ($this->students as $student) {
+            $submission = new stdClass();
+            $submission->userid = $student->id;
+            $submission->courseworkid = $singlewithallocation->id;
+            $submission = $courseworkgenerator->create_submission($submission, $singlewithallocation);
+        }
+        // The $submission variable will be left as the last one in the list. Make an allocation for just
+        // this one and expect that the others will not show up.
+        $allocation = new stdClass();
+        $allocation->assessorid = $USER->id;
+        $allocation->studentid = $submission->userid;
+        $allocation->courseworkid = $singlewithallocation->id;
+        $allocation = $courseworkgenerator->create_allocation($allocation);
+        $expectedcount++;
+
+        // Now try with no allocations and they should all turn up.
+        reset($this->students);
+        foreach ($this->students as $student) {
+            $submission = new stdClass();
+            $submission->userid = $student->id;
+            $submission->courseworkid = $singlenoallocation->id;
+            $submission = $courseworkgenerator->create_submission($submission, $singlenoallocation);
+            $expectedcount++;
+        }
+
+        // Now check that when another teacher has made a feedback, we still get it back when there is room
+        // for more feedbacks.
+        $submission = new stdClass();
+        $submission->userid = $student->id;
+        $submission->courseworkid = $multiplepartialgraded->id;
+        $submission = $courseworkgenerator->create_submission($submission, $multiplepartialgraded);
+        $expectedcount++;
+
+        // This feedback ought not to matter.
+        $feedback = new stdClass();
+        $feedback->assessorid = 67; // Using random large teacher ids so we won't have interference.
+        $feedback->submissionid = $submission->id;
+        $feedback->timemodified = time() + 1; // Need to be later than the submission.
+        $feedback = $courseworkgenerator->create_feedback($feedback);
+
+        // Now make one with the maximum number of feedbacks and make sure it doesn't turn up.
+        // The one we just made will be for the last student in the list.
+        $submission = new stdClass();
+        $submission->userid = $firststudent->id;
+        $submission->courseworkid = $multiplepartialgraded->id;
+        $submission = $courseworkgenerator->create_submission($submission, $multiplepartialgraded);
+
+        $feedback = new stdClass();
+        $feedback->assessorid = 45;
+        $feedback->submissionid = $submission->id;
+        $feedback->timemodified = time() + 1; // Need to be later than the submission.
+        $feedback = $courseworkgenerator->create_feedback($feedback);
+        $feedback = new stdClass();
+        $feedback->assessorid = 87;
+        $feedback->submissionid = $submission->id;
+        $feedback->timemodified = time() + 1; // Need to be later than the submission.
+        $feedback = $courseworkgenerator->create_feedback($feedback);
+
+        // Now make one with a feedback by the current user, which should still show up because the feedback
+        // has no grade or comment. We also check that ones which have been graded are missing.
+        $submission = new stdClass();
+        $submission->userid = $student->id;
+        $submission->courseworkid = $singleemptyfeedback->id;
+        $submission = $courseworkgenerator->create_submission($submission, $singleemptyfeedback);
+        $expectedcount++;
+        // Empty comment and grade - should show up.
+        $feedback = new stdClass();
+        $feedback->assessorid = $USER->id;
+        $feedback->submissionid = $submission->id;
+        $feedback->timemodified = time() + 1; // Need to be later than the submission.
+        $feedback = $courseworkgenerator->create_feedback($feedback);
+        // This one has a comment and grade, so it ought to not show up.
+        $submission = new stdClass();
+        $submission->userid = $laststudent->id;
+        $submission->courseworkid = $singleemptyfeedback->id;
+        $submission = $courseworkgenerator->create_submission($submission, $singleemptyfeedback);
+        $feedback = new stdClass();
+        $feedback->assessorid = $USER->id;
+        $feedback->grade = 65;
+        $feedback->feedbackcomment = 'some text';
+        $feedback->submissionid = $submission->id;
+        $feedback->timemodified = time() + 1; // Need to be later than the submission.
+        $feedback = $courseworkgenerator->create_feedback($feedback);
+
+        // TODO test comment OR grade.
+
+        // TODO Now make one which has been resubmitted after a previous grading to make sure it'll turn up again.
+
+        $this->submissioncount += $expectedcount;
+
+        return $expectedcount;
+
+    }
+
+    public function test_coursework_query_single_with_allocation() {
+
+        global $USER;
+
+        $generator = $this->getDataGenerator();
+        /* @var mod_coursework_generator $courseworkgenerator */
+        $courseworkgenerator = $generator->get_plugin_generator('mod_coursework');
+
+        $singlewithallocation = new stdClass();
+        $singlewithallocation->course = $this->course->id;
+        $singlewithallocation->numberofmarkers = 1;
+        $singlewithallocation->allocationenabled = 1;
+        $singlewithallocation = $courseworkgenerator->create_instance($singlewithallocation);
+
+        // Now make some submissions for the allocation one. Then one allocation so we can make sure we just
+        // get the right one. The others should remain hidden.
+        $submission = new stdClass();
+        foreach ($this->students as $student) {
+            $submission = new stdClass();
+            $submission->userid = $student->id;
+            $submission->courseworkid = $singlewithallocation->id;
+            $submission = $courseworkgenerator->create_submission($submission, $singlewithallocation);
+        }
+        // The $submission variable will be left as the last one in the list. Make an allocation for just
+        // this one and expect that the others will not show up.
+        $allocation = new stdClass();
+        $allocation->assessorid = $USER->id;
+        $allocation->studentid = $submission->userid;
+        $allocation->courseworkid = $singlewithallocation->id;
+        $allocation = $courseworkgenerator->create_allocation($allocation);
+
+        $expectedcount = 1;
+
+        $actualcount = $this->get_modulequery_count('coursework');
+
+        $this->assertEquals($expectedcount, $actualcount, 'Allocations are not showing up right');
+    }
+
+    /**
+     * Counts how many items the module query gives us.
+     *
+     * @param string $modulename
+     * @throws coding_exception
+     * @return int
+     */
+    protected function get_modulequery_count($modulename) {
+        $modclasses = block_ajax_marking_get_module_classes();
+
+        if (!array_key_exists($modulename, $modclasses)) {
+            throw new coding_exception('Missing '.$modulename.' module class');
+        }
+
+        $modclass = $modclasses[$modulename];
+
+        // Make query.
+        $query = $modclass->query_factory();
+        // We will get an error if we leave it like this as the userids in the first
+        // column are not unique.
+        $wrapper = new block_ajax_marking_query_base();
+        $wrapper->add_select(array('function' => 'COUNT',
+                                   'column' => '*',
+                                   'alias' => 'count'));
+        $wrapper->add_from(array('table' => $query,
+                                 'alias' => 'modulequery'));
+
+        // Run query. Get one stdClass with a count property.
+        $unmarkedstuff = $wrapper->execute();
+
+        // Make sure we get the right number of things back.
+        return reset($unmarkedstuff)->count;
+    }
+
+    /**
+     * We need to find out if each individual module works or not. This loops over them testing that we get
+     * something back.
+     */
+    public function test_individual_modules() {
+        // Make all the test data and get a total count back.
+        // Make sure the current user is a teacher in the course.
+
+        $moduleclasses = block_ajax_marking_get_module_classes();
+
+        foreach ($moduleclasses as $moduleclass) {
+
+            // Make the test data for just this module.
+            $modname = $moduleclass->get_module_name();
+            $this->setAdminUser();
+            $expected = $this->make_module_submissions(array($modname));
+            $this->setUser(key($this->teachers));
+
+            // Make a query for just that module.
+            $countindb = $this->get_modulequery_count($modname);
+
+            // Make sure we get the right number of things back.
+            $message = 'Found '.$countindb.' things for '.$modname.' instead of '.$expected;
+            $this->assertEquals($expected, $countindb, $message);
+
+        }
 
     }
 

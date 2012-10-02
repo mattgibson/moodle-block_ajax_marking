@@ -24,16 +24,16 @@
  */
 
 YUI.add('moodle-block_ajax_marking-cohortstree', function (Y) {
+    "use strict";
 
     /**
      * Name of this module as used by YUI.
      * @type {String}
      */
-    var COHORTSTREENAME = 'cohortstree';
-
-    var COHORTSTREE = function () {
-        COHORTSTREE.superclass.constructor.apply(this, arguments);
-    };
+    var COHORTSTREENAME = 'cohortstree',
+        COHORTSTREE = function () {
+            COHORTSTREE.superclass.constructor.apply(this, arguments);
+        };
 
     /**
      * @class M.block_ajax_marking.cohortstree

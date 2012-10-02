@@ -24,16 +24,16 @@
  */
 
 YUI.add('moodle-block_ajax_marking-coursestree', function (Y) {
+    "use strict";
 
     /**
      * Name of this module as used by YUI.
      * @type {String}
      */
-    var COURSESTREENAME = 'coursestree';
-
-    var COURSESTREE = function () {
-        COURSESTREE.superclass.constructor.apply(this, arguments);
-    };
+    var COURSESTREENAME = 'coursestree',
+        COURSESTREE = function () {
+            COURSESTREE.superclass.constructor.apply(this, arguments);
+        };
 
     /**
      * @class M.block_ajax_marking.coursestree
@@ -72,9 +72,9 @@ YUI.add('moodle-block_ajax_marking-coursestree', function (Y) {
             // Workshop has no meaningful way to display by group (so far), so we hide the groups if
             // The module says that the coursemodule nodes are final ones.
             groupsdisplay = node.get_calculated_groupsdisplay_setting();
-            if (currentfilter == 'coursemoduleid' && groupsdisplay == 1 && moduleoverride !== false) {
+            if (currentfilter === 'coursemoduleid' && groupsdisplay === 1 && moduleoverride !== false) {
                 // This takes precedence over the module override
-                return 'groupid'
+                return 'groupid';
             }
 
             if (moduleoverride !== null) {

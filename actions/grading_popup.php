@@ -81,14 +81,11 @@ $PAGE->set_url($url);
 $PAGE->set_context($context);
 $PAGE->set_pagelayout('popup');
 
-// Do this here, so we can have a redirect if necessary.
-$htmlstuff = $moduleobject->grading_popup($params, $coursemodule);
-
-echo $OUTPUT->header();
 
 // Stuff from /mod/quiz/comment.php - catch data if this is a self-submit so that data can be
 // processed. Also catches all other submitted form data.
 $data = data_submitted();
+$htmlstuff = '';
 
 if ($data && confirm_sesskey()) {
 
@@ -103,6 +100,7 @@ if ($data && confirm_sesskey()) {
         $PAGE->set_url($url);
         $PAGE->set_pagelayout('popup');
 
+        echo $OUTPUT->header();
         echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
         $callfunction = "
             window.opener.M.block_ajax_marking.remove_node_from_current_tab({$nodeid});
@@ -115,7 +113,7 @@ if ($data && confirm_sesskey()) {
 
         // May have a specific second step e.g. confirm revert to draft, so we allow fall-through.
         // Otherwise, display the error and fall through to re-display the form.
-        echo $OUTPUT->notification($error);
+        $htmlstuff .= $OUTPUT->notification($error);
     }
 
 }
@@ -169,9 +167,11 @@ $code = "
 ";
 $PAGE->requires->js_init_code($code);
 
-// Don't display the form again if it was submitted.
-if (!$data) {
-    echo $htmlstuff;
-}
+// Might cause redirect.
+$htmlstuff .= $moduleobject->grading_popup($params, $coursemodule);
+
+echo $OUTPUT->header();
+
+echo $htmlstuff;
 
 echo $OUTPUT->footer();

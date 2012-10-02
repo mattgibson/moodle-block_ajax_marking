@@ -24,23 +24,23 @@
  */
 
 YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
+    "use strict";
 
     /**
      * Name of this module as used by YUI.
      * @type {String}
      */
-    var CONFIGTREENODENAME = 'configtreenode';
+    var CONFIGTREENODENAME = 'configtreenode',
+        CONFIGTREENODE = function () {
 
-    var CONFIGTREENODE = function () {
+            // Prevents IDE complaining abut undefined vars.
+            this.data = {};
+            this.data.returndata = {};
+            this.data.displaydata = {};
+            this.data.configdata = {};
 
-        // Prevents IDE complaining abut undefined vars.
-        this.data = {};
-        this.data.returndata = {};
-        this.data.displaydata = {};
-        this.data.configdata = {};
-
-        CONFIGTREENODE.superclass.constructor.apply(this, arguments);
-    };
+            CONFIGTREENODE.superclass.constructor.apply(this, arguments);
+        };
 
     /**
      * @class M.block_ajax_marking.configtreenode
@@ -111,13 +111,16 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             var displaysetting,
                 sb = [],
                 groupsdisplaysetting,
-                groupscount = this.get_groups_count();
+                groupscount = this.get_groups_count(),
+                icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style()),
+                displaytype = displaysetting ? 'hide' : 'show', // Icons are named after their actions.
+                displayicon = M.block_ajax_marking.get_dynamic_icon(displaytype);
+
 
             sb[sb.length] = '<table class="ygtvtable configtreenode">'; // New.
             sb[sb.length] = '<tr >';
             sb[sb.length] = '<td class="ygtvcell" colspan="8">';
             // TODO alt text
-            var icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
 
             if (icon) {
                 icon.className += ' nodeicon';
@@ -126,7 +129,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                 }
                 catch (e) {
                     // Keep IE9 happy.
-                    icon["id"] = undefined;
+                    icon.id = undefined;
                 }
                 sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
             }
@@ -146,12 +149,11 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             sb[sb.length] = '" class="ygtvcell ';
 
             displaysetting = this.get_setting_to_display('display');
-            var displaytype = displaysetting ? 'hide' : 'show'; // Icons are named after their actions.
-            var displayicon = M.block_ajax_marking.get_dynamic_icon(displaytype);
+
             try {
                 delete displayicon.id;
             }
-            catch (e) {
+            catch (othere) {
                 // Keep IE9 happy.
                 displayicon["id"] = undefined;
             }
@@ -174,9 +176,9 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                 try {
                     delete groupsicon.id;
                 }
-                catch (e) {
+                catch (yetanothere) {
                     // Keep IE9 happy.
-                    groupsicon["id"] = undefined;
+                    groupsicon.id = undefined;
                 }
                 groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
 
@@ -228,16 +230,20 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
          * @method loadComplete
          */
         loadComplete : function (justrefreshchildren) {
+
+            var i,
+                j;
+
             this.getChildrenEl().innerHTML = this.completeRender();
             this.tree.add_groups_buttons(this, justrefreshchildren); // Groups stuck onto all children.
             if (this.propagateHighlightDown) {
                 if (this.highlightState === 1 && !this.tree.singleNodeHighlight) {
-                    for (var i = 0; i < this.children.length; i++) {
+                    for (i = 0; i < this.children.length; i++) {
                         this.children[i].highlight(true);
                     }
                 } else if (this.highlightState === 0 || this.tree.singleNodeHighlight) {
-                    for (i = 0; i < this.children.length; i++) {
-                        this.children[i].unhighlight(true);
+                    for (j = 0; j < this.children.length; j++) {
+                        this.children[j].unhighlight(true);
                     }
                 } // If (highlightState == 2) leave child nodes with whichever highlight state
                 // they are set.
@@ -372,18 +378,18 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
 
             iconcontainer = document.getElementById(containerid);
             spacerdiv = iconcontainer.firstChild;
-            if (settingtoshow == 1) {
-                if (settingtype == 'display') {
+            if (settingtoshow === 1) {
+                if (settingtype === 'display') {
                     // Names of icons are for the actions on clicking them. Not what they look like.
                     iconname = 'hide';
-                } else if (settingtype == 'groupsdisplay') {
+                } else if (settingtype === 'groupsdisplay') {
                     iconname = 'hidegroups';
                 }
             } else {
-                if (settingtype == 'display') {
+                if (settingtype === 'display') {
                     // Names of icons are for the actions on clicking them. Not what they look like.
                     iconname = 'show';
-                } else if (settingtype == 'groupsdisplay') {
+                } else if (settingtype === 'groupsdisplay') {
                     iconname = 'showgroups';
                 }
             }
@@ -421,7 +427,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             var menuitems = this.renderedmenu.getItems();
 
             for (var i = 0; i < menuitems.length; i++) {
-                if (menuitems[i].value.groupid == groupid) {
+                if (menuitems[i].value.groupid === groupid) {
                     // Might be inherited now, so check parent values.
                     var groupdefault = this.get_setting_to_display('group', groupid);
                     var checked = groupdefault ? true : false;

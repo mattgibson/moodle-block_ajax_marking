@@ -70,7 +70,7 @@ foreach ($nodes as &$node) {
 $nodes = array_values($nodes);
 $data = array('nodes' => $nodes);
 if (isset($params['nodeindex'])) {
-    $data['nodeindex'] = $params['nodeindex'];
+    $data['nodeindex'] = (int)$params['nodeindex']; // Cast to int for javascript strict type comparisons.
 }
 echo json_encode($data);
 

@@ -588,10 +588,17 @@ SQL;
             $groups = $DB->get_records_sql($sql, $params);
 
             foreach ($groups as $group) {
+
+                // Cast to integers so we can do strict type checking in javascript.
+                $group->id = (int)$group->id;
+                $group->courseid = (int)$group->courseid;
+                $group->display = (int)$group->display;
+
                 if (!isset($nodes[$group->courseid]->groups)) {
                     $nodes[$group->courseid]->groups = array();
                 }
-                $nodes[$group->courseid]->groups[] = $group;
+
+                $nodes[$group->courseid]->groups[$group->id] = $group;
             }
         }
 
@@ -602,15 +609,19 @@ SQL;
      * Adds an array of groups to each node for coursemodules.
      *
      * @param array $nodes
+     * @throws coding_exception
      * @return mixed
      */
     private static function attach_groups_to_coursemodule_nodes($nodes) {
 
-        global $DB;
+        global $DB, $USER;
 
         $coursemoduleids = array();
         foreach ($nodes as $node) {
             if (isset($node->coursemoduleid)) {
+                if (in_array($node->coursemoduleid, $coursemoduleids)) {
+                    throw new coding_exception('Duplicate coursemoduleids: '.$node->coursemoduleid);
+                }
                 $coursemoduleids[] = $node->coursemoduleid;
             }
         }
@@ -637,6 +648,7 @@ SQL;
               LEFT JOIN {block_ajax_marking} coursesettings
                      ON coursesettings.tablename = 'course'
                         AND coursesettings.instanceid = groups.courseid
+                        AND coursesettings.userid = :courseuserid
               LEFT JOIN {block_ajax_marking_groups} coursesettingsgroups
                      ON coursesettingsgroups.groupid = groups.id
                     AND coursesettings.id = coursesettingsgroups.configid
@@ -646,22 +658,31 @@ SQL;
               LEFT JOIN {block_ajax_marking} coursemodulesettings
                      ON coursemodulesettings.tablename = 'course_modules'
                         AND coursemodulesettings.instanceid = course_modules.id
+                        AND coursemodulesettings.userid = :coursemoduleuserid
               LEFT JOIN {block_ajax_marking_groups} coursemodulesettingsgroups
                      ON coursemodulesettingsgroups.groupid = groups.id
                     AND coursemodulesettings.id = coursemodulesettingsgroups.configid
                     WHERE course_modules.id {$cmsql}
 
 SQL;
+            $params['coursemoduleuserid'] = $USER->id;
+            $params['courseuserid'] = $USER->id;
 
             $groups = $DB->get_records_sql($sql, $params);
 
             foreach ($groups as $group) {
+
+                unset($group->uniqueid);
+                // Cast to integers so we can do strict type checking in javascript.
+                $group->id = (int)$group->id;
+                $group->coursemoduleid = (int)$group->coursemoduleid;
+                $group->display = (int)$group->display;
+
                 if (!isset($nodes[$group->coursemoduleid]->groups)) {
                     $nodes[$group->coursemoduleid]->groups = array();
                 }
-                unset($group->uniqueid);
-                $id = (int)$group->id;
-                $nodes[$group->coursemoduleid]->groups[$id] = $group;
+
+                $nodes[$group->coursemoduleid]->groups[$group->id] = $group;
             }
         }
 

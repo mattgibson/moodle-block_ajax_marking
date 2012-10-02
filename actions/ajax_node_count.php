@@ -70,5 +70,5 @@ if (!isset($params['nodeindex'])) {
 $nodecounts = block_ajax_marking_nodes_builder_base::get_count_for_single_node($params);
 
 $data = array('counts' => $nodecounts,
-              'nodeindex' => $params['nodeindex']);
+              'nodeindex' => (int)$params['nodeindex']); // Cast to int for javascript strict type comparisons.
 echo json_encode($data);
