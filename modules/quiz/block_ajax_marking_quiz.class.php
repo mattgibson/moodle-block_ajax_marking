@@ -242,7 +242,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             $transaction->allow_commit();
         }
 
-        return true;
+        return '';
     }
 
     /**
