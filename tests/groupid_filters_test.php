@@ -38,6 +38,44 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/filters/groupid/attach_countwra
  */
 class groupid_filters_test extends advanced_testcase {
 
+    /**
+     * @var stdClass
+     */
+    public $user1;
+
+    /**
+     * @var stdClass
+     */
+    public $user2;
+
+    /**
+     * @var stdClass
+     */
+    public $group2;
+
+    /**
+     * @var stdClass
+     */
+    public $group1;
+
+    /**
+     * @var stdClass
+     */
+    public $course;
+
+    /**
+     * @var stdClass
+     */
+    public $assign1;
+
+    /**
+     * @var stdClass
+     */
+    public $forum1;
+
+    /**
+     * Standard setUp function. Just resets after each test.
+     */
     public function setUp() {
         $this->resetAfterTest();
     }
@@ -50,13 +88,39 @@ class groupid_filters_test extends advanced_testcase {
 
         global $PAGE, $DB;
 
-        // Make a course.
         $generator = $this->getDataGenerator();
+
+        // Make a course.
         $this->course = $generator->create_course();
 
         // Enrol as teacher so teacher_courses() works.
         $this->setAdminUser();
         $PAGE->set_course($this->course);
+
+        $this->enrol_admin_user_into_course();
+
+        // Make two groups, both in this course.
+        $this->make_two_groups($generator);
+
+        // Make two users.
+        $this->make_two_users($generator);
+
+        // Make user1 into a group member in group1.
+        $membership = new stdClass();
+        $membership->groupid = $this->group1->id;
+        $membership->userid = $this->user1->id;
+        $DB->insert_record('groups_members', $membership);
+
+        // Make two coursemodules.
+        $this->make_two_coursemodules($generator);
+    }
+
+    /**
+     * Must be called after $this->course is created.
+     */
+    protected function enrol_admin_user_into_course() {
+
+        global $PAGE, $DB;
 
         $manager = new course_enrolment_manager($PAGE, $this->course);
         $plugins = $manager->get_enrolment_plugins();
@@ -66,26 +130,36 @@ class groupid_filters_test extends advanced_testcase {
         $manualenrolinstance = reset($instances);
         $teacherroleid = $DB->get_field('role', 'id', array('shortname' => 'teacher'));
         $manualenrolplugin->enrol_user($manualenrolinstance, 2, $teacherroleid);
+    }
 
-        // Make two groups, both in this course.
+    /**
+     * @param phpunit_data_generator $generator
+     */
+    protected function make_two_groups($generator) {
         $protptypegroup = new stdClass();
         $protptypegroup->courseid = $this->course->id;
         $this->group1 = $generator->create_group($protptypegroup);
         $protptypegroup = new stdClass();
         $protptypegroup->courseid = $this->course->id;
         $this->group2 = $generator->create_group($protptypegroup);
+    }
 
-        // Make two users.
+    /**
+     * Makes user1 and user2
+     *
+     * @param phpunit_data_generator $generator
+     */
+    protected function make_two_users($generator) {
         $this->user1 = $generator->create_user();
         $this->user2 = $generator->create_user();
+    }
 
-        // Make user1 into a group member in group1.
-        $membership = new stdClass();
-        $membership->groupid = $this->group1->id;
-        $membership->userid = $this->user1->id;
-        $DB->insert_record('groups_members', $membership);
-
-        // Make two coursemodules.
+    /**
+     * Sorts out forum1 and asign1
+     *
+     * @param phpunit_data_generator $generator
+     */
+    protected function make_two_coursemodules($generator) {
         /* @var mod_forum_generator $forumgenerator */
         $forumgenerator = $generator->get_plugin_generator('mod_forum');
         $prototypemodule = new stdClass();
@@ -210,8 +284,8 @@ class groupid_filters_test extends advanced_testcase {
      * Helper function that loops over the results and checks that we got the right things. Used because we can't
      * access the array items by their keys because there would be duplicate keys.
      *
-     * @param $expectedarray
-     * @param $vanillalist
+     * @param array $expectedarray
+     * @param array $vanillalist
      */
     protected function check_visibility_results($expectedarray, $vanillalist) {
         foreach ($expectedarray as $identifier => $expectation) {
@@ -234,8 +308,6 @@ class groupid_filters_test extends advanced_testcase {
      * Needs to make sure that we get only the groups that are visible.
      *
      * Needs groups, coursemodules, a course and some settings.
-     *
-     * @todo Make this.
      */
     public function test_group_max_subquery() {
 
@@ -302,6 +374,52 @@ class groupid_filters_test extends advanced_testcase {
     public function test_group_members_subquery() {
 
         $this->set_up_for_group_subqueries();
+
+    }
+
+    /**
+     * Previously, a bug emerged whereby expanding the group which contained orphans (no group memberships)
+     * would make the whole lot disappear.
+     *
+     * Settings sent to the server:
+     * groupid:0
+     * coursemoduleid:188230
+     * courseid:1929
+     * userid:nextnodefilter
+     * nodeindex:9
+     */
+    public function test_not_in_any_group() {
+
+        global $PAGE;
+
+        // Make some unmarked work.
+        $generator = $this->getDataGenerator();
+        // Make a course.
+        $this->course = $generator->create_course();
+        // Enrol as teacher so teacher_courses() works.
+        $this->setAdminUser();
+        $PAGE->set_course($this->course);
+        $this->enrol_admin_user_into_course();
+        $this->make_two_users($generator);
+        $this->make_two_coursemodules($generator);
+        /* @var phpunit_module_generator $assigngenerator */
+        $assigngenerator = new block_ajax_marking_mod_assign_generator($this->getDataGenerator());
+        $submission = new stdClass();
+        $submission->userid = $this->user1->id;
+        $submission->assignment = $this->assign1->id;
+        $assigngenerator->create_assign_submission($submission);
+
+        // Make a query for users, with groupid = 0 to see what happens.
+        $filters = array(
+            'courseid' => $this->course->id,
+            'coursemoduleid' => $this->assign1->cmid,
+            'groupid' => 0,
+            'userid' => 'nextnodefilter'
+        );
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($filters);
+
+        // Should come back with all the unmarked work.
+        $this->assertEquals(1, count($nodes), 'Wrong number of nodes when checking for not in any group');
 
     }
 
