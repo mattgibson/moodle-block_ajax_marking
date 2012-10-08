@@ -227,6 +227,7 @@ class groupid_filters_test extends advanced_testcase {
         );
 
         foreach ($users as $user) {
+            reset($assigns);
             foreach ($assigns as $assign) {
                 $prototypesubmission = new stdClass();
                 $prototypesubmission->userid = $user->id;
@@ -425,30 +426,6 @@ class groupid_filters_test extends advanced_testcase {
     // In all cases, we have three coursemodules in the same course, three users, two groups, with
     // one user in no groups, one user in one group and one user in two groups.
 
-    /**
-     * User 1 is in no groups, so ought to come up with either groupid 0, or missing if the
-     * settings say so.
-     */
-    public function test_no_group_memberships_group_node_appears_coursemoduleid_filter() {
-
-        // User 1 is in no groups. Ought to show up with groupid of 0. This ought to give us
-        // a single node for groupid 0 with a count of 1.
-        $params = array(
-            'coursemoduleid' => 'nextnodefilter',
-        );
-
-        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
-        $node = new stdClass();
-        foreach ($nodes as $node) {
-            if ($node->groupid == 0) {
-                break;
-            }
-        }
-
-        $this->assertObjectHasAttribute('groupid', $node);
-        $this->assertEquals(0, $node->groupid, 'Nothing returned for groupid 0');
-        $this->assertEquals(1, $node->itemcount);
-    }
 
     /**
      * User 1 is in no groups, so ought to come up with either groupid 0, or missing if the
@@ -464,16 +441,23 @@ class groupid_filters_test extends advanced_testcase {
         );
 
         $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
-        $node = new stdClass();
+
+        $this->assertNotEmpty($nodes, 'No nodes returned');
+
+        $foundnode = new stdClass();
+        $count = 0;
         foreach ($nodes as $node) {
             if ($node->groupid == 0) {
+                $count++;
+                $foundnode = $node;
                 break;
             }
         }
 
-        $this->assertObjectHasAttribute('groupid', $node);
-        $this->assertEquals(0, $node->groupid, 'Nothing returned for groupid 0');
-        $this->assertEquals(1, $node->itemcount);
+        $this->assertEquals(1, $count, 'Too many nodes found');
+        $this->assertObjectHasAttribute('groupid', $foundnode);
+        $this->assertEquals(0, $foundnode->groupid, 'Nothing returned for groupid 0');
+        $this->assertEquals(1, $foundnode->itemcount);
     }
 
     /**
@@ -497,5 +481,64 @@ class groupid_filters_test extends advanced_testcase {
         $this->assertObjectHasAttribute('userid', $node);
         $this->assertEquals($this->user1->id, $node->userid, 'Wrong userid returned for groupid 0');
         $this->assertEquals(1, $node->itemcount);
+    }
+
+    /**
+     * User 2 is in group1, as is user 3, but user 3 is also in group2, so ought to show up there instead.
+     */
+    public function test_group_one_group_node_appears_groupid_filter() {
+
+        $params = array(
+            'coursemoduleid' => $this->assign1->cmid,
+            'groupid' => 'nextnodefilter',
+        );
+
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+
+        $this->assertNotEmpty($nodes, 'No nodes returned');
+
+        $foundnode = new stdClass();
+        $count = 0;
+        foreach ($nodes as $node) {
+            if ($node->groupid == $this->group1->id) {
+                $count++;
+                $foundnode = $node;
+                break;
+            }
+        }
+
+        $this->assertNotEquals(0, $count, 'No nodes returned for groupid '.$this->group1->id);
+        $this->assertEquals(1, $count, 'Too many nodes found');
+        $this->assertEquals(1, $foundnode->itemcount, 'User should be hidden here due to other goup membership');
+    }
+
+    /**
+     * User 2 is in group1, as is user 3, but user 3 is also in group2, so ought to show up there instead.
+     */
+    public function test_group_two_group_node_appears_groupid_filter() {
+
+        $params = array(
+            'coursemoduleid' => $this->assign1->cmid,
+            'groupid' => 'nextnodefilter',
+        );
+
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+
+        $this->assertNotEmpty($nodes, 'No nodes returned');
+
+        $foundnode = new stdClass();
+        $count = 0;
+        foreach ($nodes as $node) {
+            if ($node->groupid == $this->group2->id) {
+                $count++;
+                $foundnode = $node;
+                break;
+            }
+        }
+
+        $this->assertNotEquals(0, $count, 'No nodes returned for groupid '.$this->group2->id);
+        $this->assertEquals(1, $count, 'Too many nodes found');
+        $this->assertEquals(1, $foundnode->itemcount,
+                            'User should be hidden here due to other goup membership');
     }
 }
