@@ -26,63 +26,70 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Deals with SQL wrapper stuff for the discussion nodes.
  */
-class block_ajax_marking_forum_filter_discussionid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_forum_filter_discussionid_current extends block_ajax_marking_query_decorator_base {
 
     /**
      * Adds SQL to construct a set of discussion nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
-        // This will be derived form the coursemodule id, but how to get it cleanly?
-        // The query will know, but not easy to get it out. Might have been prefixed.
-        // TODO pass this properly somehow.
-        $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
-        // Normal forum needs discussion title as label, participant usernames as
-        // description eachuser needs username as title and discussion subject as
-        // description.
-        if (block_ajax_marking_forum::forum_is_eachuser($coursemoduleid)) {
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'subject',
-                                    'alias' => 'description'
-                               ));
-        } else {
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'subject',
-                                    'alias' => 'label'
-                               ));
-            // TODO need a SELECT bit to get all userids of people in the discussion
-            // instead.
-            $query->add_select(array(
-                                    'table' => 'firstpost',
-                                    'column' => 'message',
-                                    'alias' => 'tooltip'
-                               ));
-        }
+        $this->wrappedquery->add_select(array(
+                                'table' => 'firstpost',
+                                'column' => 'message',
+                                'alias' => 'tooltip'
+                           ));
 
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'INNER JOIN',
                               'table' => 'forum_discussions',
                               'alias' => 'outerdiscussions',
                               'on' => 'countwrapperquery.id = outerdiscussions.id'
                          ));
 
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'INNER JOIN',
                               'table' => 'forum_posts',
                               'alias' => 'firstpost',
                               'on' => 'firstpost.id = outerdiscussions.firstpost'
                          ));
 
-        $query->add_orderby("timestamp ASC");
+        // This will be derived form the coursemodule id, but how to get it cleanly?
+        // The query will know, but not easy to get it out. Might have been prefixed.
+        // TODO pass this properly somehow. Might be possible to get it from the parameter.
+        $coursemoduleid = required_param('coursemoduleid', PARAM_INT);
+        // Normal forum needs discussion title as label, participant usernames as
+        // description eachuser needs username as title and discussion subject as
+        // description.
+        if (block_ajax_marking_forum::forum_is_eachuser($coursemoduleid)) {
+
+            // We want the each user forums to have the user names.
+            $this->wrappedquery->add_select(array(
+                                    'column' => 'outerusers.firstname',
+                                    'alias' => 'firstname'
+                               ));
+            $this->wrappedquery->add_select(array(
+                                    'column' => 'outerusers.lastname',
+                                    'alias' => 'lastname'
+                               ));
+            $this->wrappedquery->add_from(array(
+                                  'join' => 'INNER JOIN',
+                                  'table' => 'user',
+                                  'alias' => 'outerusers',
+                                  'on' => 'firstpost.userid = outerusers.id'
+                             ));
+        } else {
+            $this->wrappedquery->add_select(array(
+                                    'table' => 'outerdiscussions',
+                                    'column' => 'name',
+                                    'alias' => 'name'
+                               ));
+        }
+
+        $this->wrappedquery->add_orderby("timestamp ASC");
     }
 }

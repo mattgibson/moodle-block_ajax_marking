@@ -33,14 +33,14 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/core_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * This gets the display settings from the config tables so that the course nodes have them and the user
  * can alter them if necessary.
  */
 class block_ajax_marking_filter_courseid_select_config_display_countwrapper
-    extends block_ajax_marking_filter_core_base {
+    extends block_ajax_marking_query_decorator_base {
 
     /**
      * @param block_ajax_marking_query $query

@@ -33,7 +33,7 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Makes the query retrieve the highest visible cohort id for each submission. This takes account of the fact that
@@ -42,16 +42,15 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php')
  *
  * @todo This doesn't work. Use greatest-n-per-group to fix it.
  */
-class block_ajax_marking_filter_cohortid_attach_highest extends block_ajax_marking_filter_attach_base {
+class block_ajax_marking_filter_cohortid_attach_highest extends block_ajax_marking_query_decorator_base {
 
     /**
      * This will join the cohorts tables so tht the id can be added to the query in some way.
      *
      * @todo doesn't deal with a user being in more than one cohort yet.
-     * @param block_ajax_marking_query $query
      * @return void
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
         // We need to join the userid to the cohort, if there is one.
         // TODO when is there not one?
@@ -61,13 +60,13 @@ class block_ajax_marking_filter_cohortid_attach_highest extends block_ajax_marki
             'table' => 'cohort_members',
             'on' => 'cohort_members.userid = moduleunion.userid'
         );
-        $query->add_from($table);
+        $this->wrappedquery->add_from($table);
         $table = array(
             'join' => 'INNER JOIN',
             'table' => 'cohort',
             'on' => 'cohort_members.cohortid = cohort.id'
         );
-        $query->add_from($table);
+        $this->wrappedquery->add_from($table);
 
     }
 }

@@ -33,7 +33,6 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php'); // For getting teacher courses.
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/coursemoduleid/current.class.php');
 
 /**
@@ -48,37 +47,50 @@ class block_ajax_marking_filter_coursemoduleid_current_config extends block_ajax
      * unless we specify that only course modules with a specific module id should join
      * to a specific module table.
      *
-     * @static
-     * @param block_ajax_marking_query $query
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
         global $USER;
 
         // We need the same details as the main tree, but just need to tack on the settings as well.
-        $this->add_coursemodule_details($query);
+        $this->add_coursemodule_details($this->wrappedquery);
 
         // We need the config settings too, if there are any.
         // TODO should be in a separate decorator.
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'join' => 'LEFT JOIN',
                               'table' => 'block_ajax_marking',
                               'alias' => 'settings',
-                              'on' => "settings.instanceid = course_modules.id
+                              'on' => "settings.instanceid = {$this->wrappedquery->get_column('coursemoduleid')}
                                     AND settings.tablename = 'course_modules'
                                     AND settings.userid = :settingsuserid"
                          ));
-        $query->add_param('settingsuserid', $USER->id);
-        $query->add_select(array(
+        $this->wrappedquery->add_param('settingsuserid', $USER->id);
+        $this->wrappedquery->add_select(array(
                                 'table' => 'settings',
                                 'column' => 'display'));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'settings',
                                 'column' => 'groupsdisplay'));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'settings',
                                 'column' => 'id',
                                 'alias' => 'settingsid'));
+
+        $this->wrappedquery->add_from(
+            array(
+                 'join' => 'INNER JOIN',
+                 'table' => 'modules',
+                 'on' => 'modules.id = course_modules.module'
+            )
+        );
+
+        // The javascript needs this for styling.
+        $this->wrappedquery->add_select(
+            array(
+                 'table' => 'modules',
+                 'column' => 'name',
+                 'alias' => 'modulename'));
 
         // TODO get them in order of module type first?
     }

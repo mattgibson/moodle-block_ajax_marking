@@ -33,37 +33,34 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Applies the filter needed for course nodes or their descendants
  */
-class block_ajax_marking_filter_courseid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_filter_courseid_current extends block_ajax_marking_query_decorator_base {
 
     /**
      * Applies the filter needed for course nodes or their descendants
-     *
-     * @param block_ajax_marking_query $query
-     * @SuppressWarnings(PHPMD.UnusedPrivateMethod) Dynamic method names don't register
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
         // This is for the displayquery when we are making course nodes.
-        $query->add_from(array(
+        $this->wrappedquery->add_from(array(
                               'table' => 'course',
                               'alias' => 'course',
                               'on' => 'countwrapperquery.id = course.id'
                          ));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'course',
                                 'column' => 'shortname',
                                 'alias' => 'name'));
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'course',
                                 'column' => 'fullname',
                                 'alias' => 'tooltip'));
 
-        $query->add_orderby('course.shortname ASC');
+        $this->wrappedquery->add_orderby('course.shortname ASC');
     }
 
 

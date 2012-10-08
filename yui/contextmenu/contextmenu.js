@@ -25,16 +25,16 @@
  */
 
 YUI.add('moodle-block_ajax_marking-contextmenu', function (Y) {
+    "use strict";
 
     /**
      * Name of this module as used by YUI.
      * @type {String}
      */
-    var CONTEXTMENUNAME = 'contextmenu';
-
-    var CONTEXTMENU = function () {
-        CONTEXTMENU.superclass.constructor.apply(this, arguments);
-    };
+    var CONTEXTMENUNAME = 'contextmenu',
+        CONTEXTMENU = function () {
+           CONTEXTMENU.superclass.constructor.apply(this, arguments);
+        };
 
     /**
      * @class M.block_ajax_marking.contextmenu
@@ -97,7 +97,7 @@ YUI.add('moodle-block_ajax_marking-contextmenu', function (Y) {
          * Make sure the item reflects the current settings as stored in the tree node.
          *
          * @param {string} settingname
-         * @param {YAHOO.widget.HTMLNode} clickednode
+         * @param {M.block_ajax_marking.markingtreenode} clickednode
          */
         make_setting_menuitem : function (settingname, clickednode) {
 
@@ -147,17 +147,17 @@ YUI.add('moodle-block_ajax_marking-contextmenu', function (Y) {
             if (settingname !== 'groups') {
                 checked = false;
                 currentsetting = clickednode.get_config_setting(settingname);
-                if (currentsetting !== null) {
-                    checked = currentsetting ? true : false;
-                    if (M.block_ajax_marking.showinheritance) {
-                        menuitem.cfg.setProperty("classname", 'notinherited');
-                    }
-                } else {
+                if (currentsetting === null) {
                     defaultsetting = clickednode.get_default_setting(settingname);
                     checked = defaultsetting ? true : false;
                     if (M.block_ajax_marking.showinheritance) {
 
                         menuitem.cfg.setProperty("classname", 'inherited');
+                    }
+                } else {
+                    checked = currentsetting ? true : false;
+                    if (M.block_ajax_marking.showinheritance) {
+                        menuitem.cfg.setProperty("classname", 'notinherited');
                     }
                 }
                 menuitem.cfg.setProperty('checked', checked);

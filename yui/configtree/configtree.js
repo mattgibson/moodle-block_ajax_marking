@@ -24,18 +24,18 @@
  */
 
 YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
+    "use strict";
 
     /**
      * Name of this module as used by YUI.
      * @type {String}
      */
-    var CONFIGTREENAME = 'configtree';
-
-    var CONFIGTREE = function () {
-        CONFIGTREE.superclass.constructor.apply(this, arguments);
-        this.singleNodeHighlight = true;
-        this.subscribe('clickEvent', this.clickhandler);
-    };
+    var CONFIGTREENAME = 'configtree',
+        CONFIGTREE = function () {
+            CONFIGTREE.superclass.constructor.apply(this, arguments);
+            this.singleNodeHighlight = true;
+            this.subscribe('clickEvent', this.clickhandler);
+        };
 
     /**
      * @class M.block_ajax_marking.configtree
@@ -87,28 +87,30 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
         /**
          * Sorts things out after nodes have been added, or an error happened (so refresh still works).
          * Overriding the main one so we can do the thing to add the buttons to the rendered nodes
+         *
+         * @param {Object} ajaxresponsearray
          */
         rebuild_parent_and_tree_count_after_new_nodes : function (ajaxresponsearray) {
             // finally, run the function that updates the original node and adds the children. Won't be
-            // there if we have just built the tree
+            // there if we have just built the tree.
             if (typeof(M.block_ajax_marking.oncompletefunctionholder) === 'function') {
                 // Take care - this will be executed in the wrong scope if not careful. it needs this to
-                // be the tree
-                if (typeof ajaxresponsearray['configsave'] === 'undefined') {
+                // be the tree.
+                if (typeof ajaxresponsearray.configsave === 'undefined') {
                     // Config tree updates it's own nodes after ajax saves as the config things are
                     // set via node.set_config_setting()
                     // node.loadComplete()
                     M.block_ajax_marking.oncompletefunctionholder();
                 }
-                M.block_ajax_marking.oncompletefunctionholder = ''; // prevent it firing next time
+                M.block_ajax_marking.oncompletefunctionholder = ''; // prevent it firing next time.
             } else {
                 // The initial build doesn't set oncompletefunctionholder for the root node, so
-                // we do it manually
+                // we do it manually.
                 this.getRoot().loadComplete();
                 this.add_groups_buttons();
             }
-            // the main tree will need the counts updated, but not the config tree. This will hide
-            // the count
+            // The main tree will need the counts updated, but not the config tree. This will hide
+            // the count.
             this.update_total_count();
 
         },
@@ -178,7 +180,7 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
             target = target.parentNode.parentNode; // the spacer <div> -> the <td>
 
             var coursenodeclicked = false;
-            if (clickednode.get_current_filter_name() == 'courseid') {
+            if (clickednode.get_current_filter_name() === 'courseid') {
                 coursenodeclicked = true;
             }
 

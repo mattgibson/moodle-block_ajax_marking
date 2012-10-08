@@ -31,6 +31,7 @@ if (!defined('MOODLE_INTERNAL')) {
 global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_union.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/modules/assignment/block_ajax_marking_assignment_form.class.php');
 
@@ -70,20 +71,6 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $this->modulename           = 'assignment';  // DB modulename.
         $this->capability           = 'mod/assignment:grade';
         $this->icon                 = 'mod/assignment/icon.gif';
-    }
-
-    /**
-     * Makes a link for the pop up window so the work can be marked
-     *
-     * @param object $item a submission object
-     * @return string
-     */
-    public function make_html_link($item) {
-
-        global $CFG;
-
-        $address = $CFG->wwwroot.'/mod/assignment/submissions.php?id='.$item->coiursemoduleid;
-        return $address;
     }
 
     /**
@@ -246,7 +233,8 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
 
         $advancedgradingwarning = false;
         $gradingmanager = get_grading_manager($context, 'mod_assignment', 'submission');
-        if ($gradingmethod = $gradingmanager->get_active_method()) {
+        $gradingmethod = $gradingmanager->get_active_method();
+        if ($gradingmethod) {
             // This returns a gradingform_controller instance, not grading_controller as docs
             // say.
             /* @var gradingform_controller $controller */
@@ -547,7 +535,10 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
     }
 
     /**
-     * Returns a query object with the basics all set up to get assignment stuff
+     * Returns a query object with the basics all set up to get assignment stuff. This is not very efficient due to
+     * the large number of possible combinations of WHERE conditions. UNION is better in this case because
+     * the individual queries make better use of the indexes. This therefore does a UNION in order to make the WHERE
+     * simpler for each one.
      *
      * @global moodle_database $DB
      * @return block_ajax_marking_query_base
@@ -559,23 +550,25 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $query = new block_ajax_marking_query_base($this);
 
         $query->add_from(array(
-                'table' => 'assignment',
-                'alias' => 'moduletable',
-        ));
+                              'table' => 'assignment',
+                              'alias' => 'moduletable',
+                         ));
+        $query->set_column('courseid', 'moduletable.course');
 
         $query->add_from(array(
-                'join' => 'INNER JOIN',
-                'table' => 'assignment_submissions',
-                'alias' => 'sub',
-                'on' => 'sub.assignment = moduletable.id'
-        ));
+                              'join' => 'INNER JOIN',
+                              'table' => 'assignment_submissions',
+                              'alias' => 'sub',
+                              'on' => 'sub.assignment = moduletable.id'
+                         ));
+        $query->set_column('userid', 'sub.userid');
 
         // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
         $query->add_select(array('table' => 'sub',
-                                'column' => 'timemodified',
-                                'alias' => 'timestamp'));
+                                 'column' => 'timemodified',
+                                 'alias' => 'timestamp'));
 
         // First bit: not graded
         // Second bit of first bit: has been resubmitted
@@ -585,9 +578,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $assignmenttypestring = $DB->sql_compare_text('moduletable.assignmenttype');
         $datastring = $DB->sql_compare_text('sub.data2');
         // Resubmit seems not to be used for upload types.
-        $query->add_where(array('type' => 'AND',
-                                'condition' =>
-                                "( (sub.grade = -1 AND {$commentstring} = '') /* Never marked */
+        $query->add_where("( (sub.grade = -1 AND {$commentstring} = '') /* Never marked */
                                     OR
                                     ( (  moduletable.resubmit = 1
                                          OR ({$assignmenttypestring} = 'upload' AND moduletable.var4 = 1)
@@ -599,9 +590,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
                                 AND ( {$assignmenttypestring} != 'upload'
                                       OR ( {$assignmenttypestring} = 'upload' AND {$datastring} = 'submitted'))
                                 AND {$assignmenttypestring} != 'offline'
-                                  "));
-
-        // TODO only sent for marking.
+                                  ");
 
         // Advanced upload: data2 will be 'submitted' and grade will be -1, but if 'save changes'
         // is clicked, timemarked will be set to time(), but actually, grade and comment may

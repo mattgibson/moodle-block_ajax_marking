@@ -39,7 +39,7 @@ global $CFG, $PAGE;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder_base.class.php');
 
 block_ajax_marking_login_error();
 require_login(0, false);
@@ -67,8 +67,8 @@ if (!isset($params['nodeindex'])) {
     die();
 }
 
-$nodecounts = block_ajax_marking_nodes_builder::get_count_for_single_node($params);
+$nodecounts = block_ajax_marking_nodes_builder_base::get_count_for_single_node($params);
 
 $data = array('counts' => $nodecounts,
-              'nodeindex' => $params['nodeindex']);
+              'nodeindex' => (int)$params['nodeindex']); // Cast to int for javascript strict type comparisons.
 echo json_encode($data);

@@ -23,11 +23,17 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+
+if (typeof M === 'undefined') {
+    var M = {};
+}
+
 // Emulates the trim function if it's not there.
 if (typeof String.prototype.trim !== 'function') {
     String.prototype.trim = function () {
+        "use strict";
         return this.replace(/^\s+|\s+$/g, '');
-    }
+    };
 }
 
 // Modules that add their own javascript will have already defined this, but here just in case.
@@ -77,31 +83,6 @@ M.block_ajax_marking.childnodecountsurl = M.cfg.wwwroot+'/blocks/ajax_marking/ac
 M.block_ajax_marking.showinheritance = false;
 
 /**
- * Should add all the groups from a config node to it's menu button.
- *
- */
-M.block_ajax_marking.groups_menu_button_render = function() {
-
-    // Get node.
-
-    // Get groups from node.
-
-    // Add groups to this menu button.
-    this.addItems([
-
-          { text : "Four", value : 4 },
-          { text : "Five", value : 5 }
-
-      ]);
-};
-
-
-
-
-
-
-
-/**
  * Finds out whether there is a custom nextnodefilter defined by the specific module e.g.
  * quiz question. Allows the standard progression of nodes to be overridden.
  *
@@ -110,11 +91,14 @@ M.block_ajax_marking.groups_menu_button_render = function() {
  * @return bool|string
  */
 M.block_ajax_marking.get_next_nodefilter_from_module = function (modulename, currentfilter) {
+    "use strict";
 
-    var nextnodefilter = null;
+    var nextnodefilter = null,
+        modulejavascript;
+
     if (typeof(modulename) === 'string') {
         if (typeof(M.block_ajax_marking[modulename]) === 'object') {
-            var modulejavascript = M.block_ajax_marking[modulename];
+            modulejavascript = M.block_ajax_marking[modulename];
             if (typeof(modulejavascript.nextnodetype) === 'function') {
                 nextnodefilter = modulejavascript.nextnodetype(currentfilter);
             }
@@ -129,22 +113,25 @@ M.block_ajax_marking.get_next_nodefilter_from_module = function (modulename, cur
  * the course groups (courses will have all groups even if there are no settings) to make the full
  * list and combines course defaults and coursemodule settings when it needs to for coursemodules
  *
- * @param {YAHOO.widget.ContextMenu} menu A pre-existing context menu
+ * @param {M.block_ajax_marking.contextmenu} menu A pre-existing context menu
  * @param {M.block_ajax_marking.markingtreenode} clickednode
  * @return void
  */
 M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednode) {
+    "use strict";
 
     var newgroup,
         groups,
         groupdefault,
         numberofgroups,
+        groupindex,
+        i,
         iscontextmenu = menu instanceof YAHOO.widget.ContextMenu;
 
     groups = clickednode.get_groups();
     numberofgroups = groups.length;
 
-    for (var i = 0; i < numberofgroups; i++) {
+    for (i = 0; i < numberofgroups; i += 1) {
 
         newgroup = {
             "text" : groups[i].name,
@@ -155,7 +142,7 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
         // Make sure the items' appearance reflect their current settings
         // JSON seems to like sending back integers as strings
 
-        if (groups[i].display === "1") {
+        if (groups[i].display === "1") { // TODO check that types are working here.
             // Make sure it is checked
             newgroup.checked = true;
 
@@ -175,7 +162,7 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
 
         // Add to group 1 so we can keep it separate from group 0 with the basic settings so that
         // the contextmenu will have these all grouped together with a title
-        var groupindex = iscontextmenu ? 1 :0;
+        groupindex = iscontextmenu ? 1 : 0;
         menu.addItem(newgroup, groupindex);
     }
 
@@ -194,14 +181,16 @@ M.block_ajax_marking.contextmenu_add_groups_to_menu = function (menu, clickednod
  * Ajax success function called when the server responds with valid data, which checks the data
  * coming in and calls the right function depending on the type of data it is
  *
- * @param o the ajax response object, passed automatically
+ * @param {Object} o the ajax response object, passed automatically
  * @return void
  */
 M.block_ajax_marking.ajax_success_handler = function (o) {
+    "use strict";
 
-    var errormessage;
-    var ajaxresponsearray;
-    var currenttab = M.block_ajax_marking.get_current_tab();
+    var errormessage,
+        ajaxresponsearray,
+        currenttab = M.block_ajax_marking.get_current_tab(),
+        index;
 
     try {
         ajaxresponsearray = YAHOO.lang.JSON.parse(o.responseText);
@@ -217,7 +206,7 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
     if (typeof(ajaxresponsearray) === 'object') {
 
         // If we are doing something with a specific node, this will be there
-        var index = false;
+        index = false;
         if (ajaxresponsearray.nodeindex) {
             index = ajaxresponsearray.nodeindex;
         }
@@ -229,7 +218,7 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
 
             // Special case for 'not logged in' message
             if (ajaxresponsearray.hasOwnProperty('debuginfo') &&
-                ajaxresponsearray.debuginfo == 'sessiontimedout') {
+                ajaxresponsearray.debuginfo === 'sessiontimedout') {
 
                 M.block_ajax_marking.show_error(ajaxresponsearray.error, true);
 
@@ -251,34 +240,34 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
                 currenttab.displaywidget.locked = false;
             }
 
-        } else if (typeof(ajaxresponsearray['gradinginterface']) !== 'undefined') {
+        } else if (typeof(ajaxresponsearray.gradinginterface) !== 'undefined') {
             // We have gotten the grading form back. Need to add the HTML to the modal overlay
             // M.block_ajax_marking.gradinginterface.setHeader('');
             // M.block_ajax_marking.gradinginterface.setBody(ajaxresponsearray.content);
 
-        } else if (typeof(ajaxresponsearray['counts']) !== 'undefined') {
+        } else if (typeof(ajaxresponsearray.counts) !== 'undefined') {
             currenttab.displaywidget.update_node_count(ajaxresponsearray.counts, index);
-        } else if (typeof(ajaxresponsearray['childnodecounts']) !== 'undefined') {
+        } else if (typeof(ajaxresponsearray.childnodecounts) !== 'undefined') {
             currenttab.displaywidget.update_child_node_counts(ajaxresponsearray.childnodecounts,
                                                               index);
-        } else if (typeof(ajaxresponsearray['nodes']) !== 'undefined') {
+        } else if (typeof(ajaxresponsearray.nodes) !== 'undefined') {
             currenttab.displaywidget.build_nodes(ajaxresponsearray.nodes, index);
         } else if (typeof(ajaxresponsearray['configsave']) !== 'undefined') {
 
-            if (ajaxresponsearray['configsave'].success !== true) {
-                M.block_ajax_marking.show_error('Config setting failed to save');
-            } else {
+            if (ajaxresponsearray.configsave.success === true) {
                 // Maybe it's a contextmenu settings change, maybe it's an icon click.
-                if (ajaxresponsearray['configsave'].menuitemindex !== false) {
+                if (ajaxresponsearray.configsave.menuitemindex === false) { // assume a nodeid
+                    M.block_ajax_marking.config_icon_success_handler(ajaxresponsearray);
+                } else {
                     // We want to toggle the display of the menu item by setting it to
                     // the new value. Don't assume that the default hasn't changed.
                     M.block_ajax_marking.contextmenu_ajax_callback(ajaxresponsearray);
-                } else { // assume a nodeid
-                    M.block_ajax_marking.config_icon_success_handler(ajaxresponsearray);
                 }
 
                 // Notify other trees to refresh now that settings have changed
                 M.block_ajax_marking.get_current_tab().displaywidget.notify_refresh_needed_after_config();
+            } else {
+                M.block_ajax_marking.show_error('Config setting failed to save', false);
             }
         }
     }
@@ -288,9 +277,17 @@ M.block_ajax_marking.ajax_success_handler = function (o) {
 
 };
 
+/**
+ * Once something in a menu has been clicked, we need to change it to reflect it's new setting.
+ *
+ * @param newsetting
+ * @param defaultsetting
+ * @param clickeditem
+ */
 M.block_ajax_marking.update_menu_item = function(newsetting,
                                                  defaultsetting,
                                                  clickeditem) {
+    "use strict";
 
     // Update the menu item so the user can see the change
     if (newsetting === null) {
@@ -321,9 +318,10 @@ M.block_ajax_marking.update_menu_item = function(newsetting,
  * @param {object} ajaxresponsearray
  */
 M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
+    "use strict";
 
-    var data = ajaxresponsearray.configsave;
-    var currenttab = M.block_ajax_marking.get_current_tab(),
+    var data = ajaxresponsearray.configsave,
+        currenttab = M.block_ajax_marking.get_current_tab(),
         settingtype = data.settingtype,
         newsetting = data.newsetting,
         menutype = data.menutype,
@@ -336,13 +334,13 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
 
     clickednode = currenttab.displaywidget.getNodeByProperty('index', clickednodeindex);
 
-    if (menutype == 'buttonmenu') {
+    if (menutype === 'buttonmenu') {
         clickedmenuitem = clickednode.renderedmenu.getItem(menuitemindex, menugroupindex);
-    } else if (menutype == 'contextmenu') {
+    } else if (menutype === 'contextmenu') {
         clickedmenuitem = currenttab.contextmenu.getItem(menuitemindex, menugroupindex);
     }
 
-    if (menutype == 'contextmenu' && clickednode.get_current_filter_name() === 'groupid') {
+    if (menutype === 'contextmenu' && clickednode.get_current_filter_name() === 'groupid') {
         // we deal with groups by dealing with the parent node. There's only one operation (hide),
         // so as long as we hide the context menu too, it's fine.
         clickednode = clickednode.parent;
@@ -370,9 +368,10 @@ M.block_ajax_marking.contextmenu_ajax_callback = function (ajaxresponsearray) {
 /**
  * Shows an error message in the div below the tree.
  * @param {string} errormessage
- * @param {bool} notloggedin ignores the fact that a user is not an admin. Used to show 'not logged in'
+ * @param {Boolean} notloggedin ignores the fact that a user is not an admin. Used to show 'not logged in'
  */
 M.block_ajax_marking.show_error = function (errormessage, notloggedin) {
+    "use strict";
 
     if (typeof(M.cfg.developerdebug) === 'undefined' && !notloggedin) {
         errormessage = M.str.block_ajax_marking.errorcontactadmin;
@@ -392,18 +391,21 @@ M.block_ajax_marking.show_error = function (errormessage, notloggedin) {
  * function which fires if the AJAX call fails
  * TODO: why does this not fire when the connection times out?
  *
- * @param o the ajax response object, passed automatically
+ * @param {Object} o the ajax response object, passed automatically
  * @return void
  */
 M.block_ajax_marking.ajax_failure_handler = function (o) {
+    "use strict";
 
-    // transaction aborted
-    if (o.tId == -1) {
+    // Transaction aborted.
+    if (o.tId === -1) {
         // TODO what is this meant to do?
         // document.getElementById('status').innerHTML = M.str.block_ajax_marking.collapseString;
+        document.getElementById('status').innerHTML = M.str.block_ajax_marking.connectfail;
+
     }
 
-    // communication failure
+    // Communication failure.
     if (o.tId === 0) {
         // TODO set cleaner error
         document.getElementById('status').innerHTML = M.str.block_ajax_marking.connectfail;
@@ -419,6 +421,8 @@ M.block_ajax_marking.ajax_failure_handler = function (o) {
  * If the AJAX connection times out, this will handle things so we know what happened
  */
 M.block_ajax_marking.ajax_timeout_handler = function () {
+    "use strict";
+
     M.block_ajax_marking.show_error(M.str.block_ajax_marking.connecttimeout, false);
     M.block_ajax_marking.get_current_tab().displaywidget.rebuild_parent_and_tree_count_after_new_nodes();
     YAHOO.util.Dom.removeClass(this.icon, 'loaderimage');
@@ -428,10 +432,11 @@ M.block_ajax_marking.ajax_timeout_handler = function () {
  * Used by other functions to clear all child nodes from some element. Also clears all children
  * from a tree node.
  *
- * @param parentnode a dom reference
+ * @param {YAHOO.widget.Node} parentnode a dom reference
  * @return void
  */
 M.block_ajax_marking.remove_all_child_nodes = function (parentnode) {
+    "use strict";
 
     if (typeof(parentnode.hasChildNodes) === 'function' && parentnode.hasChildNodes()) {
         while (parentnode.childNodes.length >= 1) {
@@ -444,8 +449,6 @@ M.block_ajax_marking.remove_all_child_nodes = function (parentnode) {
 /**
  * Callback object for the AJAX call, which fires the correct function. Doesn't work when part
  * of the main class. Don't know why - something to do with scope.
- *
- * @return void
  */
 M.block_ajax_marking.callback = {
 
@@ -455,21 +458,23 @@ M.block_ajax_marking.callback = {
     abort : M.block_ajax_marking.ajax_timeout_handler,
     scope : M.block_ajax_marking,
     // TODO: timeouts seem not to be working all the time
-    timeout : 10000
+    timeout : 20000
 };
 
 /**
  * Handles the process of updating the node's settings and altering the display of the clicked icon.
+ *
+ * @param {Object} ajaxresponsearray
  */
 M.block_ajax_marking.config_icon_success_handler = function (ajaxresponsearray) {
+    "use strict";
 
-    var settingtype = ajaxresponsearray['configsave'].settingtype,
-        nodeindex = ajaxresponsearray['configsave'].nodeindex,
-        newsetting = ajaxresponsearray['configsave'].newsetting,
-        groupid = ajaxresponsearray['configsave'].groupid;
-
-    var configtab = M.block_ajax_marking.get_current_tab();
-    var clickednode = configtab.displaywidget.getNodeByIndex(nodeindex);
+    var settingtype = ajaxresponsearray.configsave.settingtype,
+        nodeindex = ajaxresponsearray.configsave.nodeindex,
+        newsetting = ajaxresponsearray.configsave.newsetting,
+        groupid = ajaxresponsearray.configsave.groupid,
+        configtab = M.block_ajax_marking.get_current_tab(),
+        clickednode = configtab.displaywidget.getNodeByIndex(nodeindex);
 
     // Update the node's icon to reflect the new status
     if (settingtype === 'group') {
@@ -485,6 +490,8 @@ M.block_ajax_marking.config_icon_success_handler = function (ajaxresponsearray) 
  * @return object
  */
 M.block_ajax_marking.get_current_tab = function () {
+    "use strict";
+
     return M.block_ajax_marking.tabview.get('selection');
 };
 
@@ -498,6 +505,7 @@ M.block_ajax_marking.get_current_tab = function () {
  * @return void
  */
 M.block_ajax_marking.remove_node_from_current_tab = function (node) {
+    "use strict";
 
     var currenttree = M.block_ajax_marking.get_current_tab().displaywidget;
 
@@ -514,6 +522,7 @@ M.block_ajax_marking.remove_node_from_current_tab = function (node) {
  * module overrides into account), then returns it, optionally changing the alt text on the way
  */
 M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
+    "use strict";
 
     var icon = YAHOO.util.Dom.get('block_ajax_marking_'+iconname+'_icon'),
         newicon;
@@ -534,7 +543,7 @@ M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
     }
     catch (e) {
         // keep IE9 happy
-        newicon["id"] = null;
+        newicon.id = null;
     }
 
     return newicon;
@@ -544,14 +553,16 @@ M.block_ajax_marking.get_dynamic_icon = function(iconname, alttext) {
  * Returns a HTML string representation of a dynamic icon
  */
 M.block_ajax_marking.get_dynamic_icon_string = function (icon) {
+    "use strict";
 
-    var html = '';
+    var html = '',
+        tmp;
 
     if (icon) {
         // hacky way to get a string representation of an icon.
         // Without cloneNode(), it takes the node away from the original hidden div
         // so it only works once
-        var tmp = document.createElement("div");
+        tmp = document.createElement("div");
         tmp.appendChild(icon);
         html += tmp.innerHTML;
     }
@@ -565,23 +576,26 @@ M.block_ajax_marking.get_dynamic_icon_string = function (icon) {
  * defaults and overrides so the icon path is not the same for all modules, users, themes etc.
  */
 M.block_ajax_marking.make_icon_styles = function() {
+    "use strict";
 
     var images,
         imagediv,
         style,
         styletext,
         iconname,
-        iconidarray;
+        iconidarray,
+        image,
+        i;
 
     // Get all the image urls from the hidden div that holds them
     imagediv = document.getElementById('dynamicicons');
     images = YAHOO.util.Dom.getElementsByClassName('dynamicicon', 'img', imagediv);
 
     // Loop over them making CSS styles with those images as the background
-    for (var i = 0; i < images.length; i++) {
+    for (i = 0; i < images.length; i++) {
 
         // e.g. block_ajax_marking_assignment_icon
-        var image = images[i];
+        image = images[i];
         iconidarray = image.id.split('_');
         iconname = iconidarray[3];
 
@@ -609,6 +623,13 @@ M.block_ajax_marking.make_icon_styles = function() {
  * @return void
  */
 M.block_ajax_marking.initialise = function () {
+    "use strict";
+
+    var coursestab,
+        cohortstabconfig,
+        cohortstab,
+        configtabconfig,
+        configtab;
 
     M.block_ajax_marking.make_icon_styles();
 
@@ -635,7 +656,7 @@ M.block_ajax_marking.initialise = function () {
                                     '<div class="block_ajax_marking_spacer"></div>'+
                                  '</div>'+
                                  '<div id="coursestree" class="ygtv-highlight markingtree"></div>'};
-        var coursestab = new Y.Tab(coursetabconfig);
+        coursestab = new Y.Tab(coursetabconfig);
         M.block_ajax_marking.tabview.add(coursestab);
 
         coursestab.displaywidget = new M.block_ajax_marking.coursestree('coursestree');
@@ -659,7 +680,7 @@ M.block_ajax_marking.initialise = function () {
             container : 'coursesrefresh'});
 
         // Cohorts tab
-        var cohortstabconfig = {
+        cohortstabconfig = {
             label : 'Cohorts',
             id : 'cohortstab',
             content : '<div id="cohortsheader" class="treetabheader">'+
@@ -671,7 +692,7 @@ M.block_ajax_marking.initialise = function () {
                             '<div class="block_ajax_marking_spacer"></div>'+
                         '</div>'+
                         '<div id="cohortstree" class="ygtv-highlight markingtree"></div>'};
-        var cohortstab = new Y.Tab(cohortstabconfig);
+        cohortstab = new Y.Tab(cohortstabconfig);
         M.block_ajax_marking.tabview.add(cohortstab);
         cohortstab.displaywidget = new M.block_ajax_marking.cohortstree('cohortstree');
         M.block_ajax_marking.cohortstab_tree = cohortstab.displaywidget;
@@ -697,7 +718,7 @@ M.block_ajax_marking.initialise = function () {
            container : 'cohortsrefresh'});
 
         // Config tab
-        var configtabconfig = {
+        configtabconfig = {
             label : '<img src="'+M.cfg.wwwroot+'/blocks/ajax_marking/pix/cog.png" alt="cogs" id="configtabicon" />',
              id : 'configtab',
             content : '<div id="configheader" class="treetabheader">'+
@@ -706,7 +727,7 @@ M.block_ajax_marking.initialise = function () {
                             '<div class="block_ajax_marking_spacer"></div>'+
                         '</div>'+
                         '<div id="configtree" class="ygtv-highlight markingtree"></div>'};
-        var configtab = new Y.Tab(configtabconfig);
+        configtab = new Y.Tab(configtabconfig);
         M.block_ajax_marking.tabview.add(configtab);
         configtab.displaywidget = new M.block_ajax_marking.configtree('configtree');
         M.block_ajax_marking.configtab_tree = configtab.displaywidget;
@@ -789,7 +810,7 @@ M.block_ajax_marking.initialise = function () {
 
     // workaround for odd https setups. Probably not needed in most cases, but you can get an error
     // without it if using non-https ajax on a https page
-    if (document.location.toString().indexOf('https://') != -1) {
+    if (document.location.toString().indexOf('https://') !== -1) {
         M.cfg.wwwroot = M.cfg.wwwroot.replace('http:', 'https:');
     }
 
@@ -804,13 +825,18 @@ M.block_ajax_marking.initialise = function () {
  * @param obj
  */
 M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, obj) {
+    "use strict";
 
     var clickednode,
         settingtorequest = 1,
         groupid = null,
-        tree = M.block_ajax_marking.get_current_tab().displaywidget;
-
-    var settingtype = obj.settingtype;
+        tree = M.block_ajax_marking.get_current_tab().displaywidget,
+        settingtype = obj.settingtype,
+        currentfiltername,
+        currentsetting,
+        defaultsetting,
+        iscontextmenu,
+        requestdata = {};
 
     if (typeof(this.parent.contextEventTarget) !== 'undefined') {
         // main context menu does not work for menu button
@@ -829,7 +855,7 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
         return;
     }
 
-    var currentfiltername = clickednode.get_current_filter_name();
+    currentfiltername = clickednode.get_current_filter_name();
 
     // For a group, we are really dealing with the parent node
     if (currentfiltername === 'groupid') {
@@ -846,8 +872,8 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
         groupid = this.value.groupid;
     }
     // Work out what we should be requesting based on parent node, inheritance, etc.
-    var currentsetting = clickednode.get_config_setting(settingtype, groupid);
-    var defaultsetting = clickednode.get_default_setting(settingtype, groupid);
+    currentsetting = clickednode.get_config_setting(settingtype, groupid);
+    defaultsetting = clickednode.get_default_setting(settingtype, groupid);
     if (currentsetting === null) {
         settingtorequest = defaultsetting ? 0 : 1;
     } else {
@@ -858,7 +884,6 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
     }
 
     // gather data
-    var requestdata = {};
     requestdata.groupid = groupid;
     requestdata.menuitemindex = this.index;
     requestdata.menugroupindex = this.groupIndex;
@@ -868,7 +893,7 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
         requestdata.settingvalue = settingtorequest;
     }
     requestdata.tablename = (currentfiltername === 'courseid') ? 'course' : 'course_modules';
-    var iscontextmenu = this.parent instanceof YAHOO.widget.ContextMenu;
+    iscontextmenu = this.parent instanceof YAHOO.widget.ContextMenu;
     requestdata.menutype = iscontextmenu ? 'contextmenu' : 'buttonmenu';
     requestdata.instanceid = clickednode.get_current_filter_value();
 
@@ -885,10 +910,13 @@ M.block_ajax_marking.contextmenu_setting_onclick = function (event, otherthing, 
  * @return array|bool
  */
 M.block_ajax_marking.get_group_by_id = function (groups, groupid) {
+    "use strict";
 
-    var numberofgroups = groups.length;
-    for (var i = 0; i < numberofgroups; i++) {
-        if (groups[i].id == groupid) {
+    var numberofgroups = groups.length,
+        i;
+
+    for (i = 0; i < numberofgroups; i += 1) {
+        if (groups[i].id === groupid) {
             return groups[i];
         }
     }
@@ -901,19 +929,25 @@ M.block_ajax_marking.get_group_by_id = function (groups, groupid) {
  * @param {object} requestdata
  */
 M.block_ajax_marking.save_setting_ajax_request = function (requestdata, clickednode) {
+    "use strict";
+
+    var poststring,
+        temparray = [],
+        key;
 
     M.block_ajax_marking.oncompletefunctionholder = function (justrefreshchildren) {
         // Sometimes the node will have been removed
         if (clickednode.tree) {
-            clickednode.refresh(justrefreshchildren)
+            clickednode.refresh(justrefreshchildren);
         }
     };
 
     // Turn our object into a string that the AJAX stuff likes.
-    var poststring;
-    var temparray = [];
-    for (var key in requestdata) {
-        temparray.push(key+'='+requestdata[key]);
+
+    for (key in requestdata) {
+        if (requestdata.hasOwnProperty(key)) {
+            temparray.push(key+'='+requestdata[key]);
+        }
     }
     poststring = temparray.join('&');
 
@@ -927,5 +961,7 @@ M.block_ajax_marking.save_setting_ajax_request = function (requestdata, clickedn
  * Hides the drop-down menu that may be open on this node
  */
 M.block_ajax_marking.hide_open_menu = function(expandednode) {
+    "use strict";
+
     expandednode.renderedmenu.hide();
 };

@@ -33,26 +33,22 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Attaches the question id to the countwrapper query. Can only be used when quiz is the only one in
- * use, or else it makes the union queries inconsistent.
+ * use, or else it makes the union queries inconsistent. Depends on having a filter attaching it to the moduleunion.
  */
 class block_ajax_marking_quiz_filter_questionid_attach_countwrapper extends
-    block_ajax_marking_filter_attach_base {
+    block_ajax_marking_query_decorator_base {
 
     /**
      * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
      * nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
-     * @return mixed|void
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
-        $query->add_select(array(
+        $this->wrappedquery->add_select(array(
                                 'table' => 'moduleunion',
                                 'column' => 'questionid',
                                 'alias' => 'id'));

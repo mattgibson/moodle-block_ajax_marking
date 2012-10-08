@@ -29,6 +29,7 @@ if (!defined('MOODLE_INTERNAL')) {
 }
 
 global $CFG;
+
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
@@ -99,28 +100,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         $forumtype = $DB->get_field_sql($sql, array('coursemoduleid' => $coursemoduleid));
 
         return ($forumtype == 'eachuser') ? true : false;
-    }
-
-    /**
-     * See parent class for docs
-     *
-     * @return string
-     */
-    protected function get_sql_userid_column() {
-        return 'discussions.userid';
-    }
-
-    /**
-     * Returns a HTML link allowing a student's work to be marked
-     *
-     * @param object $item a row of the database table representing one discussion post
-     *
-     * @return string
-     */
-    public function make_html_link($item) {
-        global $CFG;
-        $address = $CFG->wwwroot.'/mod/forum/view.php?id='.$item->cmid;
-        return $address;
     }
 
     /**
@@ -263,7 +242,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         // This currently does a simple check for whether or not the current user has added a
         // rating or not. No scope for another teacher to do all the marking, or some of it.
         list($notmyratingsql, $notmyratingparams) = $this->get_teacher_sql();
-        $query->add_params($notmyratingparams);
 
         $query->add_from(array(
                               'table' => 'forum_posts',
@@ -280,6 +258,8 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
                               'alias' => 'moduletable',
                               'on' => 'discussions.forum = moduletable.id'
                          ));
+        $query->set_column('courseid', 'moduletable.course');
+
         // We need the context id to check the ratings table in the teacher SQL.
         $query->add_from(array(
                               'table' => 'course_modules',
@@ -296,29 +276,19 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         // Standard userid for joins.
         $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
+        $query->set_column('userid', 'sub.userid');
+
         $query->add_select(array('table' => 'sub',
                                  'column' => 'modified',
                                  'alias' => 'timestamp'));
 
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => 'sub.userid <> :forumuserid'));
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => 'moduletable.assessed > 0'));
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => " {$notmyratingsql} "));
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => '( (moduletable.assesstimestart = 0) OR
-                                                 (sub.created >= moduletable.assesstimestart) ) '));
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => '( (moduletable.assesstimefinish = 0) OR
-                                                 (sub.created <= moduletable.assesstimefinish) )'));
-
-        $query->add_param('forumuserid', $USER->id);
+        $query->add_where('sub.userid <> :forumuserid', array('forumuserid' => $USER->id));
+        $query->add_where('moduletable.assessed > 0');
+        $query->add_where(" {$notmyratingsql} ", $notmyratingparams);
+        $query->add_where('( (moduletable.assesstimestart = 0) OR
+                                                 (sub.created >= moduletable.assesstimestart) ) ');
+        $query->add_where('( (moduletable.assesstimefinish = 0) OR
+                                                 (sub.created <= moduletable.assesstimefinish) )');
 
         return $query;
     }
@@ -348,8 +318,6 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
 
                     if (self::forum_is_eachuser($filters['coursemoduleid'])) {
                         $node->name = fullname($node);
-                    } else {
-                        $node->name = $node->label;
                     }
                     break;
 

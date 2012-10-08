@@ -33,22 +33,20 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/attach_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Sets the group id as the column that gets counts made for each one.
  */
-class block_ajax_marking_filter_groupid_attach_countwrapper extends block_ajax_marking_filter_attach_base {
+class block_ajax_marking_filter_groupid_attach_countwrapper extends block_ajax_marking_query_decorator_base {
 
     /**
-     * @param block_ajax_marking_query $query
-     * @return void
+     * This will add the select, which will get a zero as the groupid if we don't have a group membership at all.
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
-        // This will add the select, which will get a zero as the groupid if we don't have a group membership at all.
-        $query->add_select(array(
-                                'column' => block_ajax_marking_get_countwrapper_groupid_sql(),
+        $this->wrappedquery->add_select(array(
+                                'column' => $this->wrappedquery->get_column('groupid'),
                                 'alias' => 'id'
                            ));
     }

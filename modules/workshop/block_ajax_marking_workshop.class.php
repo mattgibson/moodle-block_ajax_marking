@@ -59,29 +59,6 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
     }
 
     /**
-     * Makes the HTML link for the popup
-     *
-     * @param object $item that has the workshop's courseid as cmid property
-     * @return string
-     */
-    public function make_html_link($item) {
-
-        global $CFG;
-
-        $address = $CFG->wwwroot.'/mod/workshop/view.php?id='.$item->cmid;
-        return $address;
-    }
-
-    /**
-     * Returns the column from the workshop_submissions table that has the userid in it
-     *
-     * @return string
-     */
-    protected function get_sql_userid_column() {
-        return 'sub.authorid';
-    }
-
-    /**
      * Returns a query object with the basics all set up to get assignment stuff
      *
      * @global moodle_database $DB
@@ -92,11 +69,13 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
         global $USER;
 
         $query = new block_ajax_marking_query_base($this);
+        $query->set_column('userid', 'sub.authorid');
 
         $query->add_from(array(
                 'table' => $this->modulename,
                 'alias' => 'moduletable',
         ));
+        $query->set_column('courseid', 'moduletable.course');
         $query->add_from(array(
                 'join' => 'INNER JOIN',
                 'table' => 'workshop_submissions',
@@ -120,19 +99,14 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
 
         // Assumes that we want to see stuff that has not been assessed by the current user yet. Perhaps
         // we have more than one assessor? Perhaps it's peer assessment only?
-        $query->add_where(array(
-                               'type' => 'AND',
-                               'condition' => 'NOT EXISTS(
+        $query->add_where('NOT EXISTS(
                                    SELECT 1
                                      FROM {workshop_assessments} workshop_assessments
                                     WHERE workshop_assessments.submissionid = sub.id
                                       AND workshop_assessments.reviewerid = :workshopuserid
                                       AND workshop_assessments.grade != -1
-                               )'));
-        $query->add_where(array(
-            'type' => 'AND',
-            'condition' => 'moduletable.phase < '.workshop::PHASE_CLOSED
-            ));
+                               )');
+        $query->add_where('moduletable.phase < '.workshop::PHASE_CLOSED);
 
         // Do we want to only see stuff when the workshop has been put into a later phase?
         // If it has, a teacher will have done this manually and will know about the grading work.

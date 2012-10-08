@@ -28,36 +28,136 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder.class.php');
-require_once($CFG->dirroot.'/enrol/locallib.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/lib.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/tests/block_ajax_marking_mod_assign_generator.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/groupid/attach_countwrapper.class.php');
 
 /**
  * Tests the filter system to see if it alters the query properly.
+ *
+ * We have a number of varibles to test:
+ *
+ * - Number of groups a user is in: 0, 1, many
+ * - Groups all hidden, all not hidden, or a mixture
+ * - Group settings at course level, at coursemodule level, or both (different) for an override.
+ *
  */
 class groupid_filters_test extends advanced_testcase {
 
-    public function setUp() {
-        $this->resetAfterTest();
-    }
+    /**
+     * @var stdClass User is in no groups
+     */
+    public $user1;
 
     /**
-     * The various subqueries that deal with groups and their visibility need the same stuff as a baseline, so it is
-     * set up here.
+     * @var stdClass User is in one group: group 2
      */
-    protected function set_up_for_group_subqueries() {
+    public $user2;
 
-        global $PAGE, $DB;
+    /**
+     * @var stdClass User is in two groups: two and three.
+     */
+    public $user3;
+
+    /**
+     * @var stdClass
+     */
+    public $group2;
+
+    /**
+     * @var stdClass
+     */
+    public $group1;
+
+    /**
+     * @var stdClass
+     */
+    public $course;
+
+    /**
+     * @var stdClass
+     */
+    public $assign1;
+
+    /**
+     * @var stdClass
+     */
+    public $forum1;
+
+    /**
+     * @var stdClass
+     */
+    public $assign2;
+
+    /**
+     * Standard setUp function. Just resets after each test.
+     */
+    public function setUp() {
+
+        global $DB;
+
+        global $PAGE;
+
+        $this->resetAfterTest();
+
+        // Assignment module is disabled in the PHPUnit DB, so we need to re-enable it.
+        $DB->set_field('modules', 'visible', 1, array('name' => 'assignment'));
+
+        $generator = $this->getDataGenerator();
 
         // Make a course.
-        $generator = $this->getDataGenerator();
         $this->course = $generator->create_course();
 
         // Enrol as teacher so teacher_courses() works.
         $this->setAdminUser();
         $PAGE->set_course($this->course);
+
+        $this->enrol_user_into_course(2); // Admin user id.
+
+        // Make two groups, both in this course.
+        $this->make_two_groups($generator);
+
+        // Make two users.
+        $this->make_three_users($generator);
+
+        // User1 is in no groups, user2 is in one group, user3 is in two groups.
+        $this->add_user_to_group($this->user2, $this->group1);
+        $this->add_user_to_group($this->user3, $this->group1);
+        $this->add_user_to_group($this->user3, $this->group2);
+
+        // Enrol all users in the course.
+        $this->enrol_user_into_course($this->user1->id);
+        $this->enrol_user_into_course($this->user2->id);
+        $this->enrol_user_into_course($this->user3->id);
+
+        // Make three coursemodules.
+        $this->make_three_coursemodules($generator);
+
+        $this->make_single_submission_in_each_coursemodule_for_each_user($generator);
+    }
+
+    /**
+     * @param $user
+     * @param $group
+     */
+    protected function add_user_to_group($user, $group) {
+
+        global $DB;
+
+        $membership = new stdClass();
+        $membership->groupid = $group->id;
+        $membership->userid = $user->id;
+
+        $DB->insert_record('groups_members', $membership);
+    }
+
+    /**
+     * Must be called after $this->course is created.
+     */
+    protected function enrol_user_into_course($userid) {
+
+        global $PAGE, $DB;
 
         $manager = new course_enrolment_manager($PAGE, $this->course);
         $plugins = $manager->get_enrolment_plugins();
@@ -66,27 +166,38 @@ class groupid_filters_test extends advanced_testcase {
         $manualenrolplugin = reset($plugins);
         $manualenrolinstance = reset($instances);
         $teacherroleid = $DB->get_field('role', 'id', array('shortname' => 'teacher'));
-        $manualenrolplugin->enrol_user($manualenrolinstance, 2, $teacherroleid);
+        $manualenrolplugin->enrol_user($manualenrolinstance, $userid, $teacherroleid);
+    }
 
-        // Make two groups, both in this course.
+    /**
+     * @param phpunit_data_generator $generator
+     */
+    protected function make_two_groups($generator) {
         $protptypegroup = new stdClass();
         $protptypegroup->courseid = $this->course->id;
         $this->group1 = $generator->create_group($protptypegroup);
         $protptypegroup = new stdClass();
         $protptypegroup->courseid = $this->course->id;
         $this->group2 = $generator->create_group($protptypegroup);
+    }
 
-        // Make two users.
+    /**
+     * Makes user1 and user2
+     *
+     * @param phpunit_data_generator $generator
+     */
+    protected function make_three_users($generator) {
         $this->user1 = $generator->create_user();
         $this->user2 = $generator->create_user();
+        $this->user3 = $generator->create_user();
+    }
 
-        // Make user1 into a group member in group1.
-        $membership = new stdClass();
-        $membership->groupid = $this->group1->id;
-        $membership->userid = $this->user1->id;
-        $DB->insert_record('groups_members', $membership);
-
-        // Make two coursemodules.
+    /**
+     * Sorts out forum1 and asign1
+     *
+     * @param phpunit_data_generator $generator
+     */
+    protected function make_three_coursemodules($generator) {
         /* @var mod_forum_generator $forumgenerator */
         $forumgenerator = $generator->get_plugin_generator('mod_forum');
         $prototypemodule = new stdClass();
@@ -94,31 +205,63 @@ class groupid_filters_test extends advanced_testcase {
         $this->forum1 = $forumgenerator->create_instance($prototypemodule);
         $assigngenerator = new block_ajax_marking_mod_assign_generator($generator);
         $this->assign1 = $assigngenerator->create_instance($prototypemodule);
+        $this->assign2 = $assigngenerator->create_instance($prototypemodule);
     }
 
     /**
-     * Makes sure that the query we use to hide groups that the user has set to be hidden in the per user block settings
-     * works.
+     * @param phpunit_data_generator $generator
+     */
+    protected function make_single_submission_in_each_coursemodule_for_each_user($generator) {
+
+        $assigngenerator = new block_ajax_marking_mod_assign_generator($generator);
+
+        $users = array(
+            $this->user1,
+            $this->user2,
+            $this->user3
+        );
+
+        $assigns = array(
+            $this->assign1,
+            $this->assign2
+        );
+
+        foreach ($users as $user) {
+            reset($assigns);
+            foreach ($assigns as $assign) {
+                $prototypesubmission = new stdClass();
+                $prototypesubmission->userid = $user->id;
+                $prototypesubmission->assignment = $assign->id;
+
+                $assigngenerator->create_assign_submission($prototypesubmission);
+            }
+        }
+    }
+
+    /**
+     * Makes sure that the query we use to hide groups that the user has set to be hidden in the per
+     * user block settings works.
      */
     public function test_group_visibility_subquery() {
 
         global $DB, $USER;
 
-        $this->set_up_for_group_subqueries();
-
         // Check we got everything.
-        $this->assertEquals(2, $DB->count_records('course_modules'), 'Wrong number of course modules');
+        $this->assertEquals(3, $DB->count_records('course_modules'),
+                            'Wrong number of course modules');
         $this->assertEquals(2, $DB->count_records('groups'), 'Wrong number of groups');
-        $this->assertEquals(1, $DB->count_records('groups_members'), 'Wrong number of group members');
+        $this->assertEquals(3, $DB->count_records('groups_members'),
+                            'Wrong number of group members');
 
         list($query, $params) = block_ajax_marking_group_visibility_subquery();
 
         // We should get everything turning up as OK to display.
         // Don't use normal $DB functions as we will get duplicate array keys and it'll overwrite the rows.
-        $vanillalist = $this->get_visibility_array_results($query, $params);
+        $vanillalist = $this->get_query_results_as_sequentially_keyed_array($query, $params);
 
         // No idea what order the stuff's going to come in, so we need to list whether we expect things to be there
-        // or not. This uses the groupid and coursemodule id concatenated.
+        // or not. This uses the groupid and coursemodule id concatenated. We start off with everything
+        // false i.e. not expected to be present in the list of hidden things..
         $expectedarray = array(
             $this->group1->id.'-'.$this->assign1->id => false,
             $this->group1->id.'-'.$this->forum1->id => false,
@@ -144,7 +287,7 @@ class groupid_filters_test extends advanced_testcase {
 
         $expectedarray[$this->group1->id.'-'.$this->forum1->id] = true;
 
-        $vanillalist = $this->get_visibility_array_results($query, $params);
+        $vanillalist = $this->get_query_results_as_sequentially_keyed_array($query, $params);
 
         $this->check_visibility_results($expectedarray, $vanillalist);
 
@@ -166,7 +309,7 @@ class groupid_filters_test extends advanced_testcase {
         $expectedarray[$this->group1->id.'-'.$this->forum1->id] = true;
         $expectedarray[$this->group1->id.'-'.$this->assign1->id] = true;
 
-        $vanillalist = $this->get_visibility_array_results($query, $params);
+        $vanillalist = $this->get_query_results_as_sequentially_keyed_array($query, $params);
 
         $this->check_visibility_results($expectedarray, $vanillalist);
 
@@ -180,20 +323,20 @@ class groupid_filters_test extends advanced_testcase {
 
         $expectedarray[$this->group1->id.'-'.$this->forum1->id] = false;
 
-        $vanillalist = $this->get_visibility_array_results($query, $params);
+        $vanillalist = $this->get_query_results_as_sequentially_keyed_array($query, $params);
 
         $this->check_visibility_results($expectedarray, $vanillalist);
     }
 
     /**
      * Helper function to get the visibility subquery results as an array. Needed because the Moodle DB stuff expects
-     * unique first row values.
+     * unique first row values, but we won't get that here.
      *
      * @param $query
      * @param $params
-     * @return array
+     * @return array of objects
      */
-    protected function get_visibility_array_results($query, $params) {
+    protected function get_query_results_as_sequentially_keyed_array($query, $params) {
 
         global $DB;
 
@@ -211,282 +354,38 @@ class groupid_filters_test extends advanced_testcase {
      * Helper function that loops over the results and checks that we got the right things. Used because we can't
      * access the array items by their keys because there would be duplicate keys.
      *
-     * @param $expectedarray
-     * @param $vanillalist
+     * @param array $expectedarray
+     * @param array $vanillalist
      */
     protected function check_visibility_results($expectedarray, $vanillalist) {
         foreach ($expectedarray as $identifier => $expectation) {
-            $found = false;
+            $found =
+                false; // We don't know what order the results will come in, just what the identifier is.
             foreach ($vanillalist as $settingsrow) {
                 if ($settingsrow->groupid.'-'.$settingsrow->coursemoduleid == $identifier) {
                     $found = true;
                 }
             }
             if ($expectation) {
-                $this->assertTrue($found, 'Combination '.$identifier.' should have been there, but wasn\'t');
+                $this->assertTrue($found,
+                                  'Combination '.$identifier.' should have been there, but wasn\'t');
             } else {
-                $this->assertFalse($found, 'Combination '.$identifier.' should not have been there, but was');
+                $this->assertFalse($found,
+                                   'Combination '.$identifier.' should not have been there, but was');
             }
         }
     }
 
     /**
-     * This test the most complex decorator. The aim is to hide users who are in groups that are all hidden
-     * and include those who are either in no group at all, or who have a group which is set to display.
-     */
-    public function test_groupid_attach_countrwapper() {
-
-        global $PAGE, $DB;
-
-        $this->setAdminUser();
-
-        // Make basic course submissions. Keep track of which students have what.
-        // Make courses.
-        $generator = $this->getDataGenerator();
-        $coursea = $generator->create_course();
-        $courseb = $generator->create_course();
-
-        // Make four students and a teacher.
-        $student1a = $generator->create_user();
-        $student2a = $generator->create_user();
-        $student3b = $generator->create_user();
-        $student4b = $generator->create_user();
-        $teacher = $generator->create_user();
-
-        // Enrol the users into the courses.
-        $studentroleid = $DB->get_field('role', 'id', array('shortname' => 'student'));
-        $teacherroleid = $DB->get_field('role', 'id', array('shortname' => 'teacher'));
-        $PAGE->set_course($coursea);
-        $manager = new course_enrolment_manager($PAGE, $coursea);
-        $plugins = $manager->get_enrolment_plugins();
-        $instances = $manager->get_enrolment_instances();
-        /* @var enrol_manual_plugin $manualenrolplugin */
-        $manualenrolplugin = reset($plugins);
-        $manualenrolinstance = reset($instances);
-        $manualenrolplugin->enrol_user($manualenrolinstance, $student1a->id, $studentroleid);
-        $manualenrolplugin->enrol_user($manualenrolinstance, $student2a->id, $studentroleid);
-        $manualenrolplugin->enrol_user($manualenrolinstance, $teacher->id, $teacherroleid);
-        $PAGE->set_course($courseb);
-        $manager = new course_enrolment_manager($PAGE, $courseb);
-        $plugins = $manager->get_enrolment_plugins();
-        $instances = $manager->get_enrolment_instances();
-        $manualenrolplugin = reset($plugins);
-        $manualenrolinstance = reset($instances);
-        $manualenrolplugin->enrol_user($manualenrolinstance, $student3b->id, $studentroleid);
-        $manualenrolplugin->enrol_user($manualenrolinstance, $student4b->id, $studentroleid);
-        $manualenrolplugin->enrol_user($manualenrolinstance, $teacher->id, $teacherroleid);
-
-        // Make two groups in each course.
-        $group1a = new stdClass();
-        $group1a->courseid = $coursea->id;
-        $group1a = $generator->create_group($group1a);
-        $group2a = new stdClass();
-        $group2a->courseid = $coursea->id;
-        $group2a = $generator->create_group($group2a);
-        $group3b = new stdClass();
-        $group3b->courseid = $courseb->id;
-        $group3b = $generator->create_group($group3b);
-        $group4b = new stdClass();
-        $group4b->courseid = $courseb->id;
-        $group4b = $generator->create_group($group4b);
-
-        // Make the students into group members.
-        // To test all angles:
-        // Student 1a is in two groups: 1a and 2a.
-        // Student 2a is in 1 group: group 1a.
-        // Student 3b is in one group: 3b.
-        // Student 4a is in no groups.
-        $groupmembership = new stdclass();
-        $groupmembership->groupid = $group1a->id;
-        $groupmembership->userid = $student1a->id;
-        $groupmembership->timeadded = time();
-        $DB->insert_record('groups_members', $groupmembership);
-        $groupmembership = new stdclass();
-        $groupmembership->groupid = $group1a->id;
-        $groupmembership->userid = $student2a->id;
-        $groupmembership->timeadded = time();
-        $DB->insert_record('groups_members', $groupmembership);
-        $groupmembership = new stdclass();
-        $groupmembership->groupid = $group3b->id;
-        $groupmembership->userid = $student3b->id;
-        $groupmembership->timeadded = time();
-        $DB->insert_record('groups_members', $groupmembership);
-        $groupmembership = new stdclass();
-        $groupmembership->groupid = $group2a->id;
-        $groupmembership->userid = $student1a->id;
-        $groupmembership->timeadded = time();
-        $DB->insert_record('groups_members', $groupmembership);
-
-        // Make an assignment for each course.
-        $assigngenerator = new block_ajax_marking_mod_assign_generator($generator);
-        $assignrecord = new stdClass();
-        $assignrecord->assessed = 1;
-        $assignrecord->scale = 4;
-        $assignrecord->course = $coursea->id;
-        $assigna = $assigngenerator->create_instance($assignrecord);
-        $assignrecord = new stdClass();
-        $assignrecord->assessed = 1;
-        $assignrecord->scale = 4;
-        $assignrecord->course = $courseb->id;
-        $assignb = $assigngenerator->create_instance($assignrecord);
-
-        // Make a student submission for each one.
-        $submission = new stdClass();
-        $submission->userid = $student1a->id;
-        $submission->assignment = $assigna->id;
-        $assigngenerator->create_assign_submission($submission);
-        $submission = new stdClass();
-        $submission->userid = $student2a->id;
-        $submission->assignment = $assigna->id;
-        $assigngenerator->create_assign_submission($submission);
-        $submission = new stdClass();
-        $submission->userid = $student3b->id;
-        $submission->assignment = $assignb->id;
-        $assigngenerator->create_assign_submission($submission);
-        $submission = new stdClass();
-        $submission->userid = $student4b->id;
-        $submission->assignment = $assignb->id;
-        $assigngenerator->create_assign_submission($submission);
-
-        // A basic query should now return all four submissions.
-        $this->setUser($teacher->id);
-
-        // Get coutwrapper without any decorators.
-        $nodesbuilder = new ReflectionClass('block_ajax_marking_nodes_builder');
-
-        $moduleunionmethod = $nodesbuilder->getMethod('get_module_queries_array');
-        $moduleunionmethod->setAccessible(true);
-        $modulequeries = $moduleunionmethod->invoke($nodesbuilder, array());
-        $moduleunionmethod = $nodesbuilder->getMethod('get_count_wrapper_query');
-        $moduleunionmethod->setAccessible(true);
-        /* @var block_ajax_marking_query $countwrapper */
-        $countwrapper = $moduleunionmethod->invoke($nodesbuilder, $modulequeries, array());
-        $this->assertInstanceOf('block_ajax_marking_query', $countwrapper);
-
-        $totalnumberofsubmissions = 4;
-
-        // Check that the raw countwrapper gets what we need.
-        $sql = $countwrapper->debuggable_query();
-        $recordset = $DB->get_recordset_sql($countwrapper->get_sql(), $countwrapper->get_params());
-
-        // Count: should be 4. No other 'group by' filters, so just one record with an itemcount for all submissions.
-        $pregroupscount = 0;
-        $row = $recordset->current();
-        $pregroupscount += $row->itemcount;
-
-        $this->assertEquals($totalnumberofsubmissions,
-                            $pregroupscount,
-                            'Query not working before we even get to the groups decorator');
-
-        // OK - query works. now get the basic group ids that we expect.
-        // Wrap countwrapper in group id decorator.
-        $countwrapper = new block_ajax_marking_filter_groupid_attach_countwrapper($countwrapper);
-        // Add a select or two so we can see if the groupid is there.
-        $countwrapper->add_select(array(
-                                       'table' => 'membergroupquery',
-                                       'column' => 'groupid'
-                                  ));
-        $countwrapper->add_select(array(
-                                       'table' => 'moduleunion',
-                                       'column' => 'userid'
-                                  ), true);
-        $countwrapper->add_select(array(
-                                       'table' => 'moduleunion',
-                                       'column' => 'coursemoduleid'
-                                  ));
-        // For debugging. Stop here and copy this to see what's in the query.
-        $wrappedquery = $countwrapper->debuggable_query();
-
-        $results = $countwrapper->execute();
-
-        // Sanity check: we should still get the whole lot before messing with anything.
-        $this->assertEquals($totalnumberofsubmissions,
-                            count($results),
-                            'Groups decorator has broken the query before any settings changed');
-
-        // Make sure we have the right groups - should be the highest groupid available if they are in more than one
-        // group, or the one group id if they are in one group.
-
-        // Student 1a is in two groups. Should be the max id.
-        $message = 'Student has the wrong groupid - '.$results[$student1a->id]->groupid.
-            ' but ought to be the highest out of group1a and group2a ids: '.$group2a->id;
-        $this->assertEquals($group2a->id, $results[$student1a->id]->groupid, $message);
-
-        // Student 2a should be there with the id from group1a. Single group membership.
-        $message = 'Student 2a should be in group 1a (id: '.$group1a->id.
-            ' but is instead in a group with id '.$results[$student2a->id]->groupid;
-        $this->assertEquals($group1a->id, $results[$student2a->id]->groupid, $message);
-
-        // Student 4b has no group, so ought to be without any groupid.
-        $message = 'Student 4b should have zero for a groupid due to being in no group, but doesn\'t';
-        $this->assertEquals(0, $results[$student4b->id]->groupid, $message);
-
-        // Hide a group2a at coursemoduleid level.
-        $newsetting = new stdClass();
-        $newsetting->userid = $teacher->id;
-        $newsetting->tablename = 'course_modules';
-        $newsetting->instanceid = $assigna->cmid;
-        $newsetting->display = 1;
-        $newsetting->id = $DB->insert_record('block_ajax_marking', $newsetting);
-        $newgroupsetting = new stdClass();
-        $newgroupsetting->configid = $newsetting->id;
-        $newgroupsetting->groupid = $group2a->id;
-        $newgroupsetting->display = 0;
-        $newgroupsetting->id = $DB->insert_record('block_ajax_marking_groups', $newgroupsetting);
-
-        $results = $countwrapper->execute();
-        $message = 'Hiding at coursemodule level has hidden the user instead of used the other available groupid';
-        $this->assertArrayHasKey($student1a->id, $results, $message);
-        $message = 'Hiding a group at coursemodule level didn\'t work as it ought to have made the student '.
-                'in multiple groups who previously had a high id have a low id.';
-        $this->assertEquals($group1a->id, $results[$student1a->id]->groupid, $message);
-
-        // Now hide the only group a student is in and verify that we have that student hidden.
-        $newgroupsetting = new stdClass();
-        $newgroupsetting->configid = $newsetting->id;
-        $newgroupsetting->groupid = $group1a->id;
-        $newgroupsetting->display = 0;
-        $newgroupsetting->id = $DB->insert_record('block_ajax_marking_groups', $newgroupsetting);
-        $results = $countwrapper->execute();
-        $message = 'Hiding group 1a failed to leave student 2a with a null groupid';
-        $this->assertArrayNotHasKey($student2a->id, $results, $message);
-        $message = 'Hiding group 1a failed to leave student 1a with a null groupid';
-        $this->assertArrayNotHasKey($student1a->id, $results, $message);
-
-        // Hide both groups group at course level.
-        // Clean out the settings first.
-        $DB->delete_records('block_ajax_marking_groups');
-        $DB->delete_records('block_ajax_marking');
-
-        // Test for non-group users coming up as 0.
-    }
-
-    /**
-     * Needs to make sure that we get only the groups that are visible.
+     * Makes a single coursemodule level default setting, then a group setting for group 1 that
+     * hides it.
      *
-     * Needs groups, coursemodules, a course and some settings.
-     *
-     * @todo Make this.
+     * @return stdClass
      */
-    public function test_group_max_subquery() {
+    public function hide_group_1_at_coursemodule_level() {
 
         global $USER, $DB;
 
-        // Make a coursemodule, group, etc.
-        $this->set_up_for_group_subqueries();
-
-        // Get the query.
-        list($query, $params) = block_ajax_marking_group_max_subquery();
-
-        // Ought to be all groupid-userid-coursemoduleid triples for all group memberships.
-        // User1 is in group1 and there are two coursemodules. Should be 2 entries.
-        $results = $this->get_visibility_array_results($query, $params);
-
-        $this->assertEquals(2, count($results));
-        // TODO is it the right group?
-
-        // Hide one coursemodule and we ought to get one.
-        // Hide a group2a at coursemoduleid level.
         $cmsetting = new stdClass();
         $cmsetting->userid = $USER->id;
         $cmsetting->tablename = 'course_modules';
@@ -498,11 +397,17 @@ class groupid_filters_test extends advanced_testcase {
         $cmgroupsetting->groupid = $this->group1->id;
         $cmgroupsetting->display = 0;
         $cmgroupsetting->id = $DB->insert_record('block_ajax_marking_groups', $cmgroupsetting);
+        return $cmgroupsetting;
+    }
 
-        $results = $this->get_visibility_array_results($query, $params);
-        $this->assertEquals(1, count($results));
+    /**
+     * Makes a single default setting for a course, then a group setting for group 1 with
+     * display = 0.
+     */
+    public function hide_group_1_at_course_level() {
 
-        // Now hide at course level and we ought to get nothing.
+        global $USER, $DB;
+
         $coursesetting = new stdClass();
         $coursesetting->userid = $USER->id;
         $coursesetting->tablename = 'course';
@@ -513,28 +418,127 @@ class groupid_filters_test extends advanced_testcase {
         $coursegroupsetting->configid = $coursesetting->id;
         $coursegroupsetting->groupid = $this->group1->id;
         $coursegroupsetting->display = 0;
-        $coursegroupsetting->id = $DB->insert_record('block_ajax_marking_groups', $coursegroupsetting);
+        $coursegroupsetting->id =
+            $DB->insert_record('block_ajax_marking_groups', $coursegroupsetting);
+    }
 
-        $results = $this->get_visibility_array_results($query, $params);
-        $this->assertEquals(0, count($results));
+    // These are the tests to cover all possible groups settings via the full query.
+    // In all cases, we have three coursemodules in the same course, three users, two groups, with
+    // one user in no groups, one user in one group and one user in two groups.
 
-        // Now override at coursemodule level so we ought to have one only.
-        $cmgroupsetting->display = 1;
-        $cmgroupsetting->id = $DB->insert_record('block_ajax_marking_groups', $cmgroupsetting);
 
-        $results = $this->get_visibility_array_results($query, $params);
-        $this->assertEquals(0, count($results));
+    /**
+     * User 1 is in no groups, so ought to come up with either groupid 0, or missing if the
+     * settings say so.
+     */
+    public function test_no_group_memberships_group_node_appears_groupid_filter() {
 
+        // User 1 is in no groups. Ought to show up with groupid of 0. This ought to give us
+        // a single node for groupid 0 with a count of 1.
+        $params = array(
+            'coursemoduleid' => $this->assign1->cmid,
+            'groupid' => 'nextnodefilter',
+        );
+
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+
+        $this->assertNotEmpty($nodes, 'No nodes returned');
+
+        $foundnode = new stdClass();
+        $count = 0;
+        foreach ($nodes as $node) {
+            if ($node->groupid == 0) {
+                $count++;
+                $foundnode = $node;
+                break;
+            }
+        }
+
+        $this->assertEquals(1, $count, 'Too many nodes found');
+        $this->assertObjectHasAttribute('groupid', $foundnode);
+        $this->assertEquals(0, $foundnode->groupid, 'Nothing returned for groupid 0');
+        $this->assertEquals(1, $foundnode->itemcount);
     }
 
     /**
-     * @todo Make this.
+     * User 1 is in no groups, so ought to come up with either groupid 0, or missing if the
+     * settings say so.
      */
-    public function test_group_members_subquery() {
+    public function test_no_group_memberships_group_node_appears_userid_filter() {
 
-        $this->set_up_for_group_subqueries();
+        // User 1 is in no groups. Ought to show up with groupid of 0. This ought to give us
+        // a single node for groupid 0 with a count of 1.
+        $params = array(
+            'coursemoduleid' => $this->assign1->cmid,
+            'groupid' => 0,
+            'userid' => 'nextnodefilter',
+        );
 
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+        $this->assertCount(1, $nodes, 'Too many nodes!');
+        $node = reset($nodes);
+
+        $this->assertObjectHasAttribute('userid', $node);
+        $this->assertEquals($this->user1->id, $node->userid, 'Wrong userid returned for groupid 0');
+        $this->assertEquals(1, $node->itemcount);
     }
 
+    /**
+     * User 2 is in group1, as is user 3, but user 3 is also in group2, so ought to show up there instead.
+     */
+    public function test_group_one_group_node_appears_groupid_filter() {
 
+        $params = array(
+            'coursemoduleid' => $this->assign1->cmid,
+            'groupid' => 'nextnodefilter',
+        );
+
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+
+        $this->assertNotEmpty($nodes, 'No nodes returned');
+
+        $foundnode = new stdClass();
+        $count = 0;
+        foreach ($nodes as $node) {
+            if ($node->groupid == $this->group1->id) {
+                $count++;
+                $foundnode = $node;
+                break;
+            }
+        }
+
+        $this->assertNotEquals(0, $count, 'No nodes returned for groupid '.$this->group1->id);
+        $this->assertEquals(1, $count, 'Too many nodes found');
+        $this->assertEquals(1, $foundnode->itemcount, 'User should be hidden here due to other goup membership');
+    }
+
+    /**
+     * User 2 is in group1, as is user 3, but user 3 is also in group2, so ought to show up there instead.
+     */
+    public function test_group_two_group_node_appears_groupid_filter() {
+
+        $params = array(
+            'coursemoduleid' => $this->assign1->cmid,
+            'groupid' => 'nextnodefilter',
+        );
+
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+
+        $this->assertNotEmpty($nodes, 'No nodes returned');
+
+        $foundnode = new stdClass();
+        $count = 0;
+        foreach ($nodes as $node) {
+            if ($node->groupid == $this->group2->id) {
+                $count++;
+                $foundnode = $node;
+                break;
+            }
+        }
+
+        $this->assertNotEquals(0, $count, 'No nodes returned for groupid '.$this->group2->id);
+        $this->assertEquals(1, $count, 'Too many nodes found');
+        $this->assertEquals(1, $foundnode->itemcount,
+                            'User should be hidden here due to other goup membership');
+    }
 }

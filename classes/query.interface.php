@@ -31,12 +31,31 @@ defined('MOODLE_INTERNAL') || die();
 interface block_ajax_marking_query {
 
     /**
-     * Adds a new select clause, which may include aggregate functions etc.
+     * Adds a column to the select. Needs a table, column, function (optional). If 'function' is
+     * COALESCE, 'table' is an array of 'table' => 'column' pairs, which can include defaults as
+     * strings or integers, which are added as they are, with no key specified.
      *
-     * @abstract
-     * @param array $column
-     * @param bool $prefix
-     * @return
+     * This one is complex.
+     *
+     * Issues:
+     * - may need DISTINCT in there, possibly inside a count.
+     * - Need to extract the column aliases for use in the GROUP BY later
+     *
+     * One column array can have:
+     * - table
+     * - column
+     * - alias
+     * - function e.g. COUNT
+     * - distinct (bool)
+     *
+     * @param array $column containing: 'function', 'table', 'column', 'alias', 'distinct' in any
+     * order
+     * @param bool $prefix Do we want this at the start, rather than the end?
+     * @throws coding_exception
+     * @throws invalid_parameter_exception
+     * @internal param bool $replace If true, the start or end element will be replaced with the incoming
+     * one. Default: false
+     * @return void
      */
     public function add_select(array $column, $prefix = false);
 
@@ -53,9 +72,11 @@ interface block_ajax_marking_query {
      * Adds a condition to the WHERE part of the query. Needs 'type' and 'condition' in the array.
      *
      * @abstract
-     * @param array $clause
+     * @param string $sql
+     * @param array $params
+     * @return
      */
-    public function add_where(array $clause);
+    public function add_where($sql, $params = array());
 
     /**
      * Adds a clause to the ORDER BY part of the query after joining together all the bits
@@ -72,9 +93,8 @@ interface block_ajax_marking_query {
      *
      * @abstract
      * @param array $params
-     * @param bool $arraytoaddto
      */
-    public function add_params(array $params, $arraytoaddto = false);
+    public function add_params(array $params);
 
     /**
      * Adds one item to the params array. Always use SQL_PARAMS_NAMED.
@@ -117,4 +137,65 @@ interface block_ajax_marking_query {
      * @return string
      */
     public function debuggable_query();
+
+    /**
+     * Returns the SQL of a column that was previously stored. Allows decorators to attach stuff to different queries
+     * that have the same stuff from different tables or aliases.
+     *
+     * @abstract
+     * @param string $columnname
+     * @return mixed
+     */
+    public function get_column($columnname);
+
+    /**
+     * Saves the SQL used to get a particular column, which other filters may need.
+     *
+     * @abstract
+     * @param string $columnname
+     * @param string $sql
+     */
+    public function set_column($columnname, $sql);
+
+    /**
+     * @abstract
+     * @return string
+     */
+    public function get_module_name();
+
+    /**
+     * @abstract
+     * @return int
+     */
+    public function get_module_id();
+
+    /**
+     * Sets the course limit status so that we know whether this query needs to have all appropriate tables limited
+     * to courses that the user has access to. This makes the whole thing much faster for normal users. Only admins
+     * who want to see all courses at once need this off.
+     *
+     * @abstract
+     * @param bool $on
+     */
+    public function set_course_limit_status($on = true);
+
+    /**
+     * Tells us whether to apply the limit code that makes all the join tables have a WHERE courseid IN(x, y, z).
+     * When on a very large site, this can be make a huge difference to performance. Only admins who want to
+     * view everything need to have it turned off.
+     *
+     * @abstract
+     * @return bool
+     */
+    public function get_course_limit_status();
+
+    /**
+     * Slightly awkward way of making sure we can add bits and pieces of SQL to unioned queries without
+     * duplicating param names. If we just use the query_union class to add the same fragment to all of the bits,
+     * @todo use an array iterator of all the queries or something instead.
+     *
+     * @abstract
+     * @return mixed
+     */
+    public function get_number_of_unioned_subqueries();
 }

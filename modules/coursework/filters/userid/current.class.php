@@ -15,6 +15,8 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Class file for the assign userid filter functions
+ *
  * @package    block
  * @subpackage ajax_marking
  * @copyright  2008 Matt Gibson
@@ -22,31 +24,45 @@
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-if (!defined('MOODLE_INTERNAL')) {
-    die();
-}
+defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
- * Attaches the user id to the query so it can be used.
+ * Holds any custom filters for userid nodes that this module offers
  */
-class block_ajax_marking_filter_userid_attach_countwrapper extends block_ajax_marking_query_decorator_base {
+class block_ajax_marking_coursework_filter_userid_current extends block_ajax_marking_query_decorator_base {
 
     /**
-     * Makes user nodes for the assignment modules by grouping them and then adding in the right
+     * Makes user nodes for the assign modules by grouping them and then adding in the right
      * text to describe them.
+     *
+     * @static
      */
     protected function alter_query() {
 
-        // Make the count be grouped by user id.
         $conditions = array(
-            'table' => 'moduleunion',
-            'column' => 'userid',
-            'alias' => 'id');
-        $this->wrappedquery->add_select($conditions, true);
+            'table' => 'countwrapperquery',
+            'column' => 'timestamp',
+            'alias' => 'tooltip');
+        $this->wrappedquery->add_select($conditions);
 
+        $conditions = array(
+            'table' => 'usertable',
+            'column' => 'firstname');
+        $this->wrappedquery->add_select($conditions);
+        $conditions = array(
+            'table' => 'usertable',
+            'column' => 'lastname');
+        $this->wrappedquery->add_select($conditions);
+
+        $table = array(
+            'table' => 'user',
+            'alias' => 'usertable',
+            'on' => 'usertable.id = countwrapperquery.id');
+        $this->wrappedquery->add_from($table);
     }
 }
+

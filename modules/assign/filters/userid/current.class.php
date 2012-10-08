@@ -28,42 +28,39 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/current_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Holds any custom filters for userid nodes that this module offers
  */
-class block_ajax_marking_assign_filter_userid_current extends block_ajax_marking_filter_current_base {
+class block_ajax_marking_assign_filter_userid_current extends block_ajax_marking_query_decorator_base {
 
     /**
      * Makes user nodes for the assign modules by grouping them and then adding in the right
      * text to describe them.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
      */
-    protected function alter_query(block_ajax_marking_query $query) {
+    protected function alter_query() {
 
         $conditions = array(
             'table' => 'countwrapperquery',
             'column' => 'timestamp',
             'alias' => 'tooltip');
-        $query->add_select($conditions);
+        $this->wrappedquery->add_select($conditions);
 
         $conditions = array(
             'table' => 'usertable',
             'column' => 'firstname');
-        $query->add_select($conditions);
+        $this->wrappedquery->add_select($conditions);
         $conditions = array(
             'table' => 'usertable',
             'column' => 'lastname');
-        $query->add_select($conditions);
+        $this->wrappedquery->add_select($conditions);
 
         $table = array(
             'table' => 'user',
             'alias' => 'usertable',
             'on' => 'usertable.id = countwrapperquery.id');
-        $query->add_from($table);
+        $this->wrappedquery->add_from($table);
     }
 }
 

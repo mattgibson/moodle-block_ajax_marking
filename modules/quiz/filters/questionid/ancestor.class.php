@@ -33,27 +33,20 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/ancestor_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
 
 /**
  * Filters the nodes where a question is an ancestor.
  */
-class block_ajax_marking_quiz_filter_questionid_ancestor extends block_ajax_marking_filter_ancestor_base {
+class block_ajax_marking_quiz_filter_questionid_ancestor extends block_ajax_marking_query_decorator_base {
 
     /**
      * Adds SQL to a dynamic query for when there is a question node as an ancestor of the current
      * nodes.
-     *
-     * @static
-     * @param block_ajax_marking_query $query
-     * @param int $questionid
      */
-    protected function alter_query(block_ajax_marking_query $query, $questionid) {
+    protected function alter_query() {
 
-        $clause = array(
-            'type' => 'AND',
-            'condition' => 'moduleunion.questionid = :quizfilterquestionidancestor');
-        $query->add_where($clause);
-        $query->add_param('quizfilterquestionidancestor', $questionid);
+        $sql = 'moduleunion.questionid = :quizfilterquestionidancestor';
+        $this->wrappedquery->add_where($sql, array('quizfilterquestionidancestor'=> $this->get_parameter()));
     }
 }

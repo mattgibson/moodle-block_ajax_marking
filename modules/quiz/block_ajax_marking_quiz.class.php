@@ -30,9 +30,7 @@ if (!defined('MOODLE_INTERNAL')) {
 
 global $CFG;
 
-/* @define "$blockdir" "../.." */
-$blockdir = $CFG->dirroot.'/blocks/ajax_marking';
-require_once($blockdir.'/classes/query_base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 
 // We only need this file for the constants. Doing this so that we don't have problems including
@@ -72,29 +70,6 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         $this->modulename           = 'quiz';
         $this->capability           = 'mod/quiz:grade';
         $this->icon                 = 'mod/quiz/icon.gif';
-    }
-
-    /**
-     * Makes an HTML link for the pop up to allow grading of a question
-     *
-     * @param object $item containing the quiz id as ->id
-     * @return string
-     */
-    public function make_html_link($item) {
-
-        global $CFG;
-        $address = $CFG->wwwroot.'/mod/quiz/report.php?q='.$item->assessmentid.'&mode=grading';
-        return $address;
-    }
-
-    /**
-     * Returns the name of the column in the submissions table which holds the userid of the
-     * submitter
-     *
-     * @return string
-     */
-    protected function get_sql_userid_column() {
-        return 'qa.userid';
     }
 
     /**
@@ -235,13 +210,14 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
             if (isset($processedattempts[$id])) {
                 continue;
             }
-            $processedattempts[$id] = quiz_attempt::create($id);
-            $transaction = $DB->start_delegated_transaction();
-            $processedattempts[$id]->process_all_actions(time());
-            $transaction->allow_commit();
+
+            $processedattempt = quiz_attempt::create($id);
+            $processedattempt->process_submitted_actions(time());
+
+            $processedattempts[$id] = $processedattempt;
         }
 
-        return true;
+        return '';
     }
 
     /**
@@ -260,6 +236,8 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                 'table' => $this->modulename,
                 'alias' => 'moduletable',
         ));
+        $query->set_column('courseid', 'moduletable.course');
+
         $query->add_from(array(
                 'table' => 'quiz_attempts',
                 'on'    => 'moduletable.id = quiz_attempts.quiz'
@@ -279,21 +257,19 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
         ));
 
         // Standard userid for joins.
-        $query->add_select(array('table' => 'quiz_attempts',
+        $query->add_select(array('table' => 'sub',
                                  'column' => 'userid'));
+        $query->set_column('userid', 'sub.userid');
+
         $query->add_select(array('table' => 'sub',
                                 'column' => 'timecreated',
                                 'alias'  => 'timestamp'));
 
-        $query->add_where(array('type' => 'AND',
-                                'condition' => 'quiz_attempts.timefinish > 0'));
-        $query->add_where(array('type' => 'AND',
-                                'condition' => 'quiz_attempts.preview = 0'));
+        $query->add_where('quiz_attempts.timefinish > 0');
+        $query->add_where('quiz_attempts.preview = 0');
         $comparesql = $DB->sql_compare_text('question_attempts.behaviour')." = 'manualgraded'";
-        $query->add_where(array('type' => 'AND',
-                                'condition' => $comparesql));
-        $query->add_where(array('type' => 'AND',
-                                'condition' => "sub.state = '".question_state::$needsgrading."' "));
+        $query->add_where($comparesql);
+        $query->add_where("sub.state = '".question_state::$needsgrading."' ");
 
         // We want to get a list of graded states so we can retrieve all questions that don't have
         // one.
@@ -312,9 +288,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
                                  FROM {question_attempt_steps} st
                                 WHERE st.state {$gradedsql}
                                   AND st.questionattemptid = question_attempts.id)";
-        $query->add_where(array('type' => 'AND',
-                                'condition' => $subsql));
-        $query->add_params($gradedparams);
+        $query->add_where($subsql, $gradedparams);
         return $query;
     }
 

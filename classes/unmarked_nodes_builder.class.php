@@ -15,38 +15,24 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
+ * Class file for the block_ajax_marking_unmarked_nodes_builder class
+ *
  * @package    block
  * @subpackage ajax_marking
- * @copyright  2008 Matt Gibson
+ * @copyright  2012 Matt Gibson
  * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-if (!defined('MOODLE_INTERNAL')) {
-    die();
-}
+defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/blocks/ajax_marking/filters/base.class.php');
+require_once($CFG->dirroot.'/blocks/ajax_marking/classes/nodes_builder_base.class.php');
 
 /**
- * Attaches the user id to the query so it can be used.
+ * Builds the SQL query for getting the unmarked work, based on the filters supplied via the AJAX call.
  */
-class block_ajax_marking_filter_userid_attach_countwrapper extends block_ajax_marking_query_decorator_base {
+class block_ajax_marking_unmarked_nodes_builder extends block_ajax_marking_nodes_builder_base {
 
-    /**
-     * Makes user nodes for the assignment modules by grouping them and then adding in the right
-     * text to describe them.
-     */
-    protected function alter_query() {
-
-        // Make the count be grouped by user id.
-        $conditions = array(
-            'table' => 'moduleunion',
-            'column' => 'userid',
-            'alias' => 'id');
-        $this->wrappedquery->add_select($conditions, true);
-
-    }
 }
