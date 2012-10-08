@@ -464,10 +464,11 @@ class groupid_filters_test extends advanced_testcase {
         );
 
         $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+        $this->assertCount(1, $nodes, 'Too many nodes!');
         $node = reset($nodes);
 
         $this->assertObjectHasAttribute('userid', $node);
-        $this->assertEquals($this->user1->id, $node->userid, 'Nothing returned for groupid 0');
+        $this->assertEquals($this->user1->id, $node->userid, 'Wrong userid returned for groupid 0');
         $this->assertEquals(1, $node->itemcount);
 
     }
