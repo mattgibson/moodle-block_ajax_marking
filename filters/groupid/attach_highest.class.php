@@ -58,7 +58,10 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
 
         list($visibilitysubquery, $visibilityparams) = block_ajax_marking_group_visibility_subquery();
 
-        // These three table get us a group id that's not hidden based on the user's group memberships.
+        // These three tables get us a group id that's not hidden based on the user's group memberships.
+
+        // WE can't just use this as there may be more than one membership per user per course, so we
+        // need a LEFT JOIN with greatest-=n-per-group. Trouble is, some of these groups may be set to 'hidden'.
         $query->add_from(
             array(
                  'join' => 'LEFT JOIN',
@@ -86,8 +89,10 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
 
             )
         );
-        // This subquery has all the group-coursemoudule combinations that he user has configured as hidden via
+        // This subquery has all the group-coursemoudule combinations that the user has configured as hidden via
         // the block settings. We want this to be null as any value shows that the user has chosen it to be hidden.
+        // If any are not null, then those groups must be excluded from the list we can choose from to choose the
+        // highest id.
         $query->add_from(
             array(
                  'join' => 'LEFT JOIN',
@@ -133,18 +138,7 @@ class block_ajax_marking_filter_groupid_attach_highest extends block_ajax_markin
                  )", array_merge($gmaxcourseparams, $gmaxvisibilityparams)
             );
 
-        $sqltogettothegroupid = "
-            CASE
-                WHEN EXISTS (SELECT 1
-                              FROM {groups_members} gcheck_members
-                        INNER JOIN {groups} gcheck_groups
-                                ON gcheck_groups.id = gcheck_members.groupid
-                             WHERE gcheck_members.userid = {$query->get_column('userid')}
-                               AND gcheck_groups.courseid = {$query->get_column('courseid')})
-                    THEN gmember_members.groupid
-                ELSE 0
-            END
-        ";
+        $sqltogettothegroupid = block_ajax_marking_get_countwrapper_groupid_sql($query);
         $query->set_column('groupid', $sqltogettothegroupid);
 
     }

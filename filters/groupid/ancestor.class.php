@@ -50,7 +50,7 @@ class block_ajax_marking_filter_groupid_ancestor extends block_ajax_marking_quer
         static $counter = 0; // We will get duplicates if we use this on modulequeries.
         $counter++;
 
-        $sql = block_ajax_marking_get_countwrapper_groupid_sql().' = :groupid'.$counter;
+        $sql = block_ajax_marking_get_countwrapper_groupid_sql($this->wrappedquery).' = :groupid'.$counter;
         $this->wrappedquery->add_where($sql, array('groupid'.$counter => $this->get_parameter()));
     }
 }

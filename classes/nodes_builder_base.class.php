@@ -506,9 +506,9 @@ SQL;
         $nodes = $configbasequery->execute();
 
         $nextnodefilter = block_ajax_marking_get_nextnodefilter_from_params($filters);
-        if ($nextnodefilter == 'courseid') {
+        if ($nextnodefilter === 'courseid') {
             $nodes = self::attach_groups_to_course_nodes($nodes);
-        } else if ($nextnodefilter == 'coursemoduleid') {
+        } else if ($nextnodefilter === 'coursemoduleid') {
             $nodes = self::attach_groups_to_coursemodule_nodes($nodes);
         }
 
@@ -716,7 +716,7 @@ SQL;
         }
 
         $havecoursemodulefilter = array_key_exists('coursemoduleid', $filters) &&
-                                  $filters['coursemoduleid'] != 'nextnodefilter';
+                                  $filters['coursemoduleid'] !== 'nextnodefilter';
 
         // If one of the filters is coursemodule, then we want to avoid querying all of the module
         // tables and just stick to the one with that coursemodule. If not, we do a UNION of all
@@ -824,7 +824,7 @@ SQL;
         foreach ($filters as $filtername => $filtervalue) {
 
             // Current nodes need to be grouped by this filter.
-            if ($filtervalue == 'nextnodefilter') {
+            if ($filtervalue === 'nextnodefilter') {
                 // This will attach an id to the query, to either be retrieved directly from the moduleunion,
                 // or added via a join of some sort.
                 self::add_query_filter($countwrapperquery, $filtername, 'attach_countwrapper', null, $modulename);
@@ -959,7 +959,7 @@ SQL;
         reset($filters);
         foreach ($filters as $filtername => $filtervalue) {
 
-            if ($filtervalue == 'nextnodefilter') {
+            if ($filtervalue === 'nextnodefilter') {
                 // This will attach an id to the query, to either be retrieved directly from the moduleunion,
                 // or added via a join of some sort.
                 self::add_query_filter($displayquery, $filtername, 'current', null, $modulename);
@@ -1043,6 +1043,7 @@ SQL;
         // e.g. click on a course and nextnodefilter will normally be the next level down, but we are going to ask
         // for a course grouping whilst also having courseid = 2 so course is used for both current and ancestor
         // decorators.
+        // TODO this will wipe out the existing value via the same array key being used. Needs a unit test.
         $filters[$filters['currentfilter']] = 'nextnodefilter';
 
         // Get nodes using unmarked nodes function.
