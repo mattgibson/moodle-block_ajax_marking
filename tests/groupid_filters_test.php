@@ -235,7 +235,6 @@ class groupid_filters_test extends advanced_testcase {
                 $assigngenerator->create_assign_submission($prototypesubmission);
             }
         }
-
     }
 
     /**
@@ -247,9 +246,11 @@ class groupid_filters_test extends advanced_testcase {
         global $DB, $USER;
 
         // Check we got everything.
-        $this->assertEquals(3, $DB->count_records('course_modules'), 'Wrong number of course modules');
+        $this->assertEquals(3, $DB->count_records('course_modules'),
+                            'Wrong number of course modules');
         $this->assertEquals(2, $DB->count_records('groups'), 'Wrong number of groups');
-        $this->assertEquals(3, $DB->count_records('groups_members'), 'Wrong number of group members');
+        $this->assertEquals(3, $DB->count_records('groups_members'),
+                            'Wrong number of group members');
 
         list($query, $params) = block_ajax_marking_group_visibility_subquery();
 
@@ -357,20 +358,22 @@ class groupid_filters_test extends advanced_testcase {
      */
     protected function check_visibility_results($expectedarray, $vanillalist) {
         foreach ($expectedarray as $identifier => $expectation) {
-            $found = false; // We don't know what order the results will come in, just what the identifier is.
+            $found =
+                false; // We don't know what order the results will come in, just what the identifier is.
             foreach ($vanillalist as $settingsrow) {
                 if ($settingsrow->groupid.'-'.$settingsrow->coursemoduleid == $identifier) {
                     $found = true;
                 }
             }
             if ($expectation) {
-                $this->assertTrue($found, 'Combination '.$identifier.' should have been there, but wasn\'t');
+                $this->assertTrue($found,
+                                  'Combination '.$identifier.' should have been there, but wasn\'t');
             } else {
-                $this->assertFalse($found, 'Combination '.$identifier.' should not have been there, but was');
+                $this->assertFalse($found,
+                                   'Combination '.$identifier.' should not have been there, but was');
             }
         }
     }
-
 
     /**
      * Makes a single coursemodule level default setting, then a group setting for group 1 that
@@ -418,10 +421,33 @@ class groupid_filters_test extends advanced_testcase {
             $DB->insert_record('block_ajax_marking_groups', $coursegroupsetting);
     }
 
-
     // These are the tests to cover all possible groups settings via the full query.
     // In all cases, we have three coursemodules in the same course, three users, two groups, with
     // one user in no groups, one user in one group and one user in two groups.
+
+    /**
+     * User 1 is in no groups, so ought to come up with either groupid 0, or missing if the
+     * settings say so.
+     */
+    public function test_no_group_memberships_group_node_appears_coursemoduleid_filter() {
+
+        // User 1 is in no groups. Ought to show up with groupid of 0. This ought to give us
+        // a single node for groupid 0 with a count of 1.
+        $params = array(
+            'coursemoduleid' => 'nextnodefilter',
+        );
+
+        $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+        foreach ($nodes as $node) {
+            if ($node->groupid == 0) {
+                break;
+            }
+        }
+
+        $this->assertObjectHasAttribute('groupid', $node);
+        $this->assertEquals(0, $node->groupid, 'Nothing returned for groupid 0');
+        $this->assertEquals(1, $node->itemcount);
+    }
 
     /**
      * User 1 is in no groups, so ought to come up with either groupid 0, or missing if the
@@ -446,7 +472,6 @@ class groupid_filters_test extends advanced_testcase {
         $this->assertObjectHasAttribute('groupid', $node);
         $this->assertEquals(0, $node->groupid, 'Nothing returned for groupid 0');
         $this->assertEquals(1, $node->itemcount);
-
     }
 
     /**
@@ -470,10 +495,5 @@ class groupid_filters_test extends advanced_testcase {
         $this->assertObjectHasAttribute('userid', $node);
         $this->assertEquals($this->user1->id, $node->userid, 'Wrong userid returned for groupid 0');
         $this->assertEquals(1, $node->itemcount);
-
     }
-
-
-
-
 }
