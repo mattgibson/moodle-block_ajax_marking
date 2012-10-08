@@ -254,7 +254,7 @@ class highest_groupid_test extends advanced_testcase {
         // Add a select or two so we can see if the groupid is there.
         $this->query->add_select(
             array(
-                 'column' => block_ajax_marking_get_countwrapper_groupid_sql(),
+                 'column' => block_ajax_marking_get_countwrapper_groupid_sql($this->query),
                  'alias' => 'groupid'
             ));
         $this->query->add_select(

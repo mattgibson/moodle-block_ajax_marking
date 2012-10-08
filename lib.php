@@ -422,7 +422,7 @@ function block_ajax_marking_login_error() {
  */
 function block_ajax_marking_get_nextnodefilter_from_params(array $params) {
     foreach ($params as $name => $value) {
-        if ($value == 'nextnodefilter') {
+        if ($value === 'nextnodefilter') {
             return $name;
         }
     }
@@ -589,72 +589,28 @@ SQL;
  * This fragment needs to be used in several places as we need cross-db ways of reusing the same thing and SQL variables
  * are implemented differently, so we just copy/paste and let the optimiser deal with it.
  */
-function block_ajax_marking_get_countwrapper_groupid_sql() {
+function block_ajax_marking_get_countwrapper_groupid_sql($query) {
 
     // If the groups have been attached to the countwrapper, we use this.
-    $sql = <<<SQL
-        COALESCE(membergroupquery.groupid, 0)
-SQL;
     $sql = 'gmember_members.groupid';
 
-    return $sql;
+    $sqltogettothegroupid = "
+            CASE
+                WHEN EXISTS (SELECT 1
+                              FROM {groups_members} gcheck_members
+                        INNER JOIN {groups} gcheck_groups
+                                ON gcheck_groups.id = gcheck_members.groupid
+                             WHERE gcheck_members.userid = {$query->get_column('userid')}
+                               AND gcheck_groups.courseid = {$query->get_column('courseid')})
+                    THEN gmember_members.groupid
+                ELSE 0
+            END
+        ";
+
+    return $sqltogettothegroupid;
 
 }
 
-/**
- * We have to do greatest-n-per-group to get the highest group id that's not specified as hidden by the user.
- * This involves repeating the same SQL twice because MySQL doesn't support CTEs.
- *
- * This function provides the base query which shows us the highest groupid per user per coursemodule. We need to also
- * take account of people who have no group memberships, so we need to distinguish between null results because the
- * group is hidden and null results because there is no group.
- */
-function block_ajax_marking_group_max_subquery() {
-
-    global $DB;
-
-    // Params need new names every time.
-    static $counter = 1;
-    $counter++;
-
-    list($visibilitysubquery, $visibilityparams) = block_ajax_marking_group_visibility_subquery();
-    $courses = block_ajax_marking_get_my_teacher_courses();
-    list($coursessql, $coursesparams) = $DB->get_in_or_equal(array_keys($courses),
-                                                             SQL_PARAMS_NAMED,
-                                                             "gmax_{$counter}_courses");
-
-    // This only shows people who have group memberships, so we need to say if there isn't one or not in the outer
-    // query. For this reason, this query will return all group memberships, plus whether they ought to be displayed.
-    // The outer query can then do a left join.
-    $sql = <<<SQL
-
-             /* Start max groupid query */
-
-        SELECT gmax_members{$counter}.userid,
-               gmax_groups{$counter}.id AS groupid,
-               gmax_course_modules{$counter}.id AS coursemoduleid,
-               CASE
-                   WHEN visquery{$counter}.groupid IS NULL THEN 1
-                   ELSE 0
-               END AS display
-          FROM {groups_members} gmax_members{$counter}
-    INNER JOIN {groups} gmax_groups{$counter}
-            ON gmax_groups{$counter}.id = gmax_members{$counter}.groupid
-    INNER JOIN {course_modules} gmax_course_modules{$counter}
-            ON gmax_course_modules{$counter}.course = gmax_groups{$counter}.courseid
-     LEFT JOIN ({$visibilitysubquery}) visquery{$counter}
-            ON visquery{$counter}.groupid = gmax_groups{$counter}.id
-               AND visquery{$counter}.coursemoduleid = gmax_course_modules{$counter}.id
-           /* Limit the size of the subquery for performance */
-         WHERE gmax_groups{$counter}.courseid {$coursessql}
-           AND visquery{$counter}.groupid IS NULL
-
-         /* End max groupid query */
-SQL;
-
-    return array($sql, array_merge($visibilityparams, $coursesparams));
-
-}
 
 /**
  * We have to do greatest-n-per-group to get the highest group id that's not specified as hidden by the user.

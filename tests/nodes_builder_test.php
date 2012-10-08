@@ -120,6 +120,7 @@ class test_nodes_builder_base extends advanced_testcase {
      * Submissions are counted and stored as $this->submissioncount.
      *
      * @param array $modstoinclude the modules to mke submissions for. Default: all.
+     * @return int
      */
     private function make_module_submissions($modstoinclude = array()) {
 
