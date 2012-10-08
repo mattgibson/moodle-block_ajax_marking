@@ -438,6 +438,7 @@ class groupid_filters_test extends advanced_testcase {
         );
 
         $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+        $node = new stdClass();
         foreach ($nodes as $node) {
             if ($node->groupid == 0) {
                 break;
@@ -463,6 +464,7 @@ class groupid_filters_test extends advanced_testcase {
         );
 
         $nodes = block_ajax_marking_nodes_builder_base::unmarked_nodes($params);
+        $node = new stdClass();
         foreach ($nodes as $node) {
             if ($node->groupid == 0) {
                 break;
