@@ -112,6 +112,8 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     protected function get_select($nocache = false) {
 
+        global $CFG;
+
         $selectarray = array();
 
         foreach ($this->select as $select) {
@@ -120,7 +122,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
 
         // For development, we don't want the cache in use - it makes it hard to debug via SQL tools etc.
         $nocachestring = '';
-        if ($nocache) {
+        if ($nocache && ($CFG->dbtype == 'mysql' || $CFG->dbtype == 'mysqli')) {
             $nocachestring = ' SQL_NO_CACHE ';
         }
         return 'SELECT '.$nocachestring.implode(", \n", $selectarray).' ';
