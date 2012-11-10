@@ -112,6 +112,8 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     protected function get_select($nocache = false) {
 
+        global $CFG;
+
         $selectarray = array();
 
         foreach ($this->select as $select) {
@@ -120,7 +122,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
 
         // For development, we don't want the cache in use - it makes it hard to debug via SQL tools etc.
         $nocachestring = '';
-        if ($nocache) {
+        if ($nocache && ($CFG->dbtype == 'mysql' || $CFG->dbtype == 'mysqli')) {
             $nocachestring = ' SQL_NO_CACHE ';
         }
         return 'SELECT '.$nocachestring.implode(", \n", $selectarray).' ';
@@ -153,6 +155,12 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
             $selectstring = ' '.$select['function'].'('.$selectstring.') ';
         }
         if (isset($select['alias']) && !$forgroupby) {
+
+            if (isset($select['column']) && $this->is_postgres()) {
+                if (preg_match('#^(\'|").+\1$#', $select['column'])) {
+                    $selectstring .= '::text ';
+                }
+            }
             $selectstring .= ' AS '.$select['alias'];
         }
 
@@ -631,7 +639,7 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
 
         // We may have a problem with params being missing. Check here (assuming the params ar in
         // SQL_PARAMS_NAMED format And tell us the names of the offending params via an exception.
-        $pattern = '/:([\w]+)/';
+        $pattern = '/[^:]:([\w]+)/';
         $expectedparamcount = preg_match_all($pattern, $sql, $paramnames);
         if ($expectedparamcount) {
             $arrayparamnames = array_keys($params);
@@ -777,6 +785,23 @@ class block_ajax_marking_query_base implements block_ajax_marking_query {
      */
     public function get_number_of_unioned_subqueries() {
         return 1;
+    }
+
+    /**
+     * Function to enable ugly hacks that allow us to discriminate between postgres and other DBs.
+     *
+     * @return bool
+     */
+    protected function is_postgres() {
+
+        global $CFG;
+
+        $postgrestypes = array(
+            'pgsql'
+        );
+
+        return in_array($CFG->dbtype, $postgrestypes);
+
     }
 }
 
