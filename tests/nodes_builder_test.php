@@ -1097,7 +1097,12 @@ class test_nodes_builder_base extends advanced_testcase {
 
     public function test_coursework_query_single_with_allocation() {
 
-        global $USER;
+        global $USER, $DB;
+
+        // Perhaps the coursework module is not here?
+        if (!$DB->record_exists('modules', array('name' => 'coursework', 'visible' => 1))) {
+            return;
+        }
 
         $generator = $this->getDataGenerator();
         /* @var mod_coursework_generator $courseworkgenerator */
