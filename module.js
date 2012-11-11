@@ -24,8 +24,11 @@
  */
 
 
-if (typeof M === 'undefined') {
+if (M === 'undefined') {
     var M = {};
+}
+if (M.block_ajax_marking === 'undefined') {
+    var M.block_ajax_marking = {};
 }
 
 // Emulates the trim function if it's not there.
@@ -38,7 +41,7 @@ if (typeof String.prototype.trim !== 'function') {
 
 // Modules that add their own javascript will have already defined this, but here just in case.
 
-M.block_ajax_marking = {
+M.block_ajax_marking.main = {
 
     /**
      * This holds the parent node so it can be referenced by other functions.
@@ -250,7 +253,7 @@ M.block_ajax_marking = {
                                                                   index);
             } else if (typeof(ajaxresponsearray.nodes) !== 'undefined') {
                 currenttab.displaywidget.build_nodes(ajaxresponsearray.nodes, index);
-            } else if (typeof(ajaxresponsearray['configsave']) !== 'undefined') {
+            } else if (typeof(ajaxresponsearray.configsave) !== 'undefined') {
 
                 if (ajaxresponsearray.configsave.success === true) {
                     // Maybe it's a contextmenu settings change, maybe it's an icon click.
@@ -522,7 +525,7 @@ M.block_ajax_marking = {
     get_dynamic_icon : function(iconname, alttext) {
         "use strict";
 
-        var icon = YAHOO.util.Dom.get('block_ajax_marking_'+iconname+'_icon'),
+        var icon = Y.one('block_ajax_marking_'+iconname+'_icon'),
             newicon;
 
         if (!icon) {
