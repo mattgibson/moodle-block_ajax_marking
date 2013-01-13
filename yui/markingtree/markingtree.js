@@ -143,16 +143,12 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             // from the last node that was expanded.
             M.block_ajax_marking.oncompletefunctionholder = null;
 
-            // Show that the ajax request has been initialised.
-//            Y.one('#mainicon').addClass('loaderimage');
-
             // Send the ajax request.
             Y.io(this.ajaxnodesurl, {
                 on: {
                     success:this.mainwidget.ajax_success_handler,
                     failure: this.mainwidget.ajax_failure_handler
                 }, context: this.mainwidget, method: 'post', data:this.initial_nodes_data});
-//            Y.YUI2.util.Connect.asyncRequest('POST', this.ajaxnodesurl, M.block_ajax_marking.callback, this.initial_nodes_data);
             this.add_loading_icon();
 
         },
@@ -223,10 +219,16 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             nodefilters.push('nodeindex='+clickednode.index);
             nodefilters = nodefilters.join('&');
 
-            Y.YUI2.util.Connect.asyncRequest('POST',
-                                            this.ajaxnodesurl,
-                                            M.block_ajax_marking.callback,
-                                            nodefilters);
+//            Y.YUI2.util.Connect.asyncRequest('POST',
+//                                            this.ajaxnodesurl,
+//                                            M.block_ajax_marking.callback,
+//                                            nodefilters);
+            // Send the ajax request.
+            Y.io(clickednode.tree.ajaxnodesurl, {
+                on: {
+                    success: clickednode.tree.mainwidget.ajax_success_handler,
+                    failure: clickednode.tree.mainwidget.ajax_failure_handler
+                }, context: clickednode.tree.mainwidget, method: 'post', data: nodefilters});
 
         },
 
