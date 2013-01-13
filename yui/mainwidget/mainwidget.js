@@ -880,10 +880,16 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
             }
             poststring = temparray.join('&');
 
-            Y.YUI2.util.Connect.asyncRequest('POST',
-                                            M.cfg.wwwroot + '/blocks/ajax_marking/actions/config_save.php',
-                                            this.callback,
-                                            poststring);
+//            Y.YUI2.util.Connect.asyncRequest('POST',
+//                                            M.cfg.wwwroot + '/blocks/ajax_marking/actions/config_save.php',
+//                                            this.callback,
+//                                            poststring);
+
+            Y.io(M.cfg.wwwroot + '/blocks/ajax_marking/actions/config_save.php', {
+                on: {
+                    success: clickednode.tree.mainwidget.ajax_success_handler,
+                    failure: clickednode.tree.mainwidget.ajax_failure_handler
+                }, context: clickednode.tree.mainwidget, method: 'post', data: poststring});
         },
 
         /**

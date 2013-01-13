@@ -156,10 +156,15 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
             nodefilters.push('nodeindex='+this.index);
             nodefilters = nodefilters.join('&');
 
-            Y.YUI2.util.Connect.asyncRequest('POST',
-                                            M.block_ajax_marking.ajaxcounturl,
-                                            M.block_ajax_marking.callback,
-                                            nodefilters);
+//            Y.YUI2.util.Connect.asyncRequest('POST',
+//                                            M.block_ajax_marking.ajaxcounturl,
+//                                            M.block_ajax_marking.callback,
+//                                            nodefilters);
+            Y.io(this.tree.ajaxcounturl, {
+                on: {
+                    success: this.tree.mainwidget.ajax_success_handler,
+                    failure: this.tree.mainwidget.ajax_failure_handler
+                }, context: this.tree.mainwidget, method: 'post', data: nodefilters});
         },
 
         /**
@@ -173,10 +178,15 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
             nodefilters.push('nodeindex='+this.index);
             nodefilters = nodefilters.join('&');
 
-            Y.YUI2.util.Connect.asyncRequest('POST',
-                                            M.block_ajax_marking.childnodecountsurl,
-                                            M.block_ajax_marking.callback,
-                                            nodefilters);
+//            Y.YUI2.util.Connect.asyncRequest('POST',
+//                                            M.block_ajax_marking.childnodecountsurl,
+//                                            M.block_ajax_marking.callback,
+//                                            nodefilters);
+            Y.io(this.tree.childnodecountsurl, {
+                on: {
+                    success: this.tree.mainwidget.ajax_success_handler,
+                    failure: this.tree.mainwidget.ajax_failure_handler
+                }, context: this.tree.mainwidget, method: 'post', data: nodefilters});
         }
 
     }, {

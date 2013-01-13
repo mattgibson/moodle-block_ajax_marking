@@ -219,10 +219,6 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             nodefilters.push('nodeindex='+clickednode.index);
             nodefilters = nodefilters.join('&');
 
-//            Y.YUI2.util.Connect.asyncRequest('POST',
-//                                            this.ajaxnodesurl,
-//                                            M.block_ajax_marking.callback,
-//                                            nodefilters);
             // Send the ajax request.
             Y.io(clickednode.tree.ajaxnodesurl, {
                 on: {
