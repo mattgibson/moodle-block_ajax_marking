@@ -731,7 +731,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                 // Without cloneNode(), it takes the node away from the original hidden div
                 // so it only works once
                 tmp = document.createElement("div");
-                tmp.appendChild(icon);
+                tmp.appendChild(icon.getDOMNode());
                 html += tmp.innerHTML;
             }
 
