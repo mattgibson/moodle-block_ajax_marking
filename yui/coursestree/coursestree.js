@@ -65,7 +65,7 @@ YUI.add('moodle-block_ajax_marking-coursestree', function (Y) {
                 currentfilter = node.get_current_filter_name();
 
             // Allow override by modules.
-            moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
+            moduleoverride = this.get_next_nodefilter_from_module(modulename,
                                                                                   currentfilter);
 
             // Groups first if there are any. Always coursemodule -> group, to keep it consistent.

@@ -547,7 +547,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
 
             var html,
                 countbits,
-                icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style());
+                icon = this.get_dynamic_icon(this.get_icon_style());
 
             if (this.get_count(false)) {
 
@@ -557,7 +557,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
 
                 if (icon) {
                     icon.className += ' nodeicon';
-                    html += M.block_ajax_marking.get_dynamic_icon_string(icon);
+                    html += this.get_dynamic_icon_string(icon);
                 }
 
                 html += '<div class="nodelabelwrapper">';
@@ -686,6 +686,56 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
             tooltip = (tooltipexists) ? this.data.displaydata.tooltip : '';
 
             return this.data.displaydata.name+': '+tooltip;
+        },
+
+        /**
+         * Fetches an icon from the hidden div where the theme has rendered them (taking all the theme and
+         * module overrides into account), then returns it, optionally changing the alt text on the way
+         */
+        get_dynamic_icon: function (iconname, alttext) {
+
+            var icon = Y.one('block_ajax_marking_' + iconname + '_icon'),
+                newicon;
+
+            if (!icon) {
+                return false;
+            }
+
+            newicon = icon.cloneNode(true); // Avoid altering the original one.
+
+            if (newicon && typeof alttext !== 'undefined') {
+                newicon.alt = alttext;
+            }
+
+            // avoid collisions
+            try {
+                delete newicon.id;
+            } catch (e) {
+                // keep IE9 happy
+                newicon.id = null;
+            }
+
+            return newicon;
+        },
+
+        /**
+         * Returns a HTML string representation of a dynamic icon
+         */
+        get_dynamic_icon_string: function (icon) {
+
+            var html = '',
+                tmp;
+
+            if (icon) {
+                // hacky way to get a string representation of an icon.
+                // Without cloneNode(), it takes the node away from the original hidden div
+                // so it only works once
+                tmp = document.createElement("div");
+                tmp.appendChild(icon);
+                html += tmp.innerHTML;
+            }
+
+            return html;
         },
 
         /**

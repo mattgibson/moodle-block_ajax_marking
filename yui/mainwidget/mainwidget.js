@@ -42,7 +42,11 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
         MAINWIDGET.superclass.constructor.apply(this, arguments);
     };
 
-    // These are all the functions that used to be in module.js.
+    /**
+     * These are all the functions that used to be in module.js.
+     *
+     * @class M.block_ajax_marking.mainwidget
+     */
     Y.extend(MAINWIDGET, Y.Base, {
 
         /**
@@ -85,31 +89,6 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
         showinheritance : false,
 
         /**
-         * Finds out whether there is a custom nextnodefilter defined by the specific module e.g.
-         * quiz question. Allows the standard progression of nodes to be overridden.
-         *
-         * @param {string} modulename
-         * @param {string} currentfilter
-         * @return bool|string
-         */
-        get_next_nodefilter_from_module : function (modulename, currentfilter) {
-
-            var nextnodefilter = null,
-                modulejavascript;
-
-            if (typeof modulename === 'string') {
-                if (typeof M.block_ajax_marking[modulename] === 'object') {
-                    modulejavascript = M.block_ajax_marking[modulename];
-                    if (typeof modulejavascript.nextnodetype === 'function') {
-                        nextnodefilter = modulejavascript.nextnodetype(currentfilter);
-                    }
-                }
-            }
-
-            return nextnodefilter;
-        },
-
-        /**
          * Turns the raw groups data from the tree node into menu items and attaches them to the menu. Uses
          * the course groups (courses will have all groups even if there are no settings) to make the full
          * list and combines course defaults and coursemodule settings when it needs to for coursemodules
@@ -126,7 +105,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
                 numberofgroups,
                 groupindex,
                 i,
-                iscontextmenu = menu instanceof this.Y.YUI2.widget.ContextMenu;
+                iscontextmenu = menu instanceof Y.YUI2.widget.ContextMenu;
 
             groups = clickednode.get_groups();
             numberofgroups = groups.length;
@@ -187,7 +166,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
          * @param {Object} o the ajax response object, passed automatically
          * @return void
          */
-        ajax_success_handler : function (o) {
+        ajax_success_handler : function (id, o, args) {
 
             var errormessage,
                 ajaxresponsearray,
@@ -195,7 +174,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
                 index;
 
             try {
-                ajaxresponsearray = this.Y.YUI2.lang.JSON.parse(o.responseText);
+                ajaxresponsearray = Y.JSON.parse(o.responseText);
             } catch (error) {
                 // add an empty array of nodes so we trigger all the update and cleanup stuff
                 errormessage = '<strong>An error occurred:</strong><br />';
@@ -365,18 +344,19 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
          * @param {Boolean} notloggedin ignores the fact that a user is not an admin. Used to show 'not logged in'
          */
         show_error : function (errormessage, notloggedin) {
+            var errordiv = Y.one('#block_ajax_marking_error');
 
             if (typeof M.cfg.developerdebug === 'undefined' && !notloggedin) {
                 errormessage = M.str.block_ajax_marking.errorcontactadmin;
             }
 
             if (typeof errormessage === 'string') {
-                document.getElementById('block_ajax_marking_error').innerHTML = errormessage;
+                errordiv.innerHTML = errormessage;
             }
-            Y.one('block_ajax_marking_error').setStyle('display', 'block');
+            errordiv.setStyle('display', 'block');
             if (notloggedin) {
                 // Login message never needs scroll bars and they mess it up
-                Y.one('block_ajax_marking_error').setStyle('overflow-x', 'auto');
+                errordiv.setStyle('overflow-x', 'auto');
             }
         },
 
@@ -387,7 +367,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
          * @param {Object} o the ajax response object, passed automatically
          * @return void
          */
-        ajax_failure_handler : function (o) {
+        ajax_failure_handler : function (id, o, args) {
 
             // Transaction aborted.
             if (o.tId === -1) {
@@ -407,7 +387,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
         /**
          * If the AJAX connection times out, this will handle things so we know what happened
          */
-        ajax_timeout_handler : function () {
+        ajax_timeout_handler : function (id, o, args) {
 
             this.show_error(M.str.block_ajax_marking.connecttimeout, false);
             this.get_current_tab().displaywidget.rebuild_parent_and_tree_count_after_new_nodes();
@@ -502,56 +482,6 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
         },
 
         /**
-         * Fetches an icon from the hidden div where the theme has rendered them (taking all the theme and
-         * module overrides into account), then returns it, optionally changing the alt text on the way
-         */
-        get_dynamic_icon : function (iconname, alttext) {
-
-            var icon = Y.one('block_ajax_marking_' + iconname + '_icon'),
-                newicon;
-
-            if (!icon) {
-                return false;
-            }
-
-            newicon = icon.cloneNode(true); // Avoid altering the original one.
-
-            if (newicon && typeof alttext !== 'undefined') {
-                newicon.alt = alttext;
-            }
-
-            // avoid collisions
-            try {
-                delete newicon.id;
-            } catch (e) {
-                // keep IE9 happy
-                newicon.id = null;
-            }
-
-            return newicon;
-        },
-
-        /**
-         * Returns a HTML string representation of a dynamic icon
-         */
-        get_dynamic_icon_string : function (icon) {
-
-            var html = '',
-                tmp;
-
-            if (icon) {
-                // hacky way to get a string representation of an icon.
-                // Without cloneNode(), it takes the node away from the original hidden div
-                // so it only works once
-                tmp = document.createElement("div");
-                tmp.appendChild(icon);
-                html += tmp.innerHTML;
-            }
-
-            return html;
-        },
-
-        /**
          * When the page is loaded, we need to make CSS styles dynamically using the icon urls that
          * the theme has provided for us. This isn't possible in normal CSS because the Theme has various
          * defaults and overrides so the icon path is not the same for all modules, users, themes etc.
@@ -598,13 +528,164 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
         },
 
         /**
+         * Config tab.
+         * @param Y
+         */
+        add_config_tab:function (Y) {
+            var configtabconfig = {
+                label:'<img src="' + M.cfg.wwwroot + '/blocks/ajax_marking/pix/cog.png" alt="cogs" id="configtabicon" />',
+                id:'configtab',
+                content:'<div id="configheader" class="treetabheader">' +
+                    '<div id="configrefresh" class="refreshbutton"></div>' +
+                    '<div id="configstatus" class="statusdiv"></div>' +
+                    '<div class="block_ajax_marking_spacer"></div>' +
+                    '</div>' +
+                    '<div id="configtree" class="ygtv-highlight markingtree"></div>'
+            };
+            var configtab = new Y.Tab(configtabconfig);
+            this.tabview.add(configtab);
+            configtab.displaywidget = new M.block_ajax_marking.configtree(this, 'configtree');
+            this.configtab_tree = configtab.displaywidget;
+            configtab.displaywidget.tab = configtab; // reference to allow links back to tab from tree
+
+            configtab.displaywidget.render();
+            // We want the dropdown for the current node to hide when an expand action happens (if it's
+            // open)
+            configtab.displaywidget.subscribe('expand', this.hide_open_menu);
+
+            configtab.refreshbutton = new Y.YUI2.widget.Button({
+                label:'<img src="' + M.cfg.wwwroot + '/blocks/ajax_marking/pix/refresh-arrow.png" ' +
+                    'class="refreshicon" alt="' + M.str.block_ajax_marking.refresh + '" />',
+                id:'configrefresh_button',
+                onclick:{fn:function () {
+                    Y.one('block_ajax_marking_error').setStyle('display', 'none');
+                    configtab.displaywidget.initialise();
+                }},
+                container:'configrefresh'
+            });
+        },
+
+        /**
+         * Cohorts tab.
+         *
+         * @param Y
+         */
+        add_cohorts_tab:function (Y) {
+            var cohortstabconfig = {
+                label:'Cohorts',
+                id:'cohortstab',
+                content:'<div id="cohortsheader" class="treetabheader">' +
+                    '<div id="cohortsrefresh" class="refreshbutton"></div>' +
+                    '<div id="cohortsstatus" class="statusdiv">' +
+                    M.str.block_ajax_marking.totaltomark +
+                    ' <span id="cohortscount" class="countspan"></span>' +
+                    '</div>' +
+                    '<div class="block_ajax_marking_spacer"></div>' +
+                    '</div>' +
+                    '<div id="cohortstree" class="ygtv-highlight markingtree"></div>'
+            };
+            var cohortstab = new Y.Tab(cohortstabconfig);
+            this.tabview.add(cohortstab);
+            cohortstab.displaywidget = new M.block_ajax_marking.cohortstree(this, 'cohortstree');
+            this.cohortstab_tree = cohortstab.displaywidget;
+            // Reference to allow links back to tab from tree.
+            cohortstab.displaywidget.tab = cohortstab;
+            cohortstab.displaywidget.render();
+
+            // reference to allow links back to tab from tree
+            cohortstab.displaywidget.countdiv = document.getElementById('cohortscount');
+
+            cohortstab.refreshbutton = new Y.YUI2.widget.Button({
+                label:'<img src="' + M.cfg.wwwroot +
+                    '/blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon" ' +
+                    'alt="' + M.str.block_ajax_marking.refresh + '" />',
+                id:'cohortsrefresh_button',
+                title:M.str.block_ajax_marking.refresh,
+                onclick:{fn:function () {
+                    Y.one('block_ajax_marking_error').setStyle('display', 'none');
+                    cohortstab.displaywidget.initialise();
+                }},
+                container:'cohortsrefresh'
+            });
+        },
+
+        /**
+         *
+         * @param Y
+         */
+        add_courses_tab:function (Y) {
+            var coursetabconfig = {
+                label:'Courses',
+                id:'coursestab',
+
+                'content':'<div id="coursessheader" class="treetabheader">' +
+                    '<div id="coursesrefresh" class="refreshbutton"></div>' +
+                    '<div id="coursesstatus" class="statusdiv">' +
+                    M.str.block_ajax_marking.totaltomark +
+                    ' <span id="coursescount" class="countspan"></span>' +
+                    '</div>' +
+                    '<div class="block_ajax_marking_spacer"></div>' +
+                    '</div>' +
+                    '<div id="coursestree" class="ygtv-highlight markingtree"></div>'
+            };
+            var coursestab = new Y.Tab(coursetabconfig);
+
+            this.tabview.add(coursestab);
+
+            coursestab.displaywidget = new M.block_ajax_marking.coursestree(this, 'coursestree');
+            // reference so we can tell the tree to auto-refresh
+            this.coursestab_tree = coursestab.displaywidget;
+            coursestab.displaywidget.render();
+            coursestab.displaywidget.tab = coursestab; // reference to allow links back to tab from tree
+            coursestab.displaywidget.countdiv = document.getElementById('coursescount'); // reference to allow links back to tab from tree
+
+            coursestab.refreshbutton = new Y.YUI2.widget.Button({
+                label:'<img src="' + M.cfg.wwwroot + '/blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon"' +
+                    ' alt="' + M.str.block_ajax_marking.refresh + '" />',
+                id:'coursesrefresh_button',
+                title:M.str.block_ajax_marking.refresh,
+                onclick:{fn:function () {
+                    Y.one('block_ajax_marking_error').setStyle('display', 'none');
+                    coursestab.displaywidget.initialise();
+                }},
+                container:'coursesrefresh'
+            });
+
+            // Make the context menu for the courses tree
+            // Attach a listener to the root div which will activate the menu
+            // menu needs to be repositioned next to the clicked node
+            // menu
+            //
+            // Menu needs to be made of
+            // - show/hide toggle
+            // - show/hide group nodes
+            // - submenu to show/hide specific groups
+            coursestab.contextmenu = new M.block_ajax_marking.contextmenu(
+                "maincontextmenu",
+                {
+                    trigger:"coursestree",
+                    keepopen:true,
+                    lazyload:false,
+                    zindex:1001
+                }
+            );
+            // Initial render makes sure we have something to add and takeaway items from
+            coursestab.contextmenu.render(document.body);
+            // Make sure the menu is updated to be current with the node it matches
+            coursestab.contextmenu.subscribe("triggerContextMenu",
+                coursestab.contextmenu.load_settings);
+            coursestab.contextmenu.subscribe("beforeHide", function () {
+                coursestab.contextmenu.clickednode.unhighlight();
+                coursestab.contextmenu.clickednode = null;
+            });
+
+            return coursestab;
+        }, /**
          * The initialising stuff to get everything started
          *
          * @return void
          */
         initialise : function (Y) {
-
-            this.Y = Y;
 
             var coursestab,
                 coursetabconfig,
@@ -623,147 +704,17 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
             // Must render first so treeviews have container divs ready
             this.tabview.render();
 
-            // Courses tab
-            coursetabconfig = {
-                label : 'Courses',
-                id : 'coursestab',
 
-                'content' : '<div id="coursessheader" class="treetabheader">' +
-                                        '<div id="coursesrefresh" class="refreshbutton"></div>' +
-                                        '<div id="coursesstatus" class="statusdiv">' +
-                                            M.str.block_ajax_marking.totaltomark +
-                                            ' <span id="coursescount" class="countspan"></span>' +
-                                        '</div>' +
-                                        '<div class="block_ajax_marking_spacer"></div>' +
-                                     '</div>' +
-                                     '<div id="coursestree" class="ygtv-highlight markingtree"></div>'
-            };
-            coursestab = new Y.Tab(coursetabconfig);
-            this.tabview.add(coursestab);
-
-            coursestab.displaywidget = new M.block_ajax_marking.coursestree('coursestree');
-            // reference so we can tell the tree to auto-refresh
-            this.coursestab_tree = coursestab.displaywidget;
-            coursestab.displaywidget.render();
-            coursestab.displaywidget.tab = coursestab; // reference to allow links back to tab from tree
-            coursestab.displaywidget.countdiv = document.getElementById('coursescount'); // reference to allow links back to tab from tree
-
-            coursestab.refreshbutton = new Y.YUI2.widget.Button({
-                label : '<img src="' + M.cfg.wwwroot + '/blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon"' +
-                            ' alt="' + M.str.block_ajax_marking.refresh + '" />',
-                id : 'coursesrefresh_button',
-                title : M.str.block_ajax_marking.refresh,
-                onclick : {fn : function () {
-                    Y.one('block_ajax_marking_error').setStyle('display', 'none');
-                    coursestab.displaywidget.initialise();
-                }},
-                container : 'coursesrefresh'
-            });
-
-            // Cohorts tab
-            cohortstabconfig = {
-                label : 'Cohorts',
-                id : 'cohortstab',
-                content : '<div id="cohortsheader" class="treetabheader">' +
-                                '<div id="cohortsrefresh" class="refreshbutton"></div>' +
-                                '<div id="cohortsstatus" class="statusdiv">' +
-                                    M.str.block_ajax_marking.totaltomark +
-                                    ' <span id="cohortscount" class="countspan"></span>' +
-                                '</div>' +
-                                '<div class="block_ajax_marking_spacer"></div>' +
-                            '</div>' +
-                            '<div id="cohortstree" class="ygtv-highlight markingtree"></div>'
-            };
-            cohortstab = new Y.Tab(cohortstabconfig);
-            this.tabview.add(cohortstab);
-            cohortstab.displaywidget = new M.block_ajax_marking.cohortstree('cohortstree');
-            this.cohortstab_tree = cohortstab.displaywidget;
-            // Reference to allow links back to tab from tree.
-            cohortstab.displaywidget.tab = cohortstab;
-            cohortstab.displaywidget.render();
-
-            // reference to allow links back to tab from tree
-            cohortstab.displaywidget.countdiv = document.getElementById('cohortscount');
-
-            cohortstab.refreshbutton = new Y.YUI2.widget.Button({
-                label : '<img src="' + M.cfg.wwwroot +
-                        '/blocks/ajax_marking/pix/refresh-arrow.png" class="refreshicon" ' +
-                            'alt="' + M.str.block_ajax_marking.refresh + '" />',
-                id : 'cohortsrefresh_button',
-                title : M.str.block_ajax_marking.refresh,
-                onclick : {fn : function () {
-                    Y.one('block_ajax_marking_error').setStyle('display', 'none');
-                    cohortstab.displaywidget.initialise();
-                }},
-                container : 'cohortsrefresh'
-            });
-
-            // Config tab.
-            configtabconfig = {
-                label : '<img src="' + M.cfg.wwwroot + '/blocks/ajax_marking/pix/cog.png" alt="cogs" id="configtabicon" />',
-                id : 'configtab',
-                content : '<div id="configheader" class="treetabheader">' +
-                                '<div id="configrefresh" class="refreshbutton"></div>' +
-                                '<div id="configstatus" class="statusdiv"></div>' +
-                                '<div class="block_ajax_marking_spacer"></div>' +
-                            '</div>' +
-                            '<div id="configtree" class="ygtv-highlight markingtree"></div>'
-            };
-            configtab = new Y.Tab(configtabconfig);
-            this.tabview.add(configtab);
-            configtab.displaywidget = new M.block_ajax_marking.configtree('configtree');
-            this.configtab_tree = configtab.displaywidget;
-            configtab.displaywidget.tab = configtab; // reference to allow links back to tab from tree
-
-            configtab.displaywidget.render();
-            // We want the dropdown for the current node to hide when an expand action happens (if it's
-            // open)
-            configtab.displaywidget.subscribe('expand', this.hide_open_menu);
-
-            configtab.refreshbutton = new this.Y.YUI2.widget.Button({
-                label : '<img src="' + M.cfg.wwwroot + '/blocks/ajax_marking/pix/refresh-arrow.png" ' +
-                                 'class="refreshicon" alt="' + M.str.block_ajax_marking.refresh + '" />',
-                id : 'configrefresh_button',
-                onclick : {fn : function () {
-                    Y.one('block_ajax_marking_error').setStyle('display', 'none');
-                    configtab.displaywidget.initialise();
-                }},
-                container : 'configrefresh'
-            });
-
-            // Make the context menu for the courses tree
-            // Attach a listener to the root div which will activate the menu
-            // menu needs to be repositioned next to the clicked node
-            // menu
-            //
-            // Menu needs to be made of
-            // - show/hide toggle
-            // - show/hide group nodes
-            // - submenu to show/hide specific groups
-            coursestab.contextmenu = new M.block_ajax_marking.contextmenu(
-                "maincontextmenu",
-                {
-                    trigger : "coursestree",
-                    keepopen : true,
-                    lazyload : false,
-                    zindex: 1001
-                }
-            );
-            // Initial render makes sure we have something to add and takeaway items from
-            coursestab.contextmenu.render(document.body);
-            // Make sure the menu is updated to be current with the node it matches
-            coursestab.contextmenu.subscribe("triggerContextMenu",
-                                             coursestab.contextmenu.load_settings);
-            coursestab.contextmenu.subscribe("beforeHide", function () {
-                coursestab.contextmenu.clickednode.unhighlight();
-                coursestab.contextmenu.clickednode = null;
-            });
+            // Add all the tabs.
+            this.add_courses_tab(Y);
+            this.add_cohorts_tab(Y);
+            this.add_config_tab(Y);
 
             // Set event that makes a new tree if it's needed when the tabs change.
             this.tabview.after('selectionChange', function () {
 
                 // get current tab and keep a reference to it
-                var currenttab = this.get('selection');
+                var currenttab = this.get('selection'); // this = the tabview instance.
 
                 // If settings have changed on another tab, we must refresh so that things reflect
                 // the new settings.
@@ -872,7 +823,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
                 requestdata.settingvalue = settingtorequest;
             }
             requestdata.tablename = (currentfiltername === 'courseid') ? 'course' : 'course_modules';
-            iscontextmenu = this.parent instanceof this.Y.YUI2.widget.ContextMenu;
+            iscontextmenu = this.parent instanceof Y.YUI2.widget.ContextMenu;
             requestdata.menutype = iscontextmenu ? 'contextmenu' : 'buttonmenu';
             requestdata.instanceid = clickednode.get_current_filter_value();
 
@@ -929,7 +880,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
             }
             poststring = temparray.join('&');
 
-            this.Y.YUI2.util.Connect.asyncRequest('POST',
+            Y.YUI2.util.Connect.asyncRequest('POST',
                                             M.cfg.wwwroot + '/blocks/ajax_marking/actions/config_save.php',
                                             this.callback,
                                             poststring);
@@ -969,8 +920,10 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
 
     M.block_ajax_marking = M.block_ajax_marking || {};
 
+    M.block_ajax_marking.mainwidget = MAINWIDGET;
+
     M.block_ajax_marking.init_block = function (config) { // 'config' contains the parameter values
-        var block = new MAINWIDGET(); // 'config' contains the parameter values
+        var block = new M.block_ajax_marking.mainwidget(); // 'config' contains the parameter values
     };
 
 }, '@VERSION@', {
@@ -985,5 +938,6 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
         'tabview',
         'moodle-block_ajax_marking-coursestree',
         'moodle-block_ajax_marking-cohortstree',
-        'moodle-block_ajax_marking-configtree']
+        'moodle-block_ajax_marking-configtree',
+        'io-base']
 });

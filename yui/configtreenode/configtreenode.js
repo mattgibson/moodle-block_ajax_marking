@@ -112,7 +112,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                 sb = [],
                 groupsdisplaysetting,
                 groupscount = this.get_groups_count(),
-                icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style()),
+                icon = this.get_dynamic_icon(this.get_icon_style()),
                 displaytype,
                 displayicon,
                 groupsicon,
@@ -133,7 +133,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                     // Keep IE9 happy.
                     icon.id = undefined;
                 }
-                sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
+                sb[sb.length] = this.get_dynamic_icon_string(icon);
             }
 
             sb[sb.length] = '<div class="nodelabel" title="'+this.get_tooltip()+'">';
@@ -153,7 +153,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             displaysetting = this.get_setting_to_display('display');
             displaytype = displaysetting ? 'hide' : 'show'; // Icons are named after their actions.
 
-            displayicon = M.block_ajax_marking.get_dynamic_icon(displaytype);
+            displayicon = this.get_dynamic_icon(displaytype);
 
             try {
                 delete displayicon.id;
@@ -162,7 +162,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                 // Keep IE9 happy.
                 displayicon.id = undefined;
             }
-            displayicon = M.block_ajax_marking.get_dynamic_icon_string(displayicon);
+            displayicon = this.get_dynamic_icon_string(displayicon);
 
             sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ';
             sb[sb.length] = '"><div class="ygtvspacer">'+displayicon+'</div></td>';
@@ -177,7 +177,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
 
                 // Icons are named after their actions.
                 groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups';
-                groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
+                groupsicon = this.get_dynamic_icon(groupstype);
                 try {
                     delete groupsicon.id;
                 }
@@ -185,7 +185,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                     // Keep IE9 happy.
                     groupsicon.id = undefined;
                 }
-                groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
+                groupsicon = this.get_dynamic_icon_string(groupsicon);
 
             }
             sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groupsdisplay_icon ';
@@ -404,7 +404,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
 
             // Get the icon, remove the old one and put it in place. Includes the title attribute,
             // which matters for accessibility.
-            icon = M.block_ajax_marking.get_dynamic_icon(iconname);
+            icon = this.get_dynamic_icon(iconname);
             M.block_ajax_marking.remove_all_child_nodes(spacerdiv);
             spacerdiv.appendChild(icon);
         },

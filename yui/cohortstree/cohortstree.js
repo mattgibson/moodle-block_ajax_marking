@@ -88,7 +88,7 @@ YUI.add('moodle-block_ajax_marking-cohortstree', function (Y) {
             }
 
             // Allow override by modules
-            moduleoverride = M.block_ajax_marking.get_next_nodefilter_from_module(modulename,
+            moduleoverride = this.get_next_nodefilter_from_module(modulename,
                                                                                   currentfilter);
             if (moduleoverride) {
                 return moduleoverride;

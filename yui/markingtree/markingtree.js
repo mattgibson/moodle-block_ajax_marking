@@ -32,6 +32,8 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
      */
     var MARKINGTREENAME = 'markingtree',
         MARKINGTREE = function () {
+            var shift = [].shift;
+            this.mainwidget = shift.apply(arguments);
             MARKINGTREE.superclass.constructor.apply(this, arguments);
             this.singleNodeHighlight = true;
             this.subscribe('clickEvent', this.clickhandler);
@@ -145,10 +147,40 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
 //            Y.one('#mainicon').addClass('loaderimage');
 
             // Send the ajax request.
-            Y.YUI2.util.Connect.asyncRequest('POST', this.ajaxnodesurl,
-                                            M.block_ajax_marking.callback, this.initial_nodes_data);
+            Y.io(this.ajaxnodesurl, {
+                on: {
+                    success:this.mainwidget.ajax_success_handler,
+                    failure: this.mainwidget.ajax_failure_handler
+                }, context: this.mainwidget, method: 'post', data:this.initial_nodes_data});
+//            Y.YUI2.util.Connect.asyncRequest('POST', this.ajaxnodesurl, M.block_ajax_marking.callback, this.initial_nodes_data);
             this.add_loading_icon();
 
+        },
+
+
+        /**
+         * Finds out whether there is a custom nextnodefilter defined by the specific module e.g.
+         * quiz question. Allows the standard progression of nodes to be overridden.
+         *
+         * @param {string} modulename
+         * @param {string} currentfilter
+         * @return bool|string
+         */
+        get_next_nodefilter_from_module: function (modulename, currentfilter) {
+
+            var nextnodefilter = null,
+                modulejavascript;
+
+            if (typeof modulename === 'string') {
+                if (typeof M.block_ajax_marking[modulename] === 'object') {
+                    modulejavascript = M.block_ajax_marking[modulename];
+                    if (typeof modulejavascript.nextnodetype === 'function') {
+                        nextnodefilter = modulejavascript.nextnodetype(currentfilter);
+                    }
+                }
+            }
+
+            return nextnodefilter;
         },
 
         /**
