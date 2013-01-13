@@ -558,7 +558,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
                     'class="refreshicon" alt="' + M.str.block_ajax_marking.refresh + '" />',
                 id:'configrefresh_button',
                 onclick:{fn:function () {
-                    Y.one('block_ajax_marking_error').setStyle('display', 'none');
+                    Y.one('#block_ajax_marking_error').setStyle('display', 'none');
                     configtab.displaywidget.initialise();
                 }},
                 container:'configrefresh'
@@ -602,7 +602,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
                 id:'cohortsrefresh_button',
                 title:M.str.block_ajax_marking.refresh,
                 onclick:{fn:function () {
-                    Y.one('block_ajax_marking_error').setStyle('display', 'none');
+                    Y.one('#block_ajax_marking_error').setStyle('display', 'none');
                     cohortstab.displaywidget.initialise();
                 }},
                 container:'cohortsrefresh'
@@ -645,7 +645,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
                 id:'coursesrefresh_button',
                 title:M.str.block_ajax_marking.refresh,
                 onclick:{fn:function () {
-                    Y.one('block_ajax_marking_error').setStyle('display', 'none');
+                    Y.one('#block_ajax_marking_error').setStyle('display', 'none');
                     coursestab.displaywidget.initialise();
                 }},
                 container:'coursesrefresh'

@@ -694,7 +694,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_dynamic_icon: function (iconname, alttext) {
 
-            var icon = Y.one('block_ajax_marking_' + iconname + '_icon'),
+            var icon = Y.one('#block_ajax_marking_' + iconname + '_icon'),
                 newicon;
 
             if (!icon) {
