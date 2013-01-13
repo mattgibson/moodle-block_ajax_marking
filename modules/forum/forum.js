@@ -14,7 +14,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 // Possibly getting to this point before the main block js file is included.
-if (typeof(M.block_ajax_marking) === 'undefined') {
+if (typeof M.block_ajax_marking === 'undefined') {
     M.block_ajax_marking = {};
 }
 
@@ -29,6 +29,7 @@ if (typeof(M.block_ajax_marking) === 'undefined') {
  */
 
 M.block_ajax_marking.forum = (function() {
+    "use strict";
 
     return {
 
@@ -61,4 +62,4 @@ M.block_ajax_marking.forum = (function() {
             }
         }
     };
-})();
+}());

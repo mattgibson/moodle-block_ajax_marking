@@ -93,7 +93,7 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
         rebuild_parent_and_tree_count_after_new_nodes : function (ajaxresponsearray) {
             // finally, run the function that updates the original node and adds the children. Won't be
             // there if we have just built the tree.
-            if (typeof(M.block_ajax_marking.oncompletefunctionholder) === 'function') {
+            if (typeof M.block_ajax_marking.oncompletefunctionholder === 'function') {
                 // Take care - this will be executed in the wrong scope if not careful. it needs this to
                 // be the tree.
                 if (typeof ajaxresponsearray.configsave === 'undefined') {
@@ -120,9 +120,10 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
          */
         add_groups_buttons : function (node) {
 
-            var root = node || this.getRoot();
+            var i,
+                root = node || this.getRoot();
 
-            for (var i = 0; i < root.children.length; i++) {
+            for (i = 0; i < root.children.length; i++) {
                 root.children[i].add_groups_button();
             }
         },
@@ -138,7 +139,7 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
          * Does not need refresh after marking, so deliberately empty. Should never be called, but here
          * in order to fulfil Liskov principle.
          */
-         notify_refresh_needed_after_marking : function () {},
+        notify_refresh_needed_after_marking : function () {},
 
         /**
          * Should empty the count
@@ -171,34 +172,39 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
         clickhandler : function (data) {
 
             var clickednode = data.node,
-                settingtype;
+                settingtype,
+                target,
+                coursenodeclicked = false,
+                currentsetting,
+                defaultsetting,
+                settingtorequest,
+                requestdata = {};
 
-            YAHOO.util.Event.stopEvent(data.event); // Stop it from expanding the tree
+            Y.YUI2.util.Event.stopEvent(data.event); // Stop it from expanding the tree
 
             // is the clicked thing an icon that needs to trigger some thing?
-            var target = YAHOO.util.Event.getTarget(data.event); // the img
+            target = Y.YUI2.util.Event.getTarget(data.event); // the img
             target = target.parentNode.parentNode; // the spacer <div> -> the <td>
 
-            var coursenodeclicked = false;
             if (clickednode.get_current_filter_name() === 'courseid') {
                 coursenodeclicked = true;
             }
 
-            if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_display_icon')) {
+            if (target.hasClass('block_ajax_marking_display_icon')) {
                 settingtype = 'display';
-            } else if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_groupsdisplay_icon')) {
+            } else if (target.hasClass('block_ajax_marking_groupsdisplay_icon')) {
                 settingtype = 'groupsdisplay';
-            } else if (YAHOO.util.Dom.hasClass(target, 'block_ajax_marking_groups_icon')) {
+            } else if (target.hasClass('block_ajax_marking_groups_icon')) {
                 settingtype = 'groups';
-                return false;
+                return false; // TODO is this meant to be here?
             } else {
-                // Not one of the ones we want. ignore this click
+                // Not one of the ones we want. Ignore this click.
                 return false;
             }
 
-            var currentsetting = clickednode.get_config_setting(settingtype);
-            var defaultsetting = clickednode.get_default_setting(settingtype);
-            var settingtorequest = 1;
+            currentsetting = clickednode.get_config_setting(settingtype);
+            defaultsetting = clickednode.get_default_setting(settingtype);
+            settingtorequest = 1;
             // Whatever it is, the user will probably want to toggle it, seeing as they have clicked it.
             // This means we want to assume that it needs to be the opposite of the default if there is
             // no current setting.
@@ -213,7 +219,6 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
 
             // do the AJAX request for the settings change
             // gather data
-            var requestdata = {};
             requestdata.nodeindex = clickednode.index;
             requestdata.settingtype = settingtype;
             if (settingtorequest !== null) { // leaving out defaults to null on the other end

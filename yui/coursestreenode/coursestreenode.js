@@ -95,7 +95,7 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
                 actualsetting = this.get_setting_to_display('group', groupid),
                 currentfiltername = this.get_current_filter_name();
 
-            if (typeof(newsetting) === 'undefined') {
+            if (typeof newsetting === 'undefined') {
                 newsetting = null;
             }
 
@@ -156,7 +156,7 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
             nodefilters.push('nodeindex='+this.index);
             nodefilters = nodefilters.join('&');
 
-            YAHOO.util.Connect.asyncRequest('POST',
+            Y.YUI2.util.Connect.asyncRequest('POST',
                                             M.block_ajax_marking.ajaxcounturl,
                                             M.block_ajax_marking.callback,
                                             nodefilters);
@@ -173,7 +173,7 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
             nodefilters.push('nodeindex='+this.index);
             nodefilters = nodefilters.join('&');
 
-            YAHOO.util.Connect.asyncRequest('POST',
+            Y.YUI2.util.Connect.asyncRequest('POST',
                                             M.block_ajax_marking.childnodecountsurl,
                                             M.block_ajax_marking.callback,
                                             nodefilters);

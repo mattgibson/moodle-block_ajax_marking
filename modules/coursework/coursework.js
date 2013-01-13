@@ -25,7 +25,7 @@
  */
 
 // Possibly getting to this point before the main block js file is included.
-if (typeof(M) === 'undefined') {
+if (typeof M === 'undefined') {
     var M = {};
 }
 if (typeof(M.block_ajax_marking) === 'undefined') {
@@ -43,4 +43,4 @@ M.block_ajax_marking.coursework = (function() {
             return 'menubar=0,location=0,scrollbars,resizable,width=900,height=630';
         }
     };
-})();
+}());

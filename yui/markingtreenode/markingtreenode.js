@@ -47,7 +47,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
     /**
      * @class M.block_ajax_marking.markingtreenode
      */
-    Y.extend(MARKINGTREENODE, YAHOO.widget.HTMLNode, {
+    Y.extend(MARKINGTREENODE, Y.YUI2.widget.HTMLNode, {
 
         /**
          * Getter for the count of unmarked items for this node.
@@ -56,24 +56,28 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_count : function (type) {
 
-            if (type && typeof this.data.displaydata[type+'count'] !== 'undefined') {
-                return parseInt(this.data.displaydata[type+'count'], 10);
+            var result;
+
+            if (type && typeof this.data.displaydata[type + 'count'] !== 'undefined') {
+                result = parseInt(this.data.displaydata[type + 'count'], 10);
             } else if (typeof this.data.displaydata.itemcount !== 'undefined') {
-                return parseInt(this.data.displaydata.itemcount, 10);
+                result = parseInt(this.data.displaydata.itemcount, 10);
             } else {
-                return false;
+                result = false;
             }
+
+            return result;
         },
 
         /**
          * Gets the current setting for the clicked node.
          *
          * @param {string} settingtype
-         * @param {int|Boolean} groupid
+         * @param {Integer|null} groupid
          */
         get_config_setting : function (settingtype, groupid) {
 
-            var setting,
+            var setting = null,
                 errormessage,
                 groups,
                 group;
@@ -89,13 +93,14 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
 
                 case 'group':
 
-                    if (typeof(groupid) === 'undefined' || groupid === false) {
+                    if (typeof groupid === 'undefined' || groupid === false) {
                         errormessage = 'Trying to get a group setting without specifying groupid';
                         M.block_ajax_marking.show_error(errormessage, false);
+                        break;
                     }
 
                     groups = this.get_groups();
-                    if (typeof(groups) === 'undefined') {
+                    if (typeof groups === 'undefined') {
                         setting = null;
                     } else {
                         group = M.block_ajax_marking.get_group_by_id(groups, groupid);
@@ -108,7 +113,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                     break;
 
                 default:
-                    M.block_ajax_marking.error('Invalid setting type: '+settingtype);
+                    M.block_ajax_marking.error('Invalid setting type: ' + settingtype);
             }
 
             // Moodle sends the settings as strings, but we want integers so we can do proper
@@ -182,7 +187,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                 switch (settingtype) {
 
                     case 'group':
-                        if (typeof(groupid) === 'undefined' || groupid === false) {
+                        if (typeof groupid === 'undefined' || groupid === false) {
                             errormessage = 'Trying to get a group setting without specifying groupid';
                             M.block_ajax_marking.show_error(errormessage, false);
                         }
@@ -222,11 +227,16 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          * @return {string} name of the module
          */
         get_modulename : function () {
-            if (typeof(this.data.displaydata.modulename) === 'undefined') {
-                return false;
+
+            var result;
+
+            if (typeof this.data.displaydata.modulename === 'undefined') {
+                result = false;
             } else {
-                return this.data.displaydata.modulename;
+                result = this.data.displaydata.modulename;
             }
+
+            return result;
         },
 
         /**
@@ -259,14 +269,14 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                 node = this.parent;
             }
 
-            if (typeof(node.tree.supplementaryreturndata) !== 'undefined') {
+            if (typeof node.tree.supplementaryreturndata !== 'undefined') {
                 nodefilters.push(this.tree.supplementaryreturndata);
             }
 
             while (!node.isRoot()) {
                 filtername = node.get_current_filter_name();
                 filtervalue = node.get_current_filter_value();
-                nodefilters.push(filtername+'='+filtervalue);
+                nodefilters.push(filtername + '=' + filtervalue);
 
                 node = node.parent;
             }
@@ -284,7 +294,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
             for (thing in this.data.popupstuff) {
 
                 if (this.data.popupstuff.hasOwnProperty(thing)) {
-                    popupstuff.push(thing+'='+this.data.popupstuff[thing]);
+                    popupstuff.push(thing + '=' + this.data.popupstuff[thing]);
                 }
 
             }
@@ -302,8 +312,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                 group,
                 typeofthing = Object.prototype.toString.call(this.data.configdata.groups);
 
-
-            if (typeof(this.data.configdata) === 'object' && typeof(this.data.configdata.groups) === 'object') {
+            if (typeof this.data.configdata === 'object' && typeof this.data.configdata.groups === 'object') {
 
                 if (typeofthing === '[object Object]') {
                     // JSON parsing turns the groups array into an object. More convenient as an array, so
@@ -335,9 +344,8 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
             var i,
                 childnodes = this.children;
 
-
             // Allows for lazily not passing a value in.
-            if (typeof(newsetting) === 'undefined') {
+            if (typeof newsetting === 'undefined') {
                 newsetting = null;
             }
 
@@ -368,9 +376,8 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                 childnodes = this.children,
                 i;
 
-
             // Allows for lazily not passing a value in.
-            if (typeof(newsetting) === 'undefined') {
+            if (typeof newsetting === 'undefined') {
                 newsetting = null;
             }
 
@@ -391,11 +398,15 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_nextnodefilter : function () {
 
-            if (typeof(this.data.returndata.nextnodefilter) === 'undefined') {
-                return false;
+            var result;
+
+            if (typeof this.data.returndata.nextnodefilter === 'undefined') {
+                result = false;
             } else {
-                return this.data.returndata.nextnodefilter;
+                result = this.data.returndata.nextnodefilter;
             }
+
+            return result;
         },
 
         /**
@@ -403,11 +414,16 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          * Oldest = urgency
          */
         get_time : function () {
-            if (typeof(this.data.displaydata.timestamp) === 'undefined') {
-                return false;
+
+            var result;
+
+            if (typeof this.data.displaydata.timestamp === 'undefined') {
+                result = false;
             } else {
-                return parseInt(this.data.displaydata.timestamp, 10);
+                result = parseInt(this.data.displaydata.timestamp, 10);
             }
+
+            return result;
         },
 
         /**
@@ -518,8 +534,10 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                                     M.str.block_ajax_marking['overdue'+suffix]);
             }
 
-            return {count : '<strong>(</strong>'+countarray.join('|')+'<strong>)</strong>',
-                title : titlearray.join(', ')};
+            return {
+                count : '<strong>(</strong>'+countarray.join('|')+'<strong>)</strong>',
+                title : titlearray.join(', ')
+            };
         },
 
         /**
@@ -557,10 +575,11 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
 
                 html += '</div>'; // End of wrapper.
 
-                return html;
             } else {
-                return this.get_displayname();
+                html = this.get_displayname();
             }
+
+            return html;
         },
 
         /**
@@ -660,8 +679,11 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          */
         get_tooltip : function () {
 
-            var tooltipexists = typeof(this.data.displaydata.tooltip) !== 'undefined',
-                tooltip = (tooltipexists) ? this.data.displaydata.tooltip : '';
+            var tooltipexists,
+                tooltip;
+
+            tooltipexists = (typeof this.data.displaydata.tooltip !== 'undefined');
+            tooltip = (tooltipexists) ? this.data.displaydata.tooltip : '';
 
             return this.data.displaydata.name+': '+tooltip;
         },
@@ -694,10 +716,11 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
          * thing.
          *
          * @param {string} settingtype group, display, groupsdisplay
+         * @param {Integer} groupid
          */
         get_setting_to_display : function (settingtype, groupid) {
 
-            if (groupid === undefined) {
+            if (typeof groupid === 'undefined') {
                 groupid = false;
             }
 

@@ -73,7 +73,7 @@ YUI.add('moodle-block_ajax_marking-cohortstree', function (Y) {
                     // If we don't have a setting for this node (null), keep going up the tree
                     // till we find an ancestor that does, or we hit root, when we use the default.
                     groupsdisplay = node.get_calculated_groupsdisplay_setting();
-                    if (groupsdisplay == 1) {
+                    if (groupsdisplay === 1) {
                         nextnodefilter = 'groupid';
                     } else {
                         nextnodefilter = 'userid';

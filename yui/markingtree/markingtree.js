@@ -40,11 +40,17 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
     /**
      * @class M.block_ajax_marking.markingtree
      */
-    Y.extend(MARKINGTREE, YAHOO.widget.TreeView, {
+    Y.extend(MARKINGTREE, Y.YUI2.widget.TreeView, {
 
         // Keeps track of whether this tree needs to be refreshed when the tab changes (if config
         // settings have been altered).
         needsrefresh : false,
+
+        /**
+         * URL for getting the nodes details.
+         * @type {String}
+         */
+        ajaxnodesurl:M.cfg.wwwroot + '/blocks/ajax_marking/actions/ajax_nodes.php',
 
         /**
          * Subclasses may wish to have different nodes.
@@ -55,6 +61,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
          * New unified build nodes function.
          *
          * @param {Array} nodesarray
+         * @param {Integer} nodeindex
          */
         build_nodes : function (nodesarray, nodeindex) {
 
@@ -66,7 +73,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
                 i;
 
             if (nodeindex) {
-                parentnode = this.getNodeByProperty('index', nodeindex)
+                parentnode = this.getNodeByProperty('index', nodeindex);
             } else {
                 parentnode = this.getRoot();
             }
@@ -135,10 +142,10 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             M.block_ajax_marking.oncompletefunctionholder = null;
 
             // Show that the ajax request has been initialised.
-            YAHOO.util.Dom.addClass(document.getElementById('mainicon'), 'loaderimage');
+//            Y.one('#mainicon').addClass('loaderimage');
 
             // Send the ajax request.
-            YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl,
+            Y.YUI2.util.Connect.asyncRequest('POST', this.ajaxnodesurl,
                                             M.block_ajax_marking.callback, this.initial_nodes_data);
             this.add_loading_icon();
 
@@ -184,8 +191,8 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             nodefilters.push('nodeindex='+clickednode.index);
             nodefilters = nodefilters.join('&');
 
-            YAHOO.util.Connect.asyncRequest('POST',
-                                            M.block_ajax_marking.ajaxnodesurl,
+            Y.YUI2.util.Connect.asyncRequest('POST',
+                                            this.ajaxnodesurl,
                                             M.block_ajax_marking.callback,
                                             nodefilters);
 
@@ -330,15 +337,14 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
                 childnode = node.get_child_node_by_filter_id(nextnodefilter,
                                                              childnodedata[nextnodefilter]);
 
-                if (parseInt(childnode.itemcount) === 0) {
+                if (parseInt(childnode.itemcount, 10) === 0) { // If the last child node is gone, we remove the parent.
                     this.remove_node(childnode);
-                    continue;
+                } else {
+                    childnode.set_count(childnodedata.recentcount, 'recent');
+                    childnode.set_count(childnodedata.mediumcount, 'medium');
+                    childnode.set_count(childnodedata.overduecount, 'overdue');
+                    childnode.set_count(childnodedata.itemcount);
                 }
-
-                childnode.set_count(childnodedata.recentcount, 'recent');
-                childnode.set_count(childnodedata.mediumcount, 'medium');
-                childnode.set_count(childnodedata.overduecount, 'overdue');
-                childnode.set_count(childnodedata.itemcount);
             }
 
             node.recalculate_counts();

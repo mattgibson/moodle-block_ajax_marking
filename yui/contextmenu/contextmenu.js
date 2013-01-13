@@ -39,7 +39,7 @@ YUI.add('moodle-block_ajax_marking-contextmenu', function (Y) {
     /**
      * @class M.block_ajax_marking.contextmenu
      */
-    Y.extend(CONTEXTMENU, YAHOO.widget.ContextMenu, {
+    Y.extend(CONTEXTMENU, Y.YUI2.widget.ContextMenu, {
 
         /**
          * Gets the groups from the course node and displays them in the contextmenu.
@@ -91,6 +91,8 @@ YUI.add('moodle-block_ajax_marking-contextmenu', function (Y) {
 
             this.render();
             clickednode.highlight(); // So the user knows what node this menu is for.
+
+            return true;
         },
 
         /**
@@ -137,7 +139,7 @@ YUI.add('moodle-block_ajax_marking-contextmenu', function (Y) {
                     break;
             }
 
-            menuitem = new YAHOO.widget.ContextMenuItem(title, menuitem);
+            menuitem = new Y.YUI2.widget.ContextMenuItem(title, menuitem);
             menuitem = this.addItem(menuitem);
 
             if (clickednode.get_current_filter_name() === 'groupid') {
