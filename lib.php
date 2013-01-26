@@ -232,6 +232,12 @@ function &block_ajax_marking_get_module_classes($reset = false) {
 
     foreach ($enabledmods as $enabledmod) {
 
+        // It's possible that the mod is enabled in the DB, but is missing from the install directory.
+        // If we include the files, we'll cause a problem when it attempts to require them.
+        if (!file_exists($CFG->dirroot . '/mod/' . $enabledmod)) {
+            continue;
+        }
+
         $file = "{$CFG->dirroot}/blocks/ajax_marking/modules/{$enabledmod}/".
                 "block_ajax_marking_{$enabledmod}.class.php";
 
