@@ -116,7 +116,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * @params object $coursemodule
      * @return string HTML
      */
-    public function grading_popup($params, $coursemodule) {
+    public function grading_popup(array $params, $coursemodule) {
 
         global $DB, $CFG, $SESSION, $USER, $OUTPUT;
 

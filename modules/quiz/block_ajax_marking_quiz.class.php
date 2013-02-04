@@ -88,7 +88,7 @@ class block_ajax_marking_quiz extends block_ajax_marking_module_base {
      * @global moodle_database $DB
      * @return string the HTML page
      */
-    public function grading_popup($params, $coursemodule) {
+    public function grading_popup(array $params, $coursemodule) {
 
         global $CFG, $PAGE, $DB, $OUTPUT;
 

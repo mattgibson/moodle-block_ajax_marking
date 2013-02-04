@@ -77,7 +77,7 @@ class block_ajax_marking_coursework extends block_ajax_marking_module_base {
      * @throws moodle_exception
      * @return string
      */
-    public function grading_popup($params, $coursemodule, $data = false) {
+    public function grading_popup(array $params, $coursemodule, $data = false) {
 
         global $CFG, $DB, $USER, $OUTPUT, $PAGE;
 

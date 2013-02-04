@@ -73,7 +73,7 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
      * @global stdClass $USER
      * @return string
      */
-    public function grading_popup($params, $coursemodule, $data = false) {
+    public function grading_popup(array $params, $coursemodule, $data = false) {
 
         global $PAGE, $CFG, $DB;
 
@@ -84,76 +84,200 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
         $assign = new assign($modulecontext, $coursemodule, $course);
 
         /* @var mod_assign_renderer $renderer */
-        $renderer = $PAGE->get_renderer('mod_assign');
+//        $renderer = $PAGE->get_renderer('mod_assign');
+//
+//        $output = '';
+//
+//        // Include grade form.
+//        require_once($CFG->dirroot.'/mod/assign/gradeform.php');
+//
+//        // Need submit permission to submit an assignment.
+//        require_capability('mod/assign:grade', $modulecontext);
+//
+//        /* Pinched from private method assign::get_grading_userid_list() */
+//        $filter = get_user_preferences('assign_filter', '');
+//        $table = new assign_grading_table($assign, 0, $filter, 0, false);
+//        $useridlist = $table->get_column_data('userid');
+//
+//        $userid = $params['userid'];
+//
+//        $rownum = 0;
+//        foreach ($useridlist as $key => $useridinlist) {
+//            if ($useridinlist == $userid) {
+//                $rownum = $key;
+//                reset ($useridlist); // Just in case.
+//                break;
+//            }
+//        }
+//
+//        $last = false;
+//        if ($rownum == count($useridlist) - 1) {
+//            $last = true;
+//        }
+//
+//        $user = $DB->get_record('user', array('id' => $userid));
+//        if ($user) {
+//            $output .= $renderer->render(new assign_user_summary($user, $course->id,
+//                                                                     has_capability('moodle/site:viewfullnames',
+//                                                                                    $coursecontext),
+//                $assign->is_blind_marking())
+//);
+//        }
+//        $submission = $DB->get_record('assign_submission',
+//                                      array('assignment' => $assign->get_instance()->id,
+//                                            'userid' => $userid));
+//
+//        // Get the current grade. Pinched from assign::get_user_grade().
+//        $grade = $DB->get_record('assign_grades',
+//                                 array('assignment' => $assign->get_instance()->id,
+//                                       'userid' => $userid));
+//        // Pinched from assign::is_graded().
+//        $isgraded = (!empty($grade) && $grade->grade !== null && $grade->grade >= 0);
+//
+//        if ($assign->can_view_submission($userid)) {
+//            $gradelocked = ($grade && $grade->locked) || $assign->grading_disabled($userid);
+//            $widget =
+//                new assign_submission_status($assign->get_instance()->allowsubmissionsfromdate,
+//                                             $assign->get_instance()->alwaysshowdescription,
+//                                             $submission,
+//                                             $assign->is_any_submission_plugin_enabled(),
+//                                             $gradelocked,
+//                                             $isgraded,
+//                                             $assign->get_instance()->duedate,
+//                                             $assign->get_submission_plugins(),
+//                                             $assign->get_return_action(),
+//                                             $assign->get_return_params(),
+//                                             $assign->get_course_module()->id,
+//                                             assign_submission_status::GRADER_VIEW,
+//                                             false,
+//                                             false);
+//            $output .= $renderer->render($widget);
+//        }
+//        if ($grade) {
+//            $data = new stdClass();
+//            if ($grade->grade !== null && $grade->grade >= 0) {
+//                $data->grade = format_float($grade->grade, 2);
+//            }
+//        } else {
+//            $data = new stdClass();
+//            $data->grade = '';
+//        }
+//
+//        // Now show the grading form.
+//        $customdata = array(
+//            'useridlist' => $useridlist,
+//            'rownum' => $rownum,
+//            'last' => $last
+//        );
+//        $mform = new mod_assign_grade_form(block_ajax_marking_form_url($params),
+//                                           array($assign,
+//                                                 $data,
+//                                                 $customdata),
+//                                           'post',
+//                                           '',
+//                                           array('class' => 'gradeform'));
+//        $output .= $renderer->render(new assign_form('gradingform', $mform));
+//
+//        $assign->add_to_log('view grading form',
+//                          get_string('viewgradingformforstudent', 'assign',
+//                                     array('id' => $user->id,
+//                                           'fullname' => fullname($user))));
+//
+//
 
-        $output = '';
 
-        // Include grade form.
-        require_once($CFG->dirroot.'/mod/assign/gradeform.php');
 
-        // Need submit permission to submit an assignment.
-        require_capability('mod/assign:grade', $modulecontext);
 
-        /* Pinched from private method assign::get_grading_userid_list() */
-        $filter = get_user_preferences('assign_filter', '');
-        $table = new assign_grading_table($assign, 0, $filter, 0, false);
-        $useridlist = $table->get_column_data('userid');
 
-        $userid = $params['userid'];
 
-        $rownum = 0;
-        foreach ($useridlist as $key => $useridinlist) {
-            if ($useridinlist == $userid) {
-                $rownum = $key;
-                reset ($useridlist); // Just in case.
-                break;
-            }
-        }
 
-        $last = false;
-        if ($rownum == count($useridlist) - 1) {
-            $last = true;
-        }
+        // New Moodle 2.4 stuff
+        global $DB, $CFG;
 
-        $user = $DB->get_record('user', array('id' => $userid));
+        $o = '';
+
+        // Include grade form
+        require_once($CFG->dirroot . '/mod/assign/gradeform.php');
+
+        // Need submit permission to submit an assignment
+        require_capability('mod/assign:grade', $assign->get_context());
+
+//        $o .= $assign->get_renderer()->render(new assign_header($assign->get_instance(),
+//            $assign->get_context(), false, $assign->get_course_module()->id, get_string('grading', 'assign')));
+
+        $user = $DB->get_record('user', array('id' => $params['userid']));
         if ($user) {
-            $output .= $renderer->render(new assign_user_summary($user, $course->id,
-                                                                     has_capability('moodle/site:viewfullnames',
-                                                                                    $coursecontext)));
+            $o .= $assign->get_renderer()->render(new assign_user_summary($user,
+                $assign->get_course()->id,
+                has_capability('moodle/site:viewfullnames',
+                    $assign->get_course_context()),
+                $assign->is_blind_marking(),
+                $assign->get_uniqueid_for_user($user->id)));
         }
-        $submission = $DB->get_record('assign_submission',
-                                      array('assignment' => $assign->get_instance()->id,
-                                            'userid' => $userid));
+        $submission = $assign->get_user_submission($params['userid'], false);
+        $submissiongroup = null;
+        $teamsubmission = null;
+        $notsubmitted = array();
+        if ($assign->get_instance()->teamsubmission) {
+            $teamsubmission = $assign->get_group_submission($params['userid'], 0, false);
+            $submissiongroup = $assign->get_submission_group($params['userid']);
+            $groupid = 0;
+            if ($submissiongroup) {
+                $groupid = $submissiongroup->id;
+            }
+            $notsubmitted = $assign->get_submission_group_members_who_have_not_submitted($groupid, false);
 
-        // Get the current grade. Pinched from assign::get_user_grade().
-        $grade = $DB->get_record('assign_grades',
-                                 array('assignment' => $assign->get_instance()->id,
-                                       'userid' => $userid));
-        // Pinched from assign::is_graded().
-        $isgraded = (!empty($grade) && $grade->grade !== null && $grade->grade >= 0);
+        }
 
-        if ($assign->can_view_submission($userid)) {
-            $gradelocked = ($grade && $grade->locked) || $assign->grading_disabled($userid);
-            $widget =
-                new assign_submission_status($assign->get_instance()->allowsubmissionsfromdate,
-                                             $assign->get_instance()->alwaysshowdescription,
-                                             $submission,
-                                             $assign->is_any_submission_plugin_enabled(),
-                                             $gradelocked,
-                                             $isgraded,
-                                             $assign->get_instance()->duedate,
-                                             $assign->get_submission_plugins(),
-                                             $assign->get_return_action(),
-                                             $assign->get_return_params(),
-                                             $assign->get_course_module()->id,
-                                             assign_submission_status::GRADER_VIEW,
-                                             false,
-                                             false);
-            $output .= $renderer->render($widget);
+        // get the current grade
+        $grade = $assign->get_user_grade($params['userid'], false);
+        if ($assign->can_view_submission($params['userid'])) {
+            $gradelocked = ($grade && $grade->locked) || $assign->grading_disabled($params['userid']);
+            $extensionduedate = null;
+            if ($grade) {
+                $extensionduedate = $grade->extensionduedate;
+            }
+            $showedit = $assign->submissions_open($params['userid']) && ($assign->is_any_submission_plugin_enabled());
+
+            if ($teamsubmission) {
+                $showsubmit = $showedit && $teamsubmission && ($teamsubmission->status == ASSIGN_SUBMISSION_STATUS_DRAFT);
+            } else {
+                $showsubmit = $showedit && $submission && ($submission->status == ASSIGN_SUBMISSION_STATUS_DRAFT);
+            }
+            if (!$assign->get_instance()->submissiondrafts) {
+                $showsubmit = false;
+            }
+            $viewfullnames = has_capability('moodle/site:viewfullnames', $assign->get_course_context());
+
+            $o .= $assign->get_renderer()->render(new assign_submission_status($assign->get_instance()->allowsubmissionsfromdate,
+                $assign->get_instance()->alwaysshowdescription,
+                $submission,
+                $assign->get_instance()->teamsubmission,
+                $teamsubmission,
+                $submissiongroup,
+                $notsubmitted,
+                $assign->is_any_submission_plugin_enabled(),
+                $gradelocked,
+                $this->is_graded($params['userid'], $assign),
+                $assign->get_instance()->duedate,
+                $assign->get_instance()->cutoffdate,
+                $assign->get_submission_plugins(),
+                $assign->get_return_action(),
+                $assign->get_return_params(),
+                $assign->get_course_module()->id,
+                $assign->get_course()->id,
+                assign_submission_status::GRADER_VIEW,
+                $showedit,
+                $showsubmit,
+                $viewfullnames,
+                $extensionduedate,
+                $assign->get_context(),
+                $assign->is_blind_marking(),
+                ''));
         }
         if ($grade) {
             $data = new stdClass();
-            if ($grade->grade !== null && $grade->grade >= 0) {
+            if ($grade->grade !== NULL && $grade->grade >= 0) {
                 $data->grade = format_float($grade->grade, 2);
             }
         } else {
@@ -161,27 +285,40 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
             $data->grade = '';
         }
 
-        // Now show the grading form.
-        $customdata = array(
-            'useridlist' => $useridlist,
-            'rownum' => $rownum,
-            'last' => $last
-        );
-        $mform = new mod_assign_grade_form(block_ajax_marking_form_url($params),
-                                           array($assign,
-                                                 $data,
-                                                 $customdata),
-                                           'post',
-                                           '',
-                                           array('class' => 'gradeform'));
-        $output .= $renderer->render(new assign_form('gradingform', $mform));
+        // now show the grading form.
+        // n.b. normally, there is a possibility that an mform is supplied with stuff already there.
+        // TODO what stuff might have been put there that we may be missing?
+        $pagination = array('rownum' => 0, 'useridlist' => array($params['userid']), 'last' => 0);
+        $formparams = array($assign, $data, $pagination);
+        $mform = new mod_assign_grade_form(null,
+            $formparams,
+            'post',
+            '',
+            array('class' => 'gradeform'));
 
-        $assign->add_to_log('view grading form',
-                          get_string('viewgradingformforstudent', 'assign',
-                                     array('id' => $user->id,
-                                           'fullname' => fullname($user))));
+        $o .= $assign->get_renderer()->render(new assign_form('gradingform', $mform));
 
-        return $output;
+        $msg = get_string('viewgradingformforstudent', 'assign', array('id' => $user->id, 'fullname' => fullname($user)));
+        $assign->add_to_log('view grading form', $msg);
+
+//        $o .= $assign->get_renderer()->render_footer();
+        return $o;
+    }
+
+    /**
+     * Function from assign class that was private.
+     *
+     * @param $userid
+     * @param assign $assign
+     * @return bool
+     */
+    private function is_graded($userid, $assign)
+    {
+        $grade = $assign->get_user_grade($userid, false);
+        if ($grade) {
+            return ($grade->grade !== NULL && $grade->grade >= 0);
+        }
+        return false;
     }
 
     /**

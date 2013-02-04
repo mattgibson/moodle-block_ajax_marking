@@ -132,7 +132,7 @@ class block_ajax_marking_workshop extends block_ajax_marking_module_base {
      *
      * @return string|void
      */
-    public function grading_popup($params, $coursemodule) {
+    public function grading_popup(array $params, $coursemodule) {
 
         $workshopurl = new moodle_url('/mod/workshop/view.php?id='.$coursemodule->id);
         redirect($workshopurl);

@@ -87,7 +87,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * @global stdClass $USER
      * @return string
      */
-    public function grading_popup($params, $coursemodule, $data = false) {
+    public function grading_popup(array $params, $coursemodule, $data = false) {
 
         global $PAGE, $CFG, $DB, $OUTPUT;
 
