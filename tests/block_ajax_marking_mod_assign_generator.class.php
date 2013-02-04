@@ -30,11 +30,12 @@ global $CFG;
 
 require_once($CFG->dirroot.'/lib/phpunit/classes/module_generator.php');
 require_once($CFG->dirroot.'/mod/assign/mod_form.php');
+require_once($CFG->dirroot.'/mod/assign/tests/generator/lib.php');
 
 /**
  * The assign module doesn't have a data generator, so this will do instead till one is made.
  */
-class block_ajax_marking_mod_assign_generator extends phpunit_module_generator {
+class block_ajax_marking_mod_assign_generator extends mod_assign_generator {
 
     /**
      * Gets DB module name.
@@ -45,57 +46,6 @@ class block_ajax_marking_mod_assign_generator extends phpunit_module_generator {
         return 'assign';
     }
 
-    /**
-     * Create a test module
-     *
-     * @param array|stdClass $record
-     * @param array $options
-     * @throws coding_exception
-     * @return \stdClass activity record
-     */
-    public function create_instance($record = null, array $options = array()) {
-
-        static $instancecount = 0;
-        $instancecount++;
-
-        if (empty($record->course)) {
-            throw new coding_exception('Can\'t make a new assign module instance without a course');
-        }
-
-        $assign = new stdClass();
-        $assign->name = 'New assignment '.$instancecount;
-        $assign->intro = 'New assignment description ';
-        $assign->introformat = 1;
-        $assign->alwaysshowdescription = 1;
-        $assign->nosubmissions = 0;
-        $assign->preventlatesubmissions = 0;
-        $assign->submissiondrafts = 0;
-        $assign->sendnotifications = 0;
-        $assign->sendlatenotifications = 0;
-        $assign->duedate = 0;
-        $assign->allowsubmissionsfromdate = 0;
-        $assign->grade = 100;
-        $assign->timemodified = time();
-
-        $assign->assignsubmission_onlinetext_enabled = 1;
-        $assign->assignsubmission_file_enabled = 0;
-        $assign->assignsubmission_comments_enabled = 0;
-        $assign->assignsubmission_feedback_enabled = 1;
-        $assign->assignfeedback_comments_enabled = 1;
-        $assign->assignfeedback_file_enabled = 1;
-
-        $assign = (object)array_merge((array)$assign, (array)$record);
-        $assign->coursemodule = $this->precreate_course_module($assign->course, $options);
-        $current = new stdClass();
-        $current->instance = 1;
-        $current->coursemodule = false;
-        $current->course = false;
-        $course = new stdClass();
-        $course->id = $record->course;
-        $fakeform = new mod_assign_mod_form($current, null, null, $course);
-        $assign->id = assign_add_instance($assign, $fakeform);
-        return $this->post_add_instance($assign->id, $assign->coursemodule);
-    }
 
     /**
      * Makes a new submission for the assign module.

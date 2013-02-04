@@ -197,7 +197,7 @@ class block_ajax_marking_mod_quiz_generator extends phpunit_module_generator {
 
         $quizobj = quiz::create($quizid, $userid);
         $timenow = time();
-        $attempt = quiz_create_attempt($quizobj->get_quiz(),
+        $attempt = quiz_create_attempt($quizobj,
                                        1,
                                        false,
                                        $timenow,
