@@ -186,6 +186,8 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
             target = Y.YUI2.util.Event.getTarget(data.event); // the img
             target = target.parentNode.parentNode; // the spacer <div> -> the <td>
 
+            target = Y.one(target); // Get YUI3 node functions.
+
             if (clickednode.get_current_filter_name() === 'courseid') {
                 coursenodeclicked = true;
             }
@@ -218,7 +220,7 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
             }
 
             // do the AJAX request for the settings change
-            // gather data
+            // gather data.
             requestdata.nodeindex = clickednode.index;
             requestdata.settingtype = settingtype;
             if (settingtorequest !== null) { // leaving out defaults to null on the other end

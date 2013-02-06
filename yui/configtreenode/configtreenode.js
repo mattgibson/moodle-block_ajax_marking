@@ -270,6 +270,73 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
         },
 
         /**
+         * Turns the raw groups data from the tree node into menu items and attaches them to the menu. Uses
+         * the course groups (courses will have all groups even if there are no settings) to make the full
+         * list and combines course defaults and coursemodule settings when it needs to for coursemodules
+         *
+         * @param {Y.YUI2.widget.Menu} menu A pre-existing context menu
+         * @param {M.block_ajax_marking.markingtreenode} clickednode
+         * @return void
+         */
+        add_groups_to_menu: function (menu, clickednode) {
+
+            var newgroup,
+                groups,
+                groupdefault,
+                numberofgroups,
+                groupindex,
+                i;
+
+            groups = clickednode.get_groups();
+            numberofgroups = groups.length;
+
+            for (i = 0; i < numberofgroups; i += 1) {
+
+                newgroup = {
+                    "text": groups[i].name,
+                    "value": { "groupid": groups[i].id },
+                    "onclick": {
+                        fn: this.contextmenu_setting_onclick,
+                        obj: {'settingtype': 'group'}
+                    }
+                };
+
+                // Make sure the items' appearance reflect their current settings
+                // JSON seems to like sending back integers as strings
+
+                if (groups[i].display === "1") { // TODO check that types are working here.
+                    // Make sure it is checked
+                    newgroup.checked = true;
+
+                } else if (groups[i].display === "0") {
+                    newgroup.checked = false;
+
+                } else if (groups[i].display === null) {
+                    // We want to show that this node inherits it's setting for this group
+                    // newgroup.classname = 'inherited';
+                    // Now we need to get the right default for it and show it as checked or not
+                    groupdefault = clickednode.get_default_setting('group', groups[i].id);
+                    newgroup.checked = groupdefault ? true : false;
+                    if (this.tree.showinheritance) { // TODO does this work?
+                        newgroup.classname = 'inherited';
+                    }
+                }
+
+                // Add to group 1 so we can keep it separate from group 0 with the basic settings so that
+                // the contextmenu will have these all grouped together with a title
+                groupindex = 0;
+                menu.addItem(newgroup, groupindex);
+            }
+
+            // If there are no groups, we want to show this rather than have the context menu fail to
+            // pop up at all, leaving the normal one to appear in it's place
+            if (numberofgroups === 0) {
+                // TODO probably don't need this now - never used?
+                menu.addItem({"text": M.str.block_ajax_marking.nogroups, "value": 0 });
+            }
+        },
+
+        /**
          * Will attach a YUI menu button to all nodes with all of the groups so that they can be set
          * to show or hide. Better than a non-obvious context menu. Not part of the config_node object.
          */
@@ -303,7 +370,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             };
             node.renderedmenu = new Y.YUI2.widget.Menu('groupsdropdown'+node.index,
                                                       menuconfig);
-            M.block_ajax_marking.contextmenu_add_groups_to_menu(node.renderedmenu, node);
+            this.add_groups_to_menu(node.renderedmenu, node);
 
             // The strategy here is to keep the menu open if we are doing an AJAX refresh as we may have
             // a dropdown that has just had a group chosen, so we don't want to make people open it up

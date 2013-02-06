@@ -89,81 +89,12 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
         showinheritance : false,
 
         /**
-         * Turns the raw groups data from the tree node into menu items and attaches them to the menu. Uses
-         * the course groups (courses will have all groups even if there are no settings) to make the full
-         * list and combines course defaults and coursemodule settings when it needs to for coursemodules
-         *
-         * @param {M.block_ajax_marking.contextmenu} menu A pre-existing context menu
-         * @param {M.block_ajax_marking.markingtreenode} clickednode
-         * @return void
-         */
-        contextmenu_add_groups_to_menu : function (menu, clickednode) {
-
-            var newgroup,
-                groups,
-                groupdefault,
-                numberofgroups,
-                groupindex,
-                i,
-                iscontextmenu = menu instanceof Y.YUI2.widget.ContextMenu;
-
-            groups = clickednode.get_groups();
-            numberofgroups = groups.length;
-
-            for (i = 0; i < numberofgroups; i += 1) {
-
-                newgroup = {
-                    "text" : groups[i].name,
-                    "value" : { "groupid" : groups[i].id },
-                    "onclick" : {
-                        fn : this.contextmenu_setting_onclick,
-                        obj : {'settingtype' : 'group'}
-                    }
-                };
-
-                // Make sure the items' appearance reflect their current settings
-                // JSON seems to like sending back integers as strings
-
-                if (groups[i].display === "1") { // TODO check that types are working here.
-                    // Make sure it is checked
-                    newgroup.checked = true;
-
-                } else if (groups[i].display === "0") {
-                    newgroup.checked = false;
-
-                } else if (groups[i].display === null) {
-                    // We want to show that this node inherits it's setting for this group
-                    // newgroup.classname = 'inherited';
-                    // Now we need to get the right default for it and show it as checked or not
-                    groupdefault = clickednode.get_default_setting('group', groups[i].id);
-                    newgroup.checked = groupdefault ? true : false;
-                    if (this.showinheritance) {
-                        newgroup.classname = 'inherited';
-                    }
-                }
-
-                // Add to group 1 so we can keep it separate from group 0 with the basic settings so that
-                // the contextmenu will have these all grouped together with a title
-                groupindex = iscontextmenu ? 1 : 0;
-                menu.addItem(newgroup, groupindex);
-            }
-
-            // If there are no groups, we want to show this rather than have the context menu fail to
-            // pop up at all, leaving the normal one to appear in it's place
-            if (numberofgroups === 0) {
-                // TODO probably don't need this now - never used?
-                menu.addItem({"text" : M.str.block_ajax_marking.nogroups,
-                              "value" : 0 });
-            } else if (iscontextmenu) {
-                menu.setItemGroupTitle(M.str.block_ajax_marking.choosegroups + ':', 1);
-            }
-        },
-
-        /**
          * Ajax success function called when the server responds with valid data, which checks the data
          * coming in and calls the right function depending on the type of data it is
          *
+         * @param id
          * @param {Object} o the ajax response object, passed automatically
+         * @param args
          * @return void
          */
         ajax_success_handler : function (id, o, args) {
@@ -685,20 +616,21 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
          *
          * @return void
          */
-        initialise : function (Y) {
+        initialise : function (Y, block_id) {
 
             var coursestab,
                 coursetabconfig,
                 cohortstabconfig,
                 cohortstab,
                 configtabconfig,
-                configtab;
+                configtab,
+                tabs_div_selector = '#treetabs';
 
             this.make_icon_styles();
 
             // this waits till much too late. Can we trigger earlier?
             this.tabview = new Y.TabView({
-                srcNode : '#treetabs'
+                srcNode : tabs_div_selector
             });
 
             // Must render first so treeviews have container divs ready
@@ -736,7 +668,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
 
             // Unhide that tabs block - preventing flicker
 
-            Y.one('#treetabs').setStyle('display', 'block');
+            Y.one(tabs_div_selector).setStyle('display', 'block');
             // Y.one('#totalmessage').setStyle('display', 'block');
 
             // workaround for odd https setups. Probably not needed in most cases, but you can get an error
@@ -901,7 +833,7 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
         },
 
         /**
-         * This is for the IDE to know what fields are expected for the AJAx response object.
+         * This is for the IDE to know what fields are expected for the AJAX response object.
          */
         ajax_response_type : {
 
@@ -928,8 +860,10 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
 
     M.block_ajax_marking.mainwidget = MAINWIDGET;
 
-    M.block_ajax_marking.init_block = function (config) { // 'config' contains the parameter values
-        var block = new M.block_ajax_marking.mainwidget(); // 'config' contains the parameter values
+    M.block_ajax_marking.blocks = [];
+
+    M.block_ajax_marking.init_block = function () { // 'config' contains the parameter values
+        M.block_ajax_marking.blocks.push(new M.block_ajax_marking.mainwidget()); // 'config' contains the parameter values
     };
 
 }, '@VERSION@', {
