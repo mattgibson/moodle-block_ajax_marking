@@ -101,7 +101,7 @@ YUI.add('moodle-block_ajax_marking-cohortstree', function (Y) {
          * Tells other trees to refresh after marking.
          */
         notify_refresh_needed_after_marking : function () {
-            M.block_ajax_marking.coursestab_tree.set_needs_refresh(true);
+            this.mainwidget.coursestab_tree.set_needs_refresh(true);
         }
 
     }, {

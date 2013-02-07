@@ -103,7 +103,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
                     if (typeof groups === 'undefined') {
                         setting = null;
                     } else {
-                        group = M.block_ajax_marking.get_group_by_id(groups, groupid);
+                        group = this.get_group_by_id(groups, groupid);
                         if (group === null) {
                             setting = null;
                         } else {
@@ -123,6 +123,27 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
             }
 
             return setting;
+        },
+
+        /**
+         * Given an array of groups and an id, this will loop over them till it gets the right one and
+         * return it.
+         *
+         * @param {Array} groups
+         * @param {int} groupid
+         * @return array|bool
+         */
+        get_group_by_id: function (groups, groupid) {
+
+            var numberofgroups = groups.length,
+                i;
+
+            for (i = 0; i < numberofgroups; i += 1) {
+                if (groups[i].id === groupid) {
+                    return groups[i];
+                }
+            }
+            return null;
         },
 
         /**
@@ -382,7 +403,7 @@ YUI.add('moodle-block_ajax_marking-markingtreenode', function (Y) {
             }
 
             groups = this.get_groups();
-            group = M.block_ajax_marking.get_group_by_id(groups, groupid);
+            group = this.get_group_by_id(groups, groupid);
 
             if (group) { // Some child nodes are groups or users.
                 group.display = newsetting;

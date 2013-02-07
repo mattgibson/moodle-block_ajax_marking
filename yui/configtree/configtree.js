@@ -132,7 +132,7 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
          * Tell other trees they need a refresh. Subclasses to override
          */
         notify_refresh_needed_after_config : function () {
-            M.block_ajax_marking.coursestab_tree.set_needs_refresh(true);
+            this.mainwidget.coursestab_tree.set_needs_refresh(true);
         },
 
         /**
@@ -230,9 +230,49 @@ YUI.add('moodle-block_ajax_marking-configtree', function (Y) {
             requestdata.instanceid = clickednode.get_current_filter_value();
 
             // send request
-            M.block_ajax_marking.save_setting_ajax_request(requestdata, clickednode);
+            this.save_setting_ajax_request(requestdata, clickednode);
 
             return false;
+        },
+
+        /**
+         * Asks the server to change the setting for something
+         *
+         * @param {object} requestdata
+         * @param clickednode
+         */
+        save_setting_ajax_request: function (requestdata, clickednode) {
+
+            var poststring,
+                temparray = [],
+                key;
+
+            M.block_ajax_marking.oncompletefunctionholder = function (justrefreshchildren) {
+                // Sometimes the node will have been removed
+                if (clickednode.tree) {
+                    clickednode.refresh(justrefreshchildren);
+                }
+            };
+
+            // Turn our object into a string that the AJAX stuff likes.
+
+            for (key in requestdata) {
+                if (requestdata.hasOwnProperty(key)) {
+                    temparray.push(key + '=' + requestdata[key]);
+                }
+            }
+            poststring = temparray.join('&');
+
+//            Y.YUI2.util.Connect.asyncRequest('POST',
+//                                            M.cfg.wwwroot + '/blocks/ajax_marking/actions/config_save.php',
+//                                            this.callback,
+//                                            poststring);
+
+            Y.io(M.cfg.wwwroot + '/blocks/ajax_marking/actions/config_save.php', {
+                on: {
+                    success: clickednode.tree.mainwidget.ajax_success_handler,
+                    failure: clickednode.tree.mainwidget.ajax_failure_handler
+                }, context: clickednode.tree.mainwidget, method: 'post', data: poststring});
         }
 
     }, {

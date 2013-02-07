@@ -290,14 +290,16 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             groups = clickednode.get_groups();
             numberofgroups = groups.length;
 
+            var self = this;
+
             for (i = 0; i < numberofgroups; i += 1) {
 
                 newgroup = {
                     "text": groups[i].name,
                     "value": { "groupid": groups[i].id },
                     "onclick": {
-                        fn: this.contextmenu_setting_onclick,
-                        obj: {'settingtype': 'group'}
+                        fn: self.tree.mainwidget.contextmenu_setting_onclick,
+                        obj: {'settingtype': 'group', mainwidget: self.tree.mainwidget}
                     }
                 };
 
@@ -449,10 +451,10 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             settingtoshow = this.get_setting_to_display(settingtype);
 
             // Set the node's appearance. Might need to refer to parent if it's inherit.
-            containerid = 'block_ajax_marking_'+settingtype+'_icon'+this.index;
+            containerid = '#block_ajax_marking_'+settingtype+'_icon'+this.index;
 
-            iconcontainer = document.getElementById(containerid);
-            spacerdiv = iconcontainer.firstChild;
+            iconcontainer = Y.one(containerid);
+            spacerdiv = iconcontainer.one('*');
             if (settingtoshow === 1) {
                 if (settingtype === 'display') {
                     // Names of icons are for the actions on clicking them. Not what they look like.
@@ -472,7 +474,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             // Get the icon, remove the old one and put it in place. Includes the title attribute,
             // which matters for accessibility.
             icon = this.get_dynamic_icon(iconname);
-            M.block_ajax_marking.remove_all_child_nodes(spacerdiv);
+            spacerdiv.get('childNodes').remove();
             spacerdiv.appendChild(icon);
         },
 

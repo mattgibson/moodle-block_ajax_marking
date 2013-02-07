@@ -42,6 +42,8 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
         MAINWIDGET.superclass.constructor.apply(this, arguments);
     };
 
+    var self = this;
+
     /**
      * These are all the functions that used to be in module.js.
      *
@@ -323,22 +325,6 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
             this.show_error(M.str.block_ajax_marking.connecttimeout, false);
             this.get_current_tab().displaywidget.rebuild_parent_and_tree_count_after_new_nodes();
             this.icon.removeClass('loaderimage');
-        },
-
-        /**
-         * Used by other functions to clear all child nodes from some element. Also clears all children
-         * from a tree node.
-         *
-         * @param {YAHOO.widget.Node} parentnode a dom reference
-         * @return void
-         */
-        remove_all_child_nodes : function (parentnode) {
-
-            if (typeof parentnode.hasChildNodes === 'function' && parentnode.hasChildNodes()) {
-                while (parentnode.childNodes.length >= 1) {
-                    parentnode.removeChild(parentnode.firstChild);
-                }
-            }
         },
 
 
@@ -683,17 +669,17 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
          * OnClick handler for the contextmenu that sends an ajax request for the setting to be changed on
          * the server.
          *
-         * @param event e.g. 'click'
-         * @param otherthing
-         * @param obj
+         * @param eventname e.g. 'click'
+         * @param thing_with_event
+         * @param params
          */
-        contextmenu_setting_onclick : function (event, otherthing, obj) {
+        contextmenu_setting_onclick : function (eventname, thing_with_event, params) {
 
             var clickednode,
                 settingtorequest = 1,
                 groupid = null,
-                tree = this.get_current_tab().displaywidget,
-                settingtype = obj.settingtype,
+                tree = params.mainwidget.get_current_tab().displaywidget,
+                settingtype = params.settingtype,
                 currentfiltername,
                 currentsetting,
                 defaultsetting,
@@ -760,68 +746,8 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
             requestdata.instanceid = clickednode.get_current_filter_value();
 
             // Send request.
-            this.save_setting_ajax_request(requestdata, clickednode);
-        },
-
-        /**
-         * Given an array of groups and an id, this will loop over them till it gets the right one and
-         * return it.
-         *
-         * @param {Array} groups
-         * @param {int} groupid
-         * @return array|bool
-         */
-        get_group_by_id : function (groups, groupid) {
-
-            var numberofgroups = groups.length,
-                i;
-
-            for (i = 0; i < numberofgroups; i += 1) {
-                if (groups[i].id === groupid) {
-                    return groups[i];
-                }
-            }
-            return null;
-        },
-
-        /**
-         * Asks the server to change the setting for something
-         *
-         * @param {object} requestdata
-         * @param clickednode
-         */
-        save_setting_ajax_request : function (requestdata, clickednode) {
-
-            var poststring,
-                temparray = [],
-                key;
-
-            M.block_ajax_marking.oncompletefunctionholder = function (justrefreshchildren) {
-                // Sometimes the node will have been removed
-                if (clickednode.tree) {
-                    clickednode.refresh(justrefreshchildren);
-                }
-            };
-
-            // Turn our object into a string that the AJAX stuff likes.
-
-            for (key in requestdata) {
-                if (requestdata.hasOwnProperty(key)) {
-                    temparray.push(key + '=' + requestdata[key]);
-                }
-            }
-            poststring = temparray.join('&');
-
-//            Y.YUI2.util.Connect.asyncRequest('POST',
-//                                            M.cfg.wwwroot + '/blocks/ajax_marking/actions/config_save.php',
-//                                            this.callback,
-//                                            poststring);
-
-            Y.io(M.cfg.wwwroot + '/blocks/ajax_marking/actions/config_save.php', {
-                on: {
-                    success: clickednode.tree.mainwidget.ajax_success_handler,
-                    failure: clickednode.tree.mainwidget.ajax_failure_handler
-                }, context: clickednode.tree.mainwidget, method: 'post', data: poststring});
+            // TODO this is not good. Need to somehow reduce the convoluted duplication between the two menus.
+            params.mainwidget.configtab_tree.save_setting_ajax_request(requestdata, clickednode);
         },
 
         /**
@@ -844,7 +770,10 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
             // TODO copy init function here
             // TODO replace names of divs etc with config vars.
             this.initialise(Y);
-        }
+        },
+
+
+
     }, {
         NAME: widgetNAME, //module name is something mandatory.
         // It should be in lower case without space

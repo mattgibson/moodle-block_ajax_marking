@@ -123,7 +123,7 @@ YUI.add('moodle-block_ajax_marking-coursestree', function (Y) {
          * Tell other trees they need a refresh.
          */
         notify_refresh_needed_after_config : function () {
-            M.block_ajax_marking.configtab_tree.set_needs_refresh(true);
+            this.mainwidget.configtab_tree.set_needs_refresh(true);
             // M.block_ajax_marking.cohorts_tree.set_refresh_needed(true);
         },
 
@@ -131,7 +131,7 @@ YUI.add('moodle-block_ajax_marking-coursestree', function (Y) {
          * Tells other trees to refresh after marking.
          */
         notify_refresh_needed_after_marking : function () {
-            M.block_ajax_marking.cohortstab_tree.set_needs_refresh(true);
+            this.mainwidget.cohortstab_tree.set_needs_refresh(true);
         }
 
     }, {
