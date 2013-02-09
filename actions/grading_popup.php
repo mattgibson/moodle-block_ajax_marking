@@ -34,12 +34,18 @@ global $DB, $OUTPUT, $CFG, $PAGE;
 // $moduleobject->grading_popup().
 $params = array();
 // Use GET to discriminate between submitted form stuff and url stuff. optional_param() doesn't.
-foreach ($_GET as $name => $value) {
-    $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
+$thingwithstuff = $_GET;
+foreach ($thingwithstuff as $name => $value) {
+    if (is_array($value)) {
+        $params[$name] = clean_param_array($value, PARAM_ALPHANUMEXT);
+    } else {
+        $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
+    }
 }
 if (empty($params)) {
     die('No parmeters supplied');
 }
+
 
 $cmid = required_param('coursemoduleid', PARAM_INT);
 $nodeid = required_param('node', PARAM_INT);

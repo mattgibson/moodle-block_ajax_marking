@@ -290,7 +290,7 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
         // TODO what stuff might have been put there that we may be missing?
         $pagination = array('rownum' => 0, 'useridlist' => array($params['userid']), 'last' => 0);
         $formparams = array($assign, $data, $pagination);
-        $mform = new mod_assign_grade_form(null,
+        $mform = new mod_assign_grade_form(block_ajax_marking_form_url($params),
             $formparams,
             'post',
             '',
