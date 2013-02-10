@@ -50,8 +50,7 @@ $string['showgroups']            = 'Mostrar nós de grupo';
 $string['hidegroups']            = 'Ocultar nós de grupo';
 $string['choosegroups']          = 'Mostra/ocultar grupo específico';
 $string['notingroup']            = 'Não em qualquer grupo';
-$string['notingroupdescription'] = 'Esta atividade está configurada para organizar os alunos divididos em grupos.'.
-                                   ' Estes alunos enviaram trabalho, mas não estão atualmente em nenhum grupo';
+$string['notingroupdescription'] = 'Esta atividade está configurada para organizar os alunos divididos em grupos. Estes alunos enviaram trabalho, mas não estão atualmente em nenhum grupo';
 $string['recentitems']           = 'itens recentes';
 $string['mediumitems']           = 'itens intermediários';
 $string['overdueitems']          = 'itens antigos';
@@ -59,5 +58,4 @@ $string['overdueitems']          = 'itens antigos';
 // Specific to modules.
 
 // Forum.
-$string['forummarkcomplete'] = 'Marcar este discussão como feita. Ela aparecerá no bloco '.
-                               'se algum novo item for publicado.';
+$string['forummarkcomplete'] = 'Marcar este discussão como feita. Ela aparecerá no bloco se algum novo item for publicado.';
