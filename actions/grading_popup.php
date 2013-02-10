@@ -34,12 +34,18 @@ global $DB, $OUTPUT, $CFG, $PAGE;
 // $moduleobject->grading_popup().
 $params = array();
 // Use GET to discriminate between submitted form stuff and url stuff. optional_param() doesn't.
-foreach ($_GET as $name => $value) {
-    $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
+$thingwithstuff = $_GET;
+foreach ($thingwithstuff as $name => $value) {
+    if (is_array($value)) {
+        $params[$name] = clean_param_array($value, PARAM_ALPHANUMEXT);
+    } else {
+        $params[$name] = clean_param($value, PARAM_ALPHANUMEXT);
+    }
 }
 if (empty($params)) {
     die('No parmeters supplied');
 }
+
 
 $cmid = required_param('coursemoduleid', PARAM_INT);
 $nodeid = required_param('node', PARAM_INT);
@@ -103,7 +109,7 @@ if ($data && confirm_sesskey()) {
         echo $OUTPUT->header();
         echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
         $callfunction = "
-            window.opener.M.block_ajax_marking.remove_node_from_current_tab({$nodeid});
+            window.opener.M.block_ajax_marking.block.remove_node_from_current_tab({$nodeid});
         ";
         $PAGE->requires->js_init_code($callfunction, false);
 
@@ -123,7 +129,7 @@ $code = "
 
     function close_window_and_remove_node_highlight(nodeid) {
         // Get tree
-        var tab = window.opener.M.block_ajax_marking.get_current_tab();
+        var tab = window.opener.M.block_ajax_marking.block.get_current_tab();
         var tree = tab.displaywidget;
 
         // get node

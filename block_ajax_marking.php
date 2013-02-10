@@ -131,7 +131,7 @@ class block_ajax_marking extends block_base {
                                     '</div>'; // End of #block_ajax_marking container.
 
             // Set things going.
-            $PAGE->requires->js_init_call('M.block_ajax_marking.initialise', array(), true,
+            $PAGE->requires->js_init_call('M.block_ajax_marking.init_block', array(), true,
                                           $this->js_module());
 
             // We need to append all of the plugin specific javascript. This file will be
@@ -261,17 +261,9 @@ class block_ajax_marking extends block_base {
         // Set up the javascript module, with any data that the JS will need.
         return array(
             'name' => 'block_ajax_marking',
-            'fullpath' => '/blocks/ajax_marking/module.js',
-            'requires' => array('yui2-treeview',
-                                'yui2-button',
-                                'yui2-connection',
-                                'yui2-json',
-                                'yui2-container',
-                                'yui2-menu',
-                                'tabview',
-                                'moodle-block_ajax_marking-coursestree',
-                                'moodle-block_ajax_marking-cohortstree',
-                                'moodle-block_ajax_marking-configtree'
+            'fullpath' => '/blocks/ajax_marking/yui/mainwidget/mainwidget.js',
+            'requires' => array(
+                                'moodle-block_ajax_marking-mainwidget'
             ),
             'strings' => array(
                 array('totaltomark',

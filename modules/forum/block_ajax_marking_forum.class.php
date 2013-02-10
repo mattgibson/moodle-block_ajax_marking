@@ -116,9 +116,9 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
      * @params object $coursemodule
      * @return string HTML
      */
-    public function grading_popup($params, $coursemodule) {
+    public function grading_popup(array $params, $coursemodule) {
 
-        global $DB, $PAGE, $CFG, $SESSION, $USER, $OUTPUT;
+        global $DB, $CFG, $SESSION, $USER, $OUTPUT;
 
         $output = '';
 
@@ -150,9 +150,9 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         }
 
         // Add ajax-related libs.
-        $PAGE->requires->yui2_lib('event');
-        $PAGE->requires->yui2_lib('connection');
-        $PAGE->requires->yui2_lib('json');
+//        $PAGE->requires->yui2_lib('event');
+//        $PAGE->requires->yui2_lib('connection');
+//        $PAGE->requires->yui2_lib('json');
 
         // Move this down fix for MDL-6926.
         require_once($CFG->dirroot.'/mod/forum/lib.php');
@@ -175,7 +175,7 @@ class block_ajax_marking_forum extends block_ajax_marking_module_base {
         if (!$post) {
             print_error("notexists", 'forum', "$CFG->wwwroot/mod/forum/view.php?f=$forum->id");
         }
-        if (!forum_user_can_view_post($post, $course, $cm, $forum, $discussion)) {
+        if (!forum_user_can_see_post($forum, $discussion, $post, $USER, $cm)) {
             print_error('nopermissiontoview', 'forum',
                         "$CFG->wwwroot/mod/forum/view.php?id=$forum->id");
         }

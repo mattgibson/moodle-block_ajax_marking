@@ -25,12 +25,13 @@
  */
 
 // Possibly getting to this point before the main block js file is included.
-if (typeof(M.block_ajax_marking) === 'undefined') {
+if (typeof M.block_ajax_marking === 'undefined') {
     M.block_ajax_marking = {};
 }
 
 
 M.block_ajax_marking.quiz = (function() {
+    "use strict";
 
     return {
 
@@ -73,4 +74,4 @@ M.block_ajax_marking.quiz = (function() {
         }
 
     };
-})();
+}());

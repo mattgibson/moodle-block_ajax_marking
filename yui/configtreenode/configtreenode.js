@@ -112,9 +112,11 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                 sb = [],
                 groupsdisplaysetting,
                 groupscount = this.get_groups_count(),
-                icon = M.block_ajax_marking.get_dynamic_icon(this.get_icon_style()),
-                displaytype = displaysetting ? 'hide' : 'show', // Icons are named after their actions.
-                displayicon = M.block_ajax_marking.get_dynamic_icon(displaytype);
+                icon = this.get_dynamic_icon(this.get_icon_style()),
+                displaytype,
+                displayicon,
+                groupsicon,
+                groupstype;
 
 
             sb[sb.length] = '<table class="ygtvtable configtreenode">'; // New.
@@ -131,7 +133,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                     // Keep IE9 happy.
                     icon.id = undefined;
                 }
-                sb[sb.length] = M.block_ajax_marking.get_dynamic_icon_string(icon);
+                sb[sb.length] = this.get_dynamic_icon_string(icon);
             }
 
             sb[sb.length] = '<div class="nodelabel" title="'+this.get_tooltip()+'">';
@@ -149,30 +151,33 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             sb[sb.length] = '" class="ygtvcell ';
 
             displaysetting = this.get_setting_to_display('display');
+            displaytype = displaysetting ? 'hide' : 'show'; // Icons are named after their actions.
+
+            displayicon = this.get_dynamic_icon(displaytype);
 
             try {
                 delete displayicon.id;
             }
             catch (othere) {
                 // Keep IE9 happy.
-                displayicon["id"] = undefined;
+                displayicon.id = undefined;
             }
-            displayicon = M.block_ajax_marking.get_dynamic_icon_string(displayicon);
+            displayicon = this.get_dynamic_icon_string(displayicon);
 
             sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_display_icon ';
             sb[sb.length] = '"><div class="ygtvspacer">'+displayicon+'</div></td>';
 
-            // Make groupsdisplay icon
+            // Make groupsdisplay icon.
             sb[sb.length] = '<td id="'+'block_ajax_marking_groupsdisplay_icon'+this.index;
             sb[sb.length] = '" class="ygtvcell ';
 
-            var groupsicon = '&#160;';
+            groupsicon = '&#160;';
             if (groupscount) {
                 groupsdisplaysetting = this.get_setting_to_display('groupsdisplay');
 
                 // Icons are named after their actions.
-                var groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups';
-                groupsicon = M.block_ajax_marking.get_dynamic_icon(groupstype);
+                groupstype = groupsdisplaysetting ? 'hidegroups' : 'showgroups';
+                groupsicon = this.get_dynamic_icon(groupstype);
                 try {
                     delete groupsicon.id;
                 }
@@ -180,7 +185,7 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                     // Keep IE9 happy.
                     groupsicon.id = undefined;
                 }
-                groupsicon = M.block_ajax_marking.get_dynamic_icon_string(groupsicon);
+                groupsicon = this.get_dynamic_icon_string(groupsicon);
 
             }
             sb[sb.length] = ' block_ajax_marking_node_icon block_ajax_marking_groupsdisplay_icon ';
@@ -265,6 +270,75 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
         },
 
         /**
+         * Turns the raw groups data from the tree node into menu items and attaches them to the menu. Uses
+         * the course groups (courses will have all groups even if there are no settings) to make the full
+         * list and combines course defaults and coursemodule settings when it needs to for coursemodules
+         *
+         * @param {Y.YUI2.widget.Menu} menu A pre-existing context menu
+         * @param {M.block_ajax_marking.markingtreenode} clickednode
+         * @return void
+         */
+        add_groups_to_menu: function (menu, clickednode) {
+
+            var newgroup,
+                groups,
+                groupdefault,
+                numberofgroups,
+                groupindex,
+                i;
+
+            groups = clickednode.get_groups();
+            numberofgroups = groups.length;
+
+            var self = this;
+
+            for (i = 0; i < numberofgroups; i += 1) {
+
+                newgroup = {
+                    "text": groups[i].name,
+                    "value": { "groupid": groups[i].id },
+                    "onclick": {
+                        fn: self.tree.mainwidget.contextmenu_setting_onclick,
+                        obj: {'settingtype': 'group', mainwidget: self.tree.mainwidget}
+                    }
+                };
+
+                // Make sure the items' appearance reflect their current settings
+                // JSON seems to like sending back integers as strings
+
+                if (groups[i].display === "1") { // TODO check that types are working here.
+                    // Make sure it is checked
+                    newgroup.checked = true;
+
+                } else if (groups[i].display === "0") {
+                    newgroup.checked = false;
+
+                } else if (groups[i].display === null) {
+                    // We want to show that this node inherits it's setting for this group
+                    // newgroup.classname = 'inherited';
+                    // Now we need to get the right default for it and show it as checked or not
+                    groupdefault = clickednode.get_default_setting('group', groups[i].id);
+                    newgroup.checked = groupdefault ? true : false;
+                    if (this.tree.showinheritance) { // TODO does this work?
+                        newgroup.classname = 'inherited';
+                    }
+                }
+
+                // Add to group 1 so we can keep it separate from group 0 with the basic settings so that
+                // the contextmenu will have these all grouped together with a title
+                groupindex = 0;
+                menu.addItem(newgroup, groupindex);
+            }
+
+            // If there are no groups, we want to show this rather than have the context menu fail to
+            // pop up at all, leaving the normal one to appear in it's place
+            if (numberofgroups === 0) {
+                // TODO probably don't need this now - never used?
+                menu.addItem({"text": M.str.block_ajax_marking.nogroups, "value": 0 });
+            }
+        },
+
+        /**
          * Will attach a YUI menu button to all nodes with all of the groups so that they can be set
          * to show or hide. Better than a non-obvious context menu. Not part of the config_node object.
          */
@@ -273,7 +347,9 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             var node,
                 menu,
                 groupsdiv,
-                nodecontents;
+                nodecontents,
+                menuconfig,
+                buttonconfig;
 
             node = this;
 
@@ -286,16 +362,17 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
 
             // Not possible to re-render so we wipe it.
             if (typeof node.groupsmenubutton !== 'undefined') {
-                node.groupsmenubutton.destroy(); // todo test me
+                node.groupsmenubutton.destroy(); // TODO test me.
             }
             if (typeof node.renderedmenu !== 'undefined') {
-                node.renderedmenu.destroy(); // todo test me
+                node.renderedmenu.destroy(); // TODO test me.
             }
-            var menuconfig = {
-                keepopen : true};
-            node.renderedmenu = new YAHOO.widget.Menu('groupsdropdown'+node.index,
+            menuconfig = {
+                keepopen : true
+            };
+            node.renderedmenu = new Y.YUI2.widget.Menu('groupsdropdown'+node.index,
                                                       menuconfig);
-            M.block_ajax_marking.contextmenu_add_groups_to_menu(node.renderedmenu, node);
+            this.add_groups_to_menu(node.renderedmenu, node);
 
             // The strategy here is to keep the menu open if we are doing an AJAX refresh as we may have
             // a dropdown that has just had a group chosen, so we don't want to make people open it up
@@ -305,16 +382,17 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             node.renderedmenu.render(node.getEl());
 
             groupsdiv.removeChild(groupsdiv.firstChild);
-            var buttonconfig = {
+            buttonconfig = {
                 type : "menu",
                 label : nodecontents,
                 title : M.str.block_ajax_marking.choosegroups,
                 name : 'groupsbutton-'+node.index,
                 menu : node.renderedmenu,
                 lazyload : false, // Can't add events otherwise.
-                container : groupsdiv };
+                container : groupsdiv
+            };
 
-            node.groupsmenubutton = new YAHOO.widget.Button(buttonconfig);
+            node.groupsmenubutton = new Y.YUI2.widget.Button(buttonconfig);
             // Hide the button if the user clicks elsewhere on the page.
             node.renderedmenu.cfg.queueProperty('clicktohide', true);
 
@@ -331,13 +409,14 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
             var groupscurrentlydisplayed = 0,
                 groups = this.get_groups(),
                 numberofgroups = groups.length,
-                display;
+                display,
+                h;
 
             if (numberofgroups === 0) {
                 return false;
             }
 
-            for (var h = 0; h < numberofgroups; h++) {
+            for (h = 0; h < numberofgroups; h++) {
 
                 display = groups[h].display;
 
@@ -366,18 +445,16 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
                 spacerdiv;
 
             // Superclass will store the value and trigger the process in child nodes.
-            this.constructor.superclass.set_config_setting.call(this,
-                                                                                    settingtype,
-                                                                                    newsetting);
+            this.constructor.superclass.set_config_setting.call(this, settingtype, newsetting);
 
             // Might be inherited...
             settingtoshow = this.get_setting_to_display(settingtype);
 
             // Set the node's appearance. Might need to refer to parent if it's inherit.
-            containerid = 'block_ajax_marking_'+settingtype+'_icon'+this.index;
+            containerid = '#block_ajax_marking_'+settingtype+'_icon'+this.index;
 
-            iconcontainer = document.getElementById(containerid);
-            spacerdiv = iconcontainer.firstChild;
+            iconcontainer = Y.one(containerid);
+            spacerdiv = iconcontainer.one('*');
             if (settingtoshow === 1) {
                 if (settingtype === 'display') {
                     // Names of icons are for the actions on clicking them. Not what they look like.
@@ -396,8 +473,8 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
 
             // Get the icon, remove the old one and put it in place. Includes the title attribute,
             // which matters for accessibility.
-            icon = M.block_ajax_marking.get_dynamic_icon(iconname);
-            M.block_ajax_marking.remove_all_child_nodes(spacerdiv);
+            icon = this.get_dynamic_icon(iconname);
+            spacerdiv.get('childNodes').remove();
             spacerdiv.appendChild(icon);
         },
 
@@ -409,32 +486,36 @@ YUI.add('moodle-block_ajax_marking-configtreenode', function (Y) {
          */
         set_group_setting : function (groupid, newsetting) {
 
-            var groupsdetails;
+            var groupsdetails,
+                menuitems,
+                i,
+                groupdefault,
+                checked,
+                inherited;
 
-            if (typeof(newsetting) === 'undefined') {
+            if (typeof newsetting === 'undefined') {
                 newsetting = null;
             }
 
             // Superclass will store the value and trigger the process in child nodes.
-            this.constructor.superclass.set_group_setting.call(this, groupid,
-                                                                                   newsetting);
+            this.constructor.superclass.set_group_setting.call(this, groupid, newsetting);
 
             // Update the display on the button label.
             groupsdetails = this.get_groups_count();
             this.groupsmenubutton.set("label", groupsdetails);
 
             // Get menu items.
-            var menuitems = this.renderedmenu.getItems();
+            menuitems = this.renderedmenu.getItems();
 
-            for (var i = 0; i < menuitems.length; i++) {
+            for (i = 0; i < menuitems.length; i++) {
                 if (menuitems[i].value.groupid === groupid) {
                     // Might be inherited now, so check parent values.
-                    var groupdefault = this.get_setting_to_display('group', groupid);
-                    var checked = groupdefault ? true : false;
+                    groupdefault = this.get_setting_to_display('group', groupid);
+                    checked = groupdefault ? true : false;
                     menuitems[i].cfg.setProperty("checked", checked);
 
                     // TODO set inherited CSS.
-                    var inherited = (newsetting === null) ? 'notinherited' : 'inherited';
+                    inherited = (newsetting === null) ? 'notinherited' : 'inherited';
                     menuitems[i].cfg.setProperty("classname", inherited);
 
                     break; // Only one node with a particular groupid.

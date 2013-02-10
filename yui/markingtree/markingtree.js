@@ -32,6 +32,8 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
      */
     var MARKINGTREENAME = 'markingtree',
         MARKINGTREE = function () {
+            var shift = [].shift;
+            this.mainwidget = shift.apply(arguments);
             MARKINGTREE.superclass.constructor.apply(this, arguments);
             this.singleNodeHighlight = true;
             this.subscribe('clickEvent', this.clickhandler);
@@ -40,11 +42,17 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
     /**
      * @class M.block_ajax_marking.markingtree
      */
-    Y.extend(MARKINGTREE, YAHOO.widget.TreeView, {
+    Y.extend(MARKINGTREE, Y.YUI2.widget.TreeView, {
 
         // Keeps track of whether this tree needs to be refreshed when the tab changes (if config
         // settings have been altered).
         needsrefresh : false,
+
+        /**
+         * URL for getting the nodes details.
+         * @type {String}
+         */
+        ajaxnodesurl:M.cfg.wwwroot + '/blocks/ajax_marking/actions/ajax_nodes.php',
 
         /**
          * Subclasses may wish to have different nodes.
@@ -55,6 +63,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
          * New unified build nodes function.
          *
          * @param {Array} nodesarray
+         * @param {Integer} nodeindex
          */
         build_nodes : function (nodesarray, nodeindex) {
 
@@ -66,7 +75,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
                 i;
 
             if (nodeindex) {
-                parentnode = this.getNodeByProperty('index', nodeindex)
+                parentnode = this.getNodeByProperty('index', nodeindex);
             } else {
                 parentnode = this.getRoot();
             }
@@ -134,14 +143,40 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             // from the last node that was expanded.
             M.block_ajax_marking.oncompletefunctionholder = null;
 
-            // Show that the ajax request has been initialised.
-            YAHOO.util.Dom.addClass(document.getElementById('mainicon'), 'loaderimage');
-
             // Send the ajax request.
-            YAHOO.util.Connect.asyncRequest('POST', M.block_ajax_marking.ajaxnodesurl,
-                                            M.block_ajax_marking.callback, this.initial_nodes_data);
+            Y.io(this.ajaxnodesurl, {
+                on: {
+                    success:this.mainwidget.ajax_success_handler,
+                    failure: this.mainwidget.ajax_failure_handler
+                }, context: this.mainwidget, method: 'post', data:this.initial_nodes_data});
             this.add_loading_icon();
 
+        },
+
+
+        /**
+         * Finds out whether there is a custom nextnodefilter defined by the specific module e.g.
+         * quiz question. Allows the standard progression of nodes to be overridden.
+         *
+         * @param {string} modulename
+         * @param {string} currentfilter
+         * @return bool|string
+         */
+        get_next_nodefilter_from_module: function (modulename, currentfilter) {
+
+            var nextnodefilter = null,
+                modulejavascript;
+
+            if (typeof modulename === 'string') {
+                if (typeof M.block_ajax_marking[modulename] === 'object') {
+                    modulejavascript = M.block_ajax_marking[modulename];
+                    if (typeof modulejavascript.nextnodetype === 'function') {
+                        nextnodefilter = modulejavascript.nextnodetype(currentfilter);
+                    }
+                }
+            }
+
+            return nextnodefilter;
         },
 
         /**
@@ -184,10 +219,12 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
             nodefilters.push('nodeindex='+clickednode.index);
             nodefilters = nodefilters.join('&');
 
-            YAHOO.util.Connect.asyncRequest('POST',
-                                            M.block_ajax_marking.ajaxnodesurl,
-                                            M.block_ajax_marking.callback,
-                                            nodefilters);
+            // Send the ajax request.
+            Y.io(clickednode.tree.ajaxnodesurl, {
+                on: {
+                    success: clickednode.tree.mainwidget.ajax_success_handler,
+                    failure: clickednode.tree.mainwidget.ajax_failure_handler
+                }, context: clickednode.tree.mainwidget, method: 'post', data: nodefilters});
 
         },
 
@@ -245,7 +282,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
          * @param nodebeingremoved
          */
         hide_context_menu_before_node_removal : function (nodebeingremoved) {
-            var currenttab = M.block_ajax_marking.get_current_tab();
+            var currenttab = this.mainwidget.get_current_tab();
             if (currenttab.contextmenu &&
                 currenttab.contextmenu.clickednode &&
                 currenttab.contextmenu.clickednode === nodebeingremoved) {
@@ -330,15 +367,14 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
                 childnode = node.get_child_node_by_filter_id(nextnodefilter,
                                                              childnodedata[nextnodefilter]);
 
-                if (parseInt(childnode.itemcount) === 0) {
+                if (parseInt(childnode.itemcount, 10) === 0) { // If the last child node is gone, we remove the parent.
                     this.remove_node(childnode);
-                    continue;
+                } else {
+                    childnode.set_count(childnodedata.recentcount, 'recent');
+                    childnode.set_count(childnodedata.mediumcount, 'medium');
+                    childnode.set_count(childnodedata.overduecount, 'overdue');
+                    childnode.set_count(childnodedata.itemcount);
                 }
-
-                childnode.set_count(childnodedata.recentcount, 'recent');
-                childnode.set_count(childnodedata.mediumcount, 'medium');
-                childnode.set_count(childnodedata.overduecount, 'overdue');
-                childnode.set_count(childnodedata.itemcount);
             }
 
             node.recalculate_counts();

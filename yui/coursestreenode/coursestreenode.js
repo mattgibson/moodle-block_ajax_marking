@@ -89,13 +89,13 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
          */
         set_group_setting : function (groupid, newsetting, ischildnode) {
 
-            var currenttab = M.block_ajax_marking.get_current_tab(),
+            var currenttab = M.block_ajax_marking.block.get_current_tab(),
                 // Get child node for this group if there is one.
                 groupchildnode = this.get_child_node_by_filter_id('groupid', groupid),
                 actualsetting = this.get_setting_to_display('group', groupid),
                 currentfiltername = this.get_current_filter_name();
 
-            if (typeof(newsetting) === 'undefined') {
+            if (typeof newsetting === 'undefined') {
                 newsetting = null;
             }
 
@@ -156,10 +156,15 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
             nodefilters.push('nodeindex='+this.index);
             nodefilters = nodefilters.join('&');
 
-            YAHOO.util.Connect.asyncRequest('POST',
-                                            M.block_ajax_marking.ajaxcounturl,
-                                            M.block_ajax_marking.callback,
-                                            nodefilters);
+//            Y.YUI2.util.Connect.asyncRequest('POST',
+//                                            M.block_ajax_marking.ajaxcounturl,
+//                                            M.block_ajax_marking.callback,
+//                                            nodefilters);
+            Y.io(this.tree.ajaxcounturl, {
+                on: {
+                    success: this.tree.mainwidget.ajax_success_handler,
+                    failure: this.tree.mainwidget.ajax_failure_handler
+                }, context: this.tree.mainwidget, method: 'post', data: nodefilters});
         },
 
         /**
@@ -173,10 +178,15 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
             nodefilters.push('nodeindex='+this.index);
             nodefilters = nodefilters.join('&');
 
-            YAHOO.util.Connect.asyncRequest('POST',
-                                            M.block_ajax_marking.childnodecountsurl,
-                                            M.block_ajax_marking.callback,
-                                            nodefilters);
+//            Y.YUI2.util.Connect.asyncRequest('POST',
+//                                            M.block_ajax_marking.childnodecountsurl,
+//                                            M.block_ajax_marking.callback,
+//                                            nodefilters);
+            Y.io(this.tree.childnodecountsurl, {
+                on: {
+                    success: this.tree.mainwidget.ajax_success_handler,
+                    failure: this.tree.mainwidget.ajax_failure_handler
+                }, context: this.tree.mainwidget, method: 'post', data: nodefilters});
         }
 
     }, {
