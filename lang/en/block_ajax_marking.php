@@ -50,9 +50,7 @@ $string['showgroups']            = 'Show group nodes';
 $string['hidegroups']            = 'Hide group nodes';
 $string['choosegroups']          = 'Show/hide specific groups';
 $string['notingroup']            = 'Not in any group';
-$string['notingroupdescription'] = 'This activity is set to show students divided into groups.'.
-                                   ' These students have submitted work, but are not currently'.
-                                   ' members of any group';
+$string['notingroupdescription'] = 'This activity is set to show students divided into groups. These students have submitted work, but are not currently members of any group';
 $string['recentitems']           = 'recent items';
 $string['mediumitems']           = 'medium items';
 $string['overdueitems']          = 'overdue items';
@@ -67,4 +65,4 @@ $string['sessiontimedout']       = 'Your session has timed out. Please <a href="
 
 // Forum.
 $string['forummarkcomplete'] = 'Mark this discussion as done. It will reappear in the block if further items are posted.';
-$string['saveandrevert'] = 'Save and revert to draft';
+$string['saveandrevert']     = 'Save and revert to draft';
