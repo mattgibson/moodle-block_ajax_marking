@@ -34,6 +34,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_union.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/modules/assignment/block_ajax_marking_assignment_form.class.php');
+require_once($CFG->dirroot . '/grade/grading/lib.php');
 
 /**
  * Wrapper for the module_base class which adds the parts that deal with the assignment module.
@@ -179,9 +180,9 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
      * @return array
      */
     private function get_mform_data_object($course, $assignment, $submission, $user,
-                                          $coursemodule, $assignmentinstance) {
+                                          $coursemodule, $assignmentinstance, $skiprender = false) {
 
-        global $USER, $CFG;
+        global $USER, $CFG, $PAGE;
 
         $context = context_module::instance($coursemodule->id);
         // Get grading information to see whether we should be allowed to make changed at all.
@@ -212,8 +213,11 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         $mformdata->nextid = false;
         $mformdata->submissioncomment = $submission->submissioncomment;
         $mformdata->submissioncommentformat = FORMAT_HTML;
+
+        // JS error due to the renderer not including the js module. Caused by render_assignment_files in the assignment renderer.
+        $PAGE->requires->js('/mod/assignment/assignment.js');
         $mformdata->submission_content = $assignmentinstance->print_user_files($user->id,
-                                                                               true);
+                                                                                   true);
 
         if ($assignment->assignmenttype == 'upload') {
             $mformdata->fileui_options = array(
@@ -337,7 +341,7 @@ class block_ajax_marking_assignment extends block_ajax_marking_module_base {
         // Sort out the form ready to tell it to display.
         list($mformdata, $advancedgradingwarning) =
             $this->get_mform_data_object($course, $assignment, $submission, $user,
-                                         $coursemodule, $assignmentinstance);
+                                         $coursemodule, $assignmentinstance, true);
         $submitform = new block_ajax_marking_assignment_form(block_ajax_marking_form_url($params),
                                                              $mformdata);
         $submitform->set_data($mformdata);

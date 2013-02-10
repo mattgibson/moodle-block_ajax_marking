@@ -89,7 +89,7 @@ YUI.add('moodle-block_ajax_marking-coursestreenode', function (Y) {
          */
         set_group_setting : function (groupid, newsetting, ischildnode) {
 
-            var currenttab = M.block_ajax_marking.get_current_tab(),
+            var currenttab = M.block_ajax_marking.block.get_current_tab(),
                 // Get child node for this group if there is one.
                 groupchildnode = this.get_child_node_by_filter_id('groupid', groupid),
                 actualsetting = this.get_setting_to_display('group', groupid),

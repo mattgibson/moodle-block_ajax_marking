@@ -371,7 +371,6 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
          * @return object
          */
         get_current_tab : function () {
-
             return this.tabview.get('selection');
         },
 
@@ -789,10 +788,11 @@ YUI().add('moodle-block_ajax_marking-mainwidget', function(Y) {
 
     M.block_ajax_marking.mainwidget = MAINWIDGET;
 
-    M.block_ajax_marking.blocks = [];
+    // Holds the instance of the block for the current page. Allows easy access to the callback function from the
+    // grading popup so it can ask the widget to remove the node that was just marked.
 
     M.block_ajax_marking.init_block = function () { // 'config' contains the parameter values
-        M.block_ajax_marking.blocks.push(new M.block_ajax_marking.mainwidget()); // 'config' contains the parameter values
+        M.block_ajax_marking.block = new M.block_ajax_marking.mainwidget(); // 'config' contains the parameter values
     };
 
 }, '@VERSION@', {

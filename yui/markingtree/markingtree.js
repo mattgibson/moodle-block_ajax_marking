@@ -282,7 +282,7 @@ YUI.add('moodle-block_ajax_marking-markingtree', function (Y) {
          * @param nodebeingremoved
          */
         hide_context_menu_before_node_removal : function (nodebeingremoved) {
-            var currenttab = M.block_ajax_marking.get_current_tab();
+            var currenttab = this.mainwidget.get_current_tab();
             if (currenttab.contextmenu &&
                 currenttab.contextmenu.clickednode &&
                 currenttab.contextmenu.clickednode === nodebeingremoved) {

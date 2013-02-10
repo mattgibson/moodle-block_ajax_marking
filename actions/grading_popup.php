@@ -109,7 +109,7 @@ if ($data && confirm_sesskey()) {
         echo $OUTPUT->header();
         echo $OUTPUT->notification(get_string('changessaved'), 'notifysuccess');
         $callfunction = "
-            window.opener.M.block_ajax_marking.remove_node_from_current_tab({$nodeid});
+            window.opener.M.block_ajax_marking.block.remove_node_from_current_tab({$nodeid});
         ";
         $PAGE->requires->js_init_code($callfunction, false);
 
@@ -129,7 +129,7 @@ $code = "
 
     function close_window_and_remove_node_highlight(nodeid) {
         // Get tree
-        var tab = window.opener.M.block_ajax_marking.get_current_tab();
+        var tab = window.opener.M.block_ajax_marking.block.get_current_tab();
         var tree = tab.displaywidget;
 
         // get node

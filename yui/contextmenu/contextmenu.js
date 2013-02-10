@@ -58,7 +58,7 @@ YUI.add('moodle-block_ajax_marking-contextmenu', function (Y) {
             this.clearContent();
 
             target = this.contextEventTarget;
-            clickednode = M.block_ajax_marking.get_current_tab().displaywidget.getNodeByElement(target);
+            clickednode = M.block_ajax_marking.block.get_current_tab().displaywidget.getNodeByElement(target);
             this.clickednode = clickednode; // Makes it easier later.
             groups = clickednode.get_groups();
 

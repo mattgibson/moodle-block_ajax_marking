@@ -75,11 +75,10 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
      */
     public function grading_popup(array $params, $coursemodule, $data = false) {
 
-        global $PAGE, $CFG, $DB;
+        global $DB;
 
         $modulecontext = context_module::instance($coursemodule->id);
         $course = $DB->get_record('course', array('id' => $coursemodule->course));
-        $coursecontext = context_course::instance($course->id);
 
         $assign = new assign($modulecontext, $coursemodule, $course);
 
