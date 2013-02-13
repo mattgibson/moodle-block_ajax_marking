@@ -377,10 +377,8 @@ class block_ajax_marking_assign extends block_ajax_marking_module_base {
                               'join' => 'LEFT JOIN',
                               'table' => 'assign_grades',
                               'on' => 'assign_grades.assignment = moduletable.id AND
-                                       assign_grades.userid = sub.userid AND
-                                       assign_grades.grader = :assigngraderid'
+                                       assign_grades.userid = sub.userid'
                          ));
-        $query->add_param('assigngraderid', $USER->id);
 
         // Standard user id for joins.
         $query->add_select(array('table' => 'sub',
