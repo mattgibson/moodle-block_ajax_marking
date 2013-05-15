@@ -427,7 +427,7 @@ class block_ajax_marking_groupid extends block_ajax_marking_filter_base {
                 MAX(displaytable.groupid) AS groupid,
                 displaytable.cmid
            FROM ({$visibilitysubquery}) AS displaytable
-     INNER JOIN mdl_groups_members members
+     INNER JOIN {groups_members} members
              ON members.groupid = displaytable.groupid
        GROUP BY members.userid,
                 displaytable.cmid
