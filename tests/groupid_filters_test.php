@@ -36,7 +36,7 @@ require_once($CFG->dirroot.'/blocks/ajax_marking/filters/groupid/attach_countwra
 /**
  * Tests the filter system to see if it alters the query properly.
  *
- * We have a number of varibles to test:
+ * We have a number of variables to test:
  *
  * - Number of groups a user is in: 0, 1, many
  * - Groups all hidden, all not hidden, or a mixture
@@ -193,7 +193,7 @@ class groupid_filters_test extends advanced_testcase {
     }
 
     /**
-     * Sorts out forum1 and asign1
+     * Sorts out forum1 and assign1
      *
      * @param phpunit_data_generator $generator
      */
