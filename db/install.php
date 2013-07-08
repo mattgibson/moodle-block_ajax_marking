@@ -16,8 +16,8 @@
 
 /**
  *
- * @package
- * @subpackage
+ * @package    block
+ * @subpackage ajax_marking
  * @copyright  2012 Matt Gibson
  * @author     Matt Gibson {@link http://moodle.org/user/view.php?id=81450}
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
