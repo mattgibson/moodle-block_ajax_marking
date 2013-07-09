@@ -66,3 +66,4 @@ $string['sessiontimedout']       = 'Your session has timed out. Please <a href="
 // Forum.
 $string['forummarkcomplete'] = 'Mark this discussion as done. It will reappear in the block if further items are posted.';
 $string['saveandrevert']     = 'Save and revert to draft';
+$string['ajax_marking:addinstance'] = 'Add instance';
