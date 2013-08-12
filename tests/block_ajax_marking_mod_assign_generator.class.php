@@ -28,7 +28,6 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/lib/phpunit/classes/module_generator.php');
 require_once($CFG->dirroot.'/mod/assign/mod_form.php');
 require_once($CFG->dirroot.'/mod/assign/tests/generator/lib.php');
 

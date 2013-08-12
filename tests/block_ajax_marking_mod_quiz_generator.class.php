@@ -28,12 +28,11 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 
 require_once($CFG->dirroot.'/mod/quiz/editlib.php');
-require_once($CFG->dirroot.'/lib/phpunit/classes/module_generator.php');
 
 /**
  * Makes unit test data for the quiz module.
  */
-class block_ajax_marking_mod_quiz_generator extends phpunit_module_generator {
+class block_ajax_marking_mod_quiz_generator extends testing_module_generator {
 
     /**
      * Gets DB module name.

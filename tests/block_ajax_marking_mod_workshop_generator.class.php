@@ -27,12 +27,11 @@ defined('MOODLE_INTERNAL') || die();
 
 global $CFG;
 
-require_once($CFG->dirroot.'/lib/phpunit/classes/module_generator.php');
 
 /**
  * Makes test data for the workshop module for use with phpunit tests.
  */
-class block_ajax_marking_mod_workshop_generator extends phpunit_module_generator {
+class block_ajax_marking_mod_workshop_generator extends testing_module_generator {
 
     /**
      * Create a test module
