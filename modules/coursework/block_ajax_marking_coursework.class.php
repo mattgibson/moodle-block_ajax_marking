@@ -30,13 +30,21 @@ global $CFG;
 
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/query_base.class.php');
 require_once($CFG->dirroot.'/blocks/ajax_marking/classes/module_base.class.php');
-require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework_submission.class.php');
-require_once($CFG->dirroot.'/lib/adminlib.php');
-require_once($CFG->dirroot.'/lib/formslib.php');
-require_once($CFG->dirroot.'/local/ulcc_form_library/ulcc_form.class.php');
-require_once($CFG->dirroot.'/mod/coursework/renderer.php');
-require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework.class.php');
-require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework_submission.class.php');
+
+if (file_exists($CFG->dirroot . '/mod/coursework/classes/tables/coursework_submission.class.php')) {
+    require_once($CFG->dirroot.'/mod/coursework/classes/tables/coursework_submission.class.php');
+    require_once($CFG->dirroot . '/mod/coursework/renderer.php');
+    require_once($CFG->dirroot . '/mod/coursework/classes/tables/coursework.class.php');
+    require_once($CFG->dirroot . '/mod/coursework/classes/tables/coursework_submission.class.php');
+}
+
+if (file_exists($CFG->dirroot . '/local/ulcc_form_library/ulcc_form.class.php')) {
+    require_once($CFG->dirroot.'/local/ulcc_form_library/ulcc_form.class.php');
+}
+
+require_once($CFG->dirroot . '/lib/adminlib.php');
+require_once($CFG->dirroot . '/lib/formslib.php');
+
 
 /**
  * Extension to the block_ajax_marking_module_base class which adds the parts that deal
