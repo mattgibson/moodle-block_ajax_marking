@@ -2,6 +2,8 @@
 
 Sadly, I just don't have time to keep up with the chages to core which keep breaking different parts of it. It really needs a full rewrite, but there's not going to be time for me to do that given my current commitments.
 
+# Instructions
+
 Full documentation is available at: http://docs.moodle.org/en/Ajax_marking_block
 
 This block displays all of your marking from all of your courses in one place and allows you to
