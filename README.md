@@ -1,26 +1,3 @@
-// This file is part of Moodle - http://moodle.org/
-//
-// Moodle is free software: you can redistribute it and/or modify
-// it under the terms of the GNU General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-//
-// Moodle is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
-//
-// You should have received a copy of the GNU General Public License
-// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
-
-/**
- * Basic readme file in English.
- *
- * @package   blocks-ajax_marking
- * @copyright 2008-2011 Matt Gibson
- * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
- */
-
 Full documentation is available at: http://docs.moodle.org/en/Ajax_marking_block
 
 This block displays all of your marking from all of your courses in one place and allows you to
