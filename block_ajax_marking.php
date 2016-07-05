@@ -59,6 +59,21 @@ class block_ajax_marking extends block_base {
     }
 
     /**
+     * Standard function to determine where block can be placed
+     *
+     * @return array
+     */
+    public function applicable_formats() {
+        return array(
+            'site-index' => false,
+            'course-view' => true, 
+            'course-view-social' => false,
+            'mod' => true, 
+            'my' => false
+        );
+    }
+
+    /**
      * Standard get content function returns $this->content containing the block HTML etc
      *
      * @return bool|\stdClass
